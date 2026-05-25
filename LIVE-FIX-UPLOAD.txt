@@ -1,0 +1,15 @@
+যদি git pull কাজ না করে — File Manager এ শুধু এই ফাইলগুলো upload/replace করুন:
+
+  server.js
+  lib/registerAdminAuth.js
+  lib/adminToken.js
+  lib/sessionSave.js
+  public/js/admin.js
+  routes/admin.js
+
+তারপর cPanel: STOP APP → ১০ সেকেন্ড → START → Run NPM Install
+
+টেস্ট: https://rakushopbd.com/api/admin/version
+দেখতে হবে: "source":"server-bootstrap"
+
+Login: admin@rakushopbd.com / BDRakuadmin2026%%

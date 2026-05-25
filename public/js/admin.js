@@ -212,19 +212,8 @@
       if (data.token) {
         setAdminToken(data.token);
       } else {
-        const meCheck = await fetch(API + '/me', {
-          headers: authHeaders(),
-          credentials: 'same-origin',
-        }).then((r) => r.json()).catch(() => ({}));
-        if (!meCheck.admin) {
-          toast('Server restart দরকার — cPanel: STOP → Pull → NPM Install → START');
-          err.querySelector('span').textContent =
-            'Login OK but session/token missing. Node app RESTART করুন।';
-          err.style.display = 'flex';
-          return;
-        }
+        toast('Reload-এ login থাকতে: cPanel git pull + STOP → START (১ মিনিট)');
       }
-      if (data.token) setAdminToken(data.token);
       cacheAdminUser(data.admin);
       authRedirectHold = true;
       setAdminUI(data.admin);
@@ -232,7 +221,7 @@
       switchPage('dashboard');
       setTimeout(() => {
         authRedirectHold = false;
-      }, 5000);
+      }, 8000);
     } else {
       const msg = err.querySelector('span') || err;
       if (msg.tagName === 'SPAN') msg.textContent = data.error || 'Invalid username or password';

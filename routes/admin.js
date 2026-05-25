@@ -34,11 +34,16 @@ async function getSettingsMap() {
 router.get('/ping', async (req, res) => {
   try {
     const [row] = await query('SELECT COUNT(*) AS adminCount FROM admins');
-    res.json({ ok: true, adminCount: Number(row.adminCount) || 0 });
+    res.json({ ok: true, adminCount: Number(row.adminCount) || 0, apiVersion: 2 });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Database error' });
   }
+});
+
+/** Live server check: if this returns apiVersion 2, Git Pull succeeded */
+router.get('/version', (req, res) => {
+  res.json({ ok: true, apiVersion: 2, hasAuthToken: true });
 });
 
 router.post('/login', async (req, res) => {

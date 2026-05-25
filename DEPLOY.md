@@ -77,12 +77,22 @@ npm run admin:sync
 
 ---
 
-## ৬. যাচাই
+## ৬. যাচাই (Git Pull হয়েছে কিনা)
+
+| URL | প্রত্যাশিত | পুরনো server |
+|-----|------------|---------------|
+| `/api/admin/version` | `{"ok":true,"apiVersion":2}` | Page not found |
+| `/api/admin/ping` | `{"ok":true,"adminCount":1,"apiVersion":2}` | Page not found |
+| Login response | `"token":"..."` আছে | token নেই → Missing auth token |
+
+**Login কাজ করে কিন্তু toast “Missing auth token”** = শুধু **backend** পুরনো (Git Pull হয়নি)। Frontend নতুন, server পুরনো।
+
+---
+
+## ৬ব. Admin login
 
 | URL | প্রত্যাশিত |
 |-----|------------|
-| https://rakushopbd.com | সাইট |
-| https://rakushopbd.com/api/admin/ping | `{"ok":true,"adminCount":1}` |
 | https://rakushopbd.com/admin | Login |
 
 **Admin login:**

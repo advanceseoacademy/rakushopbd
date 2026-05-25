@@ -210,7 +210,10 @@
     });
     if (data.ok && data.admin) {
       if (!data.token) {
-        toast('Missing auth token — run Git Pull + Restart on server, then try again');
+        toast('Live server পুরনো code — cPanel: Git Pull + npm install + Restart');
+        err.querySelector('span').textContent =
+          'Backend not updated. Git Pull করুন, তারপর Terminal: npm install && npm run admin:sync';
+        err.style.display = 'flex';
         return;
       }
       setAdminToken(data.token);

@@ -125,6 +125,9 @@
       showAdmin();
       switchPage('dashboard');
     } else {
+      const msg = err.querySelector('span') || err;
+      if (msg.tagName === 'SPAN') msg.textContent = data.error || 'Invalid username or password';
+      else err.lastChild.textContent = ' ' + (data.error || 'Invalid username or password');
       err.style.display = 'flex';
     }
   });

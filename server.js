@@ -10,6 +10,12 @@ const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isProduction = process.env.NODE_ENV === 'production';
+
+// cPanel / reverse proxy: HTTPS terminates in front of Node — needed for secure session cookies
+if (isProduction) {
+  app.set('trust proxy', 1);
+}
 
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
@@ -26,7 +32,9 @@ app.use(
     cookie: {
       maxAge: 7 * 24 * 60 * 60 * 1000,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      // Set COOKIE_SECURE=false in cPanel env only if you must test over plain HTTP
+      secure: isProduction && process.env.COOKIE_SECURE !== 'false',
     },
   })
 );

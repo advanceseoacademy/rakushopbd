@@ -79,43 +79,9 @@ npm run admin:sync
 
 ## cPanel এ ডিপ্লয়
 
-### ১. MySQL
+সম্পূর্ণ ধাপ: **[DEPLOY.md](./DEPLOY.md)**
 
-1. cPanel → **MySQL Databases**
-2. নতুন database ও user তৈরি করুন
-3. user-কে database-এ **All Privileges** দিন
-4. phpMyAdmin → **Import** → `database/schema.sql` তারপর `database/seed.sql`
-
-### ২. ফাইল আপলোড
-
-`RakuShopBD` ফোল্ডারের সব ফাইল `public_html` বা subdomain ফোল্ডারে আপলোড করুন (FTP / File Manager)।
-
-### ৩. Node.js App
-
-1. cPanel → **Setup Node.js App**
-2. **Create Application**
-   - Node version: 18 বা তার উপরে
-   - Application root: আপনার প্রজেক্ট ফোল্ডার (যেখানে `server.js` আছে)
-   - Application URL: আপনার ডোমেইন
-   - Application startup file: `server.js`
-3. Environment variables যোগ করুন:
-
-   | Variable | Value |
-   |----------|--------|
-   | `DB_HOST` | `localhost` |
-   | `DB_USER` | cPanel MySQL user |
-   | `DB_PASSWORD` | MySQL password |
-   | `DB_NAME` | cPanel database name |
-   | `SESSION_SECRET` | দীর্ঘ র্যান্ডম স্ট্রিং |
-   | `NODE_ENV` | `production` |
-   | `PORT` | cPanel যে পোর্ট দেয় (সাধারণত অটো) |
-
-4. **Run NPM Install** ক্লিক করুন
-5. **Restart** করুন
-
-### ৪. `.env` (ঐচ্ছিক)
-
-cPanel Environment variables ব্যবহার করলে `.env` ফাইল লাগবে না। লোকালের মতো `.env` রাখতে চাইলে প্রজেক্ট রুটে রাখুন — `dotenv` সেটা পড়বে।
+সংক্ষেপ: Git clone → MySQL import (`schema`, `auth-schema`, `admin-schema`, `admin-extended`) → Node.js app → env variables → `npm run admin:sync` → `public_html/index.html` মুছুন → Restart।
 
 ---
 

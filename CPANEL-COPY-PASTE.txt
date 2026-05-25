@@ -2,6 +2,11 @@
   RakuShopBD — cPanel এ copy-paste করুন (Mac Terminal নয়)
 ═══════════════════════════════════════════════════════════
 
+⓪ গুরুত্বপূর্ণ — node_modules মুছুন (লাল error fix)
+   File Manager → repositories/rakushopbd →
+   "node_modules" ফোল্ডার DELETE করুন (পুরো folder)
+   (cPanel নিজে symlink বানাবে — real folder থাকলে error)
+
 ① cPanel ব্রাউজার → Terminal খুলুন
 
 ② এই লাইনগুলো একটার পর একটা paste করুন:
@@ -19,7 +24,9 @@ npm install
 
 npm run admin:sync
 
-③ cPanel → Setup Node.js App → STOP APP → ১০ সেকেন্ড → START
+③ cPanel → Setup Node.js App
+   → Run NPM Install  (node_modules মুছার পর)
+   → STOP APP → ১০ সেকেন্ড → START
 
 touch tmp/restart.txt
 

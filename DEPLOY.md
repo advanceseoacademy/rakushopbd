@@ -28,6 +28,20 @@ Path (উদাহরণ): `repositories/rakushopbd`
 
 ---
 
+## ২ব. `node_modules` মুছুন (অবশ্যই)
+
+cPanel **লাল error** দেখালে:
+
+> application should not contain folder/file named `node_modules` in application root
+
+**File Manager** → `repositories/rakushopbd` → **`node_modules` ফোল্ডার Delete** করুন।
+
+তারপর cPanel → **Run NPM Install** (symlink নিজে বানাবে)।
+
+ZIP upload করলে `node_modules` সহ upload করবেন **না**।
+
+---
+
 ## ৩. Node.js Application
 
 | ফিল্ড | মান |

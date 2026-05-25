@@ -7,7 +7,9 @@
   public/js/admin.js
   routes/admin.js
 
-তারপর cPanel: STOP APP → ১০ সেকেন্ড → START → Run NPM Install
+আগে File Manager এ node_modules ফোল্ডার DELETE করুন (থাকলে)!
+
+তারপর cPanel: Run NPM Install → STOP → START
 
 টেস্ট: https://rakushopbd.com/api/admin/version
 দেখতে হবে: "source":"server-bootstrap"

@@ -1,0 +1,43 @@
+═══════════════════════════════════════════════════════════
+  RakuShopBD — cPanel এ copy-paste করুন (Mac Terminal নয়)
+═══════════════════════════════════════════════════════════
+
+① cPanel ব্রাউজার → Terminal খুলুন
+
+② এই লাইনগুলো একটার পর একটা paste করুন:
+
+cd ~/repositories/rakushopbd
+
+git pull origin main
+
+source /home/rakushop/nodevenv/repositories/rakushopbd/20/bin/activate
+
+npm install
+
+npm run admin:sync
+
+③ cPanel → Setup Node.js App → RESTART
+
+④ ব্রাউজারে টেস্ট:
+   https://rakushopbd.com/api/admin/version
+   (দেখতে হবে: "apiVersion":2)
+
+⑤ Admin login:
+   https://rakushopbd.com/admin
+   User: admin@rakushopbd.com
+   Pass: BDRakuadmin2026%%
+
+⑥ public_html/index.html মুছে দিন (থাকলে)
+
+───────────────────────────────────────────────────────────
+যদি cd ~/repositories/rakushopbd fail হয়:
+  File Manager → যেখানে server.js → সেই path এ cd করুন
+
+যদে npm not found:
+  Node.js App → Stop → Run NPM Install → Start
+  তারপর virtualenv line আবার চালান
+
+যদি git pull না হয়:
+  Git Version Control → Pull বাটন
+  অথবা GitHub ZIP → File Manager upload
+───────────────────────────────────────────────────────────

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title><%= siteName %> — Under Maintenance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="/css/maintenance.css">
+<link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
+</head>
+<body class="maint-body">
+<div class="maint-bg" aria-hidden="true"></div>
+
+<div class="maint-wrap">
+  <div class="maint-card">
+    <img src="/images/rakushopbd-logo.png" alt="<%= siteName %>" class="maint-logo" width="240" height="62">
+
+    <div class="maint-icon-ring">
+      <i class="ti ti-tools"></i>
+    </div>
+
+    <h1 class="maint-title">We'll be back soon</h1>
+    <p class="maint-sub"><%= message %></p>
+
+    <% if (announcement) { %>
+    <div class="maint-announce"><%- announcement %></div>
+    <% } %>
+
+    <div class="maint-progress" aria-hidden="true">
+      <div class="maint-progress-bar"></div>
+    </div>
+
+    <div class="maint-contact">
+      <% if (contactPhone) { %>
+      <a href="tel:<%= contactPhone.replace(/\s/g, '') %>"><i class="ti ti-phone"></i><%= contactPhone %></a>
+      <% } %>
+      <% if (contactEmail) { %>
+      <a href="mailto:<%= contactEmail %>"><i class="ti ti-mail"></i><%= contactEmail %></a>
+      <% } %>
+    </div>
+
+    <p class="maint-tagline">Comfort your life</p>
+  </div>
+
+</div>
+</body>
+</html>

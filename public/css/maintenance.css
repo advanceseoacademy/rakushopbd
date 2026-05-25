@@ -1,0 +1,186 @@
+/* RakuShopBD — Maintenance page */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body.maint-body {
+  min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: #1a1a1a;
+  background: #0a1a0a;
+  overflow-x: hidden;
+}
+
+.maint-bg {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(45, 138, 45, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 90%, rgba(212, 134, 150, 0.25) 0%, transparent 50%),
+    linear-gradient(160deg, #0f2810 0%, #164816 40%, #103010 100%);
+  z-index: 0;
+}
+
+.maint-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.6;
+}
+
+.maint-wrap {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px 48px;
+  text-align: center;
+}
+
+.maint-card {
+  width: 100%;
+  max-width: 520px;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 24px;
+  padding: 40px 36px 36px;
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.04),
+    0 24px 60px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  animation: maintIn 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes maintIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.maint-logo {
+  display: block;
+  max-width: 240px;
+  height: auto;
+  margin: 0 auto 28px;
+}
+
+.maint-icon-ring {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e8f5e8 0%, #fce8ec 100%);
+  border: 2px solid rgba(32, 96, 32, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: maintPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes maintPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(45, 138, 45, 0.2); }
+  50% { box-shadow: 0 0 0 12px rgba(45, 138, 45, 0); }
+}
+
+.maint-icon-ring i {
+  font-size: 34px;
+  color: #206020;
+}
+
+.maint-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #103010;
+  letter-spacing: -0.02em;
+  margin-bottom: 10px;
+  line-height: 1.2;
+}
+
+.maint-sub {
+  font-size: 15px;
+  color: #64748b;
+  line-height: 1.65;
+  margin-bottom: 24px;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.maint-announce {
+  font-size: 13px;
+  color: #206020;
+  background: #e8f5e8;
+  border: 1px solid rgba(32, 96, 32, 0.12);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.maint-progress {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+
+.maint-progress-bar {
+  height: 100%;
+  width: 65%;
+  background: linear-gradient(90deg, #206020, #2d8a2d, #d48696);
+  border-radius: 99px;
+  animation: maintBar 2s ease-in-out infinite alternate;
+}
+
+@keyframes maintBar {
+  from { width: 55%; opacity: 0.85; }
+  to { width: 78%; opacity: 1; }
+}
+
+.maint-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.maint-contact a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #206020;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+
+.maint-contact a:hover {
+  background: #e8f5e8;
+  border-color: #2d8a2d;
+  transform: translateY(-1px);
+}
+
+.maint-contact a i { font-size: 18px; }
+
+.maint-tagline {
+  margin-top: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+
+@media (max-width: 480px) {
+  .maint-card { padding: 32px 22px 28px; border-radius: 20px; }
+  .maint-title { font-size: 24px; }
+  .maint-logo { max-width: 200px; }
+}

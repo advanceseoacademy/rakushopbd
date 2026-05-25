@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RakuShopBD — Admin Panel</title>
+<link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="/css/admin.css">
+<style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
+</head>
+<body>
+
+<div id="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-login" width="300" height="80">
+    </div>
+    <div class="login-tagline">Admin Dashboard — Sign in to manage your store</div>
+    <div class="login-error" id="login-error"><i class="ti ti-alert-circle"></i> Invalid username or password</div>
+    <form id="login-form">
+      <label class="login-label">Username / Email</label>
+      <input class="login-input" id="inp-user" type="text" placeholder="admin" autocomplete="username" required>
+      <label class="login-label">Password</label>
+      <div style="position:relative;">
+        <input class="login-input" id="inp-pass" type="password" placeholder="••••••••" autocomplete="current-password" required style="padding-right:44px;">
+        <button type="button" id="toggle-pass" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#94a3b8;font-size:18px;"><i class="ti ti-eye" id="pass-eye"></i></button>
+      </div>
+      <button class="login-btn" type="submit" style="margin-top:8px;"><i class="ti ti-lock"></i> Sign In</button>
+    </form>
+  </div>
+</div>
+
+<div id="admin-page">
+<div class="adm-layout">
+  <div class="adm-sidebar-overlay" id="adm-sidebar-overlay" aria-hidden="true"></div>
+  <aside class="sidebar" id="adm-sidebar">
+    <div class="sidebar-logo">
+      <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-sidebar" width="240" height="58">
+      <div class="sidebar-version">Admin Panel</div>
+    </div>
+    <div class="sidebar-section">Main</div>
+    <div class="nav-item active" data-page="dashboard"><i class="ti ti-dashboard"></i> Dashboard</div>
+    <div class="nav-item" data-page="orders"><i class="ti ti-shopping-bag"></i> Orders <span class="nav-badge" id="order-badge">0</span></div>
+    <div class="nav-item" data-page="products"><i class="ti ti-box"></i> Products</div>
+    <div class="nav-item" data-page="customers"><i class="ti ti-users"></i> Customers</div>
+    <div class="nav-item" data-page="analytics"><i class="ti ti-chart-bar"></i> Analytics</div>
+    <div class="sidebar-section">Manage</div>
+    <div class="nav-item" data-page="categories"><i class="ti ti-category"></i> Categories</div>
+    <div class="nav-item" data-page="coupons"><i class="ti ti-discount"></i> Coupons</div>
+    <div class="nav-item" data-page="reviews"><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
+    <div class="nav-item" data-page="banners"><i class="ti ti-photo"></i> Banners</div>
+    <div class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Settings</div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="sidebar-avatar" id="sidebar-avatar">A</div>
+        <div>
+          <div class="sidebar-username" id="sidebar-name">Admin</div>
+          <div class="sidebar-email" id="sidebar-email">—</div>
+        </div>
+      </div>
+      <button type="button" class="logout-btn" id="logout-btn"><i class="ti ti-logout"></i> Sign Out</button>
+    </div>
+  </aside>
+
+  <div class="adm-main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button type="button" class="adm-menu-btn" id="adm-menu-btn" aria-label="Open menu" aria-expanded="false"><i class="ti ti-menu-2"></i></button>
+        <div>
+          <div class="topbar-title" id="page-title">Dashboard</div>
+          <div class="breadcrumb"><i class="ti ti-home" style="font-size:11px;"></i> Home <i class="ti ti-chevron-right" style="font-size:10px;"></i> <span id="breadcrumb-current">Dashboard</span></div>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <button type="button" class="topbar-btn" id="view-site-btn"><i class="ti ti-external-link"></i> <span class="topbar-btn-label">View Store</span></button>
+        <div class="topbar-avatar" id="topbar-avatar">A</div>
+      </div>
+    </div>
+
+    <div class="adm-content">
+
+      <div class="adm-section active" id="sec-dashboard">
+        <div class="stats-grid" id="dash-stats"></div>
+        <div class="charts-row">
+          <div class="card">
+            <div class="card-title">Monthly Revenue (৳ thousands)</div>
+            <canvas id="revenue-chart" width="600" height="220" style="max-width:100%;"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-title">Order Status</div>
+            <canvas id="donut-chart" width="260" height="160" style="display:block;margin:0 auto;"></canvas>
+            <div class="donut-legend" id="donut-legend"></div>
+          </div>
+        </div>
+        <div class="side-layout">
+          <div class="table-wrap" style="margin:0;">
+            <div class="table-header"><h3>Recent Orders</h3><button type="button" class="btn btn-outline btn-sm" data-goto="orders">View all</button></div>
+            <table class="tbl"><thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
+            <tbody id="dash-orders-tbody"></tbody></table>
+          </div>
+          <div class="card" style="margin:0;">
+            <div class="card-title">Recent Activity</div>
+            <div class="activity-list" id="dash-activity"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-orders">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>All Orders</h3>
+            <div class="table-actions">
+              <input class="tbl-search" id="orders-search" type="text" placeholder="Search orders...">
+              <select class="tbl-select" id="orders-status-filter">
+                <option value="all">All status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="shipped">Shipped</option>
+                <option value="delivered">Delivered</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
+              <select class="tbl-select" id="orders-payment-filter">
+                <option value="all">All payment</option>
+                <option value="cod">COD</option>
+                <option value="bkash">bKash</option>
+                <option value="nagad">Nagad</option>
+                <option value="card">Card</option>
+              </select>
+              <a href="/api/admin/orders/export" class="btn btn-primary btn-sm" id="orders-export-btn" target="_blank"><i class="ti ti-download"></i> Export</a>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Payment</th><th>Date</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="orders-tbody"></tbody></table>
+          <div class="pagination-bar" id="orders-pagination"></div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-products">
+        <div class="side-layout">
+          <div>
+            <div class="table-wrap" style="margin:0;">
+              <div class="table-header">
+                <h3>Products</h3>
+                <div class="table-actions">
+                  <input class="tbl-search" id="products-search" type="text" placeholder="Search products...">
+                  <select class="tbl-select" id="products-cat-filter"><option value="all">All categories</option></select>
+                </div>
+              </div>
+              <table class="tbl"><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
+              <tbody id="products-tbody"></tbody></table>
+            </div>
+          </div>
+          <div class="card" style="margin:0;">
+            <div class="card-title" id="product-form-title">Add Product</div>
+            <form id="product-form">
+              <input type="hidden" id="pf-id" value="">
+              <div class="form-group"><label class="form-label">Product name *</label><input class="form-input" id="pf-name" required></div>
+              <div class="form-group"><label class="form-label">Category *</label><select class="form-input form-select" id="pf-category" required></select></div>
+              <div class="form-2col">
+                <div class="form-group"><label class="form-label">Price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" required></div>
+                <div class="form-group"><label class="form-label">Old price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0"></div>
+              </div>
+              <div class="form-2col">
+                <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="pf-sku" placeholder="PROD-001"></div>
+                <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="pf-desc" rows="2"></textarea></div>
+              <div class="form-group"><label class="form-label">Image URL</label><input class="form-input" id="pf-image-url" placeholder="/uploads/..."></div>
+              <div class="form-group"><label class="form-label">Upload image</label><input class="form-input" type="file" id="pf-image-file" accept="image/*"></div>
+              <div class="form-2col">
+                <div class="form-group"><label class="form-label">Icon class</label><input class="form-input" id="pf-icon" placeholder="ti-watch" value="ti-package"></div>
+                <div class="form-group"><label class="form-label">Icon color</label><input class="form-input" id="pf-icon-color" value="#2d8a2d"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="pf-bg" value="#e8f5e8"></div>
+              <div class="form-group"><label class="form-label">Tag</label>
+                <select class="form-input form-select" id="pf-tag">
+                  <option value="none">None</option><option value="discount">Discount</option>
+                  <option value="bestseller">Best seller</option><option value="hot">Hot</option><option value="new">New</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label"><input type="checkbox" id="pf-featured" checked> Show on homepage</label></div>
+              <div style="display:flex;gap:8px;">
+                <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;"><i class="ti ti-device-floppy"></i> Save</button>
+                <button type="button" class="btn btn-outline" id="pf-reset">Clear</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-customers">
+        <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;" id="customer-stats"></div>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Customers</h3>
+            <div class="table-actions">
+              <input class="tbl-search" id="customers-search" type="text" placeholder="Search customers...">
+              <a href="/api/admin/customers/export" class="btn btn-primary btn-sm" target="_blank"><i class="ti ti-download"></i> Export CSV</a>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Orders</th><th>Total spent</th><th>Joined</th></tr></thead>
+          <tbody id="customers-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-categories">
+        <div class="side-layout">
+          <div class="table-wrap" style="margin:0;">
+            <div class="table-header"><h3>Categories</h3></div>
+            <table class="tbl"><thead><tr><th>Name</th><th>Slug</th><th>Products</th><th>Actions</th></tr></thead>
+            <tbody id="categories-tbody"></tbody></table>
+          </div>
+          <div class="card" style="margin:0;">
+            <div class="card-title" id="category-form-title">Add Category</div>
+            <input type="hidden" id="cf-id" value="">
+            <form id="category-form">
+              <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="cf-name" required></div>
+              <div class="form-group"><label class="form-label">Slug</label><input class="form-input" id="cf-slug" placeholder="auto-generated"></div>
+              <div class="form-group"><label class="form-label">Icon (Tabler class)</label><input class="form-input" id="cf-icon" value="ti-category"></div>
+              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="cf-submit-btn"><i class="ti ti-plus"></i> Add Category</button>
+              <button type="button" class="btn btn-outline" style="width:100%;margin-top:8px;justify-content:center;" id="cf-reset">Clear</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-analytics">
+        <div class="stats-grid" id="analytics-stats"></div>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header"><h3>Top Selling Products</h3></div>
+          <table class="tbl"><thead><tr><th>Rank</th><th>Product</th><th>Sold</th><th>Revenue</th></tr></thead>
+          <tbody id="analytics-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-reviews">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Customer Reviews</h3>
+            <select class="tbl-select" id="reviews-filter">
+              <option value="all">All</option><option value="pending">Pending</option>
+              <option value="approved">Approved</option><option value="rejected">Rejected</option>
+            </select>
+          </div>
+          <table class="tbl"><thead><tr><th>Customer</th><th>Product</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="reviews-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-banners">
+        <div class="side-layout">
+          <div class="table-wrap" style="margin:0;">
+            <div class="table-header"><h3>Banners</h3></div>
+            <table class="tbl"><thead><tr><th>Title</th><th>Position</th><th>Link</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="banners-tbody"></tbody></table>
+          </div>
+          <div class="card" style="margin:0;">
+            <div class="card-title" id="banner-form-title">Add Banner</div>
+            <input type="hidden" id="bn-id">
+            <form id="banner-form">
+              <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="bn-title" required></div>
+              <div class="form-group"><label class="form-label">Position</label>
+                <select class="form-input form-select" id="bn-position"><option value="hero">Homepage Hero</option><option value="promo">Promo Bar</option><option value="mid">Homepage Mid</option></select>
+              </div>
+              <div class="form-group"><label class="form-label">Link URL</label><input class="form-input" id="bn-link" value="/"></div>
+              <div class="form-group"><label class="form-label">Gradient CSS</label><input class="form-input" id="bn-gradient" value="linear-gradient(135deg,#2d8a2d,#164816)"></div>
+              <div class="form-group"><label class="form-label">Image URL</label><input class="form-input" id="bn-image"></div>
+              <div class="form-group"><label class="form-label">Upload</label><input type="file" id="bn-file" accept="image/*"></div>
+              <div class="form-group"><label class="form-label">Expires</label><input class="form-input" id="bn-expires" type="date"></div>
+              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Save Banner</button>
+              <button type="button" class="btn btn-outline" style="width:100%;margin-top:8px;" id="bn-reset">Clear</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-coupons">
+        <div class="side-layout">
+          <div class="table-wrap" style="margin:0;">
+            <div class="table-header"><h3>Coupons</h3></div>
+            <table class="tbl"><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min order</th><th>Used</th><th>Expires</th><th>Action</th></tr></thead>
+            <tbody id="coupons-tbody"></tbody></table>
+          </div>
+          <div class="card" style="margin:0;">
+            <div class="card-title" id="coupon-form-title">New Coupon</div>
+            <input type="hidden" id="cp-id">
+            <form id="coupon-form">
+              <div class="form-group"><label class="form-label">Code *</label><input class="form-input" id="cp-code" required placeholder="SAVE10"></div>
+              <div class="form-group"><label class="form-label">Type</label>
+                <select class="form-input form-select" id="cp-type"><option value="percent">Percent (%)</option><option value="fixed">Fixed (৳)</option></select>
+              </div>
+              <div class="form-group"><label class="form-label">Value</label><input class="form-input" id="cp-value" type="number" min="0" required></div>
+              <div class="form-group"><label class="form-label">Min order (৳)</label><input class="form-input" id="cp-min" type="number" min="0" value="0"></div>
+              <div class="form-group"><label class="form-label">Usage limit</label><input class="form-input" id="cp-limit" type="number" min="0" placeholder="Unlimited"></div>
+              <div class="form-group"><label class="form-label">Expires</label><input class="form-input" id="cp-expires" type="date"></div>
+              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;"><i class="ti ti-discount"></i> Create Coupon</button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-settings">
+        <div class="grid-2">
+          <div>
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-title">Store Settings</div>
+              <form id="settings-form">
+                <div class="form-group"><label class="form-label">Store name</label><input class="form-input" id="set-site-name"></div>
+                <div class="form-group"><label class="form-label">Tagline</label><input class="form-input" id="set-tagline"></div>
+                <div class="form-group"><label class="form-label">Announcement bar</label><input class="form-input" id="set-announcement"></div>
+                <div class="form-group"><label class="form-label">Contact email</label><input class="form-input" id="set-email" type="email"></div>
+                <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="set-phone"></div>
+                <div class="form-group"><label class="form-label">bKash number (checkout)</label><input class="form-input" id="set-payment-bkash" placeholder="01712-345678"></div>
+                <div class="form-group"><label class="form-label">Nagad number (checkout)</label><input class="form-input" id="set-payment-nagad" placeholder="01712-345678"></div>
+                <div class="form-group"><label class="form-label">Rocket number (checkout)</label><input class="form-input" id="set-payment-rocket" placeholder="01712-345678"></div>
+                <div class="form-group"><label class="form-label">Address</label><textarea class="form-input form-textarea" id="set-address"></textarea></div>
+                <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Settings</button>
+              </form>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:16px;">
+              <div class="card-title">Delivery & Features</div>
+              <form id="delivery-form">
+                <div class="form-group"><label class="form-label">Free delivery over (৳)</label><input class="form-input" id="set-free-min" type="number"></div>
+                <div class="form-group"><label class="form-label">Delivery fee — Dhaka (৳)</label><input class="form-input" id="set-delivery-fee" type="number"></div>
+                <div class="form-group"><label class="form-label">Delivery fee — outside Dhaka (৳)</label><input class="form-input" id="set-delivery-outside" type="number"></div>
+                <div class="settings-row"><div><div>Maintenance mode</div><div class="settings-row-info">Hide store from visitors</div></div>
+                  <label class="toggle"><input type="checkbox" id="set-maintenance"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row"><div><div>Guest checkout</div></div>
+                  <label class="toggle"><input type="checkbox" id="set-guest" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row"><div><div>Cash on delivery</div></div>
+                  <label class="toggle"><input type="checkbox" id="set-cod" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row"><div><div>Flash sale banner</div></div>
+                  <label class="toggle"><input type="checkbox" id="set-flash"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row"><div><div>Review approval required</div></div>
+                  <label class="toggle"><input type="checkbox" id="set-review-approval"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row"><div><div>Email notifications</div></div>
+                  <label class="toggle"><input type="checkbox" id="set-email-notify"><span class="toggle-slider"></span></label>
+                </div>
+                <div class="settings-row"><div><div>SMS notifications</div></div>
+                  <label class="toggle"><input type="checkbox" id="set-sms"><span class="toggle-slider"></span></label>
+                </div>
+                <button type="submit" class="btn btn-primary" style="margin-top:12px;"><i class="ti ti-device-floppy"></i> Save</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="modal-overlay" id="order-modal">
+  <div class="modal-box">
+    <h3>Order Details</h3>
+    <div id="order-modal-body"></div>
+    <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap;">
+      <select class="form-input form-select" id="order-status-select" style="flex:1;min-width:140px;">
+        <option value="pending">Pending</option><option value="confirmed">Confirmed</option>
+        <option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option>
+      </select>
+      <button type="button" class="btn btn-primary" id="order-status-save">Update Status</button>
+      <button type="button" class="btn btn-outline" id="order-modal-close">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>

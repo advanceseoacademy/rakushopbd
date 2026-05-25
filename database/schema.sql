@@ -1,0 +1,69 @@
+-- RakuShopBD MySQL Schema
+-- cPanel → phpMyAdmin → Import করুন
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+CREATE TABLE IF NOT EXISTS categories (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(50) NOT NULL UNIQUE,
+  name_bn VARCHAR(100) NOT NULL,
+  icon VARCHAR(80) NOT NULL DEFAULT 'ti-category',
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS products (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  category_id INT UNSIGNED NOT NULL,
+  slug VARCHAR(120) NOT NULL UNIQUE,
+  name_bn VARCHAR(255) NOT NULL,
+  description_bn TEXT,
+  price DECIMAL(12,2) NOT NULL,
+  old_price DECIMAL(12,2) DEFAULT NULL,
+  rating DECIMAL(2,1) NOT NULL DEFAULT 4.5,
+  review_count INT UNSIGNED NOT NULL DEFAULT 0,
+  icon VARCHAR(80) NOT NULL DEFAULT 'ti-package',
+  icon_color VARCHAR(20) NOT NULL DEFAULT '#2d8a2d',
+  bg_color VARCHAR(20) NOT NULL DEFAULT '#e8f5e8',
+  tag_type ENUM('none','discount','bestseller','hot','new') NOT NULL DEFAULT 'none',
+  tag_text VARCHAR(50) DEFAULT NULL,
+  discount_percent INT UNSIGNED DEFAULT NULL,
+  stock INT UNSIGNED NOT NULL DEFAULT 100,
+  is_featured TINYINT(1) NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS orders (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  order_number VARCHAR(30) NOT NULL UNIQUE,
+  customer_name VARCHAR(120) NOT NULL,
+  customer_phone VARCHAR(20) NOT NULL,
+  customer_email VARCHAR(120) DEFAULT NULL,
+  address_line TEXT NOT NULL,
+  district VARCHAR(80) NOT NULL,
+  postal_code VARCHAR(20) DEFAULT NULL,
+  payment_method VARCHAR(30) NOT NULL,
+  payment_details JSON DEFAULT NULL,
+  subtotal DECIMAL(12,2) NOT NULL,
+  delivery_fee DECIMAL(12,2) NOT NULL DEFAULT 0,
+  total DECIMAL(12,2) NOT NULL,
+  notes TEXT,
+  status ENUM('pending','confirmed','shipped','delivered','cancelled') NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  order_id INT UNSIGNED NOT NULL,
+  product_id INT UNSIGNED NOT NULL,
+  product_name VARCHAR(255) NOT NULL,
+  quantity INT UNSIGNED NOT NULL DEFAULT 1,
+  unit_price DECIMAL(12,2) NOT NULL,
+  line_total DECIMAL(12,2) NOT NULL,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;

@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RakuShopBD — Best Online Shopping</title>
+<link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="/css/main.css">
+<link rel="stylesheet" href="/css/pages.css">
+<link rel="stylesheet" href="/css/category.css">
+<link rel="stylesheet" href="/css/account.css">
+<link rel="stylesheet" href="/css/cart.css">
+<link rel="stylesheet" href="/css/checkout-modal.css">
+<link rel="stylesheet" href="/css/reviews.css">
+<link rel="stylesheet" href="/css/wishlist.css">
+</head>
+<body>
+<!-- Announcement Bar -->
+<div class="announcement">
+ <i class="ti ti-bolt"></i>
+ <span>Special offer: 10% off on orders over ৳1000 — Code: <strong>RakuShopBD10</strong></span>
+ <i class="ti ti-bolt"></i>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar">
+ <div class="navbar-inner">
+ <a href="#" class="logo site-logo-link" aria-label="RakuShopBD — Home">
+  <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
+ </a>
+ <div class="search-wrap" id="header-search-wrap">
+ <div class="search-bar">
+ <select class="search-select" id="search-category" aria-label="Category">
+ <option value="all">All Products</option>
+ </select>
+ <div class="search-field">
+ <input class="search-input" id="search-input" type="text" autocomplete="off" placeholder="Search products..." aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
+ <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
+ </div>
+ <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
+ </div>
+ <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
+ </div>
+ <div class="nav-actions">
+ <a href="#" class="nav-btn" id="nav-wishlist-btn">
+ <i class="ti ti-heart"></i><span>Wishlist</span>
+ <span class="badge wish-badge">0</span>
+ </a>
+ <a href="#" class="nav-btn nav-cart-btn">
+ <i class="ti ti-shopping-cart"></i><span>Cart</span>
+ <span class="badge cart-badge">0</span>
+ </a>
+ <a href="#" class="nav-btn" id="nav-account-btn"><i class="ti ti-user"></i><span id="nav-account-label">Login / Register</span></a>
+ </div>
+ </div>
+</nav>
+
+<!-- Category Nav - shown on home -->
+<div class="cat-nav" id="global-cat-nav">
+ <div class="cat-nav-inner"></div>
+</div>
+
+<!-- PAGE CONTENT START -->
+<div id="page-home">
+<main class="main">
+
+ <!-- Hero Section -->
+ <div class="hero-grid" id="hero-grid">
+ <div class="hero-main" id="hero-main">
+ <div class="hero-content">
+ <div class="hero-badge" id="hero-badge"><i class="ti ti-bolt" style="font-size:11px;"></i> Flash sale live</div>
+ <div class="hero-title" id="hero-title">Best products<br>Best prices!</div>
+ <div class="hero-sub" id="hero-sub">Choose from thousands of products — delivered to your door</div>
+ <div class="hero-btns">
+ <a href="#products" class="btn-primary"><i class="ti ti-shopping-bag"></i>Shop Now</a>
+ <a href="#categories" class="btn-outline-white">Browse Categories</a>
+ </div>
+ </div>
+ <div class="hero-img-box">
+ <i class="ti ti-package"></i>
+ </div>
+ </div>
+ <div class="hero-side" id="hero-side">
+ <div class="hero-card hero-card-a" id="hero-card-a">
+ <div class="hero-card-icon"><i class="ti ti-truck-delivery"></i></div>
+ <div class="hero-card-text">
+ <div class="hero-card-label">Nationwide</div>
+ <div class="hero-card-title">Free Delivery</div>
+ </div>
+ </div>
+ <div class="hero-card hero-card-b" id="hero-card-b">
+ <div class="hero-card-icon"><i class="ti ti-rosette-discount"></i></div>
+ <div class="hero-card-text">
+ <div class="hero-card-label">Today's deal</div>
+ <div class="hero-card-title">Up to 50% off</div>
+ </div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Stats (loaded from API) -->
+ <div class="stats-grid" id="stats-grid">
+ <div class="stat-card"><div class="stat-icon" style="background:#e8f5e8;"><i class="ti ti-loader" style="color:#2d8a2d;"></i></div><div><div class="stat-num">…</div><div class="stat-label">Loading</div></div></div>
+ </div>
+
+ <!-- Categories -->
+ <div id="categories">
+ <div class="section-header">
+ <div class="section-title">Shop by Category</div>
+ <a href="#" class="see-all">All Categories <i class="ti ti-arrow-right"></i></a>
+ </div>
+ <div class="category-grid">
+ <p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;">Loading categories…</p>
+ </div>
+ </div>
+
+ <!-- Promo Banners -->
+ <div class="promo-grid" id="promo-grid" style="margin-bottom:28px;">
+ <div class="promo-card" style="background:linear-gradient(135deg,#2d8a2d,#164816);">
+ <div class="promo-icon"><i class="ti ti-truck-delivery"></i></div>
+ <div>
+ <div class="promo-label">Special benefit</div>
+ <div class="promo-title">Free delivery on orders over ৳500</div>
+ </div>
+ </div>
+ <div class="promo-card" style="background:linear-gradient(135deg,#d48696,#9e5568);">
+ <div class="promo-icon"><i class="ti ti-clock"></i></div>
+ <div>
+ <div class="promo-label">Limited time</div>
+ <div class="promo-title">Flash sale until midnight tonight</div>
+ </div>
+ </div>
+ <div class="promo-card" style="background:linear-gradient(135deg,#1D9E75,#0F6E56);">
+ <div class="promo-icon"><i class="ti ti-shield-check"></i></div>
+ <div>
+ <div class="promo-label">Warranty</div>
+ <div class="promo-title">100% authentic products guaranteed</div>
+ </div>
+ </div>
+ </div>
+
+ <!-- Products -->
+ <div id="products">
+ <div class="section-header">
+ <div class="section-title" id="products-section-title">Popular Products</div>
+ <a href="#" class="see-all" id="products-see-all">View All Products <i class="ti ti-arrow-right"></i></a>
+ </div>
+
+ <!-- Category Filter Tabs -->
+ <div id="cat-filter-tabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;"></div>
+
+ <style>
+ .cat-filter-btn {
+ padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border);
+ background: var(--surface); font-family: inherit; font-size: 13px;
+ cursor: pointer; color: var(--text-muted); transition: all 0.15s; font-weight: 500;
+ }
+ .cat-filter-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-pale); }
+ .cat-filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
+ .product-card[data-cat] { transition: opacity 0.2s, transform 0.2s; }
+ .product-card.hidden { display: none !important; }
+ </style>
+
+ <div class="product-grid" id="main-product-grid">
+ <p id="products-loading" style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-muted);font-size:15px;">Loading products...</p>
+ </div>
+ </div>
+
+ <!-- Trust Badges (from site settings) -->
+ <div class="trust-bar" id="trust-bar"></div>
+
+</main>
+
+</div><!-- /page-home -->
+
+<!-- ===================================================
+ CATEGORY LISTING PAGE
+=================================================== -->
+<div id="page-category" style="display:none;">
+<div class="cat-page-wrap">
+  <nav class="cat-breadcrumb" id="cat-breadcrumb">
+    <span class="link" data-page="home"><i class="ti ti-home"></i> Home</span>
+    <i class="ti ti-chevron-right" style="font-size:11px;"></i>
+    <span class="current" id="cat-breadcrumb-current">Electronics</span>
+  </nav>
+
+  <div class="cat-layout">
+  <aside class="cat-sidebar">
+    <div class="filter-block">
+      <div class="filter-title">Price Range</div>
+      <label class="filter-option"><input type="radio" name="cat-price" value="" checked> All prices</label>
+      <label class="filter-option"><input type="radio" name="cat-price" value="0-500"> Under ৳500</label>
+      <label class="filter-option"><input type="radio" name="cat-price" value="500-2000"> ৳500 – ৳2,000</label>
+      <label class="filter-option"><input type="radio" name="cat-price" value="2000-5000"> ৳2,000 – ৳5,000</label>
+      <label class="filter-option"><input type="radio" name="cat-price" value="5000-10000"> ৳5,000 – ৳10,000</label>
+      <label class="filter-option"><input type="radio" name="cat-price" value="10000+"> Above ৳10,000</label>
+    </div>
+
+    <div class="filter-block">
+      <div class="filter-title">Rating</div>
+      <label class="filter-option"><input type="checkbox" name="cat-rating" value="5"> <span class="filter-stars">★★★★★</span> <span class="count" data-rating-count="5"></span></label>
+      <label class="filter-option"><input type="checkbox" name="cat-rating" value="4"> <span class="filter-stars">★★★★☆</span> & up <span class="count" data-rating-count="4"></span></label>
+      <label class="filter-option"><input type="checkbox" name="cat-rating" value="3"> <span class="filter-stars">★★★☆☆</span> & up <span class="count" data-rating-count="3"></span></label>
+    </div>
+
+    <div class="filter-block" id="cat-brand-filters">
+      <div class="filter-title">Brand</div>
+      <div id="cat-brand-list"></div>
+    </div>
+  </aside>
+
+  <div class="cat-main">
+    <div class="cat-toolbar">
+      <div class="cat-result-count" id="cat-result-count">Loading products...</div>
+      <div class="cat-sort">
+        <label for="cat-sort-select">Sort by:</label>
+        <select id="cat-sort-select">
+          <option value="popular">Most Popular</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+          <option value="rating">Top Rated</option>
+          <option value="newest">Newest</option>
+        </select>
+      </div>
+    </div>
+    <div class="product-grid" id="category-product-grid">
+      <p class="cat-loading">Loading products...</p>
+    </div>
+  </div>
+  </div>
+</div>
+</div><!-- /page-category -->
+
+<!-- ===================================================
+ PRODUCT VIEW PAGE
+=================================================== -->
+<div id="page-product" style="display:none;">
+<style>
+.pv-breadcrumb { max-width:1200px; margin:0 auto; padding:14px 20px 0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
+.pv-breadcrumb a { color:var(--text-muted); text-decoration:none; cursor:pointer; }
+.pv-breadcrumb a:hover { color:var(--primary); }
+.pv-breadcrumb i { font-size:11px; }
+.pv-wrap { max-width:1200px; margin:0 auto; padding:16px 20px 32px; display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+@media(max-width:768px){ .pv-wrap { grid-template-columns:1fr; } }
+
+/* Gallery */
+.pv-gallery {}
+.main-product-img {
+ width:100%; height:360px; border-radius:var(--radius-xl); background:#e8f5e8;
+ display:flex; align-items:center; justify-content:center; margin-bottom:12px;
+ border:1px solid var(--border); position:relative; overflow:hidden;
+}
+.main-product-img i { font-size:140px; color:#2d8a2d; }
+.pv-badge-row { position:absolute; top:14px; left:14px; display:flex; gap:6px; }
+.pv-badge { background:var(--accent); color:#fff; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
+.pv-badge-new { background:var(--green); }
+.thumb-row { display:flex; gap:8px; }
+.thumb-img {
+ width:72px; height:72px; border-radius:var(--radius-md); border:2px solid transparent;
+ display:flex; align-items:center; justify-content:center; cursor:pointer; transition:border-color 0.15s;
+ flex-shrink:0;
+}
+.thumb-img.active, .thumb-img:hover { border-color:var(--primary); }
+.thumb-img i { font-size:30px; }
+
+/* Info */
+.pv-info {}
+.pv-cat { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
+.pv-title { font-size:22px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:10px; }
+.pv-rating-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+.pv-stars { color:#EF9F27; font-size:16px; }
+.pv-rating-num { font-size:14px; font-weight:600; }
+.pv-reviews { font-size:12px; color:var(--text-muted); }
+.pv-sold { font-size:12px; color:var(--green); font-weight:600; background:var(--green-pale); padding:3px 10px; border-radius:20px; }
+.pv-price-row { display:flex; align-items:baseline; gap:10px; margin-bottom:16px; padding:14px 16px; background:var(--surface2); border-radius:var(--radius-md); border:1px solid var(--border); }
+.pv-price { font-size:32px; font-weight:700; color:var(--accent); }
+.pv-old-price { font-size:16px; color:var(--text-light); text-decoration:line-through; }
+.pv-discount-badge { background:var(--accent-light); color:var(--accent-dark); font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; }
+
+.variant-label { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.3px; }
+
+.pv-qty-row { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
+.qty-control { display:flex; align-items:center; border:1.5px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
+.qty-btn { width:36px; height:36px; border:none; background:var(--surface2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
+.qty-btn:hover { background:var(--primary-pale); color:var(--primary); }
+.qty-input { width:48px; height:36px; border:none; border-left:1.5px solid var(--border); border-right:1.5px solid var(--border); text-align:center; font-family:inherit; font-size:14px; font-weight:600; background:#fff; outline:none; }
+.pv-stock { font-size:12px; color:var(--green); display:flex; align-items:center; gap:4px; }
+.pv-stock i { font-size:14px; }
+
+.pv-action-row { display:flex; gap:10px; margin-bottom:20px; }
+.btn-add-cart {
+ flex:1; background:var(--primary); color:#fff; border:none; padding:14px 20px;
+ border-radius:var(--radius-md); font-size:15px; font-weight:600; cursor:pointer;
+ display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit;
+ transition:background 0.15s, transform 0.1s;
+}
+.btn-add-cart:hover { background:var(--primary-light); transform:translateY(-1px); }
+.btn-buy { flex:1; background:var(--accent); color:#fff; border:none; padding:14px 20px; border-radius:var(--radius-md); font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; transition:background 0.15s, transform 0.1s; }
+.btn-buy:hover { background:var(--accent-dark); transform:translateY(-1px); }
+.btn-wish-lg { width:50px; height:50px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s; }
+.btn-wish-lg:hover { border-color:var(--accent); background:var(--accent-light); }
+.btn-wish-lg i { font-size:22px; color:var(--text-muted); }
+
+.pv-meta { display:flex; flex-direction:column; gap:8px; margin-bottom:18px; }
+.pv-meta-row { display:flex; align-items:center; gap:8px; font-size:13px; }
+.pv-meta-row i { font-size:16px; color:var(--primary); }
+.pv-meta-label { color:var(--text-muted); min-width:90px; }
+.pv-meta-val { color:var(--text); font-weight:500; }
+
+.pv-delivery-box { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:18px; }
+.pv-delivery-title { font-size:13px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+.pv-delivery-title i { color:var(--primary); }
+.pv-delivery-item { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); padding:5px 0; border-bottom:1px solid var(--border); }
+.pv-delivery-item:last-child { border:none; padding-bottom:0; }
+.pv-delivery-item i { color:var(--green); font-size:14px; }
+
+/* Tabs */
+.pv-tabs-wrap { max-width:1200px; margin:0 auto; padding:0 20px 32px; }
+.tabs-nav { display:flex; border-bottom:2px solid var(--border); margin-bottom:20px; overflow-x:auto; }
+.tab-btn { padding:12px 20px; font-size:14px; font-family:inherit; background:none; border:none; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap; transition:all 0.15s; }
+.tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
+.tab-pane { animation:fadeIn 0.2s; }
+@keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+
+/* Description tab */
+.spec-table { width:100%; border-collapse:collapse; font-size:13px; }
+.spec-table tr:nth-child(even) td { background:var(--surface2); }
+.spec-table td { padding:10px 14px; border:1px solid var(--border); }
+.spec-table td:first-child { font-weight:600; color:var(--text); width:160px; }
+.spec-table td:last-child { color:var(--text-muted); }
+
+/* Related Products */
+.related-section { max-width:1200px; margin:0 auto; padding:0 20px 40px; }
+</style>
+
+<!-- Product Main -->
+<div style="max-width:1200px; margin:0 auto; padding:14px 20px 0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);">
+ <span onclick="showPage('home')" style="cursor:pointer; color:var(--primary);"><i class="ti ti-home"></i> Home</span>
+ <i class="ti ti-chevron-right" style="font-size:10px;"></i>
+ <span id="pv-breadcrumb-cat">Category</span>
+ <i class="ti ti-chevron-right" style="font-size:10px;"></i>
+ <span id="pv-breadcrumb-name" style="color:var(--text);">Product</span>
+</div>
+<div class="pv-wrap">
+ <!-- Gallery -->
+ <div class="pv-gallery">
+ <div class="main-product-img" style="background:#fdf0f3;">
+ <div class="pv-badge-row" id="pv-badge-row"></div>
+ <i class="ti ti-watch" style="color:#d48696;"></i>
+ </div>
+ <div class="thumb-row">
+ <div class="thumb-img active" style="background:#fdf0f3;"><i class="ti ti-watch" style="color:#d48696;"></i></div>
+ <div class="thumb-img" style="background:#e8f5e8;"><i class="ti ti-watch" style="color:#2d8a2d;"></i></div>
+ <div class="thumb-img" style="background:#e8f5e8;"><i class="ti ti-watch" style="color:#2d8a2d;"></i></div>
+ <div class="thumb-img" style="background:#faf3e0;"><i class="ti ti-watch" style="color:#8a6914;"></i></div>
+ </div>
+ </div>
+
+ <!-- Info -->
+ <div class="pv-info">
+ <div class="pv-cat">Electronics › Smartwatch</div>
+ <div class="pv-title">Smartwatch Pro — Health Tracker, GPS, AMOLED Display</div>
+ <div class="pv-rating-row">
+ <span class="pv-stars">★★★★★</span>
+ <span class="pv-rating-num">4.9</span>
+ <span class="pv-reviews">(897 Reviews)</span>
+ <span class="pv-sold"><i class="ti ti-trending-up"></i> 12,500+ sold</span>
+ </div>
+ <div class="pv-price-row">
+ <span class="pv-price">৳3,999</span>
+ <span class="pv-old-price">৳5,000</span>
+ <span class="pv-discount-badge">20% saved</span>
+ </div>
+
+ <!-- Qty -->
+ <div class="pv-qty-row">
+ <div class="variant-label" style="margin:0;">Quantity</div>
+ <div class="qty-control">
+ <button class="qty-btn" data-dir="down">−</button>
+ <input class="qty-input" type="text" value="1" readonly>
+ <button class="qty-btn" data-dir="up">+</button>
+ </div>
+ <span class="pv-stock"><i class="ti ti-circle-check-filled"></i> In stock (47 left)</span>
+ </div>
+
+ <!-- Actions -->
+ <div class="pv-action-row">
+ <button class="btn-add-cart" id="btn-add-to-cart-main"><i class="ti ti-shopping-cart-plus"></i> Add to Cart</button>
+ <button class="btn-buy" id="btn-buy-now"><i class="ti ti-bolt"></i> Shop Now</button>
+ <button class="btn-wish-lg"><i class="ti ti-heart"></i></button>
+ </div>
+
+ <!-- Meta -->
+ <div class="pv-meta">
+ <div class="pv-meta-row"><i class="ti ti-tag"></i><span class="pv-meta-label">SKU:</span><span class="pv-meta-val" id="pv-sku">—</span></div>
+ <div class="pv-meta-row"><i class="ti ti-share"></i><span class="pv-meta-label">Share:</span>
+ <a href="#" style="color:#3b5998; font-size:18px;"><i class="ti ti-brand-facebook"></i></a>&nbsp;
+ <a href="#" style="color:#E1306C; font-size:18px;"><i class="ti ti-brand-instagram"></i></a>&nbsp;
+ <a href="#" style="color:#25D366; font-size:18px;"><i class="ti ti-brand-whatsapp"></i></a>
+ </div>
+ </div>
+
+ <!-- Delivery info -->
+ <div class="pv-delivery-box">
+ <div class="pv-delivery-title"><i class="ti ti-truck-delivery"></i> Delivery information</div>
+ <div id="pv-delivery-list"></div>
+ </div>
+ </div>
+</div>
+
+<!-- Tabs Section -->
+<div class="pv-tabs-wrap">
+ <div class="tabs-nav">
+ <button class="tab-btn active" data-tab="tab-desc">Product details</button>
+ <button class="tab-btn" data-tab="tab-spec">Specifications</button>
+ <button class="tab-btn" data-tab="tab-reviews">Reviews (897)</button>
+ </div>
+
+ <div id="tab-desc" class="tab-pane">
+ <div id="tab-desc-content"><p style="color:var(--text-muted);">Loading product details…</p></div>
+ </div>
+
+ <div id="tab-spec" class="tab-pane" style="display:none;">
+ <div id="tab-spec-content"></div>
+ </div>
+
+ <div id="tab-reviews" class="tab-pane reviews-tab" style="display:none;">
+ <div id="reviews-summary-panel"></div>
+ <div class="reviews-write-card" id="review-submit-box">
+ <div class="reviews-write-head">
+ <div class="reviews-write-icon"><i class="ti ti-star"></i></div>
+ <div>
+ <h4>Write a review</h4>
+ <p>Share your experience — it helps other shoppers</p>
+ </div>
+ </div>
+ <div class="reviews-star-picker" id="review-star-picker" data-rating="5">
+ <span class="reviews-star-picker-label">Your rating</span>
+ <button type="button" class="reviews-star-btn active" data-star="1" aria-label="1 star"><i class="ti ti-star-filled"></i></button>
+ <button type="button" class="reviews-star-btn active" data-star="2" aria-label="2 stars"><i class="ti ti-star-filled"></i></button>
+ <button type="button" class="reviews-star-btn active" data-star="3" aria-label="3 stars"><i class="ti ti-star-filled"></i></button>
+ <button type="button" class="reviews-star-btn active" data-star="4" aria-label="4 stars"><i class="ti ti-star-filled"></i></button>
+ <button type="button" class="reviews-star-btn active" data-star="5" aria-label="5 stars"><i class="ti ti-star-filled"></i></button>
+ <input type="hidden" id="review-rating" value="5">
+ </div>
+ <div class="reviews-write-field" id="review-name-field">
+ <label for="review-name">Your name</label>
+ <input type="text" id="review-name" placeholder="Enter your name" autocomplete="name">
+ </div>
+ <div class="reviews-write-field">
+ <label for="review-comment">Your review</label>
+ <textarea id="review-comment" rows="4" placeholder="What did you like? How was delivery and quality?"></textarea>
+ </div>
+ <button type="button" class="reviews-submit-btn" id="btn-submit-review">
+ <i class="ti ti-send"></i> Submit Review
+ </button>
+ <p class="reviews-submit-msg" id="review-submit-msg"></p>
+ </div>
+ <div id="product-reviews-list" class="reviews-list"></div>
+ </div>
+</div>
+
+<!-- Related Products -->
+<div class="related-section">
+ <div class="section-header">
+ <div class="section-title">Related Products</div>
+ <a href="#" class="see-all" id="related-see-all">View All <i class="ti ti-arrow-right"></i></a>
+ </div>
+ <div class="product-grid product-grid--related" id="related-product-grid">
+ <p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;">Loading related products…</p>
+ </div>
+</div>
+</div><!-- /page-product -->
+
+
+<!-- ===================================================
+ WISHLIST PAGE
+=================================================== -->
+<div id="page-wishlist" class="wishlist-is-empty" style="display:none;">
+<div class="wl-wrap">
+ <header class="wl-header">
+ <h1 class="wl-title">
+ <span class="wl-title-icon"><i class="ti ti-heart"></i></span>
+ My Wishlist
+ <span class="wl-count" id="wishlist-item-count">0 items</span>
+ </h1>
+ </header>
+
+ <div class="wl-empty" id="wishlist-empty">
+ <div class="wl-empty-visual">
+ <div class="wl-empty-icon"><i class="ti ti-heart-off"></i></div>
+ </div>
+ <h3>No saved items yet</h3>
+ <p>Tap the heart on any product to save it here for later.</p>
+ <button type="button" class="wl-empty-btn" id="btn-wishlist-shop">
+ <i class="ti ti-shopping-bag"></i> Browse Products
+ </button>
+ </div>
+
+ <div class="wl-grid" id="wishlist-grid" hidden></div>
+</div>
+</div><!-- /page-wishlist -->
+
+
+<!-- ===================================================
+ CART PAGE
+=================================================== -->
+<div id="page-cart" class="cart-is-empty" style="display:none;">
+<div class="cart-page-wrap">
+
+ <!-- Left: Items -->
+ <div class="cart-items-col">
+ <header class="cart-page-header">
+ <h1 class="cart-page-title">
+ <span class="cart-page-title-icon"><i class="ti ti-shopping-cart"></i></span>
+ Your Cart
+ <span class="cart-page-count" id="cart-item-count">0 items</span>
+ </h1>
+ </header>
+
+ <div class="cart-empty-state" id="cart-empty-state">
+ <div class="cart-empty-visual">
+ <span class="cart-empty-ring cart-empty-ring--1"></span>
+ <span class="cart-empty-ring cart-empty-ring--2"></span>
+ <div class="cart-empty-icon-wrap"><i class="ti ti-shopping-cart-off"></i></div>
+ <span class="cart-empty-badge">0</span>
+ </div>
+ <h3>Your cart is empty</h3>
+ <p>Looks like you haven't added anything yet. Discover great deals and fill your cart with products you'll love.</p>
+ <div class="cart-empty-actions">
+ <button type="button" class="cart-empty-btn cart-empty-btn--primary" id="btn-cart-empty-shop">
+ <i class="ti ti-shopping-bag"></i> Start Shopping
+ </button>
+ <button type="button" class="cart-empty-btn cart-empty-btn--ghost" id="btn-cart-browse-cats">
+ <i class="ti ti-category"></i> Browse Categories
+ </button>
+ </div>
+ <div class="cart-empty-perks">
+ <div class="cart-empty-perk"><i class="ti ti-truck-delivery"></i><span>Free delivery over ৳500</span></div>
+ <div class="cart-empty-perk"><i class="ti ti-shield-check"></i><span>Secure checkout</span></div>
+ <div class="cart-empty-perk"><i class="ti ti-rotate-2"></i><span>Easy returns</span></div>
+ </div>
+ </div>
+
+ <button type="button" id="btn-back-home" hidden>
+ <i class="ti ti-arrow-left"></i> Continue Shopping
+ </button>
+ </div>
+
+ <!-- Right: Summary -->
+ <div id="cart-summary-col" hidden>
+ <div class="c-summary-box">
+ <div class="c-summary-head">
+ <h2 class="c-summary-title">Order Summary</h2>
+ </div>
+ <div class="c-summary-body">
+ <div class="c-summary-row">
+ <span class="c-summary-label">Items total</span>
+ <span class="c-summary-val summary-subtotal">৳0</span>
+ </div>
+ <div class="c-summary-row">
+ <span class="c-summary-label">Delivery fee</span>
+ <span class="c-summary-free summary-delivery">Free</span>
+ </div>
+
+ <div class="c-coupon-row">
+ <input class="c-coupon-input" type="text" placeholder="e.g. RakuShopBD10">
+ <button type="button" class="c-coupon-btn">Apply</button>
+ </div>
+
+ <div class="c-total-row">
+ <span class="c-total-label">Total</span>
+ <span class="c-total-val summary-total">৳0</span>
+ </div>
+
+ <button type="button" class="c-checkout-btn" id="btn-cart-checkout" disabled>
+ <i class="ti ti-lock"></i> Proceed to Checkout
+ </button>
+
+ <button type="button" id="btn-cart-continue">Continue Shopping</button>
+
+ <div class="c-pay-pills">
+ <span class="c-pay-pill">bKash</span>
+ <span class="c-pay-pill">Nagad</span>
+ <span class="c-pay-pill">Rocket</span>
+ <span class="c-pay-pill">VISA</span>
+ <span class="c-pay-pill">COD</span>
+ </div>
+ </div>
+ </div>
+ </div>
+
+</div>
+</div><!-- /page-cart -->
+
+<!-- Checkout popup (from cart) -->
+<div class="checkout-modal-overlay" id="checkout-modal" aria-hidden="true">
+  <div class="checkout-modal-box" role="dialog" aria-labelledby="checkout-modal-title">
+    <div class="checkout-modal-head">
+      <h2 id="checkout-modal-title"><i class="ti ti-shopping-cart-check"></i> Checkout</h2>
+      <button type="button" class="checkout-modal-close" id="checkout-modal-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="checkout-modal-body">
+      <div class="checkout-modal-grid">
+        <form class="checkout-modal-form" id="checkout-modal-form" onsubmit="return false;">
+          <div class="cm-section">
+            <div class="cm-section-title"><i class="ti ti-user"></i> Contact &amp; delivery</div>
+            <div class="cm-row">
+              <div class="cm-field">
+                <label class="cm-label" for="cm-name">Full name *</label>
+                <input class="cm-input" id="cm-name" name="name" type="text" placeholder="e.g. Rafi Ahmed" required>
+              </div>
+              <div class="cm-field">
+                <label class="cm-label" for="cm-phone">Mobile number *</label>
+                <input class="cm-input" id="cm-phone" name="phone" type="tel" placeholder="e.g. 01712345678" required>
+              </div>
+            </div>
+            <div class="cm-row cm-row-1">
+              <div class="cm-field">
+                <label class="cm-label" for="cm-address">Full address *</label>
+                <textarea class="cm-input" id="cm-address" name="address" rows="2" placeholder="e.g. House 12, Road 5, Dhanmondi, Dhaka" required style="resize:none;"></textarea>
+              </div>
+            </div>
+          </div>
+          <div class="cm-section cm-payment-block">
+            <h3 class="cm-pay-heading">Choose payment method</h3>
+            <p class="cm-pay-subtitle">Pay manually — use any method below</p>
+            <div class="cm-pay-grid-2" id="cm-pay-grid" role="group" aria-label="Payment method">
+              <input type="hidden" name="paymethod" id="cm-paymethod-value" value="bkash">
+              <button type="button" class="cm-pay-tile selected" data-method="bkash">bKash</button>
+              <button type="button" class="cm-pay-tile" data-method="nagad">Nagad</button>
+              <button type="button" class="cm-pay-tile" data-method="rocket">Rocket</button>
+              <button type="button" class="cm-pay-tile" data-method="cod">COD</button>
+            </div>
+            <div class="cm-pay-instruct-box" id="cm-pay-instruct-box">
+              <div class="cm-pay-instruct-label">Instructions</div>
+              <p class="cm-pay-instruct-text" id="cm-pay-instruct-text"></p>
+              <div class="cm-pay-number" id="cm-pay-number" hidden></div>
+              <p class="cm-pay-instruct-hint" id="cm-pay-instruct-hint"></p>
+            </div>
+            <div class="cm-field cm-trx-field" id="cm-trx-wrap">
+              <label class="cm-label" for="cm-trxid">Transaction ID (TrxID) *</label>
+              <input class="cm-input" id="cm-trxid" name="trxid" type="text" placeholder="e.g. 8A7K9X2M" autocomplete="off">
+            </div>
+          </div>
+          <div class="cm-section">
+            <div class="cm-section-title"><i class="ti ti-notes"></i> Order notes (optional)</div>
+            <textarea class="cm-input" id="cm-notes" name="notes" rows="2" placeholder="e.g. Call before delivery, evening preferred" style="width:100%;resize:none;"></textarea>
+          </div>
+        </form>
+        <aside class="checkout-modal-summary">
+          <h3>Order summary</h3>
+          <div id="checkout-modal-items"></div>
+          <div class="cm-summary-rows">
+            <div class="cm-summary-row"><span>Subtotal</span><span class="summary-subtotal">৳0</span></div>
+            <div class="cm-summary-row"><span>Delivery</span><span class="summary-delivery">Free</span></div>
+            <div class="cm-summary-row cm-total"><span>Total</span><span class="summary-total">৳0</span></div>
+          </div>
+          <button type="button" class="btn-place-order-modal" id="btn-place-order-modal">
+            <i class="ti ti-lock"></i> Place order
+          </button>
+          <p class="cm-secure"><i class="ti ti-shield-check"></i> Secure checkout</p>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================================================
+ CHECKOUT / PAYMENT PAGE
+=================================================== -->
+<div id="page-checkout" style="display:none;">
+<style>
+.checkout-wrap { max-width:1200px; margin:0 auto; padding:24px 20px 40px; display:grid; grid-template-columns:1fr 380px; gap:24px; }
+@media(max-width:900px){ .checkout-wrap { grid-template-columns:1fr; } }
+
+.checkout-steps { display:flex; align-items:center; gap:0; margin-bottom:24px; max-width:1200px; margin-left:auto; margin-right:auto; padding:0 20px; }
+.step-item { display:flex; align-items:center; gap:8px; }
+.step-circle { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
+.step-active .step-circle { background:var(--primary); color:#fff; }
+.step-done .step-circle { background:var(--green); color:#fff; }
+.step-inactive .step-circle { background:var(--border); color:var(--text-muted); }
+.step-label { font-size:12px; font-weight:600; }
+.step-active .step-label { color:var(--primary); }
+.step-done .step-label { color:var(--green); }
+.step-inactive .step-label { color:var(--text-muted); }
+.step-line { flex:1; height:2px; background:var(--border); margin:0 8px; min-width:20px; }
+.step-line-done { background:var(--green); }
+
+.section-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; margin-bottom:16px; }
+.section-card-title { font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+.section-card-title i { color:var(--primary); font-size:18px; }
+
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+.form-row-1 { grid-template-columns:1fr; }
+@media(max-width:500px){ .form-row { grid-template-columns:1fr; } }
+.form-group { display:flex; flex-direction:column; gap:5px; }
+.form-label { font-size:12px; font-weight:600; color:var(--text-muted); }
+.form-input {
+ border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px;
+ font-family:inherit; font-size:14px; color:var(--text); outline:none; background:var(--surface);
+ transition:border-color 0.15s;
+}
+.form-input:focus { border-color:var(--primary); }
+.form-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B6B6B' fill='none' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+
+/* Payment Methods */
+.pay-methods-grid { display:flex; flex-direction:column; gap:10px; }
+.pay-method-card {
+ border:2px solid var(--border); border-radius:var(--radius-md); padding:14px 16px;
+ cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:12px;
+}
+.pay-method-card:hover { border-color:var(--primary-light); background:var(--primary-pale); }
+.pay-method-card.selected { border-color:var(--primary); background:var(--primary-pale); }
+.pay-method-card input[type=radio] { display:none; }
+.pay-method-icon {
+ width:44px; height:44px; border-radius:var(--radius-sm);
+ display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:22px;
+}
+.pay-method-name { font-size:14px; font-weight:600; color:var(--text); }
+.pay-method-desc { font-size:11px; color:var(--text-muted); }
+.pay-method-check { margin-left:auto; width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; }
+.pay-method-card.selected .pay-method-check { background:var(--primary); border-color:var(--primary); }
+.pay-method-card.selected .pay-method-check::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; }
+
+.pay-sub-form { margin-top:10px; padding:14px; background:var(--surface2); border-radius:var(--radius-md); border:1px solid var(--border); }
+.pay-sub-form .form-label { color:var(--text); }
+.pay-number-input { display:flex; gap:8px; }
+.pay-number-input input { flex:1; }
+.pay-otp-hint { font-size:11px; color:var(--text-muted); margin-top:6px; display:flex; align-items:center; gap:4px; }
+.pay-otp-hint i { color:var(--amber); }
+
+/* Card form */
+.card-number-input { position:relative; }
+.card-number-input i { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:20px; color:var(--text-light); }
+.card-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+/* COD */
+.cod-info { display:flex; align-items:center; gap:12px; padding:12px; background:var(--amber-pale); border-radius:var(--radius-md); border:1px solid var(--amber); }
+.cod-info i { font-size:24px; color:var(--amber); }
+.cod-info p { font-size:13px; color:var(--amber); font-weight:500; }
+
+/* Place order btn */
+.btn-place-order { width:100%; background:linear-gradient(135deg, var(--accent) 0%, #c23938 100%); color:#fff; border:none; padding:16px; border-radius:var(--radius-md); font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:10px; transition:transform 0.15s, box-shadow 0.15s; box-shadow:0 4px 16px rgba(226,75,74,0.35); }
+.btn-place-order:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(226,75,74,0.4); }
+
+/* Checkout Summary Box */
+.checkout-summary-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; position:sticky; top:80px; height:fit-content; }
+.checkout-product-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.checkout-product-row:last-of-type { border:none; }
+.checkout-prod-img { width:48px; height:48px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.checkout-prod-img i { font-size:22px; }
+.checkout-prod-name { font-size:12px; font-weight:600; flex:1; }
+.checkout-prod-price { font-size:13px; font-weight:700; color:var(--accent); }
+</style>
+
+<!-- Steps -->
+<div class="checkout-steps" style="margin-top:20px;">
+ <div class="step-item step-done"><div class="step-circle"><i class="ti ti-check" style="font-size:14px;"></i></div><span class="step-label">Cart</span></div>
+ <div class="step-line step-line-done"></div>
+ <div class="step-item step-active"><div class="step-circle">2</div><span class="step-label">Checkout</span></div>
+ <div class="step-line"></div>
+ <div class="step-item step-inactive"><div class="step-circle">3</div><span class="step-label">Confirmation</span></div>
+</div>
+
+<div class="checkout-wrap">
+ <!-- Left: Forms -->
+ <div>
+ <!-- Shipping Info -->
+ <div class="section-card">
+ <div class="section-card-title"><i class="ti ti-map-pin"></i> Delivery Address</div>
+ <div class="form-row">
+ <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" type="text" placeholder="Enter your full name"></div>
+ <div class="form-group"><label class="form-label">Mobile Number *</label><input class="form-input" type="tel" placeholder="+880 1XXXXXXXXX"></div>
+ </div>
+ <div class="form-row form-row-1">
+ <div class="form-group"><label class="form-label">Full Address *</label><textarea class="form-input" rows="2" placeholder="House, road, area..." style="resize:none;"></textarea></div>
+ </div>
+ </div>
+
+ <!-- Payment Methods -->
+ <div class="section-card">
+ <div class="section-card-title"><i class="ti ti-credit-card"></i> Payment Method</div>
+ <div class="pay-methods-grid">
+
+ <!-- bKash -->
+ <div class="pay-method-card" data-method="bkash">
+ <input type="radio" name="paymethod" value="bkash">
+ <div class="pay-method-icon" style="background:#fce4ec;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/BKash_Logo.svg/100px-BKash_Logo.svg.png" alt="bKash" style="width:36px; height:auto;" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-weight:800;color:#d81b60;font-size:13px;\'>bKash</span>'"></div>
+ <div><div class="pay-method-name">bKash</div><div class="pay-method-desc">Mobile banking — instant payment</div></div>
+ <div class="pay-method-check"></div>
+ </div>
+ <div class="pay-sub-form" id="form-bkash" style="display:none;">
+ <div class="form-group">
+ <label class="form-label">bKash number</label>
+ <div class="pay-number-input">
+ <input class="form-input" type="tel" placeholder="01XXXXXXXXX" style="flex:1;">
+ </div>
+ </div>
+ <p class="pay-otp-hint"><i class="ti ti-info-circle"></i> Order confirmed Your bKash number OTP All।</p>
+ </div>
+
+ <!-- Nagad -->
+ <div class="pay-method-card" data-method="nagad">
+ <input type="radio" name="paymethod" value="nagad">
+ <div class="pay-method-icon" style="background:#fff3e0;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Nagad_Logo.svg/100px-Nagad_Logo.svg.png" alt="Nagad" style="width:36px; height:auto;" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-weight:800;color:#e65100;font-size:13px;\'>Nagad</span>'"></div>
+ <div><div class="pay-method-name">Nagad</div><div class="pay-method-desc">Postal mobile banking</div></div>
+ <div class="pay-method-check"></div>
+ </div>
+ <div class="pay-sub-form" id="form-nagad" style="display:none;">
+ <div class="form-group">
+ <label class="form-label">Nagad number</label>
+ <input class="form-input" type="tel" placeholder="01XXXXXXXXX">
+ </div>
+ <p class="pay-otp-hint"><i class="ti ti-info-circle"></i> Enter your Nagad PIN to confirm payment.</p>
+ </div>
+
+ <!-- Rocket -->
+ <div class="pay-method-card" data-method="rocket">
+ <input type="radio" name="paymethod" value="rocket">
+ <div class="pay-method-icon" style="background:#ede7f6;"><i class="ti ti-rocket" style="color:#7b1fa2;"></i></div>
+ <div><div class="pay-method-name">Rocket (DBBL)</div><div class="pay-method-desc">Dutch-Bangla mobile banking</div></div>
+ <div class="pay-method-check"></div>
+ </div>
+ <div class="pay-sub-form" id="form-rocket" style="display:none;">
+ <div class="form-group">
+ <label class="form-label">Rocket number</label>
+ <input class="form-input" type="tel" placeholder="01XXXXXXXXX">
+ </div>
+ <p class="pay-otp-hint"><i class="ti ti-info-circle"></i> A payment request will be sent to your Rocket account.</p>
+ </div>
+
+ <!-- Card -->
+ <div class="pay-method-card" data-method="card">
+ <input type="radio" name="paymethod" value="card">
+ <div class="pay-method-icon" style="background:#e3f2fd;"><i class="ti ti-credit-card" style="color:#1565c0;"></i></div>
+ <div><div class="pay-method-name">Credit / Debit Card</div><div class="pay-method-desc">Visa, MasterCard, AMEX accepted</div></div>
+ <div class="pay-method-check"></div>
+ </div>
+ <div class="pay-sub-form" id="form-card" style="display:none;">
+ <div class="form-group" style="margin-bottom:10px;">
+ <label class="form-label">Card number</label>
+ <div class="card-number-input">
+ <input class="form-input" type="text" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" style="width:100%; padding-right:40px;">
+ <i class="ti ti-credit-card"></i>
+ </div>
+ </div>
+ <div class="card-row">
+ <div class="form-group"><label class="form-label">Expiry</label><input class="form-input" type="text" placeholder="MM/YY" maxlength="5"></div>
+ <div class="form-group"><label class="form-label">CVV</label><input class="form-input" type="text" placeholder="XXX" maxlength="4"></div>
+ </div>
+ <div class="form-group" style="margin-top:8px;"><label class="form-label">Cardholder name</label><input class="form-input" type="text" placeholder="Enter name"></div>
+ </div>
+
+ <!-- Bank Transfer -->
+ <div class="pay-method-card" data-method="bank">
+ <input type="radio" name="paymethod" value="bank">
+ <div class="pay-method-icon" style="background:#e8f5e9;"><i class="ti ti-building-bank" style="color:#2e7d32;"></i></div>
+ <div><div class="pay-method-name">Bank Transfer</div><div class="pay-method-desc">NPSB / BEFTN internet banking</div></div>
+ <div class="pay-method-check"></div>
+ </div>
+ <div class="pay-sub-form" id="form-bank" style="display:none;">
+ <p style="font-size:13px; color:var(--text-muted); line-height:1.7; margin-bottom:8px;">Transfer to the account below and save your reference number:</p>
+ <div style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12px; line-height:2;">
+ <b>Bank:</b> Dutch-Bangla Bank Limited<br>
+ <b>Account name:</b> RakuShopBD Limited<br>
+ <b>Account number:</b> 1234567890<br>
+ <b>Routing:</b> 090261419
+ </div>
+ </div>
+
+ <!-- COD -->
+ <div class="pay-method-card selected" data-method="cod">
+ <input type="radio" name="paymethod" value="cod" checked>
+ <div class="pay-method-icon" style="background:#fff8e1;"><i class="ti ti-cash" style="color:#f57f17;"></i></div>
+ <div><div class="pay-method-name"> Delivery</div><div class="pay-method-desc">Pay when you receive</div></div>
+ <div class="pay-method-check" style="background:var(--primary); border-color:var(--primary);"><div style="width:8px;height:8px;border-radius:50%;background:#fff;margin:auto;"></div></div>
+ </div>
+ <div class="pay-sub-form" id="form-cod" style="display:block;">
+ <div class="cod-info">
+ <i class="ti ti-info-circle"></i>
+ <p> Delivery Delivery Pay। ।</p>
+ </div>
+ </div>
+
+ </div>
+ </div>
+
+ <!-- Order Notes -->
+ <div class="section-card">
+ <div class="section-card-title"><i class="ti ti-notes"></i> Order Notes (optional)</div>
+ <div class="form-group">
+ <textarea class="form-input" rows="3" placeholder="Any special instructions..." style="resize:none; width:100%;"></textarea>
+ </div>
+ </div>
+ </div>
+
+ <!-- Right: Summary -->
+ <div>
+ <div class="checkout-summary-box">
+ <div class="summary-title" style="margin-bottom:14px;">Order Summary</div>
+ <div style="border-top:1.5px solid var(--border); margin:12px 0;"></div>
+ <div class="summary-row"><span class="summary-row-label">Subtotal</span><span class="summary-subtotal">৳7,797</span></div>
+ <div class="summary-row"><span class="summary-row-label">Delivery</span><span class="summary-delivery" style="color:var(--green);">Free</span></div>
+ <div class="summary-total-row"><span>Total </span><span class="summary-total" style="color:var(--accent);">৳7,797</span></div>
+ <button class="btn-place-order" id="btn-place-order"><i class="ti ti-lock"></i> Place Order</button>
+ <div class="secure-badges" style="margin-top:12px;">
+ <span class="sec-badge"><i class="ti ti-shield-check"></i> SSL secured</span>
+ <span class="sec-badge"><i class="ti ti-refresh"></i> 7 days Return</span>
+ </div>
+ <div style="text-align:center; margin-top:10px; font-size:11px; color:var(--text-light);">
+ By placing an order you agree to our <a href="#" style="color:var(--primary);">Terms</a> <a href="#" style="color:var(--primary);">Privacy Policy</a> .
+ </div>
+ </div>
+ </div>
+</div>
+</div><!-- /page-checkout -->
+
+
+<!-- ===================================================
+ ORDER SUCCESS PAGE
+=================================================== -->
+<div id="page-success" style="display:none;">
+<style>
+.success-wrap { max-width:640px; margin:40px auto; padding:0 20px 60px; text-align:center; }
+.success-icon-ring { width:100px; height:100px; border-radius:50%; background:var(--green-pale); border:4px solid var(--green); display:flex; align-items:center; justify-content:center; margin:0 auto 24px; animation:popIn 0.5s cubic-bezier(.17,.89,.32,1.5); }
+@keyframes popIn { from{transform:scale(0)} to{transform:scale(1)} }
+.success-icon-ring i { font-size:52px; color:var(--green); }
+.success-title { font-size:28px; font-weight:700; color:var(--text); margin-bottom:8px; }
+.success-sub { font-size:15px; color:var(--text-muted); margin-bottom:24px; line-height:1.6; }
+.order-id-box { display:inline-flex; align-items:center; gap:8px; background:var(--primary-pale); border:1.5px solid var(--primary); border-radius:var(--radius-md); padding:10px 20px; font-size:14px; font-weight:700; color:var(--primary); margin-bottom:28px; }
+.success-steps { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:28px; text-align:center; }
+@media(max-width:600px){ .success-steps { grid-template-columns:1fr; } .success-title { font-size:22px; } }
+.success-step-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px 12px; }
+.success-step-num { width:32px; height:32px; border-radius:50%; background:var(--primary); color:#fff; font-size:14px; font-weight:700; display:flex; align-items:center; justify-content:center; margin:0 auto 8px; }
+.success-step-title { font-size:12px; font-weight:600; color:var(--text); margin-bottom:3px; }
+.success-step-sub { font-size:11px; color:var(--text-muted); }
+.success-actions { display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+.btn-track { background:var(--primary); color:#fff; border:none; padding:13px 28px; border-radius:var(--radius-md); font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:8px; transition:background 0.15s; }
+.btn-track:hover { background:var(--primary-light); }
+.btn-home-again { background:var(--surface); color:var(--primary); border:1.5px solid var(--primary); padding:13px 28px; border-radius:var(--radius-md); font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:8px; transition:background 0.15s; }
+.btn-home-again:hover { background:var(--primary-pale); }
+</style>
+
+<div class="success-wrap">
+ <div class="success-icon-ring"><i class="ti ti-check"></i></div>
+ <div class="success-title">Order placed successfully! 🎉</div>
+ <div class="success-sub">Your order has been confirmed. We will deliver it as soon as possible.</div>
+ <div class="order-id-box"><i class="ti ti-receipt"></i> Order ID: …</div>
+
+ <div class="success-steps">
+ <div class="success-step-card">
+ <div class="success-step-num" style="background:var(--green);">✓</div>
+ <div class="success-step-title">Order confirmed</div>
+ <div class="success-step-sub">Just now</div>
+ </div>
+ <div class="success-step-card">
+ <div class="success-step-num">2</div>
+ <div class="success-step-title">Packaging</div>
+ <div class="success-step-sub">1–2 days</div>
+ </div>
+ <div class="success-step-card">
+ <div class="success-step-num">3</div>
+ <div class="success-step-title">Delivery</div>
+ <div class="success-step-sub">2–4 business days</div>
+ </div>
+ </div>
+
+ <div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:18px; margin-bottom:24px; text-align:left;">
+ <div style="font-size:13px; font-weight:700; margin-bottom:10px; display:flex; align-items:center; gap:6px;"><i class="ti ti-package" style="color:var(--primary);"></i> Order Summary</div>
+ <div id="success-order-summary" style="font-size:12px; color:var(--text-muted); line-height:2;">
+ <p style="text-align:center;">Loading order summary…</p>
+ </div>
+ </div>
+
+ <div class="success-actions">
+ <button class="btn-track" id="btn-track-order"><i class="ti ti-truck-delivery"></i> Track Order</button>
+ <button class="btn-home-again" id="btn-success-home"><i class="ti ti-home"></i> Back to Home</button>
+ </div>
+</div>
+</div><!-- /page-success -->
+
+<!-- USER ACCOUNT PAGE -->
+<div id="page-account" style="display:none;">
+<div class="acc-wrap">
+  <nav class="acc-breadcrumb">
+    <span class="link" data-page="home"><i class="ti ti-home"></i> Home</span>
+    <i class="ti ti-chevron-right"></i>
+    <span class="current">My Account</span>
+  </nav>
+
+  <!-- Guest: modern auth card -->
+  <div class="acc-guest-main" id="acc-guest-main">
+    <div class="acc-auth-shell">
+      <div class="acc-auth-brand">
+        <div class="acc-brand-logo">
+          <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--account" width="280" height="72">
+        </div>
+        <h2 class="acc-brand-title">Shop smarter with your account</h2>
+        <p class="acc-brand-text">Track orders, save addresses, and checkout faster — all in one place.</p>
+        <ul class="acc-brand-features">
+          <li><i class="ti ti-package"></i> Real-time order tracking</li>
+          <li><i class="ti ti-map-pin"></i> Multiple saved addresses</li>
+          <li><i class="ti ti-shield-check"></i> Secure checkout & data</li>
+          <li><i class="ti ti-truck-delivery"></i> Faster repeat purchases</li>
+        </ul>
+      </div>
+      <div class="acc-auth-panel">
+        <div class="acc-auth-panel-inner">
+          <div class="acc-auth-header">
+            <h1 class="acc-auth-heading" id="acc-auth-heading">Welcome back</h1>
+            <p class="acc-auth-subheading" id="acc-auth-subheading">Sign in to continue shopping</p>
+          </div>
+          <div class="acc-auth-tabs">
+            <button type="button" class="acc-auth-tab active" data-auth-tab="login"><i class="ti ti-login"></i> Sign In</button>
+            <button type="button" class="acc-auth-tab" data-auth-tab="register"><i class="ti ti-user-plus"></i> Register</button>
+          </div>
+          <div id="acc-auth-alert"></div>
+          <form class="acc-form" id="acc-login-form">
+            <div class="acc-field">
+              <label class="acc-label">Email address</label>
+              <div class="acc-input-wrap">
+                <i class="ti ti-mail"></i>
+                <input class="acc-input" type="email" name="email" placeholder="you@example.com" required>
+              </div>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label">Password</label>
+              <div class="acc-input-wrap">
+                <i class="ti ti-lock"></i>
+                <input class="acc-input" type="password" name="password" placeholder="Enter your password" required>
+              </div>
+            </div>
+            <button type="submit" class="acc-btn acc-btn-primary acc-btn-lg"><span>Sign In</span><i class="ti ti-arrow-right"></i></button>
+          </form>
+          <form class="acc-form" id="acc-register-form" style="display:none;">
+            <div class="acc-field-row">
+              <div class="acc-field">
+                <label class="acc-label">Full name</label>
+                <div class="acc-input-wrap">
+                  <i class="ti ti-user"></i>
+                  <input class="acc-input" type="text" name="fullName" placeholder="Your name" required>
+                </div>
+              </div>
+              <div class="acc-field">
+                <label class="acc-label">Phone</label>
+                <div class="acc-input-wrap">
+                  <i class="ti ti-phone"></i>
+                  <input class="acc-input" type="tel" name="phone" placeholder="+880 1XXXXXXXXX" required>
+                </div>
+              </div>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label">Email address</label>
+              <div class="acc-input-wrap">
+                <i class="ti ti-mail"></i>
+                <input class="acc-input" type="email" name="email" placeholder="you@example.com" required>
+              </div>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label">Password</label>
+              <div class="acc-input-wrap">
+                <i class="ti ti-lock"></i>
+                <input class="acc-input" type="password" name="password" placeholder="Min. 6 characters" minlength="6" required>
+              </div>
+              <p class="acc-field-hint">Use at least 6 characters with letters and numbers.</p>
+            </div>
+            <button type="submit" class="acc-btn acc-btn-primary acc-btn-lg"><span>Create Account</span><i class="ti ti-arrow-right"></i></button>
+          </form>
+          <p class="acc-auth-footer">By continuing, you agree to our <a href="#">Terms</a> and <a href="#">Privacy Policy</a>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Logged in -->
+  <div class="acc-layout acc-user-only">
+    <aside class="acc-sidebar">
+      <div class="acc-user-card">
+        <div class="acc-avatar-wrap">
+          <div class="acc-avatar" id="acc-avatar">?</div>
+          <span class="acc-avatar-badge"><i class="ti ti-check"></i></span>
+        </div>
+        <div class="acc-user-name" id="acc-sidebar-name">Guest</div>
+        <div class="acc-user-email" id="acc-sidebar-email">—</div>
+        <span class="acc-member-badge"><i class="ti ti-sparkles"></i> Member</span>
+      </div>
+      <nav class="acc-nav">
+        <span class="acc-nav-label">Menu</span>
+        <button type="button" class="acc-nav-btn active" data-acc-panel="dashboard"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></button>
+        <button type="button" class="acc-nav-btn" data-acc-panel="orders"><i class="ti ti-package"></i><span>My Orders</span></button>
+        <button type="button" class="acc-nav-btn" data-acc-panel="profile"><i class="ti ti-user-circle"></i><span>Profile</span></button>
+        <button type="button" class="acc-nav-btn" data-acc-panel="addresses"><i class="ti ti-map-pin"></i><span>Addresses</span></button>
+        <button type="button" class="acc-nav-btn" data-acc-panel="password"><i class="ti ti-lock"></i><span>Security</span></button>
+        <span class="acc-nav-label acc-nav-label-bottom">Account</span>
+        <button type="button" class="acc-nav-btn logout" id="acc-logout-btn"><i class="ti ti-logout"></i><span>Sign Out</span></button>
+      </nav>
+    </aside>
+
+    <div class="acc-main">
+      <section class="acc-panel active" id="acc-panel-dashboard">
+        <div class="acc-panel-head">
+          <div>
+            <h2 class="acc-panel-title">Dashboard</h2>
+            <p class="acc-panel-sub">Welcome back, <strong id="acc-dash-name">—</strong>! Here's your shopping overview.</p>
+          </div>
+        </div>
+        <div class="acc-stats">
+          <div class="acc-stat-card acc-stat-orders">
+            <div class="acc-stat-icon"><i class="ti ti-shopping-bag"></i></div>
+            <div class="acc-stat-body">
+              <div class="acc-stat-num" id="acc-stat-orders">0</div>
+              <div class="acc-stat-label">Total Orders</div>
+            </div>
+          </div>
+          <div class="acc-stat-card acc-stat-pending">
+            <div class="acc-stat-icon"><i class="ti ti-clock"></i></div>
+            <div class="acc-stat-body">
+              <div class="acc-stat-num" id="acc-stat-pending">0</div>
+              <div class="acc-stat-label">In Progress</div>
+            </div>
+          </div>
+          <div class="acc-stat-card acc-stat-delivered">
+            <div class="acc-stat-icon"><i class="ti ti-circle-check"></i></div>
+            <div class="acc-stat-body">
+              <div class="acc-stat-num" id="acc-stat-delivered">0</div>
+              <div class="acc-stat-label">Delivered</div>
+            </div>
+          </div>
+        </div>
+        <div class="acc-section-card">
+          <div class="acc-section-head">
+            <h3 class="acc-section-title">Recent Orders</h3>
+            <button type="button" class="acc-link-btn" data-goto-panel="orders">View all <i class="ti ti-arrow-right"></i></button>
+          </div>
+          <div id="acc-recent-orders"></div>
+        </div>
+      </section>
+
+      <section class="acc-panel" id="acc-panel-orders">
+        <div class="acc-panel-head">
+          <div>
+            <h2 class="acc-panel-title">My Orders</h2>
+            <p class="acc-panel-sub">Track and manage all your purchases.</p>
+          </div>
+        </div>
+        <div id="acc-orders-list"></div>
+      </section>
+
+      <section class="acc-panel" id="acc-panel-profile">
+        <div class="acc-panel-head">
+          <div>
+            <h2 class="acc-panel-title">Profile</h2>
+            <p class="acc-panel-sub">Update your personal information.</p>
+          </div>
+        </div>
+        <div id="acc-profile-alert"></div>
+        <div class="acc-section-card acc-form-card">
+          <form class="acc-form" id="acc-profile-form">
+            <div class="acc-field-row">
+              <div class="acc-field">
+                <label class="acc-label">Full name</label>
+                <div class="acc-input-wrap"><i class="ti ti-user"></i><input class="acc-input" type="text" name="fullName" required></div>
+              </div>
+              <div class="acc-field">
+                <label class="acc-label">Phone</label>
+                <div class="acc-input-wrap"><i class="ti ti-phone"></i><input class="acc-input" type="tel" name="phone" required></div>
+              </div>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label">Email <span class="acc-label-muted">(cannot change)</span></label>
+              <div class="acc-input-wrap acc-input-disabled"><i class="ti ti-mail"></i><input class="acc-input" type="email" name="email" disabled></div>
+            </div>
+            <button type="submit" class="acc-btn acc-btn-primary"><i class="ti ti-device-floppy"></i> Save Changes</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="acc-panel" id="acc-panel-addresses">
+        <div class="acc-panel-head">
+          <div>
+            <h2 class="acc-panel-title">Addresses</h2>
+            <p class="acc-panel-sub">Save delivery addresses for faster checkout.</p>
+          </div>
+        </div>
+        <div id="acc-addresses-list"></div>
+        <div class="acc-section-card acc-form-card" style="margin-top:20px;">
+          <h3 class="acc-section-title" style="margin-bottom:16px;"><i class="ti ti-map-pin-plus" style="color:var(--primary);"></i> Add new address</h3>
+          <div id="acc-address-alert"></div>
+          <form class="acc-form" id="acc-address-form">
+            <div class="acc-field-row acc-field-row-3">
+              <div class="acc-field">
+                <label class="acc-label">Label</label>
+                <div class="acc-input-wrap"><i class="ti ti-tag"></i>
+                  <select class="acc-input" name="label"><option>Home</option><option>Office</option><option>Other</option></select>
+                </div>
+              </div>
+              <div class="acc-field">
+                <label class="acc-label">District</label>
+                <div class="acc-input-wrap"><i class="ti ti-map"></i>
+                  <select class="acc-input" name="district" required>
+                    <option value="">Select district</option>
+                    <option>Dhaka</option><option>Chittagong</option><option>Sylhet</option>
+                    <option>Rajshahi</option><option>Khulna</option><option>Barishal</option>
+                    <option>Rangpur</option><option>Mymensingh</option>
+                  </select>
+                </div>
+              </div>
+              <div class="acc-field">
+                <label class="acc-label">Postal code</label>
+                <div class="acc-input-wrap"><i class="ti ti-mailbox"></i><input class="acc-input" type="text" name="postalCode" placeholder="1200"></div>
+              </div>
+            </div>
+            <div class="acc-field-row">
+              <div class="acc-field">
+                <label class="acc-label">Full name</label>
+                <div class="acc-input-wrap"><i class="ti ti-user"></i><input class="acc-input" type="text" name="fullName" required></div>
+              </div>
+              <div class="acc-field">
+                <label class="acc-label">Phone</label>
+                <div class="acc-input-wrap"><i class="ti ti-phone"></i><input class="acc-input" type="tel" name="phone" required></div>
+              </div>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label">Thana / Upazila</label>
+              <div class="acc-input-wrap"><i class="ti ti-building-community"></i><input class="acc-input" type="text" name="thana" placeholder="Area name"></div>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label">Full address</label>
+              <div class="acc-input-wrap acc-textarea-wrap"><i class="ti ti-home"></i><textarea class="acc-input" name="addressLine" rows="2" placeholder="House, road, area..." required></textarea></div>
+            </div>
+            <label class="acc-checkbox"><input type="checkbox" name="isDefault"><span class="acc-checkbox-box"></span><span>Set as default address</span></label>
+            <button type="submit" class="acc-btn acc-btn-primary"><i class="ti ti-map-pin-plus"></i> Save Address</button>
+          </form>
+        </div>
+      </section>
+
+      <section class="acc-panel" id="acc-panel-password">
+        <div class="acc-panel-head">
+          <div>
+            <h2 class="acc-panel-title">Security</h2>
+            <p class="acc-panel-sub">Update your password to keep your account safe.</p>
+          </div>
+        </div>
+        <div id="acc-password-alert"></div>
+        <div class="acc-section-card acc-form-card" style="max-width:480px;">
+          <form class="acc-form" id="acc-password-form">
+            <div class="acc-field">
+              <label class="acc-label">Current password</label>
+              <div class="acc-input-wrap"><i class="ti ti-lock"></i><input class="acc-input" type="password" name="currentPassword" required></div>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label">New password</label>
+              <div class="acc-input-wrap"><i class="ti ti-key"></i><input class="acc-input" type="password" name="newPassword" minlength="6" required></div>
+            </div>
+            <button type="submit" class="acc-btn acc-btn-primary"><i class="ti ti-lock"></i> Update Password</button>
+          </form>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+</div><!-- /page-account -->
+
+<footer class="footer" id="global-footer">
+ <div class="footer-inner">
+ <div class="footer-grid">
+ <div><a href="#" class="footer-logo site-logo-link" aria-label="RakuShopBD — Home">
+  <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--footer" width="300" height="76">
+ </a>
+ <p class="footer-desc">Bangladesh's trusted online shopping platform. Huge selection, great prices, and fast delivery.</p>
+ <div class="footer-social">
+ <a href="#" class="social-btn"><i class="ti ti-brand-facebook"></i></a>
+ <a href="#" class="social-btn"><i class="ti ti-brand-instagram"></i></a>
+ <a href="#" class="social-btn"><i class="ti ti-brand-youtube"></i></a>
+ <a href="#" class="social-btn"><i class="ti ti-brand-whatsapp"></i></a>
+ </div></div>
+ <div><div class="footer-heading">Quick Links</div><ul class="footer-links">
+ <li><a href="#" data-footer-page="home"><i class="ti ti-chevron-right"></i>Home</a></li>
+ <li><a href="#" data-footer-page="home"><i class="ti ti-chevron-right"></i>All Categories</a></li>
+ <li><a href="#" data-footer-page="cart"><i class="ti ti-chevron-right"></i>My Cart</a></li>
+ <li><a href="#" data-footer-page="account"><i class="ti ti-chevron-right"></i>My Account</a></li>
+ <li><a href="#" data-footer-page="account"><i class="ti ti-chevron-right"></i>Track Order</a></li>
+ </ul></div>
+ <div><div class="footer-heading">Help</div><ul class="footer-links">
+ <li><a href="#"><i class="ti ti-chevron-right"></i>Track Order</a></li>
+ <li><a href="#"><i class="ti ti-chevron-right"></i>Return Policy</a></li>
+ <li><a href="#"><i class="ti ti-chevron-right"></i>Shipping Info</a></li>
+ <li><a href="#"><i class="ti ti-chevron-right"></i>FAQ</a></li>
+ <li><a href="#"><i class="ti ti-chevron-right"></i>Contact Us</a></li>
+ </ul></div>
+ <div><div class="footer-heading">Contact</div><ul class="footer-links">
+ <li><a href="#" id="footer-phone"><i class="ti ti-phone"></i>+880 1700-000000</a></li>
+ <li><a href="#" id="footer-email"><i class="ti ti-mail"></i>support@RakuShopBD.com</a></li>
+ <li><a href="#" id="footer-address"><i class="ti ti-map-pin"></i>Dhaka, Bangladesh</a></li>
+ <li><a href="#" id="footer-hours"><i class="ti ti-clock"></i>9 AM — 10 PM</a></li>
+ </ul></div>
+ </div>
+ <hr class="footer-divider">
+ <div class="footer-bottom">
+ <span id="footer-copyright">© 2026 RakuShopBD — All rights reserved</span>
+ <div class="footer-payment">
+ <span style="font-size:11px; margin-right:4px;">Payment:</span>
+ <span class="pay-badge"><i class="ti ti-credit-card"></i>bKash</span>
+ <span class="pay-badge"><i class="ti ti-credit-card"></i>Nagad</span>
+ <span class="pay-badge"><i class="ti ti-credit-card"></i>Visa</span>
+ <span class="pay-badge"><i class="ti ti-credit-card"></i>MasterCard</span>
+ <span class="pay-badge"><i class="ti ti-building-bank"></i>Bank</span>
+ </div>
+ </div>
+ </div>
+</footer>
+<script>window.RAKU_API_BASE = '';</script>
+<script src="/js/maintenance-view.js"></script>
+<script src="/js/app.js"></script>
+<script src="/js/api.js"></script>
+<script src="/js/storefront-dynamic.js"></script>
+<script src="/js/search.js"></script>
+<script src="/js/account.js"></script>
+</body>
+</html>

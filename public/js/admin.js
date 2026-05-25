@@ -1,5 +1,22 @@
 (function () {
   const API = '/api/admin';
+  const ADMIN_TOKEN_KEY = 'rakushopbd_admin_token';
+
+  function getAdminToken() {
+    try {
+      return sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  function setAdminToken(token) {
+    try {
+      if (token) sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+      else sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+    } catch (_) {}
+  }
+
   let currentAdmin = null;
   let categories = [];
   let currentOrderId = null;
@@ -21,8 +38,11 @@
   };
 
   async function api(url, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
+    const token = getAdminToken();
+    if (token && !url.includes('/login')) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(API + url, {
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       credentials: 'same-origin',
       ...options,
     });
@@ -57,6 +77,7 @@
   }
 
   function showLogin() {
+    setAdminToken('');
     document.getElementById('login-page').style.display = 'flex';
     document.getElementById('admin-page').style.display = 'none';
   }
@@ -127,6 +148,7 @@
       }),
     });
     if (data.ok) {
+      if (data.token) setAdminToken(data.token);
       authRedirectHold = true;
       setAdminUI(data.admin);
       showAdmin();
@@ -156,6 +178,7 @@
 
   document.getElementById('logout-btn').onclick = async () => {
     await api('/logout', { method: 'POST' });
+    setAdminToken('');
     showLogin();
   };
 

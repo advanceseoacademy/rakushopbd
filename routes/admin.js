@@ -6,6 +6,7 @@ const { slugify } = require('../lib/slugify');
 const { clearSiteSettingsCache } = require('../lib/siteSettings');
 const { requireAdmin } = require('../middleware/requireAdmin');
 const { saveSession } = require('../lib/sessionSave');
+const { signAdminToken, getAdminIdFromRequest } = require('../lib/adminToken');
 
 const router = express.Router();
 
@@ -54,6 +55,7 @@ router.post('/login', async (req, res) => {
       }
       res.json({
         ok: true,
+        token: signAdminToken(admin.id),
         admin: {
           id: admin.id,
           username: admin.username,
@@ -74,10 +76,11 @@ router.post('/logout', (req, res) => {
 });
 
 router.get('/me', async (req, res) => {
-  if (!req.session.adminId) return res.json({ ok: true, admin: null });
+  const adminId = getAdminIdFromRequest(req);
+  if (!adminId) return res.json({ ok: true, admin: null });
   const rows = await query(
     'SELECT id, username, email, full_name FROM admins WHERE id = ?',
-    [req.session.adminId]
+    [adminId]
   );
   if (!rows.length) {
     req.session = null;

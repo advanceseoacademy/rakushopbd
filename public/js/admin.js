@@ -1,10 +1,11 @@
 (function () {
   const API = '/api/admin';
   const ADMIN_TOKEN_KEY = 'rakushopbd_admin_token';
+  const ADMIN_USER_KEY = 'rakushopbd_admin_user';
 
   function getAdminToken() {
     try {
-      return sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
+      return localStorage.getItem(ADMIN_TOKEN_KEY) || sessionStorage.getItem(ADMIN_TOKEN_KEY) || '';
     } catch (_) {
       return '';
     }
@@ -12,9 +13,43 @@
 
   function setAdminToken(token) {
     try {
-      if (token) sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
-      else sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+      if (token) {
+        localStorage.setItem(ADMIN_TOKEN_KEY, token);
+        sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+      } else {
+        localStorage.removeItem(ADMIN_TOKEN_KEY);
+        sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+        localStorage.removeItem(ADMIN_USER_KEY);
+        sessionStorage.removeItem(ADMIN_USER_KEY);
+      }
     } catch (_) {}
+  }
+
+  function cacheAdminUser(admin) {
+    try {
+      const json = JSON.stringify(admin);
+      localStorage.setItem(ADMIN_USER_KEY, json);
+      sessionStorage.setItem(ADMIN_USER_KEY, json);
+    } catch (_) {}
+  }
+
+  function getCachedAdminUser() {
+    try {
+      const raw = localStorage.getItem(ADMIN_USER_KEY) || sessionStorage.getItem(ADMIN_USER_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function authHeaders(extra = {}) {
+    const headers = { 'Content-Type': 'application/json', ...extra };
+    const token = getAdminToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+      headers['X-Admin-Token'] = token;
+    }
+    return headers;
   }
 
   let currentAdmin = null;
@@ -38,11 +73,10 @@
   };
 
   async function api(url, options = {}) {
-    const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
-    const token = getAdminToken();
-    if (token && !url.includes('/login')) headers.Authorization = `Bearer ${token}`;
     const res = await fetch(API + url, {
-      headers,
+      headers: url.includes('/login')
+        ? { 'Content-Type': 'application/json', ...(options.headers || {}) }
+        : authHeaders(options.headers || {}),
       credentials: 'same-origin',
       ...options,
     });
@@ -52,8 +86,8 @@
     } catch (_) {
       data = { ok: false, error: 'Invalid server response' };
     }
-    if (res.status === 401 && !authRedirectHold && !url.includes('/login')) {
-      if (!url.includes('/me')) showLogin();
+    if (res.status === 401 && !authRedirectHold && !url.includes('/login') && !url.includes('/me')) {
+      logoutAdmin();
     }
     return data;
   }
@@ -76,10 +110,14 @@
     return `<span class="badge badge-${cls[status] || 'gray'}">${labels[status] || status}</span>`;
   }
 
-  function showLogin() {
-    setAdminToken('');
+  function showLoginPanel() {
     document.getElementById('login-page').style.display = 'flex';
     document.getElementById('admin-page').style.display = 'none';
+  }
+
+  function logoutAdmin() {
+    setAdminToken('');
+    showLoginPanel();
   }
 
   function showAdmin() {
@@ -124,15 +162,38 @@
 
   window.adminSwitchPage = switchPage;
 
-  async function init() {
+  async function restoreSession() {
+    const token = getAdminToken();
+    if (!token) return false;
+
     const me = await api('/me');
     if (me.ok && me.admin) {
+      cacheAdminUser(me.admin);
       setAdminUI(me.admin);
       showAdmin();
       switchPage('dashboard');
-    } else {
-      showLogin();
+      return true;
     }
+
+    const dash = await api('/dashboard');
+    if (dash.ok) {
+      const cached = getCachedAdminUser();
+      if (cached) setAdminUI(cached);
+      showAdmin();
+      switchPage('dashboard');
+      return true;
+    }
+
+    return false;
+  }
+
+  async function init() {
+    if (await restoreSession()) return;
+    if (getAdminToken()) {
+      setAdminToken('');
+      toast('Session expired — sign in again (check cPanel Git Pull + SESSION_SECRET)');
+    }
+    showLoginPanel();
   }
 
   // ——— Login ———
@@ -148,11 +209,12 @@
       }),
     });
     if (data.ok && data.admin) {
-      if (data.token) {
-        setAdminToken(data.token);
-      } else {
-        toast('Server code outdated — run Git Pull + Restart on cPanel');
+      if (!data.token) {
+        toast('Server outdated — Git Pull + Restart on cPanel');
+        return;
       }
+      setAdminToken(data.token);
+      cacheAdminUser(data.admin);
       authRedirectHold = true;
       setAdminUI(data.admin);
       showAdmin();
@@ -182,8 +244,7 @@
 
   document.getElementById('logout-btn').onclick = async () => {
     await api('/logout', { method: 'POST' });
-    setAdminToken('');
-    showLogin();
+    logoutAdmin();
   };
 
   document.getElementById('view-site-btn').onclick = () => window.open('/', '_blank');

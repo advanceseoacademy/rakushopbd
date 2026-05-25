@@ -5,6 +5,7 @@ const { formatPrice } = require('../lib/format');
 const { slugify } = require('../lib/slugify');
 const { clearSiteSettingsCache } = require('../lib/siteSettings');
 const { requireAdmin } = require('../middleware/requireAdmin');
+const { saveSession } = require('../lib/sessionSave');
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ router.post('/login', async (req, res) => {
     if (!match) return res.status(401).json({ ok: false, error: 'Invalid credentials' });
 
     req.session.adminId = admin.id;
-    req.session.save((saveErr) => {
+    saveSession(req, (saveErr) => {
       if (saveErr) {
         console.error(saveErr);
         return res.status(500).json({ ok: false, error: 'Session save failed' });
@@ -68,7 +69,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  req.session.adminId = null;
+  req.session = null;
   res.json({ ok: true });
 });
 
@@ -79,7 +80,7 @@ router.get('/me', async (req, res) => {
     [req.session.adminId]
   );
   if (!rows.length) {
-    req.session.adminId = null;
+    req.session = null;
     return res.json({ ok: true, admin: null });
   }
   const a = rows[0];

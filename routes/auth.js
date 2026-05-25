@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const { query } = require('../config/db');
 const { formatPrice } = require('../lib/format');
+const { saveSession } = require('../lib/sessionSave');
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.get('/me', async (req, res) => {
       req.session.userId,
     ]);
     if (!rows.length) {
-      req.session.userId = null;
+      req.session = null;
       return res.json({ ok: true, user: null });
     }
     res.json({ ok: true, user: sanitizeUser(rows[0]) });
@@ -67,7 +68,7 @@ router.post('/register', async (req, res) => {
     const rows = await query('SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?', [
       result.insertId,
     ]);
-    req.session.save((saveErr) => {
+    saveSession(req, (saveErr) => {
       if (saveErr) {
         console.error(saveErr);
         return res.status(500).json({ ok: false, error: 'Session save failed' });
@@ -99,7 +100,7 @@ router.post('/login', async (req, res) => {
     }
 
     req.session.userId = user.id;
-    req.session.save((saveErr) => {
+    saveSession(req, (saveErr) => {
       if (saveErr) {
         console.error(saveErr);
         return res.status(500).json({ ok: false, error: 'Session save failed' });
@@ -113,7 +114,7 @@ router.post('/login', async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  req.session.userId = null;
+  req.session = null;
   res.json({ ok: true });
 });
 

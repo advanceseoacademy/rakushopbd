@@ -2,8 +2,7 @@ require('dotenv').config();
 
 const path = require('path');
 const express = require('express');
-const session = require('express-session');
-const MySQLStore = require('express-mysql-session')(session);
+const cookieSession = require('cookie-session');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -24,45 +23,18 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const sessionMaxAge = 7 * 24 * 60 * 60 * 1000;
-const sessionCookie = {
-  maxAge: sessionMaxAge,
-  httpOnly: true,
-  sameSite: 'lax',
-  path: '/',
-  // cPanel: default off. Set COOKIE_SECURE=true only when HTTPS + proxy is confirmed working.
-  secure: process.env.COOKIE_SECURE === 'true',
-};
+const sessionSecret = process.env.SESSION_SECRET || 'rakushopbd-dev-secret-change-me';
 
-let sessionStore;
-if (process.env.DB_USER && process.env.DB_NAME) {
-  sessionStore = new MySQLStore(
-    {
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 3306,
-      user: process.env.DB_USER,
-      password: process.env.DB_PASSWORD,
-      database: process.env.DB_NAME,
-      clearExpired: true,
-      checkExpirationInterval: 900000,
-      expiration: sessionMaxAge,
-      createDatabaseTable: true,
-      schema: { tableName: 'sessions' },
-    },
-    null,
-    (err) => {
-      if (err) console.error('Session store error:', err.message);
-      else console.log('MySQL session store ready');
-    }
-  );
-}
-
+// Signed cookie session — survives page reload & cPanel multi-worker (no shared memory/DB store)
 app.use(
-  session({
-    store: sessionStore,
-    secret: process.env.SESSION_SECRET || 'rakushopbd-dev-secret-change-me',
-    resave: false,
-    saveUninitialized: false,
-    cookie: sessionCookie,
+  cookieSession({
+    name: 'rakushopbd.sid',
+    keys: [sessionSecret],
+    maxAge: sessionMaxAge,
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    secure: process.env.COOKIE_SECURE === 'true',
   })
 );
 

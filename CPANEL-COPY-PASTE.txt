@@ -10,13 +10,18 @@ cd ~/repositories/rakushopbd
 
 git pull origin main
 
+grep "registerAdminAuth" server.js
+(লাইন দেখালে নতুন code আছে)
+
 source /home/rakushop/nodevenv/repositories/rakushopbd/20/bin/activate
 
 npm install
 
 npm run admin:sync
 
-③ cPanel → Setup Node.js App → RESTART
+③ cPanel → Setup Node.js App → STOP APP → ১০ সেকেন্ড → START
+
+touch tmp/restart.txt
 
 ④ ব্রাউজারে টেস্ট:
    https://rakushopbd.com/api/admin/version

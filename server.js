@@ -7,6 +7,7 @@ const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
+const { registerAdminAuth } = require('./lib/registerAdminAuth');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -39,6 +40,9 @@ app.use(
 );
 
 app.use(renderMaintenanceIfNeeded);
+
+// Admin auth on app (live cPanel: always reachable after restart)
+registerAdminAuth(app);
 
 app.get('/', (req, res) => {
   res.render('index');

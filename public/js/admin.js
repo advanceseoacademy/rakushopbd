@@ -209,14 +209,22 @@
       }),
     });
     if (data.ok && data.admin) {
-      if (!data.token) {
-        toast('Live server পুরনো code — cPanel: Git Pull + npm install + Restart');
-        err.querySelector('span').textContent =
-          'Backend not updated. Git Pull করুন, তারপর Terminal: npm install && npm run admin:sync';
-        err.style.display = 'flex';
-        return;
+      if (data.token) {
+        setAdminToken(data.token);
+      } else {
+        const meCheck = await fetch(API + '/me', {
+          headers: authHeaders(),
+          credentials: 'same-origin',
+        }).then((r) => r.json()).catch(() => ({}));
+        if (!meCheck.admin) {
+          toast('Server restart দরকার — cPanel: STOP → Pull → NPM Install → START');
+          err.querySelector('span').textContent =
+            'Login OK but session/token missing. Node app RESTART করুন।';
+          err.style.display = 'flex';
+          return;
+        }
       }
-      setAdminToken(data.token);
+      if (data.token) setAdminToken(data.token);
       cacheAdminUser(data.admin);
       authRedirectHold = true;
       setAdminUI(data.admin);

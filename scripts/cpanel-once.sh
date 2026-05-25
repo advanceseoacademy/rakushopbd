@@ -30,7 +30,9 @@ else
   exit 1
 fi
 
+touch tmp/restart.txt 2>/dev/null || mkdir -p tmp && touch tmp/restart.txt
+
 echo ""
-echo "=== Done. Now in cPanel: Setup Node.js App -> RESTART ==="
+echo "=== Done. Now in cPanel: Setup Node.js App -> STOP 10s -> START ==="
 echo "Test: https://rakushopbd.com/api/admin/version"
 echo "Login: admin@rakushopbd.com + password from env ADMIN_PASSWORD"

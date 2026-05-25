@@ -67,7 +67,13 @@ router.post('/register', async (req, res) => {
     const rows = await query('SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?', [
       result.insertId,
     ]);
-    res.json({ ok: true, user: sanitizeUser(rows[0]) });
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error(saveErr);
+        return res.status(500).json({ ok: false, error: 'Session save failed' });
+      }
+      res.json({ ok: true, user: sanitizeUser(rows[0]) });
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Registration failed' });
@@ -93,7 +99,13 @@ router.post('/login', async (req, res) => {
     }
 
     req.session.userId = user.id;
-    res.json({ ok: true, user: sanitizeUser(user) });
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error(saveErr);
+        return res.status(500).json({ ok: false, error: 'Session save failed' });
+      }
+      res.json({ ok: true, user: sanitizeUser(user) });
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Login failed' });

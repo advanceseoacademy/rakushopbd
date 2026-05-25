@@ -46,14 +46,20 @@ router.post('/login', async (req, res) => {
     if (!match) return res.status(401).json({ ok: false, error: 'Invalid credentials' });
 
     req.session.adminId = admin.id;
-    res.json({
-      ok: true,
-      admin: {
-        id: admin.id,
-        username: admin.username,
-        email: admin.email,
-        fullName: admin.full_name,
-      },
+    req.session.save((saveErr) => {
+      if (saveErr) {
+        console.error(saveErr);
+        return res.status(500).json({ ok: false, error: 'Session save failed' });
+      }
+      res.json({
+        ok: true,
+        admin: {
+          id: admin.id,
+          username: admin.username,
+          email: admin.email,
+          fullName: admin.full_name,
+        },
+      });
     });
   } catch (err) {
     console.error(err);

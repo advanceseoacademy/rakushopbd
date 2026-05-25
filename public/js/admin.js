@@ -5,6 +5,7 @@
   let currentOrderId = null;
 
   let ordersPage = 1;
+  let authRedirectHold = false;
 
   const pageTitles = {
     dashboard: 'Dashboard',
@@ -25,8 +26,13 @@
       credentials: 'same-origin',
       ...options,
     });
-    const data = await res.json();
-    if (res.status === 401 && !url.includes('/login') && !url.includes('/me')) {
+    let data = {};
+    try {
+      data = await res.json();
+    } catch (_) {
+      data = { ok: false, error: 'Invalid server response' };
+    }
+    if (res.status === 401 && !authRedirectHold && !url.includes('/login') && !url.includes('/me')) {
       showLogin();
     }
     return data;
@@ -121,9 +127,13 @@
       }),
     });
     if (data.ok) {
+      authRedirectHold = true;
       setAdminUI(data.admin);
       showAdmin();
       switchPage('dashboard');
+      setTimeout(() => {
+        authRedirectHold = false;
+      }, 4000);
     } else {
       const msg = err.querySelector('span') || err;
       if (msg.tagName === 'SPAN') msg.textContent = data.error || 'Invalid username or password';

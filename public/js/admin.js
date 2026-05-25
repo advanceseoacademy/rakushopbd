@@ -191,7 +191,7 @@
     if (await restoreSession()) return;
     if (getAdminToken()) {
       setAdminToken('');
-      toast('Session expired — sign in again (check cPanel Git Pull + SESSION_SECRET)');
+      toast('Session expired — please sign in again');
     }
     showLoginPanel();
   }
@@ -210,7 +210,7 @@
     });
     if (data.ok && data.admin) {
       if (!data.token) {
-        toast('Server outdated — Git Pull + Restart on cPanel');
+        toast('Missing auth token — run Git Pull + Restart on server, then try again');
         return;
       }
       setAdminToken(data.token);

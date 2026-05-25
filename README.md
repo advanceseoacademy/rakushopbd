@@ -57,7 +57,14 @@ npm start
 ### ৫. Admin panel
 
 - URL: [http://localhost:3000/admin](http://localhost:3000/admin)
-- Login uses the `admins` table (username/email + bcrypt `password_hash`). On first `npm run db:setup`, set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env` — credentials are not shown on the login page.
+- Set `ADMIN_USERNAME`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD` in `.env`, then run:
+
+```bash
+npm run admin:sync
+```
+
+- Login with **ADMIN_USERNAME** (or email) + **ADMIN_PASSWORD** from `.env`.
+- On live server: same `.env` values in cPanel Node environment variables, then `npm run admin:sync` via Terminal (virtualenv), or `database/insert-admin.sql` in phpMyAdmin.
 - `npm run db:setup` চালালে `database/admin-schema.sql` ও `database/admin-extended.sql` স্বয়ংক্রিয়ভাবে চলে (reviews, banners, coupons, analytics, export)
 
 ### Storefront (admin-controlled)

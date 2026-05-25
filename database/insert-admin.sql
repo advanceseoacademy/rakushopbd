@@ -1,6 +1,6 @@
 -- Run once in phpMyAdmin when `admins` table is empty.
--- Login: admin  OR  admin@rakushopbd.com
--- Password: RakuAdmin2026!  (change after first login in Settings)
+-- Better: on server run  npm run admin:sync  (uses .env ADMIN_*)
+-- Or login after insert: admin@rakushopbd.com / RakuAdmin2026!
 
 INSERT INTO admins (username, email, password_hash, full_name)
 SELECT 'admin', 'admin@rakushopbd.com',

@@ -31,6 +31,16 @@ async function getSettingsMap() {
 }
 
 // ——— Auth ———
+router.get('/ping', async (req, res) => {
+  try {
+    const [row] = await query('SELECT COUNT(*) AS adminCount FROM admins');
+    res.json({ ok: true, adminCount: Number(row.adminCount) || 0 });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Database error' });
+  }
+});
+
 router.post('/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -48,21 +58,19 @@ router.post('/login', async (req, res) => {
     if (!match) return res.status(401).json({ ok: false, error: 'Invalid credentials' });
 
     req.session.adminId = admin.id;
+    const payload = {
+      ok: true,
+      token: signAdminToken(admin.id),
+      admin: {
+        id: admin.id,
+        username: admin.username,
+        email: admin.email,
+        fullName: admin.full_name,
+      },
+    };
     saveSession(req, (saveErr) => {
-      if (saveErr) {
-        console.error(saveErr);
-        return res.status(500).json({ ok: false, error: 'Session save failed' });
-      }
-      res.json({
-        ok: true,
-        token: signAdminToken(admin.id),
-        admin: {
-          id: admin.id,
-          username: admin.username,
-          email: admin.email,
-          fullName: admin.full_name,
-        },
-      });
+      if (saveErr) console.error('Session save warning:', saveErr.message);
+      res.json(payload);
     });
   } catch (err) {
     console.error(err);

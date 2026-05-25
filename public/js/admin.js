@@ -52,8 +52,8 @@
     } catch (_) {
       data = { ok: false, error: 'Invalid server response' };
     }
-    if (res.status === 401 && !authRedirectHold && !url.includes('/login') && !url.includes('/me')) {
-      showLogin();
+    if (res.status === 401 && !authRedirectHold && !url.includes('/login')) {
+      if (!url.includes('/me')) showLogin();
     }
     return data;
   }
@@ -147,15 +147,19 @@
         password: document.getElementById('inp-pass').value,
       }),
     });
-    if (data.ok) {
-      if (data.token) setAdminToken(data.token);
+    if (data.ok && data.admin) {
+      if (data.token) {
+        setAdminToken(data.token);
+      } else {
+        toast('Server code outdated — run Git Pull + Restart on cPanel');
+      }
       authRedirectHold = true;
       setAdminUI(data.admin);
       showAdmin();
       switchPage('dashboard');
       setTimeout(() => {
         authRedirectHold = false;
-      }, 4000);
+      }, 5000);
     } else {
       const msg = err.querySelector('span') || err;
       if (msg.tagName === 'SPAN') msg.textContent = data.error || 'Invalid username or password';

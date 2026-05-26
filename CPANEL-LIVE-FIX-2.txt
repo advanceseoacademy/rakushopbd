@@ -1,0 +1,57 @@
+═══════════════════════════════════════════════════════════
+  Live error, localhost OK — fix checklist
+═══════════════════════════════════════════════════════════
+
+কারণ: cPanel এ পুরনো code চলছে অথবা `pg` install হয়নি।
+
+───────────────────────────────────────────────────────────
+① Terminal
+───────────────────────────────────────────────────────────
+source /home/rakushop/nodevenv/repositories/rakushopbd/20/bin/activate
+cd ~/repositories/rakushopbd
+git pull origin main
+
+# নতুন code আছে কিনা:
+grep "supabase-v2" server.js
+# লাইন দেখালে OK
+
+npm install
+
+───────────────────────────────────────────────────────────
+② File Manager — .env file
+───────────────────────────────────────────────────────────
+repositories/rakushopbd/.env
+
+যদি পুরনো MySQL (DB_HOST, DB_USER) থাকে → DELETE করুন
+অথবা env-for-cpanel-supabase.txt upload → rename .env
+
+───────────────────────────────────────────────────────────
+③ node_modules
+───────────────────────────────────────────────────────────
+real "node_modules" folder DELETE → Run NPM Install
+
+যাচাই: node_modules/pg folder আছে কিনা
+
+───────────────────────────────────────────────────────────
+④ Node.js App
+───────────────────────────────────────────────────────────
+Environment: DATABASE_URL + SUPABASE_URL (আছে)
+SAVE → STOP → ১৫ সেকেন্ড → START
+
+───────────────────────────────────────────────────────────
+⑤ টেস্ট (ব্রাউজার)
+───────────────────────────────────────────────────────────
+https://rakushopbd.com/api/db-check
+
+সফল:
+  "ok":true, "build":"supabase-v2", "productCount":23
+
+ভুল:
+  "hasPgModule":false → Run NPM Install
+  Page not found → git pull হয়নি
+  errorCode → DATABASE_URL/password চেক করুন
+
+https://rakushopbd.com/api/admin/ping → adminCount:1
+https://rakushopbd.com/ → products দেখাবে
+
+EOF

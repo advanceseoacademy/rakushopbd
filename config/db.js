@@ -3,6 +3,7 @@
  * Legacy MySQL: set DB_DRIVER=mysql and DB_HOST, DB_USER, etc.
  */
 const { convertPlaceholders, isPostgres } = require('../lib/db-dialect');
+const { camelizeRow } = require('../lib/pg-row');
 
 let pool = null;
 
@@ -57,7 +58,7 @@ async function query(sql, params = []) {
   const { text, values } = convertPlaceholders(sql, params, usePostgres());
   if (usePostgres()) {
     const result = await p.query(text, values);
-    return result.rows;
+    return result.rows.map(camelizeRow);
   }
   const [rows] = await p.execute(text, values);
   return rows;

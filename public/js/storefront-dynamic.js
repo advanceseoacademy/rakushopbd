@@ -362,20 +362,31 @@
     }
   };
 
+  function applyCategories(categories) {
+    if (!categories?.length) return;
+    window._rakuCategories = categories;
+    if (window._rakuSetCategoryLabels) window._rakuSetCategoryLabels(categories);
+    renderCategoryGridHome(categories);
+    renderGlobalCatNav(categories);
+    renderHomeFilterTabs(categories);
+    renderSearchCategories(categories);
+  }
+
+  function initFromBootstrap(boot) {
+    if (!boot?.ok) return;
+    if (boot.categories?.length) applyCategories(boot.categories);
+    if (boot.stats) renderStats(boot.stats);
+    if (boot.settings) applySiteBranding(boot.settings);
+    bindFooterLinks();
+  }
+
   async function initDynamicStorefront() {
     const api = window._rakuApiFetch;
     if (!api) return;
 
     try {
       const [catRes, statsRes] = await Promise.all([api('/categories'), api('/stats')]);
-      if (catRes.ok && catRes.categories) {
-        window._rakuCategories = catRes.categories;
-        if (window._rakuSetCategoryLabels) window._rakuSetCategoryLabels(catRes.categories);
-        renderCategoryGridHome(catRes.categories);
-        renderGlobalCatNav(catRes.categories);
-        renderHomeFilterTabs(catRes.categories);
-        renderSearchCategories(catRes.categories);
-      }
+      if (catRes.ok && catRes.categories) applyCategories(catRes.categories);
       if (statsRes.ok && statsRes.stats) renderStats(statsRes.stats);
     } catch (e) {
       console.warn('Dynamic storefront init', e);
@@ -385,8 +396,10 @@
     bindFooterLinks();
   }
 
+  document.addEventListener('raku:bootstrap', (e) => initFromBootstrap(e.detail));
+
   document.addEventListener('raku:ready', () => {
-    setTimeout(initDynamicStorefront, 0);
+    if (!window.__RAKU_BOOTSTRAP?.ok) setTimeout(initDynamicStorefront, 0);
   });
 
   document.addEventListener('raku:settings-loaded', (e) => {

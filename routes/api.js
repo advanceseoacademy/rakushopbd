@@ -2,6 +2,7 @@ const express = require('express');
 const { query, getPool } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
+const { getStoreBootstrap } = require('../lib/storeBootstrap');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
@@ -110,6 +111,7 @@ async function cartTotalsResponse(cart, req) {
 
 router.get('/categories', async (req, res) => {
   try {
+    cachePublic(res, 120);
     const categories = await query(
       `SELECT c.id, c.slug, c.name_bn, c.icon, c.sort_order,
               COUNT(p.id) AS product_count
@@ -127,6 +129,7 @@ router.get('/categories', async (req, res) => {
 
 router.get('/stats', async (req, res) => {
   try {
+    cachePublic(res, 120);
     const [pc] = await query('SELECT COUNT(*) AS n FROM products');
     const [oc] = await query('SELECT COUNT(*) AS n FROM orders');
     const [ar] = await query('SELECT ROUND(AVG(rating), 1) AS avg_rating FROM products');
@@ -149,6 +152,7 @@ router.get('/stats', async (req, res) => {
 
 router.get('/banners', async (req, res) => {
   try {
+    cachePublic(res, 120);
     const banners = await query(
       `SELECT id, title, position, link_url, image_url, bg_gradient FROM banners
        WHERE is_active=1 AND ${sqlDialect.curDateOrLater()}
@@ -244,13 +248,27 @@ router.post('/coupons/validate', async (req, res) => {
   }
 });
 
+function cachePublic(res, seconds) {
+  if (process.env.NODE_ENV === 'production') {
+    res.set('Cache-Control', `public, max-age=${seconds}, stale-while-revalidate=60`);
+  }
+}
+
+router.get('/bootstrap', async (req, res) => {
+  try {
+    const data = await getStoreBootstrap();
+    cachePublic(res, 60);
+    res.json(data);
+  } catch (err) {
+    console.error('bootstrap', err);
+    res.status(500).json({ ok: false, error: 'Could not load store data' });
+  }
+});
+
 router.get('/settings', async (req, res) => {
   try {
-    const rows = await query('SELECT setting_key, setting_value FROM site_settings');
-    const settings = {};
-    rows.forEach((r) => {
-      settings[r.setting_key] = r.setting_value;
-    });
+    const settings = await getSiteSettings(query);
+    cachePublic(res, 300);
     if (settings.maintenance_mode === '1') {
       return res.json({ ok: true, settings, maintenance: true });
     }
@@ -299,10 +317,16 @@ router.get('/products', async (req, res) => {
     }
     if (where.length) sql += ' WHERE ' + where.join(' AND ');
     sql += ' ORDER BY p.name_bn ASC';
-    const lim = Math.min(Math.max(Number(limit) || 0, 0), 20);
+    const isHomeFeatured =
+      !isSearch && (!category || category === 'all') && !excludeId;
+    const lim = Math.min(
+      Math.max(Number(limit) || (isHomeFeatured ? 24 : 0), 0),
+      48
+    );
     if (lim) sql += ` LIMIT ${lim}`;
 
     const products = await query(sql, params);
+    cachePublic(res, 60);
     res.json({ ok: true, products });
   } catch (err) {
     console.error(err);

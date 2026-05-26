@@ -92,23 +92,9 @@
 
   async function loadProducts() {
     try {
-      const data = await apiFetch('/products');
+      const data = await apiFetch('/products?limit=24');
       if (!data.ok || !data.products.length) return;
-      products = data.products;
-      const grid = document.getElementById('main-product-grid');
-      if (grid) {
-        grid.innerHTML = products.map(productCardHtml).join('');
-        bindProductGridEvents();
-      }
-      const seeAll = document.getElementById('products-see-all');
-      if (seeAll) {
-        seeAll.onclick = (e) => {
-          e.preventDefault();
-          const first = window._rakuCategories?.[0]?.slug;
-          if (first && window.openCategory) window.openCategory(first);
-          else if (window.showPage) window.showPage('home');
-        };
-      }
+      paintProducts(data.products);
     } catch (e) {
       console.warn('API products unavailable, using static HTML', e);
     }
@@ -825,55 +811,46 @@
     }
   }
 
-  async function loadHeroSection() {
-    try {
-      const data = await apiFetch('/banners');
-      const banners = data.banners || [];
-      const main = banners.find((b) => b.position === 'hero');
-      const promos = banners.filter((b) => b.position === 'promo');
-      if (main) {
-        const title = document.getElementById('hero-title');
-        const sub = document.getElementById('hero-sub');
-        const heroMain = document.getElementById('hero-main');
-        if (title) title.textContent = main.title;
-        if (sub) sub.textContent = main.link_url ? 'Tap Shop Now to explore this offer' : sub?.textContent;
-        if (heroMain) heroMain.style.background = main.bg_gradient;
-        const shopBtn = document.querySelector('#hero-grid .btn-primary');
-        if (shopBtn && main.link_url) shopBtn.href = main.link_url;
-      }
-      const cardA = document.getElementById('hero-card-a');
-      const cardB = document.getElementById('hero-card-b');
-      [cardA, cardB].forEach((card, i) => {
-        const b = promos[i];
-        if (!card || !b) return;
-        card.style.background = b.bg_gradient;
-        const label = card.querySelector('.hero-card-label');
-        const t = card.querySelector('.hero-card-title');
-        if (label) label.textContent = 'Offer';
-        if (t) t.textContent = b.title;
-        card.style.cursor = 'pointer';
-        card.onclick = () => {
-          if (!b.link_url) return;
-          let url = b.link_url;
-          if (url.startsWith('#/')) url = url.slice(1);
-          else if (url.startsWith('#')) url = '/' + url.slice(1);
-          if (url.startsWith('/')) history.pushState(null, '', url);
-          else window.location.href = url;
-          if (window._rakuRestoreRoute) window._rakuRestoreRoute();
-        };
-      });
-    } catch (_) {}
-  }
-
-  async function loadPromoBanners() {
+  function applyBannersData(banners) {
+    const list = banners || [];
+    const main = list.find((b) => b.position === 'hero');
+    const promos = list.filter((b) => b.position === 'promo');
+    if (main) {
+      const title = document.getElementById('hero-title');
+      const sub = document.getElementById('hero-sub');
+      const heroMain = document.getElementById('hero-main');
+      if (title) title.textContent = main.title;
+      if (sub) sub.textContent = main.link_url ? 'Tap Shop Now to explore this offer' : sub?.textContent;
+      if (heroMain) heroMain.style.background = main.bg_gradient;
+      const shopBtn = document.querySelector('#hero-grid .btn-primary');
+      if (shopBtn && main.link_url) shopBtn.href = main.link_url;
+    }
+    const cardA = document.getElementById('hero-card-a');
+    const cardB = document.getElementById('hero-card-b');
+    [cardA, cardB].forEach((card, i) => {
+      const b = promos[i];
+      if (!card || !b) return;
+      card.style.background = b.bg_gradient;
+      const label = card.querySelector('.hero-card-label');
+      const t = card.querySelector('.hero-card-title');
+      if (label) label.textContent = 'Offer';
+      if (t) t.textContent = b.title;
+      card.style.cursor = 'pointer';
+      card.onclick = () => {
+        if (!b.link_url) return;
+        let url = b.link_url;
+        if (url.startsWith('#/')) url = url.slice(1);
+        else if (url.startsWith('#')) url = '/' + url.slice(1);
+        if (url.startsWith('/')) history.pushState(null, '', url);
+        else window.location.href = url;
+        if (window._rakuRestoreRoute) window._rakuRestoreRoute();
+      };
+    });
     const grid = document.getElementById('promo-grid');
-    if (!grid) return;
-    try {
-      const data = await apiFetch('/banners');
-      const banners = (data.banners || []).filter((b) => b.position === 'promo').slice(0, 3);
-      if (!banners.length) return;
+    if (grid && promos.length) {
       const icons = ['ti-truck-delivery', 'ti-clock', 'ti-shield-check'];
-      grid.innerHTML = banners
+      grid.innerHTML = promos
+        .slice(0, 3)
         .map(
           (b, i) => `<a href="${b.link_url || '#'}" class="promo-card" style="background:${b.bg_gradient};text-decoration:none;color:inherit;">
             <div class="promo-icon"><i class="ti ${icons[i] || 'ti-star'}"></i></div>
@@ -881,6 +858,13 @@
           </a>`
         )
         .join('');
+    }
+  }
+
+  async function loadHeroSection() {
+    try {
+      const data = await apiFetch('/banners');
+      applyBannersData(data.banners || []);
     } catch (_) {}
   }
 
@@ -1373,6 +1357,49 @@
 
   }
 
+  function applySettingsData(settings) {
+    if (!settings) return;
+    const ann = document.querySelector('.announcement span');
+    if (ann && settings.announcement_text) ann.innerHTML = settings.announcement_text;
+    const badge = document.getElementById('hero-badge');
+    if (badge && settings.feature_flash_sale === '0') badge.style.display = 'none';
+    window._rakuStoreSettings = settings;
+    document.dispatchEvent(new CustomEvent('raku:settings-loaded', { detail: settings }));
+  }
+
+  function paintProducts(list) {
+    if (!list?.length) return;
+    products = list;
+    const grid = document.getElementById('main-product-grid');
+    if (grid) {
+      grid.innerHTML = products.map(productCardHtml).join('');
+      bindProductGridEvents();
+    }
+    const seeAll = document.getElementById('products-see-all');
+    if (seeAll) {
+      seeAll.onclick = (e) => {
+        e.preventDefault();
+        const first = window._rakuCategories?.[0]?.slug;
+        if (first && window.openCategory) window.openCategory(first);
+        else if (window.showPage) window.showPage('home');
+      };
+    }
+  }
+
+  async function applyBootstrap(boot) {
+    if (!boot?.ok) return false;
+    if (boot.maintenance) {
+      if (window.showMaintenancePage) window.showMaintenancePage(boot.settings);
+      else location.reload();
+      return true;
+    }
+    applySettingsData(boot.settings);
+    applyBannersData(boot.banners || []);
+    paintProducts(boot.products);
+    document.dispatchEvent(new CustomEvent('raku:bootstrap', { detail: boot }));
+    return true;
+  }
+
   async function loadStoreSettings() {
     try {
       const data = await apiFetch('/settings');
@@ -1382,14 +1409,7 @@
         else location.reload();
         return;
       }
-      const ann = document.querySelector('.announcement span');
-      if (ann && data.settings.announcement_text) ann.innerHTML = data.settings.announcement_text;
-      const badge = document.getElementById('hero-badge');
-      if (badge && data.settings.feature_flash_sale === '0') badge.style.display = 'none';
-      window._rakuStoreSettings = data.settings;
-      document.dispatchEvent(
-        new CustomEvent('raku:settings-loaded', { detail: data.settings })
-      );
+      applySettingsData(data.settings);
     } catch (_) {}
   }
 
@@ -1412,19 +1432,34 @@
   }
 
   document.addEventListener('raku:ready', async () => {
-    await loadStoreSettings();
-    await loadHeroSection();
-    await loadPromoBanners();
-    await prefillReviewName();
+    const boot = window.__RAKU_BOOTSTRAP;
+    if (boot) {
+      await applyBootstrap(boot);
+    } else {
+      try {
+        await applyBootstrap(await apiFetch('/bootstrap'));
+      } catch (_) {
+        await loadStoreSettings();
+        await Promise.all([loadHeroSection(), loadProducts()]);
+      }
+    }
+
     patchCheckoutForm();
     bindCheckout();
     bindCouponApply();
     hookNavigation();
-    await loadProducts();
-    await syncCartBadge();
-    await syncWishlist();
-    await renderCart();
     bindCategoryFilterEvents();
+
+    const onCart = /^\/cart\/?$/.test(location.pathname);
+    const sessionTasks = [syncCartBadge(), syncWishlist()];
+    if (onCart) sessionTasks.push(renderCart());
+    await Promise.all(sessionTasks);
+
+    if (window.requestIdleCallback) {
+      requestIdleCallback(() => prefillReviewName(), { timeout: 3000 });
+    } else {
+      setTimeout(() => prefillReviewName(), 200);
+    }
 
     if (window._rakuRestoreRoute) {
       await window._rakuRestoreRoute();

@@ -4,6 +4,7 @@ const { query } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { slugify } = require('../lib/slugify');
 const { clearSiteSettingsCache } = require('../lib/siteSettings');
+const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
 const { requireAdmin } = require('../middleware/requireAdmin');
 const { sql: sqlDialect, upsertSiteSettingSql, returningId } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
@@ -605,6 +606,7 @@ router.put('/settings', requireAdmin, async (req, res) => {
       await query(upsertSiteSettingSql(), [key, String(value)]);
     }
     clearSiteSettingsCache();
+    clearStoreBootstrapCache();
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

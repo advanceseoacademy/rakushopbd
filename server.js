@@ -9,12 +9,14 @@ if (process.env.DATABASE_URL) {
 }
 
 const path = require('path');
+const compression = require('compression');
 const express = require('express');
 const cookieSession = require('cookie-session');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
+const { getStoreBootstrap } = require('./lib/storeBootstrap');
 const { registerAdminAuth } = require('./lib/registerAdminAuth');
 const { usePostgres } = require('./config/db');
 
@@ -28,9 +30,21 @@ app.set('trust proxy', 1);
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+
+const publicDir = path.join(__dirname, 'public');
+const staticCache = (maxAge) => ({
+  maxAge: isProduction ? maxAge : 0,
+  etag: true,
+  immutable: Boolean(isProduction && maxAge),
+});
+app.use('/js', express.static(path.join(publicDir, 'js'), staticCache('365d')));
+app.use('/css', express.static(path.join(publicDir, 'css'), staticCache('365d')));
+app.use('/images', express.static(path.join(publicDir, 'images'), staticCache('30d')));
+app.use('/uploads', express.static(path.join(publicDir, 'uploads'), staticCache('7d')));
+app.use(express.static(publicDir, staticCache(0)));
 
 const sessionMaxAge = 7 * 24 * 60 * 60 * 1000;
 const sessionSecret = process.env.SESSION_SECRET || 'rakushopbd-dev-secret-change-me';
@@ -91,9 +105,18 @@ app.get('/api/db-check', async (req, res) => {
   }
 });
 
-app.get('/', (req, res) => {
-  res.render('index');
-});
+async function renderStorefront(req, res) {
+  try {
+    const bootstrap = await getStoreBootstrap();
+    const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
+    res.render('index', { bootstrapJson });
+  } catch (err) {
+    console.error('renderStorefront', err);
+    res.render('index', { bootstrapJson: null });
+  }
+}
+
+app.get('/', (req, res) => renderStorefront(req, res));
 
 app.get('/admin', (req, res) => {
   res.render('admin');
@@ -106,15 +129,15 @@ app.use('/api/admin', adminRoutes);
 // Storefront SPA — clean URLs (no hash)
 app.get(
   ['/account', '/cart', '/checkout', '/wishlist', '/success'],
-  (req, res) => res.render('index')
+  (req, res) => renderStorefront(req, res)
 );
-app.get('/product/:id', (req, res) => res.render('index'));
-app.get('/category/:slug', (req, res) => res.render('index'));
+app.get('/product/:id', (req, res) => renderStorefront(req, res));
+app.get('/category/:slug', (req, res) => renderStorefront(req, res));
 
 app.use((req, res) => {
   if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/admin')) {
     if (!path.extname(req.path)) {
-      return res.render('index');
+      return renderStorefront(req, res);
     }
   }
   res.status(404).send('Page not found');

@@ -367,7 +367,9 @@
     bindAuthTabs();
     bindForms();
     bindNav();
-    loadSession();
+    const runSession = () => loadSession();
+    if (window.requestIdleCallback) requestIdleCallback(runSession, { timeout: 2500 });
+    else setTimeout(runSession, 250);
 
     const navBtn = document.getElementById('nav-account-btn');
     if (navBtn) {

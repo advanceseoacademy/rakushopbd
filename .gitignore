@@ -1,6 +1,7 @@
 node_modules/
 .env
 .env.remote
+env-for-cpanel.txt
 .DS_Store
 npm-debug.log*
 *.log

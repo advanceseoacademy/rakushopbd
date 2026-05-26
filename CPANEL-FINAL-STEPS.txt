@@ -1,0 +1,56 @@
+═══════════════════════════════════════════════════════════
+  LIVE SITE FIX — ৫ মিনিট (আপনার password ready)
+═══════════════════════════════════════════════════════════
+
+Mac এ তৈরি হয়েছে: env-for-cpanel.txt
+(প্রজেক্ট ফোল্ডারে — GitHub এ যায় না)
+
+───────────────────────────────────────────────────────────
+ধাপ ১ — cPanel File Manager
+───────────────────────────────────────────────────────────
+repositories/rakushopbd → Upload env-for-cpanel.txt
+→ Rename to: .env
+
+───────────────────────────────────────────────────────────
+ধাপ ২ — Environment Variables (একই মান)
+───────────────────────────────────────────────────────────
+Setup Node.js App → ADD/UPDATE:
+
+  NODE_ENV=production
+  DB_HOST=localhost
+  DB_PORT=3306
+  DB_USER=rakushop_rakushopbd
+  DB_PASSWORD=(env-for-cpanel.txt এর মতো)
+  DB_NAME=rakushop_rakushopbd
+  SESSION_SECRET=(env file থেকে)
+  ADMIN_USERNAME=admin@rakushopbd.com
+  ADMIN_EMAIL=admin@rakushopbd.com
+  ADMIN_PASSWORD=BDRakuadmin2026%%
+
+→ SAVE
+
+───────────────────────────────────────────────────────────
+ধাপ ৩ — Database (যদি ping error)
+───────────────────────────────────────────────────────────
+phpMyAdmin → rakushop_rakushopbd → Import
+→ database/rakushopbd-full-import.sql
+
+───────────────────────────────────────────────────────────
+ধাপ ৪ — Node restart
+───────────────────────────────────────────────────────────
+git pull origin main
+node_modules folder DELETE (যদি error)
+Run NPM Install
+STOP → ১০ সেকেন্ড → START
+
+───────────────────────────────────────────────────────────
+ধাপ ৫ — টেস্ট
+───────────────────────────────────────────────────────────
+https://rakushopbd.com/api/admin/ping  → adminCount:1
+https://rakushopbd.com/api/products    → ok:true
+https://rakushopbd.com/admin           → login
+
+───────────────────────────────────────────────────────────
+Mac local (remote DB blocked — normal)
+───────────────────────────────────────────────────────────
+npm start  → http://localhost:3000

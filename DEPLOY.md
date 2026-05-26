@@ -2,6 +2,9 @@
 
 GitHub: https://github.com/advanceseoacademy/rakushopbd
 
+> **সম্পূর্ণ step-by-step গাইড:** [`CPANEL-NODEJS-FULL-GUIDE.md`](CPANEL-NODEJS-FULL-GUIDE.md)  
+> **এক ফাইলে DB:** `database/rakushopbd-full-import.sql`
+
 ---
 
 ## ১. GitHub থেকে কোড

@@ -10,6 +10,12 @@ English-language e-commerce website for Bangladesh — **Node.js + Express + MyS
 - অর্ডার MySQL-এ সেভ
 - cPanel Node.js App-এ ডিপ্লয়যোগ্য
 
+## Live deploy (cPanel Node.js)
+
+**সম্পূর্ণ গাইড:** [`CPANEL-NODEJS-FULL-GUIDE.md`](CPANEL-NODEJS-FULL-GUIDE.md)  
+দ্রুত commands: [`CPANEL-COPY-PASTE.txt`](CPANEL-COPY-PASTE.txt)  
+Database: [`database/rakushopbd-full-import.sql`](database/rakushopbd-full-import.sql)
+
 ## লোকাল সেটআপ
 
 ### ১. Dependencies

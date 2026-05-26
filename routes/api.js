@@ -1,5 +1,5 @@
 const express = require('express');
-const { query } = require('../config/db');
+const { query, getPool } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
@@ -8,6 +8,44 @@ const router = express.Router();
 
 // Live cPanel: runs before /api/admin router — login returns token even if server.js is old
 registerAdminAuthApiRouter(router);
+
+/** Safe DB diagnostic — https://rakushopbd.com/api/db-check */
+router.get('/db-check', async (req, res) => {
+  const info = {
+    ok: false,
+    dbHost: process.env.DB_HOST || 'localhost',
+    dbName: process.env.DB_NAME || null,
+    dbUser: process.env.DB_USER || null,
+    hasPassword: Boolean(process.env.DB_PASSWORD),
+    nodeEnv: process.env.NODE_ENV || null,
+  };
+  try {
+    await getPool().query('SELECT 1 AS ok');
+    info.connected = true;
+    try {
+      const [row] = await query('SELECT COUNT(*) AS adminCount FROM admins');
+      info.adminCount = Number(row.adminCount) || 0;
+      const [prow] = await query('SELECT COUNT(*) AS productCount FROM products');
+      info.productCount = Number(prow.productCount) || 0;
+      info.ok = true;
+    } catch (tableErr) {
+      info.connected = true;
+      info.tableError = tableErr.code || tableErr.message;
+      info.hint = 'Import database/rakushopbd-full-import.sql in phpMyAdmin';
+    }
+    res.json(info);
+  } catch (err) {
+    info.connected = false;
+    info.errorCode = err.code || 'UNKNOWN';
+    info.hint =
+      err.code === 'ER_ACCESS_DENIED_ERROR'
+        ? 'DB_USER or DB_PASSWORD wrong in cPanel Environment Variables'
+        : err.code === 'ER_BAD_DB_ERROR'
+          ? 'DB_NAME wrong or database does not exist'
+          : 'Check MySQL user privileges and env vars, then STOP → START app';
+    res.status(503).json(info);
+  }
+});
 
 function getCart(req) {
   if (!req.session.cart) req.session.cart = [];

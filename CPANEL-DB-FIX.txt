@@ -1,0 +1,76 @@
+═══════════════════════════════════════════════════════════
+  Database error fix — RakuShopBD cPanel
+═══════════════════════════════════════════════════════════
+
+লক্ষণ: /api/admin/ping → {"ok":false,"error":"Database error"}
+       /api/products → Could not load products
+
+মানে: Node চলছে কিন্তু MySQL connect/query fail।
+
+───────────────────────────────────────────────────────────
+ধাপ ১ — phpMyAdmin (টেবিল আছে কিনা)
+───────────────────────────────────────────────────────────
+cPanel → phpMyAdmin → বামে rakushop_rakushopbd সিলেক্ট
+
+টেবিল দেখতে হবে: admins, products, categories, ...
+
+নেই থাকলে → Import → database/rakushopbd-full-import.sql
+
+SQL ট্যাব:
+  SELECT COUNT(*) FROM admins;
+  SELECT COUNT(*) FROM products;
+
+───────────────────────────────────────────────────────────
+ধাপ ২ — MySQL user + database মিল
+───────────────────────────────────────────────────────────
+cPanel → MySQL® Databases
+
+✓ Database: rakushop_rakushopbd exists
+✓ User: rakushop_rakushopbd → database এ ALL PRIVILEGES
+
+নতুন database বানালে → Node env তে DB_NAME + DB_PASSWORD আপডেট
+
+───────────────────────────────────────────────────────────
+ধাপ ৩ — Environment Variables (সবচেয়ে গুরুত্বপূর্ণ)
+───────────────────────────────────────────────────────────
+Setup Node.js App → Environment Variables
+
+  DB_HOST=localhost
+  DB_PORT=3306
+  DB_NAME=rakushop_rakushopbd
+  DB_USER=rakushop_rakushopbd
+  DB_PASSWORD=MySQL user এর EXACT password
+
+⚠️ Password এ } ; # ' " থাকলে cPanel ভুল পড়তে পারে!
+   সমাধান: MySQL user password বদলে শুধু অক্ষর+সংখ্যা রাখুন
+   যেমন: RakuShopDb2026Xk9m
+   তারপর env তে DB_PASSWORD আপডেট → SAVE
+
+  NODE_ENV=production
+  (+ বাকি ADMIN_*, SESSION_SECRET — গাইড দেখুন)
+
+→ SAVE → STOP APP → ১০ সেকেন্ড → START
+
+───────────────────────────────────────────────────────────
+ধাপ ৪ — টেস্ট (git pull পরে db-check)
+───────────────────────────────────────────────────────────
+https://rakushopbd.com/api/db-check
+
+সফল:
+  "ok":true, "connected":true, "adminCount":1
+
+ভুল password:
+  "errorCode":"ER_ACCESS_DENIED_ERROR"
+
+ভুল database নাম:
+  "errorCode":"ER_BAD_DB_ERROR"
+
+টেবিল নেই:
+  "tableError":"ER_NO_SUCH_TABLE" → full-import.sql import
+
+───────────────────────────────────────────────────────────
+ধাপ ৫ — DB_HOST বদলে দেখুন (কখনও লাগে)
+───────────────────────────────────────────────────────────
+localhost কাজ না করলে:
+  DB_HOST=127.0.0.1
+SAVE → STOP → START

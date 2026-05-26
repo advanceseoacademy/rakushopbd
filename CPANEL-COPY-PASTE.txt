@@ -1,21 +1,37 @@
 ═══════════════════════════════════════════════════════════
-  RakuShopBD — cPanel এ copy-paste করুন (Mac Terminal নয়)
+  RakuShopBD — cPanel (Mac Terminal নয়, ব্রাউজার Terminal)
 ═══════════════════════════════════════════════════════════
 
-⓪ গুরুত্বপূর্ণ — node_modules মুছুন (লাল error fix)
-   File Manager → repositories/rakushopbd →
-   "node_modules" ফোল্ডার DELETE করুন (পুরো folder)
-   (cPanel নিজে symlink বানাবে — real folder থাকলে error)
+সমস্যা: Admin login হয় কিন্তু dashboard খোলে না / reload এ login
+কারণ: পুরনো Node process — login এ "token" নেই
 
-① cPanel ব্রাউজার → Terminal খুলুন
+✅ সফল হলে ব্রাউজারে দেখবেন:
+   https://rakushopbd.com/api/admin/ping
+   → "adminCount":1
 
-② এই লাইনগুলো একটার পর একটা paste করুন:
+   Login fail + "Database error" = admins table নেই → ধাপ ০
 
+───────────────────────────────────────────────────────────
+ধাপ ০ — phpMyAdmin (login না হলে প্রথমে এটা)
+───────────────────────────────────────────────────────────
+cPanel → phpMyAdmin → আপনার database select → SQL tab
+ফাইল খুলুন: database/cpanel-admin-fix.sql
+সব SQL copy → paste → Go
+
+───────────────────────────────────────────────────────────
+ধাপ ১ — node_modules মুছুন (অবশ্যই)
+───────────────────────────────────────────────────────────
+File Manager → repositories/rakushopbd →
+"node_modules" ফোল্ডার পুরো DELETE
+
+───────────────────────────────────────────────────────────
+ধাপ ২ — Terminal (cPanel ব্রাউজার)
+───────────────────────────────────────────────────────────
 cd ~/repositories/rakushopbd
 
 git pull origin main
 
-grep "registerAdminAuth" server.js
+grep "api-bootstrap" lib/registerAdminAuth.js
 (লাইন দেখালে নতুন code আছে)
 
 source /home/rakushop/nodevenv/repositories/rakushopbd/20/bin/activate
@@ -24,32 +40,32 @@ npm install
 
 npm run admin:sync
 
-③ cPanel → Setup Node.js App
-   → Run NPM Install  (node_modules মুছার পর)
-   → STOP APP → ১০ সেকেন্ড → START
+───────────────────────────────────────────────────────────
+ধাপ ৩ — Node.js App
+───────────────────────────────────────────────────────────
+Setup Node.js App →
+  Run NPM Install
+  STOP APP → ১০ সেকেন্ড অপেক্ষা → START
 
 touch tmp/restart.txt
 
-④ ব্রাউজারে টেস্ট:
-   https://rakushopbd.com/api/admin/version
-   (দেখতে হবে: "apiVersion":2)
+───────────────────────────────────────────────────────────
+ধাপ ৪ — টেস্ট
+───────────────────────────────────────────────────────────
+১) https://rakushopbd.com/api/admin/version
+   (api-bootstrap না দেখলে STOP→START আবার করুন)
 
-⑤ Admin login:
-   https://rakushopbd.com/admin
+২) https://rakushopbd.com/admin
    User: admin@rakushopbd.com
    Pass: BDRakuadmin2026%%
 
-⑥ public_html/index.html মুছে দিন (থাকলে)
+৩) public_html/index.html থাকলে DELETE
 
 ───────────────────────────────────────────────────────────
-যদি cd ~/repositories/rakushopbd fail হয়:
-  File Manager → যেখানে server.js → সেই path এ cd করুন
-
-যদে npm not found:
-  Node.js App → Stop → Run NPM Install → Start
-  তারপর virtualenv line আবার চালান
-
-যদি git pull না হয়:
-  Git Version Control → Pull বাটন
-  অথবা GitHub ZIP → File Manager upload
+git pull না হলে — এই ৪টা ফাইল File Manager upload:
+  lib/registerAdminAuth.js
+  lib/adminToken.js
+  routes/api.js
+  public/js/admin.js
+তারপর ধাপ ১ + ৩ আবার
 ───────────────────────────────────────────────────────────

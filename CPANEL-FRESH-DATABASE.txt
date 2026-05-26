@@ -1,0 +1,114 @@
+═══════════════════════════════════════════════════════════
+  RakuShopBD — পুরো Database নতুন করে (Fresh Install)
+═══════════════════════════════════════════════════════════
+⚠️ সব products, orders, users, admin — মুছে যাবে!
+
+Database name (আপনার): rakushop_rakushopbd
+
+───────────────────────────────────────────────────────────
+★ সবচেয়ে সহজ — একটা SQL file Import (recommended)
+───────────────────────────────────────────────────────────
+① cPanel → phpMyAdmin → rakushop_rakushopbd সিলেক্ট
+② Import → Choose file:
+     database/rakushopbd-full-import.sql
+③ Go / Import
+
+④ Node.js App → STOP → ১০ সেকেন্ড → START
+
+⑤ টেস্ট:
+   https://rakushopbd.com/api/admin/ping
+   https://rakushopbd.com/admin
+   User: admin@rakushopbd.com
+   Pass: BDRakuadmin2026%%
+
+───────────────────────────────────────────────────────────
+পদ্ধতি A — টেবিল মুছে npm দিয়ে বানান
+───────────────────────────────────────────────────────────
+
+① cPanel → phpMyAdmin
+   বামে rakushop_rakushopbd সিলেক্ট → SQL ট্যাব
+   ফাইল: database/drop-all-tables.sql
+   → সব SQL copy → Go
+   (সব টেবিল delete হয়ে যাবে)
+
+② cPanel → Setup Node.js App → Environment Variables
+   নিশ্চিত করুন:
+     DB_HOST=localhost
+     DB_NAME=rakushop_rakushopbd
+     DB_USER=rakushop_rakushopbd
+     DB_PASSWORD=(আপনার)
+     ADMIN_USERNAME=admin@rakushopbd.com
+     ADMIN_EMAIL=admin@rakushopbd.com
+     ADMIN_PASSWORD=BDRakuadmin2026%%
+     SESSION_SECRET=(দীর্ঘ random string)
+     NODE_ENV=production
+   → SAVE
+
+③ cPanel Terminal (Mac Terminal নয়):
+
+cd ~/repositories/rakushopbd
+source /home/rakushop/nodevenv/repositories/rakushopbd/20/bin/activate
+
+# .env নেই থাকলে একবার বানান (cPanel env এর মান):
+cat > .env << 'EOF'
+PORT=3000
+NODE_ENV=production
+DB_HOST=localhost
+DB_PORT=3306
+DB_USER=rakushop_rakushopbd
+DB_PASSWORD=এখানে_আপনার_DB_PASSWORD
+DB_NAME=rakushop_rakushopbd
+SESSION_SECRET=rakushopbd-local-dev-secret-8f3a9c2e1b7d4f6a
+ADMIN_USERNAME=admin@rakushopbd.com
+ADMIN_EMAIL=admin@rakushopbd.com
+ADMIN_PASSWORD=BDRakuadmin2026%%
+EOF
+# উপরে DB_PASSWORD ঠিক করে নিন, তারপর:
+
+npm install
+CONFIRM_FRESH_DB=YES npm run db:fresh
+
+④ Node.js App → STOP → ১০ সেকেন্ড → START
+
+⑤ টেস্ট:
+   https://rakushopbd.com/api/admin/ping  → adminCount:1
+   https://rakushopbd.com/api/products    → products list
+   https://rakushopbd.com/admin
+     User: admin@rakushopbd.com
+     Pass: BDRakuadmin2026%%
+
+───────────────────────────────────────────────────────────
+পদ্ধতি B — cPanel থেকে পুরো Database delete + নতুন
+───────────────────────────────────────────────────────────
+
+① cPanel → MySQL® Databases
+   → Database "rakushop_rakushopbd" DELETE
+   → আবার নতুন database বানান (নাম একই বা নতুন)
+   → User কে database এ ALL PRIVILEGES দিন
+   → নতুন password হলে Node.js App env তে DB_PASSWORD আপডেট → SAVE
+
+② phpMyAdmin খুললে খালি database দেখবেন
+
+③ উপরের পদ্ধতি A এর ③④⑤ করুন
+   (drop-all-tables.sql লাগবে না — খালি DB)
+
+───────────────────────────────────────────────────────────
+শুধু SQL দিয়ে (Terminal না চাইলে)
+───────────────────────────────────────────────────────────
+phpMyAdmin এ এক এক করে Import:
+  1) database/schema.sql
+  2) database/seed.sql
+  3) database/auth-schema.sql
+  4) database/admin-schema.sql
+  5) database/admin-extended.sql
+  6) database/cpanel-admin-fix.sql
+
+তারপর Node STOP → START
+
+───────────────────────────────────────────────────────────
+সমস্যা হলে
+───────────────────────────────────────────────────────────
+• npm: command not found → virtualenv source line আবার চালান
+• db:setup error → .env এ DB_PASSWORD সঠিক কিনা দেখুন
+• login fail → ping URL চেক করুন
+• products খালি → seed.sql import হয়েছে কিনা

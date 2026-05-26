@@ -2,8 +2,12 @@ const express = require('express');
 const { query } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
+const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 
 const router = express.Router();
+
+// Live cPanel: runs before /api/admin router — login returns token even if server.js is old
+registerAdminAuthApiRouter(router);
 
 function getCart(req) {
   if (!req.session.cart) req.session.cart = [];

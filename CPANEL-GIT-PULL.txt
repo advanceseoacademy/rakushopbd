@@ -1,0 +1,54 @@
+═══════════════════════════════════════════════════════════
+  cPanel — GitHub থেকে Pull (File Manager / Terminal)
+═══════════════════════════════════════════════════════════
+
+GitHub: https://github.com/advanceseoacademy/rakushopbd
+Branch: main
+
+───────────────────────────────────────────────────────────
+পদ্ধতি A — cPanel Terminal (recommended)
+───────────────────────────────────────────────────────────
+cd ~/repositories/rakushopbd
+git pull origin main
+
+# .env বানান (প্রথমবার):
+cp env.cpanel.example.txt .env
+# File Manager বা nano দিয়ে .env এ DB_PASSWORD ঠিক করুন
+
+source /home/rakushop/nodevenv/repositories/rakushopbd/20/bin/activate
+npm install
+npm run admin:sync
+
+# node_modules real folder থাকলে DELETE → Run NPM Install
+# Setup Node.js App → STOP → 10s → START
+
+───────────────────────────────────────────────────────────
+পদ্ধতি B — Git Version Control (cPanel UI)
+───────────────────────────────────────────────────────────
+Git™ Version Control → repository rakushopbd → Pull or Update
+
+───────────────────────────────────────────────────────────
+Database (phpMyAdmin — একবার)
+───────────────────────────────────────────────────────────
+Import: database/rakushopbd-full-import.sql
+
+───────────────────────────────────────────────────────────
+Environment Variables (cPanel Node.js App)
+───────────────────────────────────────────────────────────
+env.cpanel.example.txt এর মানগুলো ADD VARIABLE করুন
+DB_PASSWORD = MySQL user password (GitHub এ দেবেন না)
+
+───────────────────────────────────────────────────────────
+টেস্ট
+───────────────────────────────────────────────────────────
+https://rakushopbd.com/api/admin/ping
+https://rakushopbd.com/api/products
+https://rakushopbd.com/admin
+
+───────────────────────────────────────────────────────────
+গাইড ফাইল (pull এর পর project এ পাবেন)
+───────────────────────────────────────────────────────────
+CPANEL-NODEJS-FULL-GUIDE.md
+CPANEL-FINAL-STEPS.txt
+CPANEL-FRESH-DATABASE.txt
+database/rakushopbd-full-import.sql

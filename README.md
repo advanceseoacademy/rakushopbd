@@ -12,7 +12,9 @@ English-language e-commerce website for Bangladesh — **Node.js + Express + MyS
 
 ## Live deploy (cPanel Node.js)
 
+**Git pull on cPanel:** [`CPANEL-GIT-PULL.txt`](CPANEL-GIT-PULL.txt)  
 **সম্পূর্ণ গাইড:** [`CPANEL-NODEJS-FULL-GUIDE.md`](CPANEL-NODEJS-FULL-GUIDE.md)  
+**Env template:** [`env.cpanel.example.txt`](env.cpanel.example.txt) → copy to `.env` on server  
 দ্রুত commands: [`CPANEL-COPY-PASTE.txt`](CPANEL-COPY-PASTE.txt)  
 Database: [`database/rakushopbd-full-import.sql`](database/rakushopbd-full-import.sql)
 

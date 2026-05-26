@@ -5,7 +5,9 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "start:remote": "node scripts/start-remote.js",
     "dev": "node --watch server.js",
+    "db:test-remote": "node scripts/test-remote-db.js",
     "db:setup": "node scripts/setup-db.js",
     "db:fresh": "node scripts/fresh-db.js",
     "db:build-sql": "node scripts/build-full-sql.js",

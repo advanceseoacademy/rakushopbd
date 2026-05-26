@@ -1,5 +1,6 @@
 node_modules/
 .env
+.env.remote
 .DS_Store
 npm-debug.log*
 *.log

@@ -1,0 +1,23 @@
+═══════════════════════════════════════════════════════════
+  Mac থেকে Live Database (Remote MySQL)
+═══════════════════════════════════════════════════════════
+
+① cPanel → Remote Database Access
+   আপনার বর্তমান IP যোগ করুন (Mac Terminal):
+     curl -s ifconfig.me
+
+   ⚠️ 116.202.88.6 ≠ আপনার এখনকার IP হতে পারে
+   দুটো IP থাকলে দুটোই Add করুন
+
+② File: .env.remote
+   DB_PASSWORD = cPanel → MySQL user password (বিশেষ চিহ্ন ছাড়া ভালো)
+
+③ Test:
+   npm run db:test-remote
+
+④ Website live DB দিয়ে:
+   npm run start:remote
+   → http://localhost:3000
+
+⑤ Local MySQL আবার:
+   npm start  (uses .env → localhost)

@@ -152,7 +152,6 @@ CREATE TABLE banners (
 );
 
 
--- Sample products (English)
 INSERT INTO categories (slug, name_bn, icon, sort_order) VALUES
 ('electronics', 'Electronics', 'ti-device-mobile', 1),
 ('fashion', 'Fashion', 'ti-shirt', 2),
@@ -246,5 +245,5 @@ SELECT id, 'Karim Hossain', 4, 'Good sound quality for the price.', 'approved' F
 
 
 INSERT INTO admins (username, email, password_hash, full_name)
-VALUES ('admin@rakushopbd.com', 'admin@rakushopbd.com', '$2a$10$MXRgtpdmiQRjzR05BGgA/e.5ohchFMQGm6rgQBKkSH8EyIx5Z9ybS', 'Administrator')
+VALUES ('admin@rakushopbd.com', 'admin@rakushopbd.com', '$2a$10$EnrnoJJRDoX/lp0K8FXVheybNjElaEw6ZSonIfxwmfDen8BJsF4..', 'Administrator')
 ON CONFLICT (username) DO UPDATE SET password_hash = EXCLUDED.password_hash, email = EXCLUDED.email;

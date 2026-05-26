@@ -12,7 +12,8 @@ async function main() {
   const hash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'BDRakuadmin2026%%', 10);
   const seed = fs
     .readFileSync(path.join(__dirname, '../database/seed.sql'), 'utf8')
-    .replace(/ON DUPLICATE KEY UPDATE name_bn = VALUES\(name_bn\)/g, 'ON CONFLICT (slug) DO UPDATE SET name_bn = EXCLUDED.name_bn');
+    .replace(/ON DUPLICATE KEY UPDATE name_bn = VALUES\(name_bn\)/g, 'ON CONFLICT (slug) DO UPDATE SET name_bn = EXCLUDED.name_bn')
+    .replace(/^--.*\n/gm, '');
 
   const settings = `
 INSERT INTO site_settings (setting_key, setting_value) VALUES

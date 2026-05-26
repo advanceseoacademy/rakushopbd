@@ -23,8 +23,8 @@ async function main() {
   const pool = getPool();
   const statements = sql
     .split(/;\s*\n/)
-    .map((s) => s.trim())
-    .filter((s) => s && !s.startsWith('--'));
+    .map((s) => s.replace(/^--[^\n]*\n/gm, '').trim())
+    .filter((s) => s.length > 0);
 
   console.log(`📦 Running ${statements.length} SQL statements on Supabase...`);
   for (let i = 0; i < statements.length; i++) {

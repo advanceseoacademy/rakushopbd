@@ -13,6 +13,7 @@
     "db:build-sql": "node scripts/build-full-sql.js",
     "db:build:supabase": "node scripts/build-supabase-sql.js",
     "db:setup:supabase": "node scripts/setup-supabase.js",
+    "db:apply:supabase": "node scripts/supabase-apply-sql.js",
     "db:brand-colors": "node scripts/update-brand-colors.js",
     "admin:sync": "node scripts/sync-admin.js",
     "cpanel:env": "node scripts/generate-cpanel-env.js",

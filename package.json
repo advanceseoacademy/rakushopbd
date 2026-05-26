@@ -18,7 +18,9 @@
     "db:brand-colors": "node scripts/update-brand-colors.js",
     "admin:sync": "node scripts/sync-admin.js",
     "cpanel:env": "node scripts/generate-cpanel-env.js",
-    "local:setup": "npm run db:setup && npm run admin:sync"
+    "local:setup": "npm run db:setup && npm run admin:sync",
+    "pm2:start": "pm2 start ecosystem.config.cjs",
+    "pm2:restart": "pm2 restart rakushopbd"
   },
   "engines": {
     "node": ">=18.0.0"

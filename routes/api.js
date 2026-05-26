@@ -343,6 +343,7 @@ router.get('/products/:id', async (req, res) => {
       [req.params.id]
     );
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Product not found' });
+    cachePublic(res, 120);
     res.json({ ok: true, product: rows[0] });
   } catch (err) {
     console.error(err);

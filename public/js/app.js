@@ -19,12 +19,23 @@ document.addEventListener('DOMContentLoaded', function() {
     wishlist: document.getElementById('page-wishlist'),
   };
 
-  // Hide all pages until route is restored (avoids home flash on reload)
-  Object.values(pages).forEach((p) => {
-    if (p) p.style.display = 'none';
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist'];
+
+  // Show target route immediately (content fills via bootstrap / API)
+  const initialRoute = (function parseInitial() {
+    const parts = (location.pathname || '/').split('/').filter(Boolean);
+    if (!parts.length) return { page: 'home' };
+    const [page, param] = parts;
+    if (page === 'product' && param) return { page: 'product', productId: Number(param) };
+    if (page === 'category' && param) return { page: 'category', categorySlug: decodeURIComponent(param) };
+    if (PAGE_NAMES.includes(page)) return { page };
+    return { page: 'home' };
+  })();
+
+  Object.entries(pages).forEach(([name, el]) => {
+    if (el) el.style.display = name === initialRoute.page ? 'block' : 'none';
   });
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist'];
   let routeRestoring = false;
 
   function buildPath(name, opts = {}) {

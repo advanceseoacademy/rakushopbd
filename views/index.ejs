@@ -1319,12 +1319,15 @@
 <% if (typeof bootstrapJson !== 'undefined' && bootstrapJson) { %>
 <script>window.__RAKU_BOOTSTRAP=<%- bootstrapJson %>;</script>
 <% } %>
+<% if (typeof productJson !== 'undefined' && productJson) { %>
+<script>window.__RAKU_PRELOAD_PRODUCT=<%- productJson %>;</script>
+<% } %>
 <script>window.RAKU_API_BASE = '';</script>
-<script src="/js/maintenance-view.js" defer></script>
-<script src="/js/app.js" defer></script>
-<script src="/js/api.js" defer></script>
-<script src="/js/storefront-dynamic.js" defer></script>
-<script src="/js/search.js" defer></script>
-<script src="/js/account.js" defer></script>
+<script src="/js/maintenance-view.js?v=3" defer></script>
+<script src="/js/app.js?v=3" defer></script>
+<script src="/js/api.js?v=3" defer></script>
+<script src="/js/storefront-dynamic.js?v=3" defer></script>
+<script src="/js/search.js?v=3" defer></script>
+<script src="/js/account.js?v=3" defer></script>
 </body>
 </html>

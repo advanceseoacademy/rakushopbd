@@ -258,7 +258,7 @@
     }
   };
 
-  window._rakuEnhanceProductPage = async function (p) {
+  window._rakuEnhanceProductPageSync = function (p) {
     if (!p) return;
     const fmt = window.formatPrice || ((n) => n);
 
@@ -337,30 +337,36 @@
 
     const thumbRow = document.querySelector('#page-product .thumb-row');
     if (thumbRow) thumbRow.style.display = 'none';
+  };
 
+  window._rakuEnhanceProductPageRelated = async function (p) {
+    if (!p) return;
     const grid = document.getElementById('related-product-grid');
-    if (grid && p.category_slug) {
-      grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);">Loading...</p>';
-      try {
-        const data = await window._rakuApiFetch(`/products?category=${encodeURIComponent(p.category_slug)}&limit=4&exclude=${p.id}`);
-        if (data.ok && data.products.length) {
-          grid.innerHTML = data.products.map((rp) => window.productCardHtml(rp)).join('');
-          window.bindProductGridEvents();
-        } else {
-          grid.innerHTML = '<p style="grid-column:1/-1;color:var(--text-muted);">No related products.</p>';
-        }
-      } catch {
-        grid.innerHTML = '';
+    if (!grid || !p.category_slug) return;
+    grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);">Loading...</p>';
+    try {
+      const data = await window._rakuApiFetch(
+        `/products?category=${encodeURIComponent(p.category_slug)}&limit=4&exclude=${p.id}`
+      );
+      if (data.ok && data.products.length) {
+        grid.innerHTML = data.products.map((rp) => window.productCardHtml(rp)).join('');
+        window.bindProductGridEvents();
+      } else {
+        grid.innerHTML = '<p style="grid-column:1/-1;color:var(--text-muted);">No related products.</p>';
       }
-      const relSee = document.getElementById('related-see-all');
-      if (relSee) {
-        relSee.onclick = (e) => {
-          e.preventDefault();
-          if (window.openCategory) window.openCategory(p.category_slug);
-        };
-      }
+    } catch {
+      grid.innerHTML = '';
+    }
+    const relSee = document.getElementById('related-see-all');
+    if (relSee) {
+      relSee.onclick = (e) => {
+        e.preventDefault();
+        if (window.openCategory) window.openCategory(p.category_slug);
+      };
     }
   };
+
+  window._rakuEnhanceProductPage = window._rakuEnhanceProductPageSync;
 
   function applyCategories(categories) {
     if (!categories?.length) return;

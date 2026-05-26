@@ -16,7 +16,7 @@ const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
-const { getStoreBootstrap } = require('./lib/storeBootstrap');
+const { getStoreBootstrap, getProductById } = require('./lib/storeBootstrap');
 const { registerAdminAuth } = require('./lib/registerAdminAuth');
 const { usePostgres } = require('./config/db');
 
@@ -107,12 +107,20 @@ app.get('/api/db-check', async (req, res) => {
 
 async function renderStorefront(req, res) {
   try {
-    const bootstrap = await getStoreBootstrap();
+    const productMatch = req.path.match(/^\/product\/(\d+)$/);
+    const productId = productMatch ? productMatch[1] : null;
+    const [bootstrap, product] = await Promise.all([
+      getStoreBootstrap(),
+      productId ? getProductById(productId) : null,
+    ]);
     const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
-    res.render('index', { bootstrapJson });
+    const productJson = product
+      ? JSON.stringify({ ok: true, product }).replace(/</g, '\\u003c')
+      : null;
+    res.render('index', { bootstrapJson, productJson });
   } catch (err) {
     console.error('renderStorefront', err);
-    res.render('index', { bootstrapJson: null });
+    res.render('index', { bootstrapJson: null, productJson: null });
   }
 }
 

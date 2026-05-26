@@ -1,0 +1,22 @@
+# RakuShopBD VPS — শুধু ১টা command (SSH root@84.46.254.52)
+
+SSH login করুন, তারপর পুরো লাইন copy-paste করুন:
+
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/advanceseoacademy/rakushopbd/main/scripts/vps-fix-everything.sh)"
+
+এটা করবে:
+- Git pull + npm install
+- .env (Supabase) তৈরি
+- PM2 start/restart (port 3001)
+- vHost fix (extprocessor proxy — পুরনো broken rewrite মুছে দেবে)
+- LiteSpeed restart
+- curl test
+
+সফল হলে দেখবেন:
+{"ok":true,"build":"supabase-v2","productCount":23,...}
+
+Browser:
+https://rakushopbd.com/api/db-check
+https://rakushopbd.com/admin
+
+Mac-এ 127.0.0.1:3001 খুলবেন না — সেটা laptop, VPS নয়.

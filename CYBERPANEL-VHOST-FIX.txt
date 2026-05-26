@@ -1,0 +1,84 @@
+# CyberPanel 500 fix — vHost Conf (rakushopbd.com)
+
+## আগে VPS SSH-এ চেক করুন (Mac browser এ 127.0.0.1 নয়!)
+
+curl -i http://127.0.0.1:3001/api/db-check
+
+→ JSON {"ok":true,...} = Node ঠিক, শুধু vHost proxy ঠিক করতে হবে
+→ connection refused = pm2 restart rakushopbd
+
+---
+
+## vHost Conf — এটা ADD করুন
+
+CyberPanel → Websites → List Websites → rakushopbd.com → vHost Conf
+
+ফাইলের শেষে (বা rewrite block এর বদলে) যোগ করুন:
+
+extprocessor rakushopbd_node {
+  type                    proxy
+  address                 127.0.0.1:3001
+  maxConns                100
+  pcKeepAliveTimeout      60
+  initTimeout             60
+  retryTimeout            0
+  respBuffer              0
+}
+
+context / {
+  type                    proxy
+  handler                 rakushopbd_node
+  addDefaultCharset       off
+}
+
+---
+
+## পুরনো rewrite থাকলে REMOVE করুন
+
+এই block থাকলে delete করুন (500 এর কারণ হতে পারে):
+
+rewrite  {
+  ...
+  RewriteRule ^(.*)$ http://127.0.0.1:3001/$1 [P,L]
+}
+
+extprocessor + context একসাথে rewrite [P] দুটোই রাখবেন না।
+
+---
+
+## Restart
+
+/usr/local/lsws/bin/lswsctrl restart
+
+---
+
+## টেস্ট (SSH)
+
+curl -i http://127.0.0.1:3001/api/db-check
+curl -i http://rakushopbd.com/api/db-check
+
+Browser: https://rakushopbd.com/api/db-check
+
+---
+
+## এক লাইনে apply (SSH root)
+
+bash -c 'V=/usr/local/lsws/conf/vhosts/rakushopbd.com/vhost.conf; grep -q rakushopbd_node "$V" || cat >> "$V" << "EOF"
+
+extprocessor rakushopbd_node {
+  type                    proxy
+  address                 127.0.0.1:3001
+  maxConns                100
+  pcKeepAliveTimeout      60
+  initTimeout             60
+  retryTimeout            0
+  respBuffer              0
+}
+
+context / {
+  type                    proxy
+  handler                 rakushopbd_node
+  addDefaultCharset       off
+}
+EOF
+/usr/local/lsws/bin/lswsctrl restart; sleep 2; curl -s http://127.0.0.1:3001/api/db-check; echo; curl -s http://rakushopbd.com/api/db-check'

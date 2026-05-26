@@ -8,6 +8,7 @@ const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
 const { registerAdminAuth } = require('./lib/registerAdminAuth');
+const { usePostgres } = require('./config/db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,5 +75,6 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`RakuShopBD running — http://localhost:${PORT}`);
+  const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
+  console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
 });

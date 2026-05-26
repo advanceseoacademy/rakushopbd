@@ -4,6 +4,7 @@ node_modules/
 env-for-cpanel.txt
 .env.supabase
 env.supabase.local.txt
+env-for-cpanel-supabase.txt
 .DS_Store
 npm-debug.log*
 *.log

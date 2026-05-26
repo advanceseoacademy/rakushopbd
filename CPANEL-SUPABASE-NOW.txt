@@ -1,0 +1,55 @@
+═══════════════════════════════════════════════════════════
+  cPanel + Supabase — শেষ ধাপ (৫ মিনিট)
+═══════════════════════════════════════════════════════════
+Database Supabase-এ তৈরি ✅ (8 categories, 23 products, 1 admin)
+
+───────────────────────────────────────────────────────────
+① Supabase — Database password (একবার)
+───────────────────────────────────────────────────────────
+https://supabase.com/dashboard/project/dymliuodmmmgvwjbonjn/database/settings
+
+→ Reset database password
+→ নতুন password দিন (Mac/cPanel env এর মতো):
+
+   RakuShopBd_Supabase_2026_Xk9
+
+→ Save
+
+───────────────────────────────────────────────────────────
+② cPanel — git pull
+───────────────────────────────────────────────────────────
+cd ~/repositories/rakushopbd
+git pull origin main
+
+───────────────────────────────────────────────────────────
+③ cPanel — .env file
+───────────────────────────────────────────────────────────
+File Manager → repositories/rakushopbd
+Upload: env-for-cpanel-supabase.txt (Mac project folder)
+Rename to: .env
+
+(অথবা Setup Node.js App → Environment Variables — same values)
+
+───────────────────────────────────────────────────────────
+④ cPanel — Node.js App
+───────────────────────────────────────────────────────────
+MySQL DB_* variables DELETE করুন (শুধু DATABASE_URL থাকবে)
+Run NPM Install
+STOP → ১০ সেকেন্ড → START
+public_html/index.html থাকলে DELETE
+
+───────────────────────────────────────────────────────────
+⑤ টেস্ট
+───────────────────────────────────────────────────────────
+https://rakushopbd.com/api/admin/ping   → adminCount:1
+https://rakushopbd.com/api/products     → ok:true
+https://rakushopbd.com/admin            → login
+
+Admin: admin@rakushopbd.com / BDRakuadmin2026%%
+
+───────────────────────────────────────────────────────────
+Mac local
+───────────────────────────────────────────────────────────
+npm start → http://localhost:3000
+
+EOF

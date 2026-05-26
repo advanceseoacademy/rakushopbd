@@ -12,6 +12,7 @@ English-language e-commerce website for Bangladesh — **Node.js + Express + MyS
 
 ## Live deploy (cPanel Node.js)
 
+**Supabase database:** [`SUPABASE-SETUP.md`](SUPABASE-SETUP.md) · SQL: [`database/supabase-full.sql`](database/supabase-full.sql)  
 **Git pull on cPanel:** [`CPANEL-GIT-PULL.txt`](CPANEL-GIT-PULL.txt)  
 **সম্পূর্ণ গাইড:** [`CPANEL-NODEJS-FULL-GUIDE.md`](CPANEL-NODEJS-FULL-GUIDE.md)  
 **Env template:** [`env.cpanel.example.txt`](env.cpanel.example.txt) → copy to `.env` on server  

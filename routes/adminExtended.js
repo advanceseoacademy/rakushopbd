@@ -1,5 +1,6 @@
 const path = require('path');
 const { upload } = require('../lib/upload');
+const { sql: sqlDialect } = require('../lib/db-dialect');
 
 module.exports = function registerExtendedAdminRoutes(router, deps) {
   const { query, formatPrice, slugify, requireAdmin, statusBadge } = deps;
@@ -55,12 +56,10 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
   router.get('/analytics', requireAdmin, async (req, res) => {
     try {
       const [{ monthOrders }] = await query(
-        `SELECT COUNT(*) AS monthOrders FROM orders
-         WHERE MONTH(created_at)=MONTH(CURRENT_DATE()) AND YEAR(created_at)=YEAR(CURRENT_DATE())`
+        `SELECT COUNT(*) AS monthOrders FROM orders WHERE ${sqlDialect.ordersThisMonth()}`
       );
       const [{ monthCustomers }] = await query(
-        `SELECT COUNT(*) AS monthCustomers FROM users
-         WHERE MONTH(created_at)=MONTH(CURRENT_DATE()) AND YEAR(created_at)=YEAR(CURRENT_DATE())`
+        `SELECT COUNT(*) AS monthCustomers FROM users WHERE ${sqlDialect.ordersThisMonth()}`
       ).catch(() => [{ monthCustomers: 0 }]);
       const [{ avgOrder }] = await query(
         `SELECT COALESCE(AVG(total),0) AS avgOrder FROM orders WHERE status != 'cancelled'`
@@ -116,8 +115,7 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     try {
       const [{ total }] = await query('SELECT COUNT(*) AS total FROM users').catch(() => [{ total: 0 }]);
       const [{ monthNew }] = await query(
-        `SELECT COUNT(*) AS monthNew FROM users
-         WHERE MONTH(created_at)=MONTH(CURRENT_DATE()) AND YEAR(created_at)=YEAR(CURRENT_DATE())`
+        `SELECT COUNT(*) AS monthNew FROM users WHERE ${sqlDialect.ordersThisMonth()}`
       ).catch(() => [{ monthNew: 0 }]);
       const [{ avgSpent }] = await query(
         `SELECT COALESCE(AVG(t.spent),0) AS avgSpent FROM (

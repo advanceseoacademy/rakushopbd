@@ -3,6 +3,8 @@ const { query, getPool } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
+const { sql: sqlDialect, returningId } = require('../lib/db-dialect');
+const { firstInsertId } = require('../config/db');
 
 const router = express.Router();
 
@@ -149,7 +151,7 @@ router.get('/banners', async (req, res) => {
   try {
     const banners = await query(
       `SELECT id, title, position, link_url, image_url, bg_gradient FROM banners
-       WHERE is_active=1 AND (expires_at IS NULL OR expires_at >= CURDATE())
+       WHERE is_active=1 AND ${sqlDialect.curDateOrLater()}
        ORDER BY sort_order`
     );
     res.json({ ok: true, banners });
@@ -221,7 +223,7 @@ router.post('/coupons/validate', async (req, res) => {
     const { code, subtotal } = req.body;
     const rows = await query(
       `SELECT * FROM coupons WHERE code=? AND is_active=1
-       AND (expires_at IS NULL OR expires_at >= CURDATE())`,
+       AND ${sqlDialect.curDateOrLater()}`,
       [code.toUpperCase()]
     );
     if (!rows.length) return res.json({ ok: false, error: 'Invalid coupon' });
@@ -385,7 +387,7 @@ router.post('/cart/coupon', async (req, res) => {
     const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
     const rows = await query(
       `SELECT * FROM coupons WHERE code=? AND is_active=1
-       AND (expires_at IS NULL OR expires_at >= CURDATE())`,
+       AND ${sqlDialect.curDateOrLater()}`,
       [String(code || '').toUpperCase()]
     );
     if (!rows.length) return res.json({ ok: false, error: 'Invalid coupon' });
@@ -499,7 +501,7 @@ router.post('/orders', async (req, res) => {
     const orderResult = await query(
       `INSERT INTO orders (user_id, order_number, customer_name, customer_phone, customer_email,
         address_line, district, postal_code, payment_method, subtotal, delivery_fee, total, notes)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
       [
         userId,
         orderNumber,
@@ -517,7 +519,11 @@ router.post('/orders', async (req, res) => {
       ]
     );
 
-    const orderId = orderResult.insertId;
+    let orderId = firstInsertId(orderResult);
+    if (!orderId) {
+      const found = await query('SELECT id FROM orders WHERE order_number = ?', [orderNumber]);
+      orderId = found[0]?.id;
+    }
     if (req.session.couponId) {
       await query('UPDATE coupons SET used_count = used_count + 1 WHERE id = ?', [req.session.couponId]);
       delete req.session.couponCode;

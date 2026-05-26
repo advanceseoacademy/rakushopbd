@@ -5,6 +5,8 @@ const { formatPrice } = require('../lib/format');
 const { slugify } = require('../lib/slugify');
 const { clearSiteSettingsCache } = require('../lib/siteSettings');
 const { requireAdmin } = require('../middleware/requireAdmin');
+const { sql: sqlDialect, upsertSiteSettingSql, returningId } = require('../lib/db-dialect');
+const { firstInsertId } = require('../config/db');
 const { saveSession } = require('../lib/sessionSave');
 const { signAdminToken, getAdminIdFromRequest } = require('../lib/adminToken');
 
@@ -118,7 +120,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     );
     const [{ monthRevenue }] = await query(
       `SELECT COALESCE(SUM(total),0) AS monthRevenue FROM orders
-       WHERE status != 'cancelled' AND MONTH(created_at) = MONTH(CURRENT_DATE()) AND YEAR(created_at) = YEAR(CURRENT_DATE())`
+       WHERE status != 'cancelled' AND ${sqlDialect.ordersThisMonth()}`
     );
     const [{ totalProducts }] = await query('SELECT COUNT(*) AS totalProducts FROM products');
     const [{ lowStock }] = await query('SELECT COUNT(*) AS lowStock FROM products WHERE stock <= 5');
@@ -130,7 +132,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
 
     const recentOrders = await query(
       `SELECT o.id, o.order_number, o.customer_name, o.total, o.status, o.created_at,
-        (SELECT GROUP_CONCAT(oi.product_name SEPARATOR ', ') FROM order_items oi WHERE oi.order_id = o.id LIMIT 2) AS items_preview
+        ${sqlDialect.orderItemsPreview('o')} AS items_preview
        FROM orders o ORDER BY o.created_at DESC LIMIT 8`
     );
 
@@ -139,9 +141,9 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     );
 
     const monthlyRevenue = await query(
-      `SELECT MONTH(created_at) AS m, COALESCE(SUM(total),0) AS revenue
-       FROM orders WHERE status != 'cancelled' AND created_at >= DATE_SUB(CURDATE(), INTERVAL 12 MONTH)
-       GROUP BY YEAR(created_at), MONTH(created_at) ORDER BY YEAR(created_at), MONTH(created_at)`
+      `SELECT ${sqlDialect.revenueSelectMonth()}, COALESCE(SUM(total),0) AS revenue
+       FROM orders WHERE status != 'cancelled' AND ${sqlDialect.revenueLast12Months()}
+       GROUP BY ${sqlDialect.revenueGroupByMonth()} ORDER BY ${sqlDialect.revenueOrderByMonth()}`
     );
 
     let activity = [];
@@ -351,7 +353,7 @@ router.post('/products', requireAdmin, async (req, res) => {
     const result = await query(
       `INSERT INTO products (category_id, slug, sku, name_bn, description_bn, price, old_price, stock,
         icon, icon_color, bg_color, image_url, tag_type, tag_text, discount_percent, is_featured)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
       [
         categoryId,
         slug,
@@ -371,7 +373,8 @@ router.post('/products', requireAdmin, async (req, res) => {
         isFeatured ? 1 : 0,
       ]
     );
-    res.json({ ok: true, id: result.insertId });
+    const newId = firstInsertId(result) ?? (await query('SELECT id FROM products WHERE slug = ?', [slug]))[0]?.id;
+    res.json({ ok: true, id: newId });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not create product' });
@@ -599,11 +602,7 @@ router.put('/settings', requireAdmin, async (req, res) => {
   try {
     const settings = req.body.settings || req.body;
     for (const [key, value] of Object.entries(settings)) {
-      await query(
-        `INSERT INTO site_settings (setting_key, setting_value) VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE setting_value = VALUES(setting_value)`,
-        [key, String(value)]
-      );
+      await query(upsertSiteSettingSql(), [key, String(value)]);
     }
     clearSiteSettingsCache();
     res.json({ ok: true });

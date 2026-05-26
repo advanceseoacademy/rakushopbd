@@ -3,6 +3,8 @@ const bcrypt = require('bcryptjs');
 const { query } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { saveSession } = require('../lib/sessionSave');
+const { returningId } = require('../lib/db-dialect');
+const { firstInsertId } = require('../config/db');
 
 const router = express.Router();
 
@@ -60,14 +62,13 @@ router.post('/register', async (req, res) => {
 
     const hash = await bcrypt.hash(password, 10);
     const result = await query(
-      'INSERT INTO users (full_name, email, phone, password_hash) VALUES (?, ?, ?, ?)',
+      `INSERT INTO users (full_name, email, phone, password_hash) VALUES (?, ?, ?, ?)${returningId()}`,
       [fullName.trim(), email.trim().toLowerCase(), phone.trim(), hash]
     );
 
-    req.session.userId = result.insertId;
-    const rows = await query('SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?', [
-      result.insertId,
-    ]);
+    const userId = firstInsertId(result) ?? (await query('SELECT id FROM users WHERE email = ?', [email.trim().toLowerCase()]))[0]?.id;
+    req.session.userId = userId;
+    const rows = await query('SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?', [userId]);
     saveSession(req, (saveErr) => {
       if (saveErr) {
         console.error(saveErr);
@@ -227,7 +228,7 @@ router.post('/addresses', requireAuth, async (req, res) => {
 
     const result = await query(
       `INSERT INTO user_addresses (user_id, label, full_name, phone, district, thana, address_line, postal_code, is_default)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
       [
         req.session.userId,
         label || 'Home',
@@ -241,7 +242,8 @@ router.post('/addresses', requireAuth, async (req, res) => {
       ]
     );
 
-    const rows = await query('SELECT * FROM user_addresses WHERE id = ?', [result.insertId]);
+    const addrId = firstInsertId(result);
+    const rows = await query('SELECT * FROM user_addresses WHERE id = ?', [addrId]);
     res.json({ ok: true, address: rows[0] });
   } catch (err) {
     console.error(err);

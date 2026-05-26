@@ -3,8 +3,7 @@
  */
 require('dotenv').config();
 const bcrypt = require('bcryptjs');
-const { getPool } = require('../config/db');
-
+const { query } = require('../config/db');
 async function main() {
   const username = (process.env.ADMIN_USERNAME || 'admin').trim();
   const email = (process.env.ADMIN_EMAIL || 'admin@rakushopbd.com').trim().toLowerCase();
@@ -15,18 +14,17 @@ async function main() {
     process.exit(1);
   }
 
-  const pool = getPool();
   const hash = await bcrypt.hash(password, 10);
+  const rows = await query('SELECT id FROM admins LIMIT 1');
 
-  const [rows] = await pool.query('SELECT id FROM admins LIMIT 1');
   if (rows.length) {
-    await pool.query(
+    await query(
       'UPDATE admins SET username = ?, email = ?, password_hash = ?, full_name = ? WHERE id = ?',
       [username, email, hash, 'Administrator', rows[0].id]
     );
     console.log('✅ Admin updated');
   } else {
-    await pool.query(
+    await query(
       'INSERT INTO admins (username, email, password_hash, full_name) VALUES (?, ?, ?, ?)',
       [username, email, hash, 'Administrator']
     );

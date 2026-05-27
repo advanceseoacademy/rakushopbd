@@ -206,10 +206,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Nav cart icon → cart
+  // Nav cart icon → cart (always re-render to reflect latest cart state)
   document.querySelectorAll('.nav-btn').forEach(btn => {
     if (btn.querySelector('.ti-shopping-cart')) {
-      btn.addEventListener('click', e => { e.preventDefault(); showPage('cart'); });
+      btn.addEventListener('click', e => {
+        e.preventDefault();
+        showPage('cart');
+        if (window.renderCart) window.renderCart();
+      });
     }
   });
 
@@ -222,7 +226,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Add to cart main button
   const btnAddMain = document.getElementById('btn-add-to-cart-main');
-  if (btnAddMain) btnAddMain.addEventListener('click', () => { cartCount++; updateBadges(); showPage('cart'); });
+  if (btnAddMain) btnAddMain.addEventListener('click', () => {
+    cartCount++; updateBadges(); showPage('cart');
+    if (window.renderCart) window.renderCart();
+  });
 
   const btnBuyNow = document.getElementById('btn-buy-now');
   if (btnBuyNow) {

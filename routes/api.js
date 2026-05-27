@@ -78,6 +78,7 @@ function productToWishlistItem(p) {
     icon: p.icon,
     iconColor: p.icon_color,
     bgColor: p.bg_color,
+    imageUrl: p.image_url || null,
   };
 }
 
@@ -598,8 +599,10 @@ router.post('/orders', async (req, res) => {
     }));
 
     req.session.cart = [];
+    req.session.checkoutDistrict = null;
     res.json({
       ok: true,
+      cartCleared: true,
       orderNumber,
       subtotal,
       delivery,

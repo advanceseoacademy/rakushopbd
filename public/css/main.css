@@ -686,6 +686,8 @@
     background: var(--surface);
     border-radius: var(--radius-lg);
     border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
     overflow: hidden;
     cursor: pointer;
     transition: all 0.2s;
@@ -744,13 +746,13 @@
   .btn-wish-lg.active i {
     color: var(--accent);
   }
-  .prod-info { padding: 12px 14px 14px; }
+  .prod-info { padding: 12px 14px 14px; display: flex; flex-direction: column; flex: 1; }
   .prod-category { font-size: 10px; color: var(--text-light); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
-  .prod-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.4; }
+  .prod-name { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; line-height: 1.4; flex: 1; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .prod-rating { display: flex; align-items: center; gap: 4px; margin-bottom: 8px; }
   .stars { color: #EF9F27; font-size: 11px; }
   .rating-count { font-size: 10px; color: var(--text-light); }
-  .prod-foot { display: flex; align-items: center; justify-content: space-between; }
+  .prod-foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
   .prod-price { font-size: 17px; font-weight: 700; color: var(--accent); }
   .prod-old { font-size: 11px; color: var(--text-light); text-decoration: line-through; margin-left: 5px; }
   .add-cart-btn {

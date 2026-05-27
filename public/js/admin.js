@@ -58,6 +58,7 @@
   let currentOrderId = null;
 
   let ordersPage = 1;
+  let productsPage = 1;
   let authRedirectHold = false;
 
   const pageTitles = {
@@ -557,11 +558,12 @@
       '<option value="all">All categories</option>' + categories.map((c) => `<option value="${c.slug}">${c.name_bn}</option>`).join('');
   }
 
-  async function loadProducts() {
+  async function loadProducts(page) {
+    if (page) productsPage = page;
     await loadCategoriesList();
     const cat = document.getElementById('products-cat-filter').value;
     const search = document.getElementById('products-search').value.trim();
-    const q = new URLSearchParams();
+    const q = new URLSearchParams({ page: productsPage, limit: 6 });
     if (cat !== 'all') q.set('category', cat);
     if (search) q.set('search', search);
     const data = await api('/products?' + q.toString());
@@ -615,10 +617,21 @@
         } else toast(r.error || 'Failed', 'error');
       };
     });
+
+    const pag = data.pagination;
+    const pagEl = document.getElementById('products-pagination');
+    if (pagEl && pag) {
+      pagEl.innerHTML = `<span>Page ${pag.page} of ${pag.pages} (${pag.total} products)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} data-pp="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page >= pag.pages ? 'disabled' : ''} data-pp="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-pp]').forEach((b) => {
+        b.onclick = () => loadProducts(productsPage + Number(b.dataset.pp));
+      });
+    }
   }
 
-  document.getElementById('products-cat-filter').onchange = loadProducts;
-  document.getElementById('products-search').oninput = debounce(loadProducts, 400);
+  document.getElementById('products-cat-filter').onchange = () => loadProducts(1);
+  document.getElementById('products-search').oninput = debounce(() => loadProducts(1), 400);
 
   document.getElementById('pf-reset').onclick = resetProductForm;
   function resetProductForm() {

@@ -322,23 +322,37 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
 // ——— Products ———
 router.get('/products', requireAdmin, async (req, res) => {
   try {
-    const { category, search } = req.query;
+    const { category, search, page = 1, limit = 6 } = req.query;
+    const p = Math.max(1, parseInt(page, 10) || 1);
+    const l = Math.min(48, Math.max(1, parseInt(limit, 10) || 6));
+    const offset = (p - 1) * l;
     let sql = `
       SELECT p.*, c.name_bn AS category_name, c.slug AS category_slug
+      FROM products p JOIN categories c ON c.id = p.category_id WHERE 1=1`;
+    let countSql = `
+      SELECT COUNT(*) AS total
       FROM products p JOIN categories c ON c.id = p.category_id WHERE 1=1`;
     const params = [];
     if (category && category !== 'all') {
       sql += ' AND c.slug = ?';
+      countSql += ' AND c.slug = ?';
       params.push(category);
     }
     if (search) {
       sql += ' AND (p.name_bn LIKE ? OR p.slug LIKE ?)';
+      countSql += ' AND (p.name_bn LIKE ? OR p.slug LIKE ?)';
       const q = `%${search}%`;
       params.push(q, q);
     }
+    const [{ total }] = await query(countSql, params);
     sql += ' ORDER BY p.id DESC';
+    sql += ` LIMIT ${l} OFFSET ${offset}`;
     const products = await query(sql, params);
-    res.json({ ok: true, products });
+    res.json({
+      ok: true,
+      products,
+      pagination: { page: p, limit: l, total: Number(total) || 0, pages: Math.ceil((Number(total) || 0) / l) || 1 },
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not load products' });

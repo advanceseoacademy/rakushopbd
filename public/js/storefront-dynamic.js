@@ -122,7 +122,7 @@
     };
     const items = [
       { icon: 'ti-box', bg: '#e8f5e8', color: '#2d8a2d', num: `${stats.productCount}+`, label: 'Total Products' },
-      { icon: 'ti-users', bg: '#e8f5e8', color: '#2d8a2d', num: stats.orderCount ? `${fmt(stats.orderCount)}+` : '1k+', label: 'Happy Customers' },
+      { icon: 'ti-users', bg: '#e8f5e8', color: '#2d8a2d', num: '500+', label: 'Happy Customers' },
       { icon: 'ti-truck', bg: '#faf3e0', color: '#8a6914', num: `${stats.districts} Districts`, label: 'Delivery Coverage' },
       { icon: 'ti-star', bg: '#fce8ec', color: '#9e5568', num: `${stats.avgRating} ⭐`, label: 'Average Rating' },
     ];

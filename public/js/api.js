@@ -46,7 +46,7 @@
 
   function productMediaHtml(p) {
     if (p.image_url) {
-      return `<img src="${p.image_url}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+      return `<img src="${p.image_url}" alt="" style="width:100%;height:100%;object-fit:contain;padding:8px;border-radius:inherit;">`;
     }
     return `<i class="${p.icon}" style="color:${p.icon_color};"></i>`;
   }
@@ -212,7 +212,7 @@
       <article class="wl-card" data-id="${item.productId}">
         <div class="wl-card-img" style="background:${item.bgColor};">
           <button type="button" class="wl-card-remove" data-id="${item.productId}" aria-label="Remove from wishlist"><i class="ti ti-x"></i></button>
-          <i class="${item.icon}" style="color:${item.iconColor};"></i>
+          ${cartThumbHtml(item)}
         </div>
         <div class="wl-card-body">
           <div class="wl-card-cat">${item.category}</div>
@@ -224,6 +224,23 @@
           </div>
         </div>
       </article>`;
+  }
+
+  async function hydrateWishlistImages(items) {
+    if (!Array.isArray(items) || !items.length) return items || [];
+    const jobs = items.map(async (item) => {
+      if (item?.imageUrl) return item;
+      const detail = await fetchProductDetail(item.productId);
+      if (!detail) return item;
+      return {
+        ...item,
+        imageUrl: detail.image_url || null,
+        icon: item.icon || detail.icon,
+        iconColor: item.iconColor || detail.icon_color,
+        bgColor: item.bgColor || detail.bg_color,
+      };
+    });
+    return Promise.all(jobs);
   }
 
   function bindWishlistPageEvents() {
@@ -263,18 +280,19 @@
   async function renderWishlist() {
     const data = await apiFetch('/wishlist');
     if (!data.ok) return;
+    const wishlist = await hydrateWishlistImages(data.wishlist);
 
     const page = document.getElementById('page-wishlist');
     const empty = document.getElementById('wishlist-empty');
     const grid = document.getElementById('wishlist-grid');
     const countEl = document.getElementById('wishlist-item-count');
-    const isEmpty = !data.wishlist.length;
+    const isEmpty = !wishlist.length;
 
     if (page) page.classList.toggle('wishlist-is-empty', isEmpty);
     if (empty) empty.hidden = !isEmpty;
     if (grid) {
       grid.hidden = isEmpty;
-      grid.innerHTML = isEmpty ? '' : data.wishlist.map(wishlistCardHtml).join('');
+      grid.innerHTML = isEmpty ? '' : wishlist.map(wishlistCardHtml).join('');
     }
     if (countEl) {
       const n = data.count;

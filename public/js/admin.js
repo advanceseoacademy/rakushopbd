@@ -2,6 +2,7 @@
   const API = '/api/admin';
   const ADMIN_TOKEN_KEY = 'rakushopbd_admin_token';
   const ADMIN_USER_KEY = 'rakushopbd_admin_user';
+  const ADMIN_PAGE_KEY = 'rakushopbd_admin_active_page';
 
   function getAdminToken() {
     try {
@@ -71,6 +72,24 @@
     banners: 'Banners',
     settings: 'Settings',
   };
+  const validPages = new Set(Object.keys(pageTitles));
+
+  function getSavedPage() {
+    try {
+      const page = localStorage.getItem(ADMIN_PAGE_KEY) || sessionStorage.getItem(ADMIN_PAGE_KEY);
+      return validPages.has(page) ? page : 'dashboard';
+    } catch (_) {
+      return 'dashboard';
+    }
+  }
+
+  function saveActivePage(page) {
+    if (!validPages.has(page)) return;
+    try {
+      localStorage.setItem(ADMIN_PAGE_KEY, page);
+      sessionStorage.setItem(ADMIN_PAGE_KEY, page);
+    } catch (_) {}
+  }
 
   async function api(url, options = {}) {
     const res = await fetch(API + url, {
@@ -92,10 +111,20 @@
     return data;
   }
 
-  function toast(msg) {
+  function toast(msg, type = 'success') {
     const el = document.getElementById('toast');
     if (!el) return;
-    el.textContent = msg;
+    const tone = type === 'error' ? 'error' : type === 'info' ? 'info' : 'success';
+    const icon = tone === 'error' ? '✖' : tone === 'info' ? 'ℹ' : '✓';
+    const bg =
+      tone === 'error'
+        ? 'linear-gradient(135deg,#dc2626,#b91c1c)'
+        : tone === 'info'
+          ? 'linear-gradient(135deg,#2563eb,#1d4ed8)'
+          : 'linear-gradient(135deg,#15803d,#166534)';
+    el.style.background = bg;
+    el.style.boxShadow = '0 12px 28px rgba(15,23,42,.25)';
+    el.textContent = `${icon} ${msg}`;
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), 3000);
   }
@@ -139,6 +168,7 @@
   }
 
   function switchPage(page) {
+    if (!validPages.has(page)) page = 'dashboard';
     document.querySelectorAll('.adm-section').forEach((s) => s.classList.remove('active'));
     const sec = document.getElementById('sec-' + page);
     if (sec) sec.classList.add('active');
@@ -147,6 +177,7 @@
     document.getElementById('page-title').textContent = title;
     document.getElementById('breadcrumb-current').textContent = title;
     window.scrollTo(0, 0);
+    saveActivePage(page);
 
     if (page === 'dashboard') loadDashboard();
     if (page === 'orders') loadOrders();
@@ -171,7 +202,7 @@
       cacheAdminUser(me.admin);
       setAdminUI(me.admin);
       showAdmin();
-      switchPage('dashboard');
+      switchPage(getSavedPage());
       return true;
     }
 
@@ -180,7 +211,7 @@
       const cached = getCachedAdminUser();
       if (cached) setAdminUI(cached);
       showAdmin();
-      switchPage('dashboard');
+      switchPage(getSavedPage());
       return true;
     }
 
@@ -191,7 +222,7 @@
     if (await restoreSession()) return;
     if (getAdminToken()) {
       setAdminToken('');
-      toast('Session expired — please sign in again');
+      toast('Session expired — please sign in again', 'info');
     }
     showLoginPanel();
   }
@@ -212,7 +243,7 @@
       if (data.token) {
         setAdminToken(data.token);
       } else {
-        toast('Reload-এ login থাকতে: cPanel git pull + STOP → START (১ মিনিট)');
+          toast('Reload-এ login থাকতে: cPanel git pull + STOP → START (১ মিনিট)', 'info');
       }
       cacheAdminUser(data.admin);
       authRedirectHold = true;
@@ -573,7 +604,7 @@
         if (r.ok) {
           toast('Product deleted');
           loadProducts();
-        } else toast(r.error || 'Failed');
+        } else toast(r.error || 'Failed', 'error');
       };
     });
   }
@@ -627,7 +658,7 @@
       toast(id ? 'Product updated' : 'Product created');
       resetProductForm();
       loadProducts();
-    } else toast(data.error || 'Save failed');
+    } else toast(data.error || 'Save failed', 'error');
   };
 
   // ——— Customers ———
@@ -685,7 +716,7 @@
         if (r.ok) {
           toast('Deleted');
           loadCategories();
-        } else toast(r.error || 'Failed');
+        } else toast(r.error || 'Failed', 'error');
       };
     });
   }
@@ -712,7 +743,7 @@
       toast(id ? 'Category updated' : 'Category added');
       document.getElementById('cf-reset').click();
       loadCategories();
-    } else toast(data.error || 'Failed');
+    } else toast(data.error || 'Failed', 'error');
   };
 
   // ——— Coupons ———
@@ -774,7 +805,7 @@
       document.getElementById('coupon-form-title').textContent = 'New Coupon';
       e.target.reset();
       loadCoupons();
-    } else toast(data.error || 'Failed');
+    } else toast(data.error || 'Failed', 'error');
   };
 
   // ——— Settings ———
@@ -828,7 +859,7 @@
   async function loadReviews() {
     const status = document.getElementById('reviews-filter').value;
     const data = await api('/reviews?status=' + status);
-    if (!data.ok) return toast(data.error || 'Load failed');
+    if (!data.ok) return toast(data.error || 'Load failed', 'error');
     const rb = document.getElementById('review-badge');
     if (rb) rb.textContent = data.pendingCount || 0;
     document.getElementById('reviews-tbody').innerHTML = data.reviews
@@ -925,7 +956,7 @@
       toast('Banner saved');
       document.getElementById('bn-reset').click();
       loadBanners();
-    } else toast(res.error || 'Failed');
+    } else toast(res.error || 'Failed', 'error');
   });
 
   function collectSettings() {
@@ -956,13 +987,14 @@
     e.preventDefault();
     const data = await api('/settings', { method: 'PUT', body: JSON.stringify({ settings: collectSettings() }) });
     if (data.ok) toast('Settings saved');
-    else toast(data.error || 'Failed');
+    else toast(data.error || 'Failed', 'error');
   };
 
   document.getElementById('delivery-form').onsubmit = async (e) => {
     e.preventDefault();
     const data = await api('/settings', { method: 'PUT', body: JSON.stringify({ settings: collectSettings() }) });
-    if (data.ok) toast('Saved');
+    if (data.ok) toast('Delivery settings saved');
+    else toast(data.error || 'Failed to save delivery settings', 'error');
   };
 
   function debounce(fn, ms) {
@@ -976,7 +1008,7 @@
   async function downloadExport(path, filename) {
     const res = await fetch(API + path, { credentials: 'same-origin' });
     if (!res.ok) {
-      toast('Export failed');
+      toast('Export failed', 'error');
       return;
     }
     const blob = await res.blob();

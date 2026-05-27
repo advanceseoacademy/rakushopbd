@@ -143,11 +143,22 @@ app.get('/product/:id', (req, res) => renderStorefront(req, res));
 app.get('/category/:slug', (req, res) => renderStorefront(req, res));
 
 app.use((req, res) => {
-  if (req.method === 'GET' && !req.path.startsWith('/api') && !req.path.startsWith('/admin')) {
-    if (!path.extname(req.path)) {
-      return renderStorefront(req, res);
-    }
+  // API 404 stays JSON/plain
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ ok: false, error: 'Not found' });
   }
+
+  // Admin 404
+  if (req.path.startsWith('/admin')) {
+    return res.status(404).send('Page not found');
+  }
+
+  // Website 404 (cute page)
+  if (req.method === 'GET') {
+    // For clean URLs we do NOT render the SPA shell anymore—unknown paths should be 404
+    return res.status(404).render('404', { pathName: req.originalUrl || req.path });
+  }
+
   res.status(404).send('Page not found');
 });
 

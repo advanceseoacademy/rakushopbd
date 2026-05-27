@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>404 — Page Not Found • RakuShopBD</title>
+    <link rel="icon" href="/images/rakushopbd-logo.png" type="image/png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --bg1: #ecfdf5;
+        --bg2: #eff6ff;
+        --card: #ffffff;
+        --text: #0f172a;
+        --muted: #64748b;
+        --accent: #2d8a2d;
+        --accent2: #3b82f6;
+        --ring: rgba(45, 138, 45, 0.18);
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color: var(--text);
+        background: radial-gradient(1200px 700px at 20% 10%, var(--bg1), transparent 55%),
+          radial-gradient(1200px 700px at 80% 0%, var(--bg2), transparent 55%),
+          linear-gradient(180deg, #ffffff, #f8fafc);
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+      .wrap {
+        width: min(920px, 100%);
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 18px;
+        align-items: center;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid rgba(15, 23, 42, 0.08);
+        border-radius: 18px;
+        box-shadow: 0 18px 60px rgba(15, 23, 42, 0.08);
+        padding: 24px;
+      }
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        text-decoration: none;
+        color: inherit;
+        margin-bottom: 12px;
+      }
+      .brand img {
+        width: 46px;
+        height: 46px;
+        border-radius: 12px;
+        background: #fff;
+        box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+      }
+      .brand b {
+        font-size: 16px;
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 34px;
+        line-height: 1.15;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 14px;
+        color: var(--muted);
+        line-height: 1.65;
+      }
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 16px;
+      }
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        border-radius: 12px;
+        padding: 10px 14px;
+        font-weight: 700;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        text-decoration: none;
+        cursor: pointer;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
+      }
+      .btn:active {
+        transform: translateY(1px);
+      }
+      .btn-primary {
+        background: linear-gradient(135deg, var(--accent), #1b5e20);
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 12px 30px var(--ring);
+      }
+      .btn-ghost {
+        background: #fff;
+        color: var(--text);
+      }
+      .hint {
+        margin-top: 12px;
+        font-size: 12px;
+        color: #94a3b8;
+        word-break: break-all;
+      }
+      .scene {
+        position: relative;
+        min-height: 320px;
+        overflow: hidden;
+      }
+      .bubble {
+        position: absolute;
+        inset: auto;
+        width: 130px;
+        height: 130px;
+        border-radius: 999px;
+        background: radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.28), rgba(59, 130, 246, 0) 62%);
+        filter: blur(0.2px);
+        animation: float 6s ease-in-out infinite;
+      }
+      .bubble.b2 {
+        width: 180px;
+        height: 180px;
+        background: radial-gradient(circle at 30% 30%, rgba(45, 138, 45, 0.22), rgba(45, 138, 45, 0) 62%);
+        animation-duration: 7.5s;
+      }
+      .bubble.b3 {
+        width: 110px;
+        height: 110px;
+        background: radial-gradient(circle at 30% 30%, rgba(244, 63, 94, 0.18), rgba(244, 63, 94, 0) 62%);
+        animation-duration: 8.5s;
+      }
+      @keyframes float {
+        0% {
+          transform: translate(0, 0);
+        }
+        50% {
+          transform: translate(0, -10px);
+        }
+        100% {
+          transform: translate(0, 0);
+        }
+      }
+      .ghost {
+        position: absolute;
+        left: 50%;
+        top: 52%;
+        transform: translate(-50%, -50%);
+        width: 220px;
+        height: 220px;
+      }
+      .ghost svg {
+        width: 100%;
+        height: 100%;
+      }
+      .ghost .shadow {
+        position: absolute;
+        left: 50%;
+        top: 78%;
+        transform: translateX(-50%);
+        width: 170px;
+        height: 22px;
+        background: rgba(15, 23, 42, 0.08);
+        filter: blur(6px);
+        border-radius: 999px;
+        animation: shadow 3.2s ease-in-out infinite;
+      }
+      @keyframes shadow {
+        0%,
+        100% {
+          transform: translateX(-50%) scale(0.92);
+          opacity: 0.7;
+        }
+        50% {
+          transform: translateX(-50%) scale(1);
+          opacity: 0.9;
+        }
+      }
+      @media (max-width: 860px) {
+        .wrap {
+          grid-template-columns: 1fr;
+        }
+        .scene {
+          min-height: 260px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <a class="brand" href="/" aria-label="Back to RakuShopBD home">
+          <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" />
+          <div>
+            <b>RakuShopBD</b>
+            <div style="font-size: 12px; color: var(--muted)">Comfort your life</div>
+          </div>
+        </a>
+        <h1>Oops… 404!</h1>
+        <p>
+          This page went out for delivery and got a little lost. Let’s get you back to shopping.
+        </p>
+        <div class="actions">
+          <a class="btn btn-primary" href="/">Go to Home</a>
+          <a class="btn btn-ghost" href="/#products">Browse Products</a>
+        </div>
+        <% if (typeof pathName !== 'undefined' && pathName) { %>
+          <div class="hint">Tried: <%= pathName %></div>
+        <% } %>
+      </div>
+      <div class="card scene" aria-hidden="true">
+        <div class="bubble" style="left: 12%; top: 14%"></div>
+        <div class="bubble b2" style="right: 6%; top: 6%"></div>
+        <div class="bubble b3" style="left: 18%; bottom: 10%"></div>
+        <div class="ghost">
+          <div class="shadow"></div>
+          <svg viewBox="0 0 220 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M110 26c-43 0-78 35-78 78v56c0 15 10 30 28 30 12 0 18-8 24-8 8 0 12 8 26 8s18-8 26-8c6 0 12 8 24 8 18 0 28-15 28-30v-56c0-43-35-78-78-78Z"
+              fill="url(#g)"
+              stroke="rgba(15,23,42,0.08)"
+            />
+            <circle cx="84" cy="108" r="10" fill="#0f172a" />
+            <circle cx="136" cy="108" r="10" fill="#0f172a" />
+            <path d="M98 136c6 6 18 6 24 0" stroke="#0f172a" stroke-width="10" stroke-linecap="round" />
+            <defs>
+              <linearGradient id="g" x1="52" y1="48" x2="170" y2="188" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#2d8a2d" stop-opacity="0.18" />
+                <stop offset="1" stop-color="#3b82f6" stop-opacity="0.16" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -3,6 +3,7 @@
  */
 (function () {
   const API = (window.RAKU_API_BASE || '') + '/api/auth';
+  const STORE_API = (window.RAKU_API_BASE || '') + '/api';
   let currentUser = null;
 
   async function authFetch(url, options = {}) {
@@ -30,21 +31,42 @@
     });
   }
 
-  function orderCardHtml(o, compact) {
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatPrice(amount) {
+    return '৳' + Number(amount).toLocaleString('en-US');
+  }
+
+  function itemLineName(it) {
+    return it.product_name || it.productName || 'Item';
+  }
+
+  function orderCardHtml(o) {
     const items = (o.items || [])
-      .map((i) => `${i.product_name} ×${i.quantity}`)
+      .map((i) => `${itemLineName(i)} ×${i.quantity}`)
       .join(', ');
     return `
       <div class="acc-order-card">
         <div class="acc-order-head">
           <div>
-            <div class="acc-order-id">#${o.orderNumber}</div>
+            <div class="acc-order-id">#${escapeHtml(o.orderNumber)}</div>
             <div class="acc-order-date">${formatDate(o.createdAt)}</div>
           </div>
-          <span class="acc-status ${o.status}">${o.status}</span>
+          <span class="acc-status ${escapeHtml(o.status)}">${escapeHtml(o.status)}</span>
         </div>
-        <div class="acc-order-items">${items || '—'}</div>
-        <div class="acc-order-total">${o.totalFormatted || ''}</div>
+        <div class="acc-order-items">${escapeHtml(items || '—')}</div>
+        <div class="acc-order-foot">
+          <div class="acc-order-total">${escapeHtml(o.totalFormatted || '')}</div>
+          <button type="button" class="acc-btn-sm primary" data-track-order="${escapeHtml(o.orderNumber)}">
+            <i class="ti ti-truck-delivery"></i> Track
+          </button>
+        </div>
       </div>`;
   }
 
@@ -179,12 +201,155 @@
   }
 
   function switchPanel(panelId) {
-    document.querySelectorAll('.acc-nav-btn').forEach((b) => {
+    const target = document.getElementById(`acc-panel-${panelId}`);
+    if (!target) return false;
+
+    document.querySelectorAll('.acc-nav-btn[data-acc-panel]').forEach((b) => {
       b.classList.toggle('active', b.dataset.accPanel === panelId);
     });
     document.querySelectorAll('.acc-panel').forEach((p) => {
-      p.classList.toggle('active', p.id === `acc-panel-${panelId}`);
+      p.classList.toggle('active', p === target);
     });
+    return true;
+  }
+
+  function buildTrackResultHtml(data) {
+    if (!data?.ok || !data.order) {
+      return `<div class="acc-trk-err">${escapeHtml(data?.error || 'Order not found')}</div>`;
+    }
+
+    const o = data.order;
+    const status = String(o.status || 'pending');
+    const items = o.items || [];
+
+    return `
+      <div class="acc-trk-box">
+        <div class="acc-trk-box-head">
+          <div><b>Order</b> <span class="order-num">#${escapeHtml(o.orderNumber)}</span></div>
+          <span class="acc-trk-status ${escapeHtml(status)}">${escapeHtml(status)}</span>
+        </div>
+        <div class="acc-trk-box-body">
+          <div class="acc-trk-meta">
+            <div class="m"><b>Name:</b> ${escapeHtml(o.customerName || '—')}</div>
+            <div class="m"><b>Date:</b> ${escapeHtml(formatDate(o.createdAt))}</div>
+            <div class="m"><b>District:</b> ${escapeHtml(o.district || '—')}</div>
+            <div class="m"><b>Payment:</b> ${escapeHtml(o.paymentMethod || '—')}</div>
+          </div>
+          <div class="acc-trk-items">
+            ${items
+              .map((it) => {
+                const line = it.line_total ?? it.lineTotal ?? 0;
+                return `<div class="acc-trk-item"><span>${escapeHtml(itemLineName(it))} <b>×${escapeHtml(
+                  it.quantity
+                )}</b></span><span><b>${formatPrice(line)}</b></span></div>`;
+              })
+              .join('')}
+            <div class="acc-trk-total"><span>Total</span><span>${escapeHtml(o.totalFormatted || formatPrice(o.total))}</span></div>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderTrackResult(data, box) {
+    const el = box || document.getElementById('acc-track-result');
+    if (!el) return;
+    el.hidden = false;
+    el.innerHTML = buildTrackResultHtml(data);
+  }
+
+  async function fetchOrderTrack(orderNumber) {
+    const id = String(orderNumber || '').trim();
+    if (!id) return { ok: false, error: 'Please enter your Order ID' };
+    const res = await fetch(
+      `${STORE_API}/orders/track?orderNumber=${encodeURIComponent(id)}`,
+      { credentials: 'same-origin' }
+    );
+    try {
+      return await res.json();
+    } catch {
+      return { ok: false, error: 'Could not load tracking info' };
+    }
+  }
+
+  async function runAccountTrack(orderNumber) {
+    const input = document.getElementById('acc-track-order-id');
+    const submit = document.getElementById('acc-track-submit');
+    const q = orderNumber != null ? String(orderNumber).trim() : input?.value.trim();
+    if (input && orderNumber != null) input.value = q;
+    if (!q) {
+      renderTrackResult({ ok: false, error: 'Please enter your Order ID' });
+      return;
+    }
+    if (submit) submit.disabled = true;
+    const data = await fetchOrderTrack(q);
+    if (submit) submit.disabled = false;
+    renderTrackResult(data);
+    document.getElementById('acc-track-result')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  async function showOrderTrackInline(orderNumber, btn) {
+    const card = btn?.closest('.acc-order-card');
+    if (!card) return;
+
+    let box = card.querySelector('.acc-order-track-inline');
+    if (!box) {
+      box = document.createElement('div');
+      box.className = 'acc-order-track-inline';
+      card.appendChild(box);
+    }
+
+    const openId = box.dataset.orderId;
+    if (openId === orderNumber && !box.hidden) {
+      box.hidden = true;
+      btn.classList.remove('active');
+      return;
+    }
+
+    box.hidden = false;
+    box.dataset.orderId = orderNumber;
+    btn.classList.add('active');
+    box.innerHTML = '<p class="acc-trk-loading"><i class="ti ti-loader"></i> Loading tracking…</p>';
+
+    const data = await fetchOrderTrack(orderNumber);
+    box.innerHTML = buildTrackResultHtml(data);
+    box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function openTrackPanel(orderNumber) {
+    if (!switchPanel('track')) {
+      const id = encodeURIComponent(String(orderNumber || '').trim());
+      window.location.href = id ? `/track?id=${id}` : '/track';
+      return;
+    }
+    const input = document.getElementById('acc-track-order-id');
+    if (input && orderNumber) input.value = orderNumber;
+    if (orderNumber) runAccountTrack(orderNumber);
+    else input?.focus();
+  }
+
+  function bindTrackPanel() {
+    const form = document.getElementById('acc-track-form');
+    if (form && !form.dataset.bound) {
+      form.dataset.bound = '1';
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        runAccountTrack();
+      });
+    }
+
+    const page = document.getElementById('page-account');
+    if (page && !page.dataset.trackBound) {
+      page.dataset.trackBound = '1';
+      page.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-track-order]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const orderId = btn.dataset.trackOrder;
+        if (!orderId) return;
+        showOrderTrackInline(orderId, btn);
+      });
+    }
   }
 
   const AUTH_COPY = {
@@ -337,6 +502,30 @@
     }
   }
 
+  function initPasswordToggles() {
+    if (window.__accPwToggleBound) return;
+    window.__accPwToggleBound = true;
+
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.acc-pw-toggle');
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const wrap = btn.closest('.acc-input-wrap--password');
+      const inp = wrap?.querySelector('input.acc-input');
+      const icon = btn.querySelector('i');
+      if (!inp || !icon) return;
+
+      const reveal = inp.getAttribute('type') === 'password';
+      inp.setAttribute('type', reveal ? 'text' : 'password');
+      icon.className = reveal ? 'ti ti-eye-off' : 'ti ti-eye';
+      btn.setAttribute('aria-label', reveal ? 'Hide password' : 'Show password');
+      btn.title = reveal ? 'Hide password' : 'Show password';
+      inp.focus();
+    });
+  }
+
   function bindNav() {
     document.querySelectorAll('.acc-nav-btn[data-acc-panel]').forEach((btn) => {
       btn.onclick = () => switchPanel(btn.dataset.accPanel);
@@ -362,10 +551,27 @@
     window.scrollTo(0, 0);
   };
 
-  document.addEventListener('raku:ready', () => {
+  window.openAccountTrack = function (orderNumber) {
+    if (window.showPage) window.showPage('account');
+    if (!currentUser) {
+      switchPanel('dashboard');
+      return;
+    }
+    openTrackPanel(orderNumber || '');
+  };
+
+  function bootAccountUi() {
     bindAuthTabs();
     bindForms();
+    initPasswordToggles();
+    bindTrackPanel();
     bindNav();
+  }
+
+  initPasswordToggles();
+
+  document.addEventListener('raku:ready', () => {
+    bootAccountUi();
     const runSession = () => loadSession();
     if (window.requestIdleCallback) requestIdleCallback(runSession, { timeout: 2500 });
     else setTimeout(runSession, 250);

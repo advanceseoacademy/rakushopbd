@@ -96,6 +96,18 @@
 }
 
 @media (max-width: 768px) {
+  .checkout-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .checkout-modal-box {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 18px 18px 0 0;
+  }
+
   .checkout-modal-grid {
     grid-template-columns: 1fr;
   }

@@ -1561,15 +1561,6 @@
       });
     }
 
-    const navBtn = document.getElementById('nav-track-btn');
-    if (navBtn && !navBtn._rakuBound) {
-      navBtn._rakuBound = true;
-      navBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        openTrackOrderModal();
-      });
-    }
-
     const btnSuccessTrack = document.getElementById('btn-track-order');
     if (btnSuccessTrack && !btnSuccessTrack._rakuBound) {
       btnSuccessTrack._rakuBound = true;
@@ -1577,12 +1568,14 @@
         e.preventDefault();
         const txt = document.querySelector('.order-id-box')?.textContent || '';
         const m = txt.match(/RKS-\\d{4}-\\d{6,}/i);
-        openTrackOrderModal(m ? m[0] : '');
+        window.location.href = m ? `/track?id=${encodeURIComponent(m[0])}` : '/track';
       });
     }
   }
 
-  window._rakuOpenTrackOrder = () => openTrackOrderModal();
+  window._rakuOpenTrackOrder = () => {
+    window.location.href = '/track';
+  };
 
   function applySettingsData(settings) {
     if (!settings) return;

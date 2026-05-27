@@ -4,7 +4,7 @@ const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
-const { sql: sqlDialect, returningId } = require('../lib/db-dialect');
+const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
 
 const router = express.Router();
@@ -312,8 +312,30 @@ router.get('/products', async (req, res) => {
       params.push(excludeId);
     }
     if (isSearch) {
-      where.push('p.name_bn LIKE ?');
-      params.push(`%${String(search).trim()}%`);
+      const raw = String(search).trim();
+      const tokens = raw
+        .split(/\s+/)
+        .map((t) => t.trim())
+        .filter(Boolean)
+        .slice(0, 8);
+
+      // Any typed word matching name, slug, sku, description, or category (case-insensitive).
+      if (tokens.length) {
+        const tokenClauses = tokens.map(
+          () => `(
+            ${likeFragment('p.name_bn')}
+            OR ${likeFragment('p.slug')}
+            OR ${likeFragment('COALESCE(p.sku, \'\')')}
+            OR ${likeFragment('COALESCE(p.description_bn, \'\')')}
+            OR ${likeFragment('c.name_bn')}
+          )`
+        );
+        where.push(`(${tokenClauses.join(' OR ')})`);
+        tokens.forEach((tok) => {
+          const like = `%${tok}%`;
+          params.push(like, like, like, like, like);
+        });
+      }
     }
     if (where.length) sql += ' WHERE ' + where.join(' AND ');
     sql += ' ORDER BY p.name_bn ASC';

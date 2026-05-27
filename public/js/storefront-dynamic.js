@@ -232,12 +232,16 @@
   function bindFooterLinks() {
     document.querySelectorAll('.footer-links a[data-footer-page]').forEach((a) => {
       a.addEventListener('click', (e) => {
-        e.preventDefault();
         const page = a.dataset.footerPage;
+        if (page === 'track') {
+          e.preventDefault();
+          window.location.href = '/track';
+          return;
+        }
+        e.preventDefault();
         if (page === 'home' && window.showPage) window.showPage('home');
         else if (page === 'account' && window.showPage) window.showPage('account');
         else if (page === 'cart' && window.showPage) window.showPage('cart');
-        else if (page === 'track' && window._rakuOpenTrackOrder) window._rakuOpenTrackOrder();
       });
     });
   }

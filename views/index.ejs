@@ -12,13 +12,14 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/main.css?v=2">
-<link rel="stylesheet" href="/css/category.css?v=2">
-<link rel="stylesheet" href="/css/account.css?v=2">
-<link rel="stylesheet" href="/css/cart.css?v=2">
-<link rel="stylesheet" href="/css/checkout-modal.css?v=2">
-<link rel="stylesheet" href="/css/reviews.css?v=2">
-<link rel="stylesheet" href="/css/wishlist.css?v=2">
+<link rel="stylesheet" href="/css/main.css?v=4">
+<link rel="stylesheet" href="/css/category.css?v=3">
+<link rel="stylesheet" href="/css/account.css?v=6">
+<link rel="stylesheet" href="/css/cart.css?v=3">
+<link rel="stylesheet" href="/css/checkout-modal.css?v=3">
+<link rel="stylesheet" href="/css/reviews.css?v=3">
+<link rel="stylesheet" href="/css/wishlist.css?v=3">
+<link rel="stylesheet" href="/css/responsive.css?v=1">
 </head>
 <body>
 <!-- Announcement Bar -->
@@ -248,7 +249,8 @@
 .pv-breadcrumb a:hover { color:var(--primary); }
 .pv-breadcrumb i { font-size:11px; }
 .pv-wrap { max-width:1200px; margin:0 auto; padding:16px 20px 32px; display:grid; grid-template-columns:1fr 1fr; gap:32px; }
-@media(max-width:768px){ .pv-wrap { grid-template-columns:1fr; } }
+@media(max-width:768px){ .pv-wrap { grid-template-columns:1fr; gap:20px; } }
+@media(max-width:480px){ .pv-action-row { flex-direction:column; } .btn-add-cart,.btn-buy { width:100%; } .main-product-img { height:240px; } .pv-price { font-size:24px; } }
 
 /* Gallery */
 .pv-gallery {}
@@ -704,7 +706,8 @@
 <div id="page-checkout" style="display:none;">
 <style>
 .checkout-wrap { max-width:1200px; margin:0 auto; padding:24px 20px 40px; display:grid; grid-template-columns:1fr 380px; gap:24px; }
-@media(max-width:900px){ .checkout-wrap { grid-template-columns:1fr; } }
+@media(max-width:900px){ .checkout-wrap { grid-template-columns:1fr; } .checkout-summary-box { position:static; } }
+@media(max-width:520px){ .checkout-steps { overflow-x:auto; padding:0 12px; } .step-label { font-size:10px; } }
 
 .checkout-steps { display:flex; align-items:center; gap:0; margin-bottom:24px; max-width:1200px; margin-left:auto; margin-right:auto; padding:0 20px; }
 .step-item { display:flex; align-items:center; gap:8px; }
@@ -1058,9 +1061,10 @@
             </div>
             <div class="acc-field">
               <label class="acc-label">Password</label>
-              <div class="acc-input-wrap">
+              <div class="acc-input-wrap acc-input-wrap--password">
                 <i class="ti ti-lock"></i>
-                <input class="acc-input" type="password" name="password" placeholder="Enter your password" required>
+                <input class="acc-input" type="password" name="password" placeholder="Enter your password" required autocomplete="current-password">
+                <button type="button" class="acc-pw-toggle" aria-label="Show password" title="Show password"><i class="ti ti-eye"></i></button>
               </div>
             </div>
             <button type="submit" class="acc-btn acc-btn-primary acc-btn-lg"><span>Sign In</span><i class="ti ti-arrow-right"></i></button>
@@ -1082,9 +1086,10 @@
             </div>
             <div class="acc-field">
               <label class="acc-label">Password</label>
-              <div class="acc-input-wrap">
+              <div class="acc-input-wrap acc-input-wrap--password">
                 <i class="ti ti-lock"></i>
-                <input class="acc-input" type="password" name="password" placeholder="Min. 6 characters" minlength="6" required>
+                <input class="acc-input" type="password" name="password" placeholder="Min. 6 characters" minlength="6" required autocomplete="new-password">
+                <button type="button" class="acc-pw-toggle" aria-label="Show password" title="Show password"><i class="ti ti-eye"></i></button>
               </div>
               <p class="acc-field-hint">Use at least 6 characters with letters and numbers.</p>
             </div>
@@ -1112,6 +1117,7 @@
         <span class="acc-nav-label">Menu</span>
         <button type="button" class="acc-nav-btn active" data-acc-panel="dashboard"><i class="ti ti-layout-dashboard"></i><span>Dashboard</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="orders"><i class="ti ti-package"></i><span>My Orders</span></button>
+        <button type="button" class="acc-nav-btn" data-acc-panel="track"><i class="ti ti-truck-delivery"></i><span>Track Order</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="profile"><i class="ti ti-user-circle"></i><span>Profile</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="addresses"><i class="ti ti-map-pin"></i><span>Addresses</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="password"><i class="ti ti-lock"></i><span>Security</span></button>
@@ -1151,12 +1157,47 @@
             </div>
           </div>
         </div>
+        <div class="acc-quick-actions">
+          <button type="button" class="acc-quick-card" data-goto-panel="track">
+            <span class="acc-quick-icon"><i class="ti ti-truck-delivery"></i></span>
+            <span class="acc-quick-text">
+              <strong>Track Order</strong>
+              <small>Check status with your Order ID</small>
+            </span>
+            <i class="ti ti-chevron-right acc-quick-arrow"></i>
+          </button>
+        </div>
         <div class="acc-section-card">
           <div class="acc-section-head">
             <h3 class="acc-section-title">Recent Orders</h3>
             <button type="button" class="acc-link-btn" data-goto-panel="orders">View all <i class="ti ti-arrow-right"></i></button>
           </div>
           <div id="acc-recent-orders"></div>
+        </div>
+      </section>
+
+      <section class="acc-panel" id="acc-panel-track">
+        <div class="acc-panel-head">
+          <div>
+            <h2 class="acc-panel-title">Track Order</h2>
+            <p class="acc-panel-sub">Enter your Order ID to view status, items, and delivery details.</p>
+          </div>
+        </div>
+        <div class="acc-section-card acc-trk-card">
+          <form class="acc-trk-form" id="acc-track-form">
+            <div class="acc-field" style="margin-bottom:0;flex:1;min-width:200px;">
+              <label class="acc-label" for="acc-track-order-id">Order ID</label>
+              <div class="acc-input-wrap">
+                <i class="ti ti-package"></i>
+                <input class="acc-input" type="text" id="acc-track-order-id" placeholder="RKS-2026-xxxxxxxx" autocomplete="off" required>
+              </div>
+            </div>
+            <button type="submit" class="acc-btn acc-btn-primary acc-trk-submit" id="acc-track-submit">
+              <i class="ti ti-search"></i> Track
+            </button>
+          </form>
+          <p class="acc-trk-hint"><i class="ti ti-info-circle"></i> Order ID is shown on your order confirmation and success page (e.g. RKS-2026-12345678).</p>
+          <div id="acc-track-result" class="acc-trk-result" hidden></div>
         </div>
       </section>
 
@@ -1270,11 +1311,19 @@
           <form class="acc-form" id="acc-password-form">
             <div class="acc-field">
               <label class="acc-label">Current password</label>
-              <div class="acc-input-wrap"><i class="ti ti-lock"></i><input class="acc-input" type="password" name="currentPassword" required></div>
+              <div class="acc-input-wrap acc-input-wrap--password">
+                <i class="ti ti-lock"></i>
+                <input class="acc-input" type="password" name="currentPassword" required autocomplete="current-password">
+                <button type="button" class="acc-pw-toggle" aria-label="Show password" title="Show password"><i class="ti ti-eye"></i></button>
+              </div>
             </div>
             <div class="acc-field">
               <label class="acc-label">New password</label>
-              <div class="acc-input-wrap"><i class="ti ti-key"></i><input class="acc-input" type="password" name="newPassword" minlength="6" required></div>
+              <div class="acc-input-wrap acc-input-wrap--password">
+                <i class="ti ti-key"></i>
+                <input class="acc-input" type="password" name="newPassword" minlength="6" required autocomplete="new-password">
+                <button type="button" class="acc-pw-toggle" aria-label="Show password" title="Show password"><i class="ti ti-eye"></i></button>
+              </div>
             </div>
             <button type="submit" class="acc-btn acc-btn-primary"><i class="ti ti-lock"></i> Update Password</button>
           </form>
@@ -1342,9 +1391,9 @@
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/maintenance-view.js?v=3" defer></script>
 <script src="/js/app.js?v=3" defer></script>
-<script src="/js/api.js?v=5" defer></script>
-<script src="/js/storefront-dynamic.js?v=3" defer></script>
-<script src="/js/search.js?v=3" defer></script>
-<script src="/js/account.js?v=4" defer></script>
+<script src="/js/api.js?v=6" defer></script>
+<script src="/js/storefront-dynamic.js?v=4" defer></script>
+<script src="/js/search.js?v=4" defer></script>
+<script src="/js/account.js?v=8" defer></script>
 </body>
 </html>

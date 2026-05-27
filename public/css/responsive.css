@@ -1,0 +1,397 @@
+/**
+ * RakuShopBD — Global mobile & tablet responsive fixes
+ */
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+img,
+video,
+svg {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ——— Layout ——— */
+@media (max-width: 768px) {
+  .main {
+    padding: 14px 12px;
+  }
+
+  .section-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .section-title {
+    font-size: 16px;
+  }
+
+  /* Hero */
+  .hero-main {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 28px 20px;
+    min-height: auto;
+  }
+
+  .hero-title {
+    font-size: 26px;
+  }
+
+  .hero-sub {
+    font-size: 14px;
+    margin-bottom: 18px;
+  }
+
+  .hero-btns {
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .hero-btns .btn-primary,
+  .hero-btns .btn-outline-white {
+    flex: 1;
+    min-width: 140px;
+    justify-content: center;
+  }
+
+  .hero-side {
+    flex-direction: column;
+  }
+
+  .hero-card {
+    width: 100%;
+  }
+
+  /* Stats */
+  .stat-card {
+    padding: 12px 14px;
+  }
+
+  .stat-num {
+    font-size: 17px;
+  }
+
+  /* Category chips on home */
+  .category-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .cat-card {
+    padding: 12px 8px;
+  }
+
+  .cat-name {
+    font-size: 11px;
+  }
+
+  /* Product cards */
+  .product-card {
+    min-width: 0;
+  }
+
+  /* Trust bar */
+  .trust-item {
+    padding: 14px 12px;
+  }
+
+  /* Footer */
+  .footer-inner {
+    padding: 0 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .main {
+    padding: 12px 10px;
+  }
+
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .product-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .promo-card {
+    min-height: auto;
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .category-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .hero-title {
+    font-size: 22px;
+  }
+}
+
+/* ——— Product page ——— */
+@media (max-width: 768px) {
+  #page-product .pv-wrap,
+  #page-product .pv-tabs-wrap,
+  #page-product .related-section {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  #page-product .main-product-img {
+    height: 260px;
+  }
+
+  #page-product .main-product-img i {
+    font-size: 90px;
+  }
+
+  #page-product .pv-title {
+    font-size: 18px;
+  }
+
+  #page-product .pv-price {
+    font-size: 26px;
+  }
+
+  #page-product .pv-action-row {
+    flex-wrap: wrap;
+  }
+
+  #page-product .btn-add-cart,
+  #page-product .btn-buy {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  #page-product .btn-wish-lg {
+    width: 100%;
+    height: 46px;
+  }
+
+  #page-product .pv-meta-label {
+    min-width: 72px;
+  }
+
+  #page-product .spec-table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+@media (max-width: 420px) {
+  #page-product .thumb-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #page-product .thumb-img {
+    flex-shrink: 0;
+  }
+}
+
+/* ——— Checkout page ——— */
+@media (max-width: 768px) {
+  #page-checkout .checkout-wrap {
+    padding: 16px 12px 32px;
+  }
+
+  #page-checkout .checkout-steps {
+    padding: 0 12px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #page-checkout .step-label {
+    font-size: 10px;
+  }
+
+  #page-checkout .step-circle {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  #page-checkout .checkout-summary-box {
+    position: static;
+  }
+
+  #page-checkout .section-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 420px) {
+  #page-checkout .step-label {
+    display: none;
+  }
+
+  #page-checkout .card-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ——— Success page ——— */
+@media (max-width: 480px) {
+  #page-success .success-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  #page-success .btn-track,
+  #page-success .btn-home-again {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ——— Category page ——— */
+@media (max-width: 768px) {
+  .cat-page-wrap {
+    padding: 12px 12px 40px;
+  }
+
+  .cat-toolbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+/* ——— Cart page ——— */
+@media (max-width: 640px) {
+  .cart-page-wrap {
+    padding: 16px 12px 48px;
+  }
+
+  .cart-page-title {
+    font-size: 20px;
+  }
+
+  .c-item {
+    flex-wrap: wrap;
+    padding: 14px;
+    gap: 12px;
+  }
+
+  .c-item-thumb {
+    width: 72px;
+    height: 72px;
+  }
+
+  .c-item-right {
+    width: 100%;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cart-summary-box {
+    position: static;
+  }
+}
+
+@media (max-width: 400px) {
+  .c-item {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .c-item-thumb {
+    width: 100%;
+    height: 120px;
+  }
+
+  .c-item-right {
+    flex-direction: row;
+  }
+}
+
+/* ——— Wishlist ——— */
+@media (max-width: 520px) {
+  .wl-wrap {
+    padding: 16px 12px 48px;
+  }
+
+  .wl-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .wl-title {
+    font-size: 20px;
+  }
+}
+
+/* ——— Checkout modal ——— */
+@media (max-width: 768px) {
+  .checkout-modal-overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .checkout-modal-box {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92vh;
+    border-radius: 18px 18px 0 0;
+    margin: 0;
+  }
+
+  .checkout-modal-head {
+    padding: 14px 16px;
+  }
+
+  .checkout-modal-body {
+    padding: 14px 16px 20px;
+  }
+}
+
+/* ——— Track page ——— */
+@media (max-width: 768px) {
+  .track-wrap {
+    padding: 16px 12px 40px;
+  }
+
+  .track-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trk-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .trk-input-wrap {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .trk-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ——— Search suggest dropdown ——— */
+@media (max-width: 480px) {
+  .search-suggest {
+    max-height: min(60vh, 320px);
+    overflow-y: auto;
+  }
+}

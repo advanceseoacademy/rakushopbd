@@ -130,6 +130,10 @@ app.get('/admin', (req, res) => {
   res.render('admin');
 });
 
+app.get('/track', (req, res) => {
+  res.render('track');
+});
+
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);

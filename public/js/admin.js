@@ -248,6 +248,17 @@
   };
 
   document.getElementById('view-site-btn').onclick = () => window.open('/', '_blank');
+  const addProductBtn = document.getElementById('add-product-btn');
+  if (addProductBtn) {
+    addProductBtn.onclick = () => {
+      switchPage('products');
+      resetProductForm();
+      setTimeout(() => {
+        const nameInput = document.getElementById('pf-name');
+        if (nameInput) nameInput.focus();
+      }, 0);
+    };
+  }
 
   function closeAdminSidebar() {
     document.body.classList.remove('adm-sidebar-open');

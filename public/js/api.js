@@ -51,6 +51,21 @@
     return `<i class="${p.icon}" style="color:${p.icon_color};"></i>`;
   }
 
+  function normalizeIconClass(icon) {
+    const raw = String(icon || '').trim();
+    if (!raw) return 'ti ti-package';
+    if (raw.startsWith('ti ')) return raw;
+    if (raw.startsWith('ti-')) return `ti ${raw}`;
+    return raw;
+  }
+
+  function cartThumbHtml(item, cls) {
+    if (item.imageUrl) {
+      return `<img src="${item.imageUrl}" alt="${item.name || ''}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">`;
+    }
+    return `<i class="${normalizeIconClass(item.icon)} ${cls || ''}" style="color:${item.iconColor || '#2d8a2d'};"></i>`;
+  }
+
   function productCardHtml(p, opts = {}) {
     const oldPrice = p.old_price
       ? `<span class="prod-old">${formatPrice(p.old_price)}</span>`
@@ -943,7 +958,7 @@
   function cartItemHtml(item) {
     return `
       <div class="c-item" data-price="${item.price}" data-product-id="${item.productId}">
-        <div class="c-item-thumb" style="background:${item.bgColor};"><i class="${item.icon}" style="color:${item.iconColor};"></i></div>
+        <div class="c-item-thumb" style="background:${item.bgColor};">${cartThumbHtml(item)}</div>
         <div class="c-item-info">
           <div class="c-item-cat">${item.category}</div>
           <div class="c-item-name">${item.name}</div>
@@ -1080,7 +1095,7 @@
       const row = document.createElement('div');
       row.className = 'checkout-product-row';
       row.innerHTML = `
-        <div class="checkout-prod-img" style="background:${item.bgColor};"><i class="${item.icon}" style="color:${item.iconColor};"></i></div>
+        <div class="checkout-prod-img" style="background:${item.bgColor};">${cartThumbHtml(item)}</div>
         <span class="checkout-prod-name">${item.name} ×${item.qty}</span>
         <span class="checkout-prod-price">${formatPrice(item.price * item.qty)}</span>`;
       title.insertAdjacentElement('afterend', row);
@@ -1163,16 +1178,15 @@
     const d = String(raw || '').replace(/\D/g, '');
     const n = d.length >= 11 ? d.slice(-11) : d;
     if (n.length === 11) return `${n.slice(0, 5)}-${n.slice(5)}`;
-    return raw || '01712-345678';
+    return raw || '01533-802804';
   }
 
   function getMerchantNumbers() {
-    const s = window._rakuStoreSettings || {};
-    const fallback = formatMerchantPhone(s.contact_phone || '01712345678');
+    const unified = formatMerchantPhone('01533802804');
     return {
-      bkash: formatMerchantPhone(s.payment_bkash || fallback),
-      nagad: formatMerchantPhone(s.payment_nagad || fallback),
-      rocket: formatMerchantPhone(s.payment_rocket || fallback),
+      bkash: unified,
+      nagad: unified,
+      rocket: unified,
     };
   }
 
@@ -1296,7 +1310,7 @@
       itemsEl.innerHTML = data.cart
         .map(
           (item) => `<div class="cm-summary-item">
-            <div class="cm-summary-thumb" style="background:${item.bgColor};"><i class="${item.icon}" style="color:${item.iconColor};"></i></div>
+            <div class="cm-summary-thumb" style="background:${item.bgColor};">${cartThumbHtml(item)}</div>
             <span class="cm-summary-name">${item.name} ×${item.qty}</span>
             <span class="cm-summary-price">${formatPrice(item.price * item.qty)}</span>
           </div>`

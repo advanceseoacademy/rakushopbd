@@ -24,6 +24,22 @@ function statusBadge(status) {
   return map[status] || 'gray';
 }
 
+/** Safe COUNT / scalar from first row (Postgres camelCase aliases). */
+async function scalarCount(sql, params = []) {
+  const rows = await query(sql, params);
+  if (!rows?.length) return 0;
+  const row = rows[0];
+  const val = Object.values(row)[0];
+  return Number(val) || 0;
+}
+
+function rowVal(row, ...keys) {
+  for (const k of keys) {
+    if (row && row[k] != null) return row[k];
+  }
+  return null;
+}
+
 async function getSettingsMap() {
   const rows = await query('SELECT setting_key, setting_value FROM site_settings');
   const map = {};
@@ -112,23 +128,22 @@ router.get('/me', async (req, res) => {
 // ——— Dashboard ———
 router.get('/dashboard', requireAdmin, async (req, res) => {
   try {
-    const [{ totalOrders }] = await query('SELECT COUNT(*) AS totalOrders FROM orders');
-    const [{ pendingOrders }] = await query(
+    const totalOrders = await scalarCount('SELECT COUNT(*) AS totalOrders FROM orders');
+    const pendingOrders = await scalarCount(
       "SELECT COUNT(*) AS pendingOrders FROM orders WHERE status IN ('pending','confirmed')"
     );
-    const [{ totalRevenue }] = await query(
+    const totalRevenue = await scalarCount(
       "SELECT COALESCE(SUM(total),0) AS totalRevenue FROM orders WHERE status != 'cancelled'"
     );
-    const [{ monthRevenue }] = await query(
+    const monthRevenue = await scalarCount(
       `SELECT COALESCE(SUM(total),0) AS monthRevenue FROM orders
        WHERE status != 'cancelled' AND ${sqlDialect.ordersThisMonth()}`
     );
-    const [{ totalProducts }] = await query('SELECT COUNT(*) AS totalProducts FROM products');
-    const [{ lowStock }] = await query('SELECT COUNT(*) AS lowStock FROM products WHERE stock <= 5');
+    const totalProducts = await scalarCount('SELECT COUNT(*) AS totalProducts FROM products');
+    const lowStock = await scalarCount('SELECT COUNT(*) AS lowStock FROM products WHERE stock <= 5');
     let totalCustomers = 0;
     try {
-      const [{ cnt }] = await query('SELECT COUNT(*) AS cnt FROM users');
-      totalCustomers = cnt;
+      totalCustomers = await scalarCount('SELECT COUNT(*) AS cnt FROM users');
     } catch (_) {}
 
     const recentOrders = await query(
@@ -154,8 +169,8 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       );
       activity = actRes.map((a) => ({
         type: 'order',
-        text: `New order ${a.order_number} from ${a.customer_name}`,
-        time: a.created_at,
+        text: `New order ${rowVal(a, 'orderNumber', 'order_number')} from ${rowVal(a, 'customerName', 'customer_name')}`,
+        time: rowVal(a, 'createdAt', 'created_at'),
       }));
     } catch (_) {}
 
@@ -165,33 +180,36 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       stats: {
         totalOrders,
         pendingOrders,
-        totalRevenue: Number(totalRevenue),
+        totalRevenue,
         totalRevenueFormatted: formatPrice(totalRevenue),
-        monthRevenue: Number(monthRevenue),
+        monthRevenue,
         monthRevenueFormatted: formatPrice(monthRevenue),
         totalProducts,
         lowStock,
-        totalCustomers: Number(totalCustomers),
+        totalCustomers,
       },
       recentOrders: recentOrders.map((o) => ({
         id: o.id,
-        orderNumber: o.order_number,
-        customerName: o.customer_name,
-        itemsPreview: o.items_preview || '—',
-        total: Number(o.total),
+        orderNumber: rowVal(o, 'orderNumber', 'order_number'),
+        customerName: rowVal(o, 'customerName', 'customer_name'),
+        itemsPreview: rowVal(o, 'itemsPreview', 'items_preview') || '—',
+        total: Number(o.total) || 0,
         totalFormatted: formatPrice(o.total),
         status: o.status,
         statusBadge: statusBadge(o.status),
-        createdAt: o.created_at,
+        createdAt: rowVal(o, 'createdAt', 'created_at'),
       })),
-      statusBreakdown,
+      statusBreakdown: statusBreakdown.map((b) => ({
+        status: b.status,
+        cnt: Number(b.cnt) || 0,
+      })),
       monthlyRevenue: monthlyRevenue.map((r) => ({
-        month: r.m,
-        revenue: Number(r.revenue),
+        month: Number(r.m) || 0,
+        revenue: Number(r.revenue) || 0,
       })),
     });
   } catch (err) {
-    console.error(err);
+    console.error('Dashboard error:', err);
     res.status(500).json({ ok: false, error: 'Could not load dashboard' });
   }
 });
@@ -224,6 +242,7 @@ router.get('/orders', requireAdmin, async (req, res) => {
       params.push(q, q, q);
     }
     const [{ total }] = await query(countSql, params);
+    const [{ totalOrders }] = await query('SELECT COUNT(*) AS totalOrders FROM orders');
     sql += ` ORDER BY o.created_at DESC LIMIT ${l} OFFSET ${offset}`;
     const orders = await query(sql, params);
 
@@ -253,6 +272,7 @@ router.get('/orders', requireAdmin, async (req, res) => {
     res.json({
       ok: true,
       orders: enriched,
+      totalOrders: Number(totalOrders) || 0,
       pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) || 1 },
     });
   } catch (err) {

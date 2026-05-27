@@ -139,6 +139,11 @@
     return `<span class="badge badge-${cls[status] || 'gray'}">${labels[status] || status}</span>`;
   }
 
+  function setOrderBadge(count) {
+    const badge = document.getElementById('order-badge');
+    if (badge) badge.textContent = String(Number(count) || 0);
+  }
+
   function showLoginPanel() {
     document.getElementById('login-page').style.display = 'flex';
     document.getElementById('admin-page').style.display = 'none';
@@ -334,7 +339,10 @@
   // ——— Dashboard ———
   async function loadDashboard() {
     const data = await api('/dashboard');
-    if (!data.ok) return;
+    if (!data.ok) {
+      toast(data.error || 'Could not load dashboard data', 'error');
+      return;
+    }
 
     const s = data.stats;
     document.getElementById('dash-stats').innerHTML = `
@@ -347,8 +355,7 @@
       <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;"><i class="ti ti-box" style="color:#d48696;font-size:26px;"></i></div>
         <div><div class="stat-num">${s.totalProducts}</div><div class="stat-label">Products (${s.lowStock} low stock)</div></div></div>`;
 
-    const badge = document.getElementById('order-badge');
-    if (badge) badge.textContent = s.pendingOrders;
+    setOrderBadge(s.totalOrders);
 
     document.getElementById('dash-orders-tbody').innerHTML = data.recentOrders
       .map(
@@ -478,6 +485,7 @@
     if (search) q.set('search', search);
     const data = await api('/orders?' + q.toString());
     if (!data.ok) return;
+    if (data.totalOrders != null) setOrderBadge(data.totalOrders);
     document.getElementById('orders-tbody').innerHTML = data.orders
       .map(
         (o) => `<tr>

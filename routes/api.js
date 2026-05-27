@@ -472,6 +472,7 @@ router.post('/cart/add', async (req, res) => {
         icon: p.icon,
         iconColor: p.icon_color,
         bgColor: p.bg_color,
+        imageUrl: p.image_url || null,
       });
     }
 
@@ -589,6 +590,52 @@ router.post('/orders', async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not place order' });
+  }
+});
+
+// Public order tracking by Order ID (order_number)
+// Example: GET /api/orders/track?orderNumber=RKS-2026-12345678
+router.get('/orders/track', async (req, res) => {
+  try {
+    const orderNumberRaw = String(req.query.orderNumber || '').trim();
+    if (!orderNumberRaw) {
+      return res.status(400).json({ ok: false, error: 'Order ID is required' });
+    }
+    const orderNumber = orderNumberRaw.toUpperCase();
+
+    const rows = await query(
+      `SELECT id, order_number, customer_name, district, status, payment_method, total, created_at
+       FROM orders WHERE order_number = ? LIMIT 1`,
+      [orderNumber]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ ok: false, error: 'Order not found' });
+    }
+    const o = rows[0];
+    const items = await query(
+      `SELECT product_name, quantity, unit_price, line_total
+       FROM order_items WHERE order_id = ? ORDER BY id ASC`,
+      [o.id]
+    );
+
+    cachePublic(res, 30);
+    res.json({
+      ok: true,
+      order: {
+        orderNumber: o.order_number,
+        customerName: o.customer_name,
+        district: o.district,
+        status: o.status,
+        paymentMethod: o.payment_method,
+        total: Number(o.total) || 0,
+        totalFormatted: formatPrice(o.total),
+        createdAt: o.created_at,
+        items,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not track order' });
   }
 });
 

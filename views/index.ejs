@@ -57,6 +57,7 @@
  <span class="badge cart-badge">0</span>
  </a>
  <a href="#" class="nav-btn" id="nav-account-btn"><i class="ti ti-user"></i><span id="nav-account-label">Login / Register</span></a>
+ <a href="#" class="nav-btn" id="nav-track-btn"><i class="ti ti-truck-delivery"></i><span>Track</span></a>
  </div>
  </div>
 </nav>
@@ -672,6 +673,31 @@
   </div>
 </div>
 
+<!-- Track Order modal -->
+<div class="trk-overlay" id="track-modal" aria-hidden="true">
+  <div class="trk-modal" role="dialog" aria-labelledby="trk-title">
+    <div class="trk-head">
+      <div>
+        <div class="trk-title" id="trk-title"><i class="ti ti-truck-delivery"></i> Track your order</div>
+        <div class="trk-sub">Enter your Order ID (example: <b>RKS-2026-12345678</b>)</div>
+      </div>
+      <button type="button" class="trk-close" id="trk-close" aria-label="Close">×</button>
+    </div>
+
+    <div class="trk-body">
+      <form class="trk-form" id="trk-form" onsubmit="return false;">
+        <div class="trk-input-wrap">
+          <i class="ti ti-receipt"></i>
+          <input class="trk-input" id="trk-order-id" type="text" placeholder="RKS-2026-........" autocomplete="off" />
+        </div>
+        <button type="button" class="trk-btn" id="trk-submit"><i class="ti ti-search"></i> Track</button>
+      </form>
+
+      <div class="trk-result" id="trk-result" hidden></div>
+    </div>
+  </div>
+</div>
+
 <!-- ===================================================
  CHECKOUT / PAYMENT PAGE
 =================================================== -->
@@ -1277,7 +1303,7 @@
  <li><a href="#" data-footer-page="home"><i class="ti ti-chevron-right"></i>All Categories</a></li>
  <li><a href="#" data-footer-page="cart"><i class="ti ti-chevron-right"></i>My Cart</a></li>
  <li><a href="#" data-footer-page="account"><i class="ti ti-chevron-right"></i>My Account</a></li>
- <li><a href="#" data-footer-page="account"><i class="ti ti-chevron-right"></i>Track Order</a></li>
+ <li><a href="#" data-footer-page="track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
  </ul></div>
  <div><div class="footer-heading">Help</div><ul class="footer-links">
  <li><a href="#"><i class="ti ti-chevron-right"></i>Track Order</a></li>

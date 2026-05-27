@@ -1443,6 +1443,147 @@
 
   }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatDatePretty(d) {
+    try {
+      return new Date(d).toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch {
+      return d || '';
+    }
+  }
+
+  function openTrackOrderModal(prefill) {
+    const modal = document.getElementById('track-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('trk-open');
+    const input = document.getElementById('trk-order-id');
+    const result = document.getElementById('trk-result');
+    if (result) result.hidden = true;
+    if (input) {
+      if (prefill) input.value = String(prefill).trim();
+      input.focus();
+      input.select();
+    }
+  }
+
+  function closeTrackOrderModal() {
+    const modal = document.getElementById('track-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('trk-open');
+  }
+
+  async function trackOrderById(orderNumber) {
+    const id = String(orderNumber || '').trim();
+    if (!id) return { ok: false, error: 'Enter your Order ID' };
+    return await apiFetch(`/orders/track?orderNumber=${encodeURIComponent(id)}`);
+  }
+
+  function renderTrackResult(data) {
+    const box = document.getElementById('trk-result');
+    if (!box) return;
+    if (!data?.ok || !data.order) {
+      box.hidden = false;
+      box.innerHTML = `<div class="trk-r-body" style="color:var(--accent-dark);font-weight:800;">${escapeHtml(
+        data?.error || 'Order not found'
+      )}</div>`;
+      return;
+    }
+    const o = data.order;
+    const status = String(o.status || 'pending');
+    const items = o.items || [];
+    box.hidden = false;
+    box.innerHTML = `
+      <div class="trk-r-head">
+        <div class="trk-r-title">Order <span style="color:var(--primary);">#${escapeHtml(o.orderNumber)}</span></div>
+        <div class="trk-status ${escapeHtml(status)}">${escapeHtml(status)}</div>
+      </div>
+      <div class="trk-r-body">
+        <div class="trk-meta">
+          <div class="m"><b>Name:</b> ${escapeHtml(o.customerName || '—')}</div>
+          <div class="m"><b>Date:</b> ${escapeHtml(formatDatePretty(o.createdAt))}</div>
+          <div class="m"><b>District:</b> ${escapeHtml(o.district || '—')}</div>
+          <div class="m"><b>Payment:</b> ${escapeHtml(o.paymentMethod || '—')}</div>
+        </div>
+        <div class="trk-items">
+          ${items
+            .map(
+              (it) =>
+                `<div class="trk-item"><span>${escapeHtml(it.product_name)} <b>×${escapeHtml(
+                  it.quantity
+                )}</b></span><span><b>${formatPrice(it.line_total)}</b></span></div>`
+            )
+            .join('')}
+          <div class="trk-total"><span>Total</span><span>${escapeHtml(o.totalFormatted || formatPrice(o.total))}</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  function bindTrackOrderModal() {
+    const modal = document.getElementById('track-modal');
+    if (!modal || modal._rakuBound) return;
+    modal._rakuBound = true;
+
+    const closeBtn = document.getElementById('trk-close');
+    const submit = document.getElementById('trk-submit');
+    const input = document.getElementById('trk-order-id');
+
+    if (closeBtn) closeBtn.onclick = closeTrackOrderModal;
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeTrackOrderModal();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.classList.contains('open')) closeTrackOrderModal();
+    });
+
+    async function run() {
+      if (!submit) return;
+      submit.disabled = true;
+      const res = await trackOrderById(input?.value);
+      submit.disabled = false;
+      renderTrackResult(res);
+    }
+    if (submit) submit.onclick = run;
+    if (input) {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') run();
+      });
+    }
+
+    const navBtn = document.getElementById('nav-track-btn');
+    if (navBtn && !navBtn._rakuBound) {
+      navBtn._rakuBound = true;
+      navBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        openTrackOrderModal();
+      });
+    }
+
+    const btnSuccessTrack = document.getElementById('btn-track-order');
+    if (btnSuccessTrack && !btnSuccessTrack._rakuBound) {
+      btnSuccessTrack._rakuBound = true;
+      btnSuccessTrack.addEventListener('click', (e) => {
+        e.preventDefault();
+        const txt = document.querySelector('.order-id-box')?.textContent || '';
+        const m = txt.match(/RKS-\\d{4}-\\d{6,}/i);
+        openTrackOrderModal(m ? m[0] : '');
+      });
+    }
+  }
+
+  window._rakuOpenTrackOrder = () => openTrackOrderModal();
+
   function applySettingsData(settings) {
     if (!settings) return;
     const ann = document.querySelector('.announcement span');
@@ -1536,6 +1677,7 @@
 
     patchCheckoutForm();
     bindCheckout();
+    bindTrackOrderModal();
     bindCouponApply();
     hookNavigation();
     bindCategoryFilterEvents();

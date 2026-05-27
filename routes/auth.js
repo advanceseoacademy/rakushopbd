@@ -48,8 +48,8 @@ router.get('/me', async (req, res) => {
 router.post('/register', async (req, res) => {
   try {
     const { fullName, email, phone, password } = req.body;
-    if (!fullName || !email || !phone || !password) {
-      return res.status(400).json({ ok: false, error: 'All fields are required' });
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ ok: false, error: 'Name, email and password are required' });
     }
     if (password.length < 6) {
       return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters' });
@@ -63,7 +63,7 @@ router.post('/register', async (req, res) => {
     const hash = await bcrypt.hash(password, 10);
     const result = await query(
       `INSERT INTO users (full_name, email, phone, password_hash) VALUES (?, ?, ?, ?)${returningId()}`,
-      [fullName.trim(), email.trim().toLowerCase(), phone.trim(), hash]
+      [fullName.trim(), email.trim().toLowerCase(), (phone || '').trim(), hash]
     );
 
     const userId = firstInsertId(result) ?? (await query('SELECT id FROM users WHERE email = ?', [email.trim().toLowerCase()]))[0]?.id;

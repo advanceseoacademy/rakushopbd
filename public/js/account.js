@@ -254,7 +254,6 @@
           body: JSON.stringify({
             fullName: fd.get('fullName'),
             email: fd.get('email'),
-            phone: fd.get('phone'),
             password: fd.get('password'),
           }),
         });

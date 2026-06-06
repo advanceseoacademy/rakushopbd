@@ -1,0 +1,39 @@
+<% if (typeof seo !== 'undefined' && seo) { %>
+<title><%= seo.title %></title>
+<meta name="description" content="<%= seo.description %>">
+<meta name="keywords" content="<%= seo.keywords %>">
+<meta name="robots" content="<%= seo.robots %>">
+<link rel="canonical" href="<%= seo.canonical %>">
+<meta name="theme-color" content="#2d8a2d">
+<% if (seo.googleVerification) { %>
+<meta name="google-site-verification" content="<%= seo.googleVerification %>">
+<% } %>
+<% if (seo.ogMeta && seo.ogMeta.length) { %>
+<% seo.ogMeta.forEach(function(m) { %>
+<% if (m.attr === 'property') { %>
+<meta property="<%= m.key %>" content="<%= m.content %>">
+<% } else { %>
+<meta name="<%= m.key %>" content="<%= m.content %>">
+<% } %>
+<% }); %>
+<% } else { %>
+<meta property="og:type" content="<%= seo.ogType %>">
+<meta property="og:site_name" content="<%= seo.ogSiteName %>">
+<meta property="og:title" content="<%= seo.ogTitle %>">
+<meta property="og:description" content="<%= seo.ogDescription %>">
+<meta property="og:url" content="<%= seo.ogUrl %>">
+<meta property="og:image" content="<%= seo.ogImage %>">
+<meta property="og:locale" content="en_BD">
+<% if (seo.ogImageAlt) { %>
+<meta property="og:image:alt" content="<%= seo.ogImageAlt %>">
+<% } %>
+<meta name="twitter:card" content="<%= seo.twitterCard %>">
+<meta name="twitter:title" content="<%= seo.ogTitle %>">
+<meta name="twitter:description" content="<%= seo.ogDescription %>">
+<meta name="twitter:image" content="<%= seo.ogImage %>">
+<% if (seo.twitterSite) { %>
+<meta name="twitter:site" content="<%= seo.twitterSite %>">
+<% } %>
+<% } %>
+<script type="application/ld+json"><%- seo.jsonLd %></script>
+<% } %>

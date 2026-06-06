@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
 <title>RakuShopBD — Admin Panel</title>
 <link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -44,6 +45,7 @@
     <div class="sidebar-section">Main</div>
     <div class="nav-item active" data-page="dashboard"><i class="ti ti-dashboard"></i> Dashboard</div>
     <div class="nav-item" data-page="orders"><i class="ti ti-shopping-bag"></i> Orders <span class="nav-badge" id="order-badge">0</span></div>
+    <div class="nav-item" data-page="appointments"><i class="ti ti-calendar"></i> Appointments <span class="nav-badge nav-badge-amber" id="appointment-badge">0</span></div>
     <div class="nav-item" data-page="products"><i class="ti ti-box"></i> Products</div>
     <div class="nav-item" data-page="customers"><i class="ti ti-users"></i> Customers</div>
     <div class="nav-item" data-page="analytics"><i class="ti ti-chart-bar"></i> Analytics</div>
@@ -138,58 +140,40 @@
         </div>
       </div>
 
-      <div class="adm-section" id="sec-products">
-        <div class="side-layout">
-          <div>
-            <div class="table-wrap" style="margin:0;">
-              <div class="table-header">
-                <h3>Products</h3>
-                <div class="table-actions">
-                  <input class="tbl-search" id="products-search" type="text" placeholder="Search products...">
-                  <select class="tbl-select" id="products-cat-filter"><option value="all">All categories</option></select>
-                  <button type="button" class="btn btn-primary btn-sm" id="add-product-btn"><i class="ti ti-plus"></i> Add Product</button>
-                </div>
-              </div>
-              <table class="tbl"><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
-              <tbody id="products-tbody"></tbody></table>
-              <div class="pagination-bar" id="products-pagination"></div>
+      <div class="adm-section" id="sec-appointments">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Customer Appointments</h3>
+            <div class="table-actions">
+              <input class="tbl-search" id="appointments-search" type="text" placeholder="Search ref, name, phone...">
+              <select class="tbl-select" id="appointments-status-filter">
+                <option value="all">All status</option>
+                <option value="pending">Pending</option>
+                <option value="confirmed">Confirmed</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+              </select>
             </div>
           </div>
-          <div class="card" style="margin:0;">
-            <div class="card-title" id="product-form-title">Add Product</div>
-            <form id="product-form">
-              <input type="hidden" id="pf-id" value="">
-              <div class="form-group"><label class="form-label">Product name *</label><input class="form-input" id="pf-name" required></div>
-              <div class="form-group"><label class="form-label">Category *</label><select class="form-input form-select" id="pf-category" required></select></div>
-              <div class="form-2col">
-                <div class="form-group"><label class="form-label">Price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" required></div>
-                <div class="form-group"><label class="form-label">Old price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0"></div>
-              </div>
-              <div class="form-2col">
-                <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="pf-sku" placeholder="PROD-001"></div>
-                <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
-              </div>
-              <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="pf-desc" rows="2"></textarea></div>
-              <div class="form-group"><label class="form-label">Image URL</label><input class="form-input" id="pf-image-url" placeholder="/uploads/..."></div>
-              <div class="form-group"><label class="form-label">Upload image</label><input class="form-input" type="file" id="pf-image-file" accept="image/*"></div>
-              <div class="form-2col">
-                <div class="form-group"><label class="form-label">Icon class</label><input class="form-input" id="pf-icon" placeholder="ti-watch" value="ti-package"></div>
-                <div class="form-group"><label class="form-label">Icon color</label><input class="form-input" id="pf-icon-color" value="#2d8a2d"></div>
-              </div>
-              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="pf-bg" value="#e8f5e8"></div>
-              <div class="form-group"><label class="form-label">Tag</label>
-                <select class="form-input form-select" id="pf-tag">
-                  <option value="none">None</option><option value="discount">Discount</option>
-                  <option value="bestseller">Best seller</option><option value="hot">Hot</option><option value="new">New</option>
-                </select>
-              </div>
-              <div class="form-group"><label class="form-label"><input type="checkbox" id="pf-featured" checked> Show on homepage</label></div>
-              <div style="display:flex;gap:8px;">
-                <button type="submit" class="btn btn-primary" style="flex:1;justify-content:center;"><i class="ti ti-device-floppy"></i> Save</button>
-                <button type="button" class="btn btn-outline" id="pf-reset">Clear</button>
-              </div>
-            </form>
+          <table class="tbl"><thead><tr><th>Reference</th><th>Customer</th><th>Service</th><th>Date & time</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="appointments-tbody"></tbody></table>
+          <div class="pagination-bar" id="appointments-pagination"></div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-products">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Products</h3>
+            <div class="table-actions">
+              <input class="tbl-search" id="products-search" type="text" placeholder="Search products...">
+              <select class="tbl-select" id="products-cat-filter"><option value="all">All categories</option></select>
+              <button type="button" class="btn btn-primary btn-sm" id="add-product-btn"><i class="ti ti-plus"></i> Add Product</button>
+            </div>
           </div>
+          <table class="tbl"><thead><tr><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
+          <tbody id="products-tbody"></tbody></table>
+          <div class="pagination-bar" id="products-pagination"></div>
         </div>
       </div>
 
@@ -209,23 +193,15 @@
       </div>
 
       <div class="adm-section" id="sec-categories">
-        <div class="side-layout">
-          <div class="table-wrap" style="margin:0;">
-            <div class="table-header"><h3>Categories</h3></div>
-            <table class="tbl"><thead><tr><th>Name</th><th>Slug</th><th>Products</th><th>Actions</th></tr></thead>
-            <tbody id="categories-tbody"></tbody></table>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Categories</h3>
+            <div class="table-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="add-category-btn"><i class="ti ti-plus"></i> Add Category</button>
+            </div>
           </div>
-          <div class="card" style="margin:0;">
-            <div class="card-title" id="category-form-title">Add Category</div>
-            <input type="hidden" id="cf-id" value="">
-            <form id="category-form">
-              <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="cf-name" required></div>
-              <div class="form-group"><label class="form-label">Slug</label><input class="form-input" id="cf-slug" placeholder="auto-generated"></div>
-              <div class="form-group"><label class="form-label">Icon (Tabler class)</label><input class="form-input" id="cf-icon" value="ti-category"></div>
-              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;" id="cf-submit-btn"><i class="ti ti-plus"></i> Add Category</button>
-              <button type="button" class="btn btn-outline" style="width:100%;margin-top:8px;justify-content:center;" id="cf-reset">Clear</button>
-            </form>
-          </div>
+          <table class="tbl"><thead><tr><th>Name</th><th>Slug</th><th>Products</th><th>Actions</th></tr></thead>
+          <tbody id="categories-tbody"></tbody></table>
         </div>
       </div>
 
@@ -253,54 +229,28 @@
       </div>
 
       <div class="adm-section" id="sec-banners">
-        <div class="side-layout">
-          <div class="table-wrap" style="margin:0;">
-            <div class="table-header"><h3>Banners</h3></div>
-            <table class="tbl"><thead><tr><th>Title</th><th>Position</th><th>Link</th><th>Status</th><th>Action</th></tr></thead>
-            <tbody id="banners-tbody"></tbody></table>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Banners</h3>
+            <div class="table-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="add-banner-btn"><i class="ti ti-plus"></i> Add Banner</button>
+            </div>
           </div>
-          <div class="card" style="margin:0;">
-            <div class="card-title" id="banner-form-title">Add Banner</div>
-            <input type="hidden" id="bn-id">
-            <form id="banner-form">
-              <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="bn-title" required></div>
-              <div class="form-group"><label class="form-label">Position</label>
-                <select class="form-input form-select" id="bn-position"><option value="hero">Homepage Hero</option><option value="promo">Promo Bar</option><option value="mid">Homepage Mid</option></select>
-              </div>
-              <div class="form-group"><label class="form-label">Link URL</label><input class="form-input" id="bn-link" value="/"></div>
-              <div class="form-group"><label class="form-label">Gradient CSS</label><input class="form-input" id="bn-gradient" value="linear-gradient(135deg,#2d8a2d,#164816)"></div>
-              <div class="form-group"><label class="form-label">Image URL</label><input class="form-input" id="bn-image"></div>
-              <div class="form-group"><label class="form-label">Upload</label><input type="file" id="bn-file" accept="image/*"></div>
-              <div class="form-group"><label class="form-label">Expires</label><input class="form-input" id="bn-expires" type="date"></div>
-              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;">Save Banner</button>
-              <button type="button" class="btn btn-outline" style="width:100%;margin-top:8px;" id="bn-reset">Clear</button>
-            </form>
-          </div>
+          <table class="tbl"><thead><tr><th>Title</th><th>Position</th><th>Link</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="banners-tbody"></tbody></table>
         </div>
       </div>
 
       <div class="adm-section" id="sec-coupons">
-        <div class="side-layout">
-          <div class="table-wrap" style="margin:0;">
-            <div class="table-header"><h3>Coupons</h3></div>
-            <table class="tbl"><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min order</th><th>Used</th><th>Expires</th><th>Action</th></tr></thead>
-            <tbody id="coupons-tbody"></tbody></table>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Coupons</h3>
+            <div class="table-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="add-coupon-btn"><i class="ti ti-plus"></i> Add Coupon</button>
+            </div>
           </div>
-          <div class="card" style="margin:0;">
-            <div class="card-title" id="coupon-form-title">New Coupon</div>
-            <input type="hidden" id="cp-id">
-            <form id="coupon-form">
-              <div class="form-group"><label class="form-label">Code *</label><input class="form-input" id="cp-code" required placeholder="SAVE10"></div>
-              <div class="form-group"><label class="form-label">Type</label>
-                <select class="form-input form-select" id="cp-type"><option value="percent">Percent (%)</option><option value="fixed">Fixed (৳)</option></select>
-              </div>
-              <div class="form-group"><label class="form-label">Value</label><input class="form-input" id="cp-value" type="number" min="0" required></div>
-              <div class="form-group"><label class="form-label">Min order (৳)</label><input class="form-input" id="cp-min" type="number" min="0" value="0"></div>
-              <div class="form-group"><label class="form-label">Usage limit</label><input class="form-input" id="cp-limit" type="number" min="0" placeholder="Unlimited"></div>
-              <div class="form-group"><label class="form-label">Expires</label><input class="form-input" id="cp-expires" type="date"></div>
-              <button type="submit" class="btn btn-primary" style="width:100%;justify-content:center;"><i class="ti ti-discount"></i> Create Coupon</button>
-            </form>
-          </div>
+          <table class="tbl"><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min order</th><th>Used</th><th>Expires</th><th>Actions</th></tr></thead>
+          <tbody id="coupons-tbody"></tbody></table>
         </div>
       </div>
 
@@ -339,6 +289,9 @@
                 <div class="settings-row"><div><div>Cash on delivery</div></div>
                   <label class="toggle"><input type="checkbox" id="set-cod" checked><span class="toggle-slider"></span></label>
                 </div>
+                <div class="settings-row"><div><div>Free AI skin test</div><div class="settings-row-info">Floating skin scan button on storefront (left side)</div></div>
+                  <label class="toggle"><input type="checkbox" id="set-face-analyzer"><span class="toggle-slider"></span></label>
+                </div>
                 <div class="settings-row"><div><div>Flash sale banner</div></div>
                   <label class="toggle"><input type="checkbox" id="set-flash"><span class="toggle-slider"></span></label>
                 </div>
@@ -356,11 +309,158 @@
             </div>
           </div>
         </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">SEO &amp; Search (Google)</div>
+          <form id="seo-form">
+            <div class="form-group"><label class="form-label">Public site URL</label><input class="form-input" id="set-site-url" type="url" placeholder="https://rakushopbd.com"></div>
+            <div class="form-group"><label class="form-label">Home page title</label><input class="form-input" id="set-seo-home-title" placeholder="RakuShopBD — Best Online Shopping in Bangladesh"></div>
+            <div class="form-group"><label class="form-label">Default meta description</label><textarea class="form-input form-textarea" id="set-seo-description" rows="3" placeholder="Short description for Google search results (150–160 characters)"></textarea></div>
+            <div class="form-group"><label class="form-label">Meta keywords</label><input class="form-input" id="set-seo-keywords" placeholder="online shopping, Bangladesh, ..."></div>
+            <div class="form-group"><label class="form-label">Default share image (OG) URL</label><input class="form-input" id="set-seo-og-image" type="url" placeholder="https://yoursite.com/images/og.jpg"></div>
+            <div class="form-group"><label class="form-label">Google Search Console verification</label><input class="form-input" id="set-seo-google" placeholder="content code only"></div>
+            <div class="form-group"><label class="form-label">Twitter @username</label><input class="form-input" id="set-seo-twitter" placeholder="@rakushopbd"></div>
+            <p class="settings-row-info" style="margin:0 0 12px;">Sitemap: <code>/sitemap.xml</code> · Robots: <code>/robots.txt</code></p>
+            <button type="submit" class="btn btn-primary"><i class="ti ti-world"></i> Save SEO Settings</button>
+          </form>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
+</div>
+
+<div class="modal-overlay" id="product-modal" aria-hidden="true">
+  <div class="modal-box modal-box--product" role="dialog" aria-labelledby="product-form-title">
+    <div class="modal-box-head">
+      <h3 id="product-form-title">Add Product</h3>
+      <button type="button" class="modal-box-close" id="product-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="product-form">
+      <input type="hidden" id="pf-id" value="">
+      <div class="form-group"><label class="form-label">Product name *</label><input class="form-input" id="pf-name" required></div>
+      <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="pf-slug" placeholder="auto from name, e.g. smartwatch-pro"><small class="form-hint">Store link: /product/your-slug</small></div>
+      <div class="form-group"><label class="form-label">Category *</label><select class="form-input form-select" id="pf-category" required></select></div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" required></div>
+        <div class="form-group"><label class="form-label">Old price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="pf-sku" placeholder="PROD-001"></div>
+        <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="pf-desc" rows="3"></textarea></div>
+      <div class="form-group"><label class="form-label">Image URL</label><input class="form-input" id="pf-image-url" placeholder="/uploads/..."></div>
+      <div class="form-group"><label class="form-label">Upload image</label><input class="form-input" type="file" id="pf-image-file" accept="image/*"></div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Icon class</label><input class="form-input" id="pf-icon" placeholder="ti-watch" value="ti-package"></div>
+        <div class="form-group"><label class="form-label">Icon color</label><input class="form-input" id="pf-icon-color" value="#2d8a2d"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="pf-bg" value="#e8f5e8"></div>
+      <div class="form-group"><label class="form-label">Tag</label>
+        <select class="form-input form-select" id="pf-tag">
+          <option value="none">None</option><option value="discount">Discount</option>
+          <option value="bestseller">Best seller</option><option value="hot">Hot</option><option value="new">New</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label"><input type="checkbox" id="pf-featured" checked> Show on homepage</label></div>
+      <details class="form-seo-panel" id="pf-seo-panel">
+        <summary class="form-seo-summary"><i class="ti ti-search"></i> SEO &amp; Search (optional)</summary>
+        <div class="form-seo-body">
+          <div class="form-group"><label class="form-label">SEO title</label><input class="form-input" id="pf-seo-title" maxlength="255" placeholder="Google search title — leave blank to use product name"></div>
+          <div class="form-group"><label class="form-label">SEO description</label><textarea class="form-input form-textarea" id="pf-seo-desc" rows="2" maxlength="320" placeholder="Meta description for search engines (max ~160 chars shown)"></textarea></div>
+          <div class="form-group"><label class="form-label">SEO keywords</label><input class="form-input" id="pf-seo-keywords" maxlength="255" placeholder="smartwatch, fitness, bangladesh"></div>
+          <div class="form-group"><label class="form-label">Image alt text</label><input class="form-input" id="pf-image-alt" maxlength="255" placeholder="Describe the product image for accessibility &amp; SEO"></div>
+          <div class="form-group"><label class="form-label">Social share image (OG)</label><input class="form-input" id="pf-og-image" placeholder="/uploads/... or full URL — optional, overrides product image"></div>
+        </div>
+      </details>
+      <div class="modal-form-actions">
+        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Product</button>
+        <button type="button" class="btn btn-outline" id="pf-reset">Clear</button>
+        <button type="button" class="btn btn-outline" id="product-modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="category-modal" aria-hidden="true">
+  <div class="modal-box" role="dialog" aria-labelledby="category-form-title">
+    <div class="modal-box-head">
+      <h3 id="category-form-title">Add Category</h3>
+      <button type="button" class="modal-box-close" id="category-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="category-form">
+      <input type="hidden" id="cf-id" value="">
+      <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="cf-name" required></div>
+      <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="cf-slug" placeholder="auto from name, e.g. electronics"><small class="form-hint">Store link: /category/your-slug</small></div>
+      <div class="form-group"><label class="form-label">Icon (Tabler class)</label><input class="form-input" id="cf-icon" value="ti-category" placeholder="ti-category"></div>
+      <div class="form-group"><label class="form-label">Sort order</label><input class="form-input" id="cf-sort" type="number" min="0" value="0" placeholder="0 = first"></div>
+      <div class="modal-form-actions">
+        <button type="submit" class="btn btn-primary" id="cf-submit-btn"><i class="ti ti-device-floppy"></i> Save Category</button>
+        <button type="button" class="btn btn-outline" id="cf-reset">Clear</button>
+        <button type="button" class="btn btn-outline" id="category-modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="coupon-modal" aria-hidden="true">
+  <div class="modal-box" role="dialog" aria-labelledby="coupon-form-title">
+    <div class="modal-box-head">
+      <h3 id="coupon-form-title">New Coupon</h3>
+      <button type="button" class="modal-box-close" id="coupon-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="coupon-form">
+      <input type="hidden" id="cp-id" value="">
+      <div class="form-group"><label class="form-label">Code *</label><input class="form-input" id="cp-code" required placeholder="SAVE10" autocomplete="off"></div>
+      <div class="form-group"><label class="form-label">Type</label>
+        <select class="form-input form-select" id="cp-type"><option value="percent">Percent (%)</option><option value="fixed">Fixed (৳)</option></select>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Value *</label><input class="form-input" id="cp-value" type="number" min="0" required></div>
+        <div class="form-group"><label class="form-label">Min order (৳)</label><input class="form-input" id="cp-min" type="number" min="0" value="0"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Usage limit</label><input class="form-input" id="cp-limit" type="number" min="0" placeholder="Unlimited"></div>
+        <div class="form-group"><label class="form-label">Expires</label><input class="form-input" id="cp-expires" type="date"></div>
+      </div>
+      <div class="modal-form-actions">
+        <button type="submit" class="btn btn-primary" id="cp-submit-btn"><i class="ti ti-device-floppy"></i> Save Coupon</button>
+        <button type="button" class="btn btn-outline" id="cp-reset">Clear</button>
+        <button type="button" class="btn btn-outline" id="coupon-modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="banner-modal" aria-hidden="true">
+  <div class="modal-box modal-box--product" role="dialog" aria-labelledby="banner-form-title">
+    <div class="modal-box-head">
+      <h3 id="banner-form-title">Add Banner</h3>
+      <button type="button" class="modal-box-close" id="banner-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="banner-form">
+      <input type="hidden" id="bn-id" value="">
+      <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="bn-title" required></div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Position</label>
+          <select class="form-input form-select" id="bn-position"><option value="hero">Homepage Hero</option><option value="promo">Promo Bar</option><option value="mid">Homepage Mid</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">Sort order</label><input class="form-input" id="bn-sort" type="number" min="0" value="0"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Link URL</label><input class="form-input" id="bn-link" value="/"></div>
+      <div class="form-group"><label class="form-label">Gradient CSS</label><input class="form-input" id="bn-gradient" value="linear-gradient(135deg,#2d8a2d,#164816)"></div>
+      <div class="form-group"><label class="form-label">Image URL</label><input class="form-input" id="bn-image" placeholder="/uploads/..."></div>
+      <div class="form-group"><label class="form-label">Upload image</label><input class="form-input" type="file" id="bn-file" accept="image/*"></div>
+      <div class="form-group"><label class="form-label">Expires</label><input class="form-input" id="bn-expires" type="date"></div>
+      <div class="form-group"><label class="form-label"><input type="checkbox" id="bn-active" checked> Active on storefront</label></div>
+      <div class="modal-form-actions">
+        <button type="submit" class="btn btn-primary" id="bn-submit-btn"><i class="ti ti-device-floppy"></i> Save Banner</button>
+        <button type="button" class="btn btn-outline" id="bn-reset">Clear</button>
+        <button type="button" class="btn btn-outline" id="banner-modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="modal-overlay" id="order-modal">
@@ -380,6 +480,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin.js?v=13"></script>
+<script src="/js/admin.js?v=22"></script>
 </body>
 </html>

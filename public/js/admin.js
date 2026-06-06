@@ -55,15 +55,19 @@
 
   let currentAdmin = null;
   let categories = [];
+  let coupons = [];
+  let banners = [];
   let currentOrderId = null;
 
   let ordersPage = 1;
+  let appointmentsPage = 1;
   let productsPage = 1;
   let authRedirectHold = false;
 
   const pageTitles = {
     dashboard: 'Dashboard',
     orders: 'Orders',
+    appointments: 'Appointments',
     products: 'Products',
     customers: 'Customers',
     analytics: 'Analytics',
@@ -187,6 +191,7 @@
 
     if (page === 'dashboard') loadDashboard();
     if (page === 'orders') loadOrders();
+    if (page === 'appointments') loadAppointments();
     if (page === 'products') loadProducts();
     if (page === 'customers') loadCustomers();
     if (page === 'categories') loadCategories();
@@ -285,17 +290,147 @@
   };
 
   document.getElementById('view-site-btn').onclick = () => window.open('/', '_blank');
+  function openProductModal() {
+    const modal = document.getElementById('product-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('product-modal-open');
+    setTimeout(() => document.getElementById('pf-name')?.focus(), 50);
+  }
+
+  function closeProductModal() {
+    const modal = document.getElementById('product-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('product-modal-open');
+  }
+
   const addProductBtn = document.getElementById('add-product-btn');
   if (addProductBtn) {
     addProductBtn.onclick = () => {
       switchPage('products');
       resetProductForm();
-      setTimeout(() => {
-        const nameInput = document.getElementById('pf-name');
-        if (nameInput) nameInput.focus();
-      }, 0);
+      openProductModal();
     };
   }
+
+  document.getElementById('product-modal-close')?.addEventListener('click', closeProductModal);
+  document.getElementById('product-modal-cancel')?.addEventListener('click', closeProductModal);
+  document.getElementById('product-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'product-modal') closeProductModal();
+  });
+  function openCategoryModal() {
+    const modal = document.getElementById('category-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('category-modal-open');
+    setTimeout(() => document.getElementById('cf-name')?.focus(), 50);
+  }
+
+  function closeCategoryModal() {
+    const modal = document.getElementById('category-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('category-modal-open');
+  }
+
+  const addCategoryBtn = document.getElementById('add-category-btn');
+  if (addCategoryBtn) {
+    addCategoryBtn.onclick = () => {
+      switchPage('categories');
+      resetCategoryForm();
+      openCategoryModal();
+    };
+  }
+
+  document.getElementById('category-modal-close')?.addEventListener('click', closeCategoryModal);
+  document.getElementById('category-modal-cancel')?.addEventListener('click', closeCategoryModal);
+  document.getElementById('category-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'category-modal') closeCategoryModal();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && document.getElementById('product-modal')?.classList.contains('open')) {
+      closeProductModal();
+    }
+    if (e.key === 'Escape' && document.getElementById('category-modal')?.classList.contains('open')) {
+      closeCategoryModal();
+    }
+    if (e.key === 'Escape' && document.getElementById('coupon-modal')?.classList.contains('open')) {
+      closeCouponModal();
+    }
+    if (e.key === 'Escape' && document.getElementById('banner-modal')?.classList.contains('open')) {
+      closeBannerModal();
+    }
+  });
+
+  function openBannerModal() {
+    const modal = document.getElementById('banner-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('banner-modal-open');
+    setTimeout(() => document.getElementById('bn-title')?.focus(), 50);
+  }
+
+  function closeBannerModal() {
+    const modal = document.getElementById('banner-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('banner-modal-open');
+  }
+
+  const addBannerBtn = document.getElementById('add-banner-btn');
+  if (addBannerBtn) {
+    addBannerBtn.onclick = () => {
+      switchPage('banners');
+      resetBannerForm();
+      openBannerModal();
+    };
+  }
+
+  document.getElementById('banner-modal-close')?.addEventListener('click', closeBannerModal);
+  document.getElementById('banner-modal-cancel')?.addEventListener('click', closeBannerModal);
+  document.getElementById('banner-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'banner-modal') closeBannerModal();
+  });
+
+  function openCouponModal() {
+    const modal = document.getElementById('coupon-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('coupon-modal-open');
+    setTimeout(() => document.getElementById('cp-code')?.focus(), 50);
+  }
+
+  function closeCouponModal() {
+    const modal = document.getElementById('coupon-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('coupon-modal-open');
+  }
+
+  const addCouponBtn = document.getElementById('add-coupon-btn');
+  if (addCouponBtn) {
+    addCouponBtn.onclick = () => {
+      switchPage('coupons');
+      resetCouponForm();
+      openCouponModal();
+    };
+  }
+
+  document.getElementById('coupon-modal-close')?.addEventListener('click', closeCouponModal);
+  document.getElementById('coupon-modal-cancel')?.addEventListener('click', closeCouponModal);
+  document.getElementById('coupon-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'coupon-modal') closeCouponModal();
+  });
 
   function closeAdminSidebar() {
     document.body.classList.remove('adm-sidebar-open');
@@ -357,6 +492,9 @@
         <div><div class="stat-num">${s.totalProducts}</div><div class="stat-label">Products (${s.lowStock} low stock)</div></div></div>`;
 
     setOrderBadge(s.totalOrders);
+    api('/appointments?limit=1&page=1').then((d) => {
+      if (d.ok && d.pendingCount != null) setAppointmentBadge(d.pendingCount);
+    });
 
     document.getElementById('dash-orders-tbody').innerHTML = data.recentOrders
       .map(
@@ -516,6 +654,74 @@
   document.getElementById('orders-payment-filter')?.addEventListener('change', () => loadOrders(1));
   document.getElementById('orders-search').oninput = debounce(() => loadOrders(1), 400);
 
+  function setAppointmentBadge(n) {
+    const el = document.getElementById('appointment-badge');
+    if (!el) return;
+    const c = Number(n) || 0;
+    el.textContent = c > 99 ? '99+' : String(c);
+    el.style.display = c > 0 ? '' : 'none';
+  }
+
+  async function loadAppointments(page) {
+    if (page) appointmentsPage = page;
+    const status = document.getElementById('appointments-status-filter')?.value || 'all';
+    const search = document.getElementById('appointments-search')?.value.trim() || '';
+    const q = new URLSearchParams({ page: appointmentsPage, limit: 20 });
+    if (status !== 'all') q.set('status', status);
+    if (search) q.set('search', search);
+    const data = await api('/appointments?' + q.toString());
+    if (!data.ok) return;
+    if (data.pendingCount != null) setAppointmentBadge(data.pendingCount);
+    const tbody = document.getElementById('appointments-tbody');
+    if (!tbody) return;
+    tbody.innerHTML = (data.appointments || [])
+      .map(
+        (a) => `<tr>
+        <td><b>${a.referenceNumber}</b><br><small style="color:#94a3b8">${fmtDate(a.createdAt)}</small></td>
+        <td>${a.customerName}<br><small style="color:#94a3b8">${a.customerPhone}</small></td>
+        <td>${a.serviceLabel || a.serviceType}</td>
+        <td>${a.appointmentDate}<br><small>${a.appointmentTime}</small></td>
+        <td>${statusBadgeHtml(a.status)}</td>
+        <td>
+          <select class="tbl-select" style="min-width:110px" data-appt-status="${a.id}">
+            <option value="pending" ${a.status === 'pending' ? 'selected' : ''}>Pending</option>
+            <option value="confirmed" ${a.status === 'confirmed' ? 'selected' : ''}>Confirmed</option>
+            <option value="completed" ${a.status === 'completed' ? 'selected' : ''}>Completed</option>
+            <option value="cancelled" ${a.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
+          </select>
+        </td></tr>`
+      )
+      .join('');
+
+    tbody.querySelectorAll('[data-appt-status]').forEach((sel) => {
+      sel.onchange = async () => {
+        const id = sel.dataset.apptStatus;
+        const res = await api('/appointments/' + id, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: sel.value }),
+        });
+        if (res.ok) {
+          toast('Appointment updated');
+          loadAppointments();
+        } else toast(res.error || 'Update failed', true);
+      };
+    });
+
+    const pag = data.pagination;
+    const pagEl = document.getElementById('appointments-pagination');
+    if (pagEl && pag) {
+      pagEl.innerHTML = `<span>Page ${pag.page} of ${pag.pages} (${pag.total} appointments)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} data-ap="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page >= pag.pages ? 'disabled' : ''} data-ap="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-ap]').forEach((b) => {
+        b.onclick = () => loadAppointments(appointmentsPage + Number(b.dataset.ap));
+      });
+    }
+  }
+
+  document.getElementById('appointments-status-filter')?.addEventListener('change', () => loadAppointments(1));
+  document.getElementById('appointments-search')?.addEventListener('input', debounce(() => loadAppointments(1), 400));
+
   async function openOrderModal(id) {
     currentOrderId = id;
     const data = await api('/orders/' + id);
@@ -592,6 +798,8 @@
         document.getElementById('product-form-title').textContent = 'Edit Product';
         document.getElementById('pf-id').value = p.id;
         document.getElementById('pf-name').value = p.name_bn;
+        const pfSlug = document.getElementById('pf-slug');
+        if (pfSlug) pfSlug.value = p.slug || '';
         document.getElementById('pf-category').value = p.category_id;
         document.getElementById('pf-price').value = p.price;
         document.getElementById('pf-old-price').value = p.old_price || '';
@@ -604,6 +812,12 @@
         document.getElementById('pf-bg').value = p.bg_color;
         document.getElementById('pf-tag').value = p.tag_type;
         document.getElementById('pf-featured').checked = !!p.is_featured;
+        document.getElementById('pf-seo-title').value = p.seo_title || '';
+        document.getElementById('pf-seo-desc').value = p.seo_description || '';
+        document.getElementById('pf-seo-keywords').value = p.seo_keywords || '';
+        document.getElementById('pf-image-alt').value = p.image_alt || '';
+        document.getElementById('pf-og-image').value = p.og_image || '';
+        openProductModal();
       };
     });
 
@@ -643,6 +857,10 @@
     document.getElementById('pf-bg').value = '#e8f5e8';
     document.getElementById('pf-stock').value = 100;
     document.getElementById('pf-featured').checked = true;
+    ['pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.value = '';
+    });
   }
 
   document.getElementById('product-form').onsubmit = async (e) => {
@@ -659,6 +877,7 @@
     }
     const body = {
       name: document.getElementById('pf-name').value.trim(),
+      slug: document.getElementById('pf-slug')?.value?.trim() || undefined,
       categoryId: Number(document.getElementById('pf-category').value),
       price: Number(document.getElementById('pf-price').value),
       oldPrice: document.getElementById('pf-old-price').value || null,
@@ -671,14 +890,20 @@
       bgColor: document.getElementById('pf-bg').value,
       tagType: document.getElementById('pf-tag').value,
       isFeatured: document.getElementById('pf-featured').checked,
+      seoTitle: document.getElementById('pf-seo-title')?.value?.trim() || null,
+      seoDescription: document.getElementById('pf-seo-desc')?.value?.trim() || null,
+      seoKeywords: document.getElementById('pf-seo-keywords')?.value?.trim() || null,
+      imageAlt: document.getElementById('pf-image-alt')?.value?.trim() || null,
+      ogImage: document.getElementById('pf-og-image')?.value?.trim() || null,
     };
     const data = id
       ? await api('/products/' + id, { method: 'PUT', body: JSON.stringify(body) })
       : await api('/products', { method: 'POST', body: JSON.stringify(body) });
     if (data.ok) {
       toast(id ? 'Product updated' : 'Product created');
+      closeProductModal();
       resetProductForm();
-      loadProducts();
+      loadProducts(productsPage || 1);
     } else toast(data.error || 'Save failed', 'error');
   };
 
@@ -707,6 +932,16 @@
   document.getElementById('customers-search').oninput = debounce(loadCustomers, 400);
 
   // ——— Categories ———
+  function resetCategoryForm() {
+    document.getElementById('category-form-title').textContent = 'Add Category';
+    const submitBtn = document.getElementById('cf-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save Category';
+    document.getElementById('cf-id').value = '';
+    document.getElementById('category-form').reset();
+    document.getElementById('cf-icon').value = 'ti-category';
+    document.getElementById('cf-sort').value = '0';
+  }
+
   async function loadCategories() {
     const data = await api('/categories');
     if (!data.ok) return;
@@ -724,10 +959,14 @@
         const c = categories.find((x) => x.id === Number(btn.dataset.editCat));
         if (!c) return;
         document.getElementById('category-form-title').textContent = 'Edit Category';
+        const submitBtn = document.getElementById('cf-submit-btn');
+        if (submitBtn) submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save Category';
         document.getElementById('cf-id').value = c.id;
         document.getElementById('cf-name').value = c.name_bn;
         document.getElementById('cf-slug').value = c.slug;
-        document.getElementById('cf-icon').value = c.icon;
+        document.getElementById('cf-icon').value = c.icon || 'ti-category';
+        document.getElementById('cf-sort').value = c.sort_order ?? 0;
+        openCategoryModal();
       };
     });
     document.querySelectorAll('[data-del-cat]').forEach((btn) => {
@@ -737,17 +976,13 @@
         if (r.ok) {
           toast('Deleted');
           loadCategories();
+          loadCategoriesList();
         } else toast(r.error || 'Failed', 'error');
       };
     });
   }
 
-  document.getElementById('cf-reset')?.addEventListener('click', () => {
-    document.getElementById('category-form-title').textContent = 'Add Category';
-    document.getElementById('cf-id').value = '';
-    document.getElementById('category-form').reset();
-    document.getElementById('cf-icon').value = 'ti-category';
-  });
+  document.getElementById('cf-reset')?.addEventListener('click', resetCategoryForm);
 
   document.getElementById('category-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -755,37 +990,51 @@
     const body = {
       name: document.getElementById('cf-name').value.trim(),
       slug: document.getElementById('cf-slug').value.trim() || undefined,
-      icon: document.getElementById('cf-icon').value,
+      icon: document.getElementById('cf-icon').value.trim() || 'ti-category',
+      sortOrder: Number(document.getElementById('cf-sort').value) || 0,
     };
     const data = id
       ? await api('/categories/' + id, { method: 'PUT', body: JSON.stringify(body) })
       : await api('/categories', { method: 'POST', body: JSON.stringify(body) });
     if (data.ok) {
       toast(id ? 'Category updated' : 'Category added');
-      document.getElementById('cf-reset').click();
+      closeCategoryModal();
+      resetCategoryForm();
       loadCategories();
+      loadCategoriesList();
     } else toast(data.error || 'Failed', 'error');
   };
 
   // ——— Coupons ———
+  function resetCouponForm() {
+    document.getElementById('coupon-form-title').textContent = 'New Coupon';
+    document.getElementById('cp-id').value = '';
+    document.getElementById('coupon-form').reset();
+    document.getElementById('cp-min').value = '0';
+    const submitBtn = document.getElementById('cp-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save Coupon';
+  }
+
   async function loadCoupons() {
     const data = await api('/coupons');
     if (!data.ok) return;
-    document.getElementById('coupons-tbody').innerHTML = data.coupons
+    coupons = data.coupons;
+    document.getElementById('coupons-tbody').innerHTML = coupons
       .map(
         (c) => `<tr>
         <td><code style="background:#e8f5e8;padding:3px 8px;border-radius:4px;font-weight:700;">${c.code}</code></td>
         <td>${c.discount_type}</td><td>${c.discount_type === 'percent' ? c.discount_value + '%' : '৳' + c.discount_value}</td>
         <td>৳${Number(c.min_order).toLocaleString()}</td>
         <td>${c.used_count}${c.usage_limit ? '/' + c.usage_limit : ''}</td>
-        <td>${c.expires_at || '—'}</td>
+        <td>${c.expires_at ? String(c.expires_at).slice(0, 10) : '—'}</td>
         <td><button type="button" class="btn btn-outline btn-xs" data-edit-cp="${c.id}">Edit</button>
         <button type="button" class="btn btn-danger btn-xs" data-del-coupon="${c.id}">Delete</button></td></tr>`
       )
       .join('');
     document.querySelectorAll('[data-edit-cp]').forEach((btn) => {
       btn.onclick = () => {
-        const c = data.coupons.find((x) => x.id === Number(btn.dataset.editCp));
+        const c = coupons.find((x) => x.id === Number(btn.dataset.editCp));
+        if (!c) return;
         document.getElementById('coupon-form-title').textContent = 'Edit Coupon';
         document.getElementById('cp-id').value = c.id;
         document.getElementById('cp-code').value = c.code;
@@ -793,23 +1042,29 @@
         document.getElementById('cp-value').value = c.discount_value;
         document.getElementById('cp-min').value = c.min_order;
         document.getElementById('cp-limit').value = c.usage_limit || '';
-        document.getElementById('cp-expires').value = c.expires_at ? c.expires_at.slice(0, 10) : '';
+        document.getElementById('cp-expires').value = c.expires_at ? String(c.expires_at).slice(0, 10) : '';
+        openCouponModal();
       };
     });
     document.querySelectorAll('[data-del-coupon]').forEach((btn) => {
       btn.onclick = async () => {
         if (!confirm('Delete coupon?')) return;
-        await api('/coupons/' + btn.dataset.delCoupon, { method: 'DELETE' });
-        loadCoupons();
+        const r = await api('/coupons/' + btn.dataset.delCoupon, { method: 'DELETE' });
+        if (r.ok) {
+          toast('Coupon deleted');
+          loadCoupons();
+        } else toast(r.error || 'Failed', 'error');
       };
     });
   }
+
+  document.getElementById('cp-reset')?.addEventListener('click', resetCouponForm);
 
   document.getElementById('coupon-form').onsubmit = async (e) => {
     e.preventDefault();
     const id = document.getElementById('cp-id').value;
     const body = {
-      code: document.getElementById('cp-code').value,
+      code: document.getElementById('cp-code').value.trim(),
       discountType: document.getElementById('cp-type').value,
       discountValue: Number(document.getElementById('cp-value').value),
       minOrder: Number(document.getElementById('cp-min').value),
@@ -822,9 +1077,8 @@
       : await api('/coupons', { method: 'POST', body: JSON.stringify(body) });
     if (data.ok) {
       toast(id ? 'Coupon updated' : 'Coupon created');
-      document.getElementById('cp-id').value = '';
-      document.getElementById('coupon-form-title').textContent = 'New Coupon';
-      e.target.reset();
+      closeCouponModal();
+      resetCouponForm();
       loadCoupons();
     } else toast(data.error || 'Failed', 'error');
   };
@@ -851,6 +1105,8 @@
     const outFee = document.getElementById('set-delivery-outside');
     if (outFee) outFee.value = s.delivery_fee_outside || '120';
     document.getElementById('set-maintenance').checked = s.maintenance_mode === '1';
+    const faceAnalyzer = document.getElementById('set-face-analyzer');
+    if (faceAnalyzer) faceAnalyzer.checked = s.face_analyzer_enabled !== '0';
     document.getElementById('set-guest').checked = s.feature_guest_checkout !== '0';
     document.getElementById('set-cod').checked = s.feature_cod !== '0';
     const flash = document.getElementById('set-flash');
@@ -861,6 +1117,20 @@
     if (em) em.checked = s.feature_email_notify !== '0';
     const sms = document.getElementById('set-sms');
     if (sms) sms.checked = s.feature_sms_notify === '1';
+    const siteUrl = document.getElementById('set-site-url');
+    if (siteUrl) siteUrl.value = s.site_url || '';
+    const seoDesc = document.getElementById('set-seo-description');
+    if (seoDesc) seoDesc.value = s.seo_meta_description || '';
+    const seoKw = document.getElementById('set-seo-keywords');
+    if (seoKw) seoKw.value = s.seo_meta_keywords || '';
+    const seoOg = document.getElementById('set-seo-og-image');
+    if (seoOg) seoOg.value = s.seo_og_image || '';
+    const seoGoogle = document.getElementById('set-seo-google');
+    if (seoGoogle) seoGoogle.value = s.seo_google_verification || '';
+    const seoTwitter = document.getElementById('set-seo-twitter');
+    if (seoTwitter) seoTwitter.value = s.seo_twitter_handle || '';
+    const seoHome = document.getElementById('set-seo-home-title');
+    if (seoHome) seoHome.value = s.seo_home_title || '';
   }
 
   async function loadAnalytics() {
@@ -909,49 +1179,66 @@
   }
   document.getElementById('reviews-filter').onchange = loadReviews;
 
+  function resetBannerForm() {
+    document.getElementById('banner-form-title').textContent = 'Add Banner';
+    document.getElementById('bn-id').value = '';
+    document.getElementById('banner-form').reset();
+    document.getElementById('bn-link').value = '/';
+    document.getElementById('bn-gradient').value = 'linear-gradient(135deg,#2d8a2d,#164816)';
+    document.getElementById('bn-sort').value = '0';
+    document.getElementById('bn-active').checked = true;
+    const fileEl = document.getElementById('bn-file');
+    if (fileEl) fileEl.value = '';
+  }
+
   async function loadBanners() {
     const data = await api('/banners');
     if (!data.ok) return;
-    document.getElementById('banners-tbody').innerHTML = data.banners
+    banners = data.banners;
+    document.getElementById('banners-tbody').innerHTML = banners
       .map(
         (b) => `<tr><td>${b.title}</td><td>${b.position}</td><td>${b.link_url}</td>
         <td><span class="badge badge-${b.is_active ? 'green' : 'gray'}">${b.is_active ? 'Active' : 'Off'}</span></td>
-        <td><button class="btn btn-outline btn-xs" data-edit-bn="${b.id}">Edit</button>
-        <button class="btn btn-danger btn-xs" data-del-bn="${b.id}">Delete</button></td></tr>`
+        <td><button type="button" class="btn btn-outline btn-xs" data-edit-bn="${b.id}">Edit</button>
+        <button type="button" class="btn btn-danger btn-xs" data-del-bn="${b.id}">Delete</button></td></tr>`
       )
       .join('');
     document.querySelectorAll('[data-edit-bn]').forEach((btn) => {
       btn.onclick = () => {
-        const b = data.banners.find((x) => x.id === Number(btn.dataset.editBn));
+        const b = banners.find((x) => x.id === Number(btn.dataset.editBn));
+        if (!b) return;
         document.getElementById('banner-form-title').textContent = 'Edit Banner';
         document.getElementById('bn-id').value = b.id;
         document.getElementById('bn-title').value = b.title;
         document.getElementById('bn-position').value = b.position;
-        document.getElementById('bn-link').value = b.link_url;
-        document.getElementById('bn-gradient').value = b.bg_gradient;
+        document.getElementById('bn-link').value = b.link_url || '/';
+        document.getElementById('bn-gradient').value = b.bg_gradient || 'linear-gradient(135deg,#2d8a2d,#164816)';
         document.getElementById('bn-image').value = b.image_url || '';
-        document.getElementById('bn-expires').value = b.expires_at ? b.expires_at.slice(0, 10) : '';
+        document.getElementById('bn-expires').value = b.expires_at ? String(b.expires_at).slice(0, 10) : '';
+        document.getElementById('bn-sort').value = b.sort_order ?? 0;
+        document.getElementById('bn-active').checked = !!b.is_active;
+        const fileEl = document.getElementById('bn-file');
+        if (fileEl) fileEl.value = '';
+        openBannerModal();
       };
     });
     document.querySelectorAll('[data-del-bn]').forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm('Delete?')) return;
-        await api('/banners/' + btn.dataset.delBn, { method: 'DELETE' });
-        loadBanners();
+        if (!confirm('Delete this banner?')) return;
+        const r = await api('/banners/' + btn.dataset.delBn, { method: 'DELETE' });
+        if (r.ok) {
+          toast('Banner deleted');
+          loadBanners();
+        } else toast(r.error || 'Failed', 'error');
       };
     });
   }
 
-  document.getElementById('bn-reset')?.addEventListener('click', () => {
-    document.getElementById('banner-form-title').textContent = 'Add Banner';
-    document.getElementById('banner-form').reset();
-    document.getElementById('bn-id').value = '';
-    document.getElementById('bn-gradient').value = 'linear-gradient(135deg,#2d8a2d,#164816)';
-  });
+  document.getElementById('bn-reset')?.addEventListener('click', resetBannerForm);
 
   document.getElementById('banner-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
-    let imageUrl = document.getElementById('bn-image').value;
+    let imageUrl = document.getElementById('bn-image').value.trim();
     const f = document.getElementById('bn-file');
     if (f?.files?.[0]) {
       const fd = new FormData();
@@ -959,26 +1246,44 @@
       const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
       const upData = await up.json();
       if (upData.ok) imageUrl = upData.url;
+      else {
+        toast(upData.error || 'Image upload failed', 'error');
+        return;
+      }
     }
     const id = document.getElementById('bn-id').value;
     const body = {
-      title: document.getElementById('bn-title').value,
+      title: document.getElementById('bn-title').value.trim(),
       position: document.getElementById('bn-position').value,
-      linkUrl: document.getElementById('bn-link').value,
-      bgGradient: document.getElementById('bn-gradient').value,
+      linkUrl: document.getElementById('bn-link').value.trim() || '/',
+      bgGradient: document.getElementById('bn-gradient').value.trim(),
       expiresAt: document.getElementById('bn-expires').value || null,
       imageUrl: imageUrl || null,
-      isActive: true,
+      sortOrder: Number(document.getElementById('bn-sort').value) || 0,
+      isActive: document.getElementById('bn-active').checked,
     };
     const res = id
       ? await api('/banners/' + id, { method: 'PUT', body: JSON.stringify(body) })
       : await api('/banners', { method: 'POST', body: JSON.stringify(body) });
     if (res.ok) {
-      toast('Banner saved');
-      document.getElementById('bn-reset').click();
+      toast(id ? 'Banner updated' : 'Banner created');
+      closeBannerModal();
+      resetBannerForm();
       loadBanners();
     } else toast(res.error || 'Failed', 'error');
   });
+
+  function collectSeoSettings() {
+    return {
+      site_url: document.getElementById('set-site-url')?.value?.trim() || '',
+      seo_home_title: document.getElementById('set-seo-home-title')?.value?.trim() || '',
+      seo_meta_description: document.getElementById('set-seo-description')?.value?.trim() || '',
+      seo_meta_keywords: document.getElementById('set-seo-keywords')?.value?.trim() || '',
+      seo_og_image: document.getElementById('set-seo-og-image')?.value?.trim() || '',
+      seo_google_verification: document.getElementById('set-seo-google')?.value?.trim() || '',
+      seo_twitter_handle: document.getElementById('set-seo-twitter')?.value?.trim() || '',
+    };
+  }
 
   function collectSettings() {
     return {
@@ -995,12 +1300,14 @@
       delivery_fee: document.getElementById('set-delivery-fee').value,
       delivery_fee_outside: document.getElementById('set-delivery-outside')?.value || '120',
       maintenance_mode: document.getElementById('set-maintenance').checked ? '1' : '0',
+      face_analyzer_enabled: document.getElementById('set-face-analyzer')?.checked ? '1' : '0',
       feature_guest_checkout: document.getElementById('set-guest').checked ? '1' : '0',
       feature_cod: document.getElementById('set-cod').checked ? '1' : '0',
       feature_flash_sale: document.getElementById('set-flash')?.checked ? '1' : '0',
       feature_review_approval: document.getElementById('set-review-approval')?.checked ? '1' : '0',
       feature_email_notify: document.getElementById('set-email-notify')?.checked ? '1' : '0',
       feature_sms_notify: document.getElementById('set-sms')?.checked ? '1' : '0',
+      ...collectSeoSettings(),
     };
   }
 
@@ -1017,6 +1324,16 @@
     if (data.ok) toast('Delivery settings saved');
     else toast(data.error || 'Failed to save delivery settings', 'error');
   };
+
+  document.getElementById('seo-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings: { ...collectSettings(), ...collectSeoSettings() } }),
+    });
+    if (data.ok) toast('SEO settings saved');
+    else toast(data.error || 'Failed to save SEO settings', 'error');
+  });
 
   function debounce(fn, ms) {
     let t;

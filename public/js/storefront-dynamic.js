@@ -36,7 +36,8 @@
   function applySiteBranding(settings) {
     if (!settings) return;
     const name = settings.site_name || 'RakuShopBD';
-    document.title = `${name} — Best Online Shopping`;
+    if (window.RakuSEO) window.RakuSEO.apply(window.RakuSEO.forHome());
+    else document.title = `${name} — Best Online Shopping`;
     const fd = document.querySelector('.footer-desc');
     if (fd && settings.footer_desc) fd.textContent = settings.footer_desc;
     else if (fd && settings.site_tagline) fd.textContent = settings.site_tagline;
@@ -136,21 +137,30 @@
       .join('');
   }
 
-  function renderCategoryGridHome(categories) {
+  let categoriesShowAll = false;
+
+  function renderCategoryGridHome(categories, opts = {}) {
     const grid = document.querySelector('#categories .category-grid');
     if (!grid) return;
-    const show = categories.slice(0, 6);
-    grid.innerHTML = show
-      .map((c, i) => {
-        const pal = palette(i);
-        const count = Number(c.product_count) || 0;
-        return `<a href="/category/${encodeURIComponent(c.slug)}" class="cat-card" data-cat-slug="${escapeHtml(c.slug)}">
+    const list = categories || window._rakuCategories || [];
+    if (opts.showAll != null) categoriesShowAll = Boolean(opts.showAll);
+    const show = categoriesShowAll ? list : list.slice(0, 6);
+
+    grid.classList.toggle('category-grid--all', categoriesShowAll);
+    grid.innerHTML = show.length
+      ? show
+          .map((c, i) => {
+            const pal = palette(i);
+            const count = Number(c.product_count) || 0;
+            return `<a href="/category/${encodeURIComponent(c.slug)}" class="cat-card" data-cat-slug="${escapeHtml(c.slug)}">
         <div class="cat-icon" style="background:${pal.bg};"><i class="ti ${escapeHtml(c.icon)}" style="color:${pal.color};"></i></div>
         <div class="cat-name">${escapeHtml(c.name_bn)}</div>
         <div class="cat-count">${count} product${count !== 1 ? 's' : ''}</div>
       </a>`;
-      })
-      .join('');
+          })
+          .join('')
+      : '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;">No categories yet.</p>';
+
     grid.querySelectorAll('.cat-card').forEach((card) => {
       card.addEventListener('click', (e) => {
         e.preventDefault();
@@ -158,13 +168,44 @@
         if (window.openCategory) window.openCategory(slug);
       });
     });
-    const seeAll = document.querySelector('#categories .see-all');
-    if (seeAll) {
-      seeAll.onclick = (e) => {
-        e.preventDefault();
-        if (show[0] && window.openCategory) window.openCategory(show[0].slug);
-      };
+
+    const titleEl = document.getElementById('categories-section-title');
+    if (titleEl) {
+      titleEl.textContent = categoriesShowAll ? 'All Categories' : 'Shop by Category';
     }
+
+    const seeAll = document.getElementById('see-all-categories');
+    if (seeAll) {
+      seeAll.innerHTML = categoriesShowAll
+        ? 'Show less <i class="ti ti-arrow-left"></i>'
+        : 'All Categories <i class="ti ti-arrow-right"></i>';
+      if (!seeAll._rakuCatBound) {
+        seeAll._rakuCatBound = true;
+        seeAll.onclick = (e) => {
+          e.preventDefault();
+          categoriesShowAll = !categoriesShowAll;
+          renderCategoryGridHome(window._rakuCategories, { showAll: categoriesShowAll });
+          const section = document.getElementById('categories');
+          if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        };
+      }
+    }
+  }
+
+  window._rakuShowAllCategories = function () {
+    categoriesShowAll = true;
+    renderCategoryGridHome(window._rakuCategories, { showAll: true });
+    document.getElementById('categories')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  function bindCategoryLink(link, onNavigate) {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const slug = link.dataset.navSlug;
+      if (slug && window.openCategory) window.openCategory(slug);
+      else if (window.showPage) window.showPage('home');
+      if (typeof onNavigate === 'function') onNavigate();
+    });
   }
 
   function renderGlobalCatNav(categories) {
@@ -185,6 +226,22 @@
         const slug = link.dataset.navSlug;
         if (slug && window.openCategory) window.openCategory(slug);
         else if (window.showPage) window.showPage('home');
+      });
+    });
+  }
+
+  function renderMobileCatNav(categories) {
+    const list = document.getElementById('mobile-cat-menu-list');
+    if (!list) return;
+    let html = `<a href="/" class="mobile-cat-link" data-nav="home"><i class="ti ti-home"></i> Home</a>`;
+    categories.forEach((c) => {
+      html += `<a href="/category/${encodeURIComponent(c.slug)}" class="mobile-cat-link" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
+    });
+    html += `<a href="/" class="mobile-cat-link" data-nav="sale"><i class="ti ti-discount"></i> Sale & Offers</a>`;
+    list.innerHTML = html;
+    list.querySelectorAll('.mobile-cat-link').forEach((link) => {
+      bindCategoryLink(link, () => {
+        if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
       });
     });
   }
@@ -242,6 +299,7 @@
         if (page === 'home' && window.showPage) window.showPage('home');
         else if (page === 'account' && window.showPage) window.showPage('account');
         else if (page === 'cart' && window.showPage) window.showPage('cart');
+        else if (page === 'appointment' && window.showPage) window.showPage('appointment');
       });
     });
   }
@@ -379,6 +437,7 @@
     if (window._rakuSetCategoryLabels) window._rakuSetCategoryLabels(categories);
     renderCategoryGridHome(categories);
     renderGlobalCatNav(categories);
+    renderMobileCatNav(categories);
     renderHomeFilterTabs(categories);
     renderSearchCategories(categories);
   }

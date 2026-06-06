@@ -3,9 +3,20 @@ const { query, getPool } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
+const { getBestSellingProducts, getNewArrivalProducts } = require('../lib/homeProducts');
+const { getAdminIdFromRequest } = require('../lib/adminToken');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
+const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
+const {
+  SERVICE_TYPES,
+  TIME_SLOTS,
+  normalizePhone,
+  generateReference,
+  appointmentToPublic,
+  serviceLabel,
+} = require('../lib/appointments');
 
 const router = express.Router();
 
@@ -255,9 +266,24 @@ function cachePublic(res, seconds) {
   }
 }
 
+router.get('/products/home-sections', async (req, res) => {
+  try {
+    const limit = Math.min(48, Math.max(4, Number(req.query.limit) || 24));
+    const [bestSelling, newArrivals] = await Promise.all([
+      getBestSellingProducts(query, limit),
+      getNewArrivalProducts(query, limit),
+    ]);
+    cachePublic(res, 60);
+    res.json({ ok: true, bestSelling, newArrivals });
+  } catch (err) {
+    console.error('home-sections', err);
+    res.status(500).json({ ok: false, error: 'Could not load products' });
+  }
+});
+
 router.get('/bootstrap', async (req, res) => {
   try {
-    const data = await getStoreBootstrap();
+    const data = await getStoreBootstrap(req);
     cachePublic(res, 60);
     res.json(data);
   } catch (err) {
@@ -270,10 +296,8 @@ router.get('/settings', async (req, res) => {
   try {
     const settings = await getSiteSettings(query);
     cachePublic(res, 300);
-    if (settings.maintenance_mode === '1') {
-      return res.json({ ok: true, settings, maintenance: true });
-    }
-    res.json({ ok: true, settings, maintenance: false });
+    const maintenance = settings.maintenance_mode === '1' && !getAdminIdFromRequest(req);
+    res.json({ ok: true, settings, maintenance });
   } catch (err) {
     res.json({
       ok: true,
@@ -290,7 +314,21 @@ router.get('/settings', async (req, res) => {
 
 router.get('/products', async (req, res) => {
   try {
-    const { category, search, limit } = req.query;
+    const { category, search, limit, sort } = req.query;
+    const sortMode = String(sort || '').trim();
+    const listLimit = Math.min(200, Math.max(8, Number(limit) || 100));
+
+    if (sortMode === 'best-selling') {
+      const products = await getBestSellingProducts(query, listLimit);
+      cachePublic(res, 60);
+      return res.json({ ok: true, products });
+    }
+    if (sortMode === 'new-arrivals') {
+      const products = await getNewArrivalProducts(query, listLimit);
+      cachePublic(res, 60);
+      return res.json({ ok: true, products });
+    }
+
     const isSearch = Boolean(search && String(search).trim());
     let sql = `
       SELECT p.*, c.slug AS category_slug, c.name_bn AS category_name
@@ -357,13 +395,15 @@ router.get('/products', async (req, res) => {
   }
 });
 
-router.get('/products/:id', async (req, res) => {
+router.get('/products/:ref', async (req, res) => {
   try {
+    const ref = String(req.params.ref || '').trim();
+    const byId = /^\d+$/.test(ref);
     const rows = await query(
       `SELECT p.*, c.slug AS category_slug, c.name_bn AS category_name
        FROM products p JOIN categories c ON c.id = p.category_id
-       WHERE p.id = ? LIMIT 1`,
-      [req.params.id]
+       WHERE ${byId ? 'p.id = ?' : 'p.slug = ?'} LIMIT 1`,
+      [byId ? Number(ref) : ref]
     );
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Product not found' });
     cachePublic(res, 120);
@@ -663,5 +703,135 @@ router.get('/orders/track', async (req, res) => {
     res.status(500).json({ ok: false, error: 'Could not track order' });
   }
 });
+
+router.get('/appointments/meta', async (req, res) => {
+  try {
+    await ensureAppointmentsTable();
+    res.json({ ok: true, serviceTypes: SERVICE_TYPES, timeSlots: TIME_SLOTS });
+  } catch (err) {
+    console.error('appointments/meta', err);
+    res.status(500).json({ ok: false, error: 'Could not load appointment options' });
+  }
+});
+
+router.post('/appointments', async (req, res) => {
+  try {
+    await ensureAppointmentsTable();
+    const { name, phone, email, date, time, serviceType, notes } = req.body || {};
+    const customerName = String(name || '').trim();
+    const customerPhone = normalizePhone(phone);
+    const appointmentDate = String(date || '').trim();
+    const appointmentTime = String(time || '').trim();
+    const service = String(serviceType || 'consultation').trim();
+
+    if (customerName.length < 2) {
+      return res.status(400).json({ ok: false, error: 'Please enter your name' });
+    }
+    if (!/^01[3-9]\d{8}$/.test(customerPhone)) {
+      return res.status(400).json({ ok: false, error: 'Enter a valid Bangladesh mobile number (01XXXXXXXXX)' });
+    }
+    if (!appointmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(appointmentDate)) {
+      return res.status(400).json({ ok: false, error: 'Please select a valid date' });
+    }
+    if (!TIME_SLOTS.includes(appointmentTime)) {
+      return res.status(400).json({ ok: false, error: 'Please select a time slot' });
+    }
+    if (!SERVICE_TYPES.some((s) => s.value === service)) {
+      return res.status(400).json({ ok: false, error: 'Please select a service type' });
+    }
+
+    const chosen = new Date(appointmentDate + 'T12:00:00');
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const minDay = new Date(today);
+    minDay.setDate(minDay.getDate() + 1);
+    const maxDay = new Date(today);
+    maxDay.setDate(maxDay.getDate() + 30);
+    if (chosen < minDay || chosen > maxDay) {
+      return res.status(400).json({ ok: false, error: 'Choose a date between tomorrow and 30 days ahead' });
+    }
+
+    const dayOfWeek = chosen.getDay();
+    if (dayOfWeek === 5) {
+      return res.status(400).json({ ok: false, error: 'Appointments are not available on Fridays' });
+    }
+
+    const dup = await query(
+      `SELECT id FROM appointments
+       WHERE appointment_date = ? AND appointment_time = ?
+         AND status NOT IN ('cancelled') LIMIT 1`,
+      [appointmentDate, appointmentTime]
+    );
+    if (dup.length) {
+      return res.status(409).json({
+        ok: false,
+        error: 'This date and time slot is already booked. Please choose another slot.',
+      });
+    }
+
+    const referenceNumber = generateReference();
+    const result = await query(
+      `INSERT INTO appointments (
+         reference_number, customer_name, customer_phone, customer_email,
+         appointment_date, appointment_time, service_type, notes, status
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')${returningId()}`,
+      [
+        referenceNumber,
+        customerName,
+        customerPhone,
+        email ? String(email).trim().slice(0, 120) : null,
+        appointmentDate,
+        appointmentTime,
+        service,
+        notes ? String(notes).trim().slice(0, 500) : null,
+      ]
+    );
+
+    res.json({
+      ok: true,
+      referenceNumber,
+      message: 'Your appointment has been booked. We will confirm by phone or SMS.',
+      appointment: {
+        referenceNumber,
+        customerName,
+        customerPhone,
+        appointmentDate,
+        appointmentTime,
+        serviceType: service,
+        serviceLabel: serviceLabel(service),
+        status: 'pending',
+      },
+    });
+  } catch (err) {
+    console.error('appointments POST', err);
+    res.status(500).json({ ok: false, error: 'Could not book appointment. Please try again.' });
+  }
+});
+
+router.get('/appointments/lookup', async (req, res) => {
+  try {
+    await ensureAppointmentsTable();
+    const ref = String(req.query.ref || req.query.reference || '').trim();
+    const phone = normalizePhone(req.query.phone);
+    if (!ref || !phone) {
+      return res.status(400).json({ ok: false, error: 'Enter reference number and phone' });
+    }
+    const rows = await query(
+      `SELECT * FROM appointments WHERE reference_number = ? AND customer_phone = ? LIMIT 1`,
+      [ref, phone]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ ok: false, error: 'No appointment found with these details' });
+    }
+    const a = appointmentToPublic(rows[0]);
+    a.serviceLabel = serviceLabel(a.serviceType);
+    res.json({ ok: true, appointment: a });
+  } catch (err) {
+    console.error('appointments lookup', err);
+    res.status(500).json({ ok: false, error: 'Could not look up appointment' });
+  }
+});
+
+router.use('/face-analyzer', require('./faceAnalyzer'));
 
 module.exports = router;

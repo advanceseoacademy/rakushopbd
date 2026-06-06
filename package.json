@@ -17,6 +17,7 @@
     "db:test:supabase": "node scripts/test-supabase-connection.js",
     "db:brand-colors": "node scripts/update-brand-colors.js",
     "admin:sync": "node scripts/sync-admin.js",
+    "seo:sitemap": "node scripts/generate-sitemap.js",
     "cpanel:env": "node scripts/generate-cpanel-env.js",
     "local:setup": "npm run db:setup && npm run admin:sync",
     "pm2:start": "pm2 start ecosystem.config.cjs",

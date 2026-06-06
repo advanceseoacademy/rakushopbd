@@ -16,9 +16,17 @@ const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
-const { getStoreBootstrap, getProductById } = require('./lib/storeBootstrap');
+const { getStoreBootstrap, getProductByRef } = require('./lib/storeBootstrap');
+const { isNumericProductRef } = require('./lib/productUrl');
 const { registerAdminAuth } = require('./lib/registerAdminAuth');
-const { usePostgres } = require('./config/db');
+const { usePostgres, query } = require('./config/db');
+const { ensureAppointmentsTable } = require('./lib/ensureAppointmentsTable');
+const { ensureProductSeoColumns } = require('./lib/ensureProductSeoColumns');
+const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
+const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
+const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug } = require('./lib/seo');
+const { getSiteSettings } = require('./lib/siteSettings');
+const faceAnalyzerRoutes = require('./routes/faceAnalyzer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -35,6 +43,28 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 const publicDir = path.join(__dirname, 'public');
+
+// SEO — before static files so /robots.txt and /sitemap.xml are always dynamic
+app.get('/robots.txt', async (req, res) => {
+  try {
+    const settings = await getSiteSettings(query);
+    const base = getSiteBaseUrl(req, settings);
+    res.type('text/plain').send(robotsTxt(base));
+  } catch (_) {
+    res.type('text/plain').send(robotsTxt(getSiteBaseUrl(req, {})));
+  }
+});
+
+app.get('/sitemap.xml', async (req, res) => {
+  try {
+    const xml = await buildSitemapXml(req);
+    res.type('application/xml').send(xml);
+  } catch (err) {
+    console.error('sitemap', err);
+    res.status(500).type('text/plain').send('Sitemap unavailable');
+  }
+});
+
 const staticCache = (maxAge) => ({
   maxAge: isProduction ? maxAge : 0,
   etag: true,
@@ -61,6 +91,11 @@ app.use(
     secure: process.env.COOKIE_SECURE === 'true',
   })
 );
+
+// Public utility pages — registered before maintenance gate (always reachable)
+app.get('/track', (req, res) => {
+  res.render('track');
+});
 
 app.use(renderMaintenanceIfNeeded);
 
@@ -107,20 +142,29 @@ app.get('/api/db-check', async (req, res) => {
 
 async function renderStorefront(req, res) {
   try {
-    const productMatch = req.path.match(/^\/product\/(\d+)$/);
-    const productId = productMatch ? productMatch[1] : null;
-    const [bootstrap, product] = await Promise.all([
-      getStoreBootstrap(),
-      productId ? getProductById(productId) : null,
+    const productMatch = req.path.match(/^\/product\/([^/]+)$/);
+    const productRef = productMatch ? decodeURIComponent(productMatch[1]) : null;
+    const categoryMatch = req.path.match(/^\/category\/([^/]+)$/);
+    const categorySlug = categoryMatch ? decodeURIComponent(categoryMatch[1]) : null;
+    const [bootstrap, product, category] = await Promise.all([
+      getStoreBootstrap(req),
+      productRef ? getProductByRef(productRef) : null,
+      categorySlug ? getCategoryBySlug(categorySlug) : null,
     ]);
+
+    if (product && productRef && isNumericProductRef(productRef) && product.slug) {
+      return res.redirect(301, `/product/${encodeURIComponent(product.slug)}`);
+    }
+    const seo = await buildPageSeo(req, { bootstrap, product, category });
     const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
     const productJson = product
       ? JSON.stringify({ ok: true, product }).replace(/</g, '\\u003c')
       : null;
-    res.render('index', { bootstrapJson, productJson });
+    const seoJson = JSON.stringify(seo).replace(/</g, '\\u003c');
+    res.render('index', { bootstrapJson, productJson, seoJson, seo });
   } catch (err) {
     console.error('renderStorefront', err);
-    res.render('index', { bootstrapJson: null, productJson: null });
+    res.render('index', { bootstrapJson: null, productJson: null, seoJson: null, seo: null });
   }
 }
 
@@ -130,20 +174,17 @@ app.get('/admin', (req, res) => {
   res.render('admin');
 });
 
-app.get('/track', (req, res) => {
-  res.render('track');
-});
-
 app.use('/api', apiRoutes);
+app.use('/api/face-analyzer', faceAnalyzerRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment'],
   (req, res) => renderStorefront(req, res)
 );
-app.get('/product/:id', (req, res) => renderStorefront(req, res));
+app.get('/product/:ref', (req, res) => renderStorefront(req, res));
 app.get('/category/:slug', (req, res) => renderStorefront(req, res));
 
 app.use((req, res) => {
@@ -169,4 +210,8 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
   console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
+  ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
+  ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
+  ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
+  ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
 });

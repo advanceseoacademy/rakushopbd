@@ -1,0 +1,13 @@
+# RakuShopBD — fallback (live site uses dynamic /robots.txt from Node)
+User-agent: *
+Allow: /
+
+Disallow: /admin
+Disallow: /api/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /account
+Disallow: /wishlist
+Disallow: /success
+
+Sitemap: https://rakushopbd.com/sitemap.xml

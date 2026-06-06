@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Book Appointment • RakuShopBD</title>
+<link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="/css/main.css?v=20">
+<link rel="stylesheet" href="/css/responsive.css?v=1">
+<link rel="stylesheet" href="/css/appointment.css?v=1">
+</head>
+<body>
+<div class="announcement">
+ <i class="ti ti-calendar-event"></i>
+ <span>Book a free consultation or store visit — we will confirm your slot by phone</span>
+ <i class="ti ti-calendar-event"></i>
+</div>
+
+<nav class="navbar">
+ <div class="navbar-inner">
+ <a href="/" class="logo site-logo-link" aria-label="RakuShopBD — Home">
+  <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--header" width="280" height="68">
+ </a>
+ <div class="nav-actions">
+ <a href="/wishlist" class="nav-btn"><i class="ti ti-heart"></i><span>Wishlist</span></a>
+ <a href="/cart" class="nav-btn nav-cart-btn"><i class="ti ti-shopping-cart"></i><span>Cart</span></a>
+ <a href="/account" class="nav-btn"><i class="ti ti-user"></i><span>Account</span></a>
+ <a href="/track" class="nav-btn"><i class="ti ti-truck-delivery"></i><span>Track</span></a>
+ <a href="/appointment" class="nav-btn" style="color:var(--primary);font-weight:700;"><i class="ti ti-calendar"></i><span>Appointment</span></a>
+ </div>
+ </div>
+</nav>
+
+<div class="appt-wrap">
+ <div class="appt-grid">
+  <div class="appt-card">
+   <div class="appt-head">
+    <h1 class="appt-title"><i class="ti ti-calendar-plus"></i> Book an appointment</h1>
+    <p class="appt-sub">Choose a date and time for product advice, in-store visit, or support. We are open Saturday–Thursday (closed Friday).</p>
+   </div>
+   <div class="appt-body">
+    <div class="appt-tabs" role="tablist">
+     <button type="button" class="appt-tab active" data-appt-tab="book" role="tab" aria-selected="true">Book new</button>
+     <button type="button" class="appt-tab" data-appt-tab="lookup" role="tab" aria-selected="false">Check status</button>
+    </div>
+
+    <div class="appt-panel" id="appt-panel-book" role="tabpanel">
+     <form class="appt-form" id="appt-book-form" novalidate>
+      <div class="appt-row">
+       <div class="appt-field">
+        <label for="appt-name">Full name *</label>
+        <input type="text" id="appt-name" name="name" required autocomplete="name" placeholder="Your name">
+       </div>
+       <div class="appt-field">
+        <label for="appt-phone">Mobile number *</label>
+        <input type="tel" id="appt-phone" name="phone" required autocomplete="tel" placeholder="01XXXXXXXXX">
+       </div>
+      </div>
+      <div class="appt-field">
+       <label for="appt-email">Email (optional)</label>
+       <input type="email" id="appt-email" name="email" autocomplete="email" placeholder="you@email.com">
+      </div>
+      <div class="appt-field">
+       <label for="appt-service">Service type *</label>
+       <select id="appt-service" name="serviceType" required></select>
+      </div>
+      <div class="appt-row">
+       <div class="appt-field">
+        <label for="appt-date">Preferred date *</label>
+        <input type="date" id="appt-date" name="date" required>
+       </div>
+       <div class="appt-field">
+        <label for="appt-time">Time slot *</label>
+        <select id="appt-time" name="time" required></select>
+       </div>
+      </div>
+      <div class="appt-field">
+       <label for="appt-notes">Notes (optional)</label>
+       <textarea id="appt-notes" name="notes" rows="3" placeholder="Product name, skin type, or any question..."></textarea>
+      </div>
+      <p class="appt-hint">By booking you agree we may call or SMS you to confirm the appointment.</p>
+      <div id="appt-book-error" class="appt-err" hidden></div>
+      <div id="appt-book-success" class="appt-success" hidden></div>
+      <button type="submit" class="appt-btn" id="appt-book-btn"><i class="ti ti-calendar-check"></i> Book appointment</button>
+     </form>
+    </div>
+
+    <div class="appt-panel" id="appt-panel-lookup" role="tabpanel" hidden>
+     <form class="appt-form" id="appt-lookup-form" novalidate>
+      <div class="appt-field">
+       <label for="appt-lookup-ref">Reference number *</label>
+       <input type="text" id="appt-lookup-ref" placeholder="APT-2026-........" autocomplete="off">
+      </div>
+      <div class="appt-field">
+       <label for="appt-lookup-phone">Mobile number *</label>
+       <input type="tel" id="appt-lookup-phone" placeholder="01XXXXXXXXX" autocomplete="tel">
+      </div>
+      <div id="appt-lookup-error" class="appt-err" hidden></div>
+      <div id="appt-lookup-result" hidden></div>
+      <button type="submit" class="appt-btn appt-btn-outline" id="appt-lookup-btn"><i class="ti ti-search"></i> Check appointment</button>
+     </form>
+    </div>
+   </div>
+  </div>
+
+  <div class="appt-card">
+   <div class="appt-head">
+    <h2 class="appt-title"><i class="ti ti-info-circle"></i> How it works</h2>
+    <p class="appt-sub">Free appointment for product guidance, beauty advice, or order collection at RakuShopBD.</p>
+   </div>
+   <div class="appt-body">
+    <div class="appt-step"><i class="ti ti-forms"></i><div><b>1) Fill the form</b><span>Name, phone, service, date and time slot.</span></div></div>
+    <div class="appt-step"><i class="ti ti-phone"></i><div><b>2) We confirm</b><span>Our team calls or SMS you within 24 hours.</span></div></div>
+    <div class="appt-step"><i class="ti ti-calendar-check"></i><div><b>3) Visit or call</b><span>Come at your slot or join the scheduled support call.</span></div></div>
+    <div class="appt-step"><i class="ti ti-receipt"></i><div><b>Save your reference</b><span>Use APT-2026-... + phone to check status anytime.</span></div></div>
+   </div>
+  </div>
+ </div>
+</div>
+
+<footer class="footer">
+ <div class="footer-inner">
+ <div class="footer-grid">
+ <div><a href="/" class="footer-logo site-logo-link"><img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--footer" width="300" height="76"></a>
+ <p class="footer-desc">Bangladesh's trusted online shopping platform.</p></div>
+ <div><div class="footer-heading">Quick Links</div><ul class="footer-links">
+ <li><a href="/"><i class="ti ti-chevron-right"></i>Home</a></li>
+ <li><a href="/appointment"><i class="ti ti-chevron-right"></i>Book Appointment</a></li>
+ <li><a href="/track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
+ </ul></div>
+ </div>
+ <hr class="footer-divider">
+ <div class="footer-bottom"><span>© 2026 RakuShopBD</span></div>
+ </div>
+</footer>
+
+<script>window.RAKU_API_BASE = '';</script>
+<script src="/js/appointment.js?v=1" defer></script>
+</body>
+</html>

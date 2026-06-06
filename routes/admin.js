@@ -9,7 +9,7 @@ const { requireAdmin } = require('../middleware/requireAdmin');
 const { sql: sqlDialect, upsertSiteSettingSql, returningId } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
 const { saveSession } = require('../lib/sessionSave');
-const { signAdminToken, getAdminIdFromRequest } = require('../lib/adminToken');
+const { signAdminToken, getAdminIdFromRequest, setAdminAuthCookie, clearAdminAuthCookie } = require('../lib/adminToken');
 
 const router = express.Router();
 
@@ -82,9 +82,11 @@ router.post('/login', async (req, res) => {
     if (!match) return res.status(401).json({ ok: false, error: 'Invalid credentials' });
 
     req.session.adminId = admin.id;
+    const token = signAdminToken(admin.id);
+    setAdminAuthCookie(res, admin.id);
     const payload = {
       ok: true,
-      token: signAdminToken(admin.id),
+      token,
       admin: {
         id: admin.id,
         username: admin.username,
@@ -104,6 +106,7 @@ router.post('/login', async (req, res) => {
 
 router.post('/logout', (req, res) => {
   req.session = null;
+  clearAdminAuthCookie(res);
   res.json({ ok: true });
 });
 
@@ -119,6 +122,7 @@ router.get('/me', async (req, res) => {
     return res.json({ ok: true, admin: null });
   }
   const a = rows[0];
+  setAdminAuthCookie(res, a.id);
   res.json({
     ok: true,
     admin: { id: a.id, username: a.username, email: a.email, fullName: a.full_name },
@@ -377,18 +381,24 @@ router.post('/products', requireAdmin, async (req, res) => {
       isFeatured,
       sku,
       imageUrl,
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      imageAlt,
+      ogImage,
     } = req.body;
     if (!name || !categoryId || price == null) {
       return res.status(400).json({ ok: false, error: 'Name, category and price are required' });
     }
-    let slug = slugify(name);
+    let slug = req.body.slug ? slugify(req.body.slug) : slugify(name);
     const existing = await query('SELECT id FROM products WHERE slug = ?', [slug]);
     if (existing.length) slug = `${slug}-${Date.now()}`;
 
     const result = await query(
       `INSERT INTO products (category_id, slug, sku, name_bn, description_bn, price, old_price, stock,
-        icon, icon_color, bg_color, image_url, tag_type, tag_text, discount_percent, is_featured)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
+        icon, icon_color, bg_color, image_url, tag_type, tag_text, discount_percent, is_featured,
+        seo_title, seo_description, seo_keywords, image_alt, og_image)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
       [
         categoryId,
         slug,
@@ -406,9 +416,15 @@ router.post('/products', requireAdmin, async (req, res) => {
         tagText || null,
         discountPercent || null,
         isFeatured ? 1 : 0,
+        seoTitle || null,
+        seoDescription || null,
+        seoKeywords || null,
+        imageAlt || null,
+        ogImage || null,
       ]
     );
     const newId = firstInsertId(result) ?? (await query('SELECT id FROM products WHERE slug = ?', [slug]))[0]?.id;
+    clearStoreBootstrapCache();
     res.json({ ok: true, id: newId });
   } catch (err) {
     console.error(err);
@@ -420,6 +436,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
   try {
     const {
       name,
+      slug: slugInput,
       categoryId,
       price,
       oldPrice,
@@ -434,30 +451,52 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       isFeatured,
       sku,
       imageUrl,
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      imageAlt,
+      ogImage,
     } = req.body;
+    const productId = req.params.id;
+    let slugClause = '';
+    const params = [
+      categoryId,
+      sku || null,
+      name,
+      description || null,
+      price,
+      oldPrice || null,
+      stock ?? 0,
+      icon || 'ti-package',
+      iconColor || '#2d8a2d',
+      bgColor || '#e8f5e8',
+      imageUrl || null,
+      tagType || 'none',
+      tagText || null,
+      discountPercent || null,
+      isFeatured ? 1 : 0,
+      seoTitle || null,
+      seoDescription || null,
+      seoKeywords || null,
+      imageAlt || null,
+      ogImage || null,
+    ];
+    if (slugInput && String(slugInput).trim()) {
+      let slug = slugify(slugInput);
+      const dup = await query('SELECT id FROM products WHERE slug = ? AND id != ?', [slug, productId]);
+      if (dup.length) slug = `${slug}-${productId}`;
+      slugClause = ', slug=?';
+      params.push(slug);
+    }
+    params.push(productId);
     await query(
       `UPDATE products SET category_id=?, sku=?, name_bn=?, description_bn=?, price=?, old_price=?, stock=?,
-        icon=?, icon_color=?, bg_color=?, image_url=?, tag_type=?, tag_text=?, discount_percent=?, is_featured=?
+        icon=?, icon_color=?, bg_color=?, image_url=?, tag_type=?, tag_text=?, discount_percent=?, is_featured=?,
+        seo_title=?, seo_description=?, seo_keywords=?, image_alt=?, og_image=?${slugClause}
        WHERE id=?`,
-      [
-        categoryId,
-        sku || null,
-        name,
-        description || null,
-        price,
-        oldPrice || null,
-        stock ?? 0,
-        icon || 'ti-package',
-        iconColor || '#2d8a2d',
-        bgColor || '#e8f5e8',
-        imageUrl || null,
-        tagType || 'none',
-        tagText || null,
-        discountPercent || null,
-        isFeatured ? 1 : 0,
-        req.params.id,
-      ]
+      params
     );
+    clearStoreBootstrapCache();
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -475,6 +514,7 @@ router.delete('/products/:id', requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Product has orders; cannot delete' });
     }
     await query('DELETE FROM products WHERE id = ?', [req.params.id]);
+    clearStoreBootstrapCache();
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

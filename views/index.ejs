@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-BD">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RakuShopBD — Best Online Shopping</title>
+<%- include('partials/seo-head', { seo: typeof seo !== 'undefined' ? seo : null }) %>
 <link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
 <link rel="preload" href="/images/rakushopbd-logo.png" as="image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,7 +12,7 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/main.css?v=5">
+<link rel="stylesheet" href="/css/main.css?v=20">
 <link rel="stylesheet" href="/css/category.css?v=3">
 <link rel="stylesheet" href="/css/account.css?v=6">
 <link rel="stylesheet" href="/css/cart.css?v=3">
@@ -20,6 +20,8 @@
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
 <link rel="stylesheet" href="/css/responsive.css?v=1">
+<link rel="stylesheet" href="/css/appointment.css?v=2">
+<link rel="stylesheet" href="/css/face-analyzer.css?v=9">
 </head>
 <body>
 <!-- Announcement Bar -->
@@ -32,40 +34,67 @@
 <!-- Navbar -->
 <nav class="navbar">
  <div class="navbar-inner">
- <a href="#" class="logo site-logo-link" aria-label="RakuShopBD — Home">
-  <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
- </a>
- <div class="search-wrap" id="header-search-wrap">
- <div class="search-bar">
- <select class="search-select" id="search-category" aria-label="Category">
- <option value="all">All Products</option>
- </select>
- <div class="search-field">
- <input class="search-input" id="search-input" type="text" autocomplete="off" placeholder="Search products..." aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
- <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
- </div>
- <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
- </div>
- <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
- </div>
- <div class="nav-actions">
- <a href="#" class="nav-btn" id="nav-wishlist-btn">
- <i class="ti ti-heart"></i><span>Wishlist</span>
- <span class="badge wish-badge">0</span>
- </a>
- <a href="#" class="nav-btn nav-cart-btn">
- <i class="ti ti-shopping-cart"></i><span>Cart</span>
- <span class="badge cart-badge">0</span>
- </a>
- <a href="#" class="nav-btn" id="nav-account-btn"><i class="ti ti-user"></i><span id="nav-account-label">Login / Register</span></a>
- <a href="/track" class="nav-btn" id="nav-track-btn"><i class="ti ti-truck-delivery"></i><span>Track</span></a>
- </div>
+  <div class="navbar-top">
+   <button type="button" class="navbar-hamburger" id="nav-mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-cat-menu">
+    <span class="navbar-hamburger-line"></span>
+    <span class="navbar-hamburger-line"></span>
+    <span class="navbar-hamburger-line"></span>
+   </button>
+   <a href="#" class="logo site-logo-link" aria-label="RakuShopBD — Home">
+    <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
+   </a>
+   <div class="nav-actions nav-actions--header">
+    <a href="#" class="header-icon-btn" id="nav-wishlist-btn" aria-label="Wishlist">
+     <i class="ti ti-heart"></i>
+     <span class="header-icon-badge wish-badge">0</span>
+    </a>
+    <a href="#" class="header-icon-btn nav-cart-btn" aria-label="Cart">
+     <i class="ti ti-shopping-cart"></i>
+     <span class="header-icon-badge cart-badge">0</span>
+    </a>
+    <a href="#" class="header-icon-btn" id="nav-account-btn" aria-label="Account">
+     <i class="ti ti-user"></i>
+     <span class="header-icon-label" id="nav-account-label">Account</span>
+    </a>
+    <a href="/track" class="header-icon-btn nav-track-desktop" id="nav-track-btn" aria-label="Track order">
+     <i class="ti ti-truck-delivery"></i>
+     <span class="header-icon-label">Track</span>
+    </a>
+   </div>
+  </div>
+  <div class="navbar-search-row">
+   <div class="search-wrap" id="header-search-wrap">
+    <div class="search-bar">
+     <select class="search-select" id="search-category" aria-label="Category">
+      <option value="all">All Products</option>
+     </select>
+     <div class="search-field">
+      <input class="search-input" id="search-input" type="search" autocomplete="off" placeholder="Search for product" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
+      <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
+      <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
+     </div>
+    </div>
+    <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
+   </div>
+  </div>
  </div>
 </nav>
 
-<!-- Category Nav - shown on home -->
+<!-- Category Nav - shown on home (desktop) -->
 <div class="cat-nav" id="global-cat-nav">
  <div class="cat-nav-inner"></div>
+</div>
+
+<!-- Mobile category menu (3-dot) -->
+<div id="mobile-cat-menu" class="mobile-cat-menu" aria-hidden="true">
+ <div class="mobile-cat-menu-backdrop" id="mobile-cat-menu-backdrop"></div>
+ <aside class="mobile-cat-menu-panel" role="dialog" aria-modal="true" aria-labelledby="mobile-cat-menu-title">
+ <div class="mobile-cat-menu-header">
+ <h2 id="mobile-cat-menu-title">Categories</h2>
+ <button type="button" class="mobile-cat-menu-close" id="mobile-cat-menu-close" aria-label="Close menu"><i class="ti ti-x"></i></button>
+ </div>
+ <nav class="mobile-cat-menu-list" id="mobile-cat-menu-list"></nav>
+ </aside>
 </div>
 
 <!-- PAGE CONTENT START -->
@@ -77,7 +106,7 @@
  <div class="hero-main" id="hero-main">
  <div class="hero-content">
  <div class="hero-badge" id="hero-badge"><i class="ti ti-bolt" style="font-size:11px;"></i> Flash sale live</div>
- <div class="hero-title" id="hero-title">Best products<br>Best prices!</div>
+ <h1 class="hero-title" id="hero-title">Best products<br>Best prices!</h1>
  <div class="hero-sub" id="hero-sub">Choose from thousands of products — delivered to your door</div>
  <div class="hero-btns">
  <a href="#products" class="btn-primary"><i class="ti ti-shopping-bag"></i>Shop Now</a>
@@ -114,65 +143,52 @@
  <!-- Categories -->
  <div id="categories">
  <div class="section-header">
- <div class="section-title">Shop by Category</div>
- <a href="#" class="see-all">All Categories <i class="ti ti-arrow-right"></i></a>
+ <div class="section-title" id="categories-section-title">Shop by Category</div>
+ <a href="#" class="see-all" id="see-all-categories">All Categories <i class="ti ti-arrow-right"></i></a>
  </div>
  <div class="category-grid">
  <p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;">Loading categories…</p>
  </div>
  </div>
 
- <!-- Promo Banners -->
- <div class="promo-grid" id="promo-grid" style="margin-bottom:28px;">
- <div class="promo-card" style="background:linear-gradient(135deg,#2d8a2d,#164816);">
- <div class="promo-icon"><i class="ti ti-truck-delivery"></i></div>
- <div>
- <div class="promo-label">Special benefit</div>
- <div class="promo-title">Free delivery on orders over ৳500</div>
- </div>
- </div>
- <div class="promo-card" style="background:linear-gradient(135deg,#d48696,#9e5568);">
- <div class="promo-icon"><i class="ti ti-clock"></i></div>
- <div>
- <div class="promo-label">Limited time</div>
- <div class="promo-title">Flash sale until midnight tonight</div>
- </div>
- </div>
- <div class="promo-card" style="background:linear-gradient(135deg,#1D9E75,#0F6E56);">
- <div class="promo-icon"><i class="ti ti-shield-check"></i></div>
- <div>
- <div class="promo-label">Warranty</div>
- <div class="promo-title">100% authentic products guaranteed</div>
- </div>
- </div>
- </div>
-
- <!-- Products -->
  <div id="products">
+ <!-- Best Selling Products -->
+ <section class="home-product-section" id="section-best-selling">
  <div class="section-header">
- <div class="section-title" id="products-section-title">Popular Products</div>
- <a href="#" class="see-all" id="products-see-all">View All Products <i class="ti ti-arrow-right"></i></a>
+ <h2 class="section-title">Best Selling Products</h2>
+ <a href="#" class="see-all" id="see-all-best-selling">View All <i class="ti ti-arrow-right"></i></a>
  </div>
-
- <!-- Category Filter Tabs -->
- <div id="cat-filter-tabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px;"></div>
-
- <style>
- .cat-filter-btn {
- padding: 7px 16px; border-radius: 20px; border: 1.5px solid var(--border);
- background: var(--surface); font-family: inherit; font-size: 13px;
- cursor: pointer; color: var(--text-muted); transition: all 0.15s; font-weight: 500;
- }
- .cat-filter-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-pale); }
- .cat-filter-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: 600; }
- .product-card[data-cat] { transition: opacity 0.2s, transform 0.2s; }
- .product-card.hidden { display: none !important; }
- </style>
-
- <div class="product-grid" id="main-product-grid">
- <p id="products-loading" style="grid-column:1/-1;text-align:center;padding:48px 20px;color:var(--text-muted);font-size:15px;">Loading products...</p>
+ <div class="home-scroll-wrap">
+ <div class="home-scroll-track" id="track-best-selling">
+ <p class="home-scroll-loading">Loading products...</p>
  </div>
  </div>
+ </section>
+
+ <!-- New Arrivals -->
+ <section class="home-product-section" id="section-new-arrivals">
+ <div class="section-header">
+ <h2 class="section-title">New Arrivals</h2>
+ <a href="#" class="see-all" id="see-all-new-arrivals">View All <i class="ti ti-arrow-right"></i></a>
+ </div>
+ <div class="home-scroll-wrap">
+ <div class="home-scroll-track" id="track-new-arrivals">
+ <p class="home-scroll-loading">Loading products...</p>
+ </div>
+ </div>
+ </section>
+
+ <!-- Customer Reviews -->
+ <section class="home-customer-reviews" id="section-customer-reviews">
+ <div class="section-header">
+ <h2 class="section-title">Customer Reviews</h2>
+ <p class="home-reviews-sub">Real feedback from shoppers across Bangladesh</p>
+ </div>
+ <div class="home-scroll-wrap">
+ <div class="home-scroll-track home-reviews-track" id="track-customer-reviews"></div>
+ </div>
+ </section>
+ </div><!-- /products -->
 
  <!-- Trust Badges (from site settings) -->
  <div class="trust-bar" id="trust-bar"></div>
@@ -224,6 +240,7 @@
         <label for="cat-sort-select">Sort by:</label>
         <select id="cat-sort-select">
           <option value="popular">Most Popular</option>
+          <option value="best-selling">Best Selling</option>
           <option value="price-asc">Price: Low to High</option>
           <option value="price-desc">Price: High to Low</option>
           <option value="rating">Top Rated</option>
@@ -368,7 +385,7 @@
  <!-- Info -->
  <div class="pv-info">
  <div class="pv-cat">Electronics › Smartwatch</div>
- <div class="pv-title">Smartwatch Pro — Health Tracker, GPS, AMOLED Display</div>
+ <h1 class="pv-title">Smartwatch Pro — Health Tracker, GPS, AMOLED Display</h1>
  <div class="pv-rating-row">
  <span class="pv-stars">★★★★★</span>
  <span class="pv-rating-num">4.9</span>
@@ -509,6 +526,96 @@
  <div class="wl-grid" id="wishlist-grid" hidden></div>
 </div>
 </div><!-- /page-wishlist -->
+
+
+<!-- ===================================================
+ APPOINTMENT PAGE
+=================================================== -->
+<div id="page-appointment" style="display:none;">
+<div class="appt-wrap">
+ <div class="appt-grid">
+  <div class="appt-card">
+   <div class="appt-head">
+    <h1 class="appt-title"><i class="ti ti-calendar-plus"></i> Book an appointment</h1>
+    <p class="appt-sub">Choose a date and time for product advice, in-store visit, or support. We are open Saturday–Thursday (closed Friday).</p>
+   </div>
+   <div class="appt-body">
+    <div class="appt-tabs" role="tablist">
+     <button type="button" class="appt-tab active" data-appt-tab="book" role="tab" aria-selected="true">Book new</button>
+     <button type="button" class="appt-tab" data-appt-tab="lookup" role="tab" aria-selected="false">Check status</button>
+    </div>
+    <div class="appt-panel" id="appt-panel-book" role="tabpanel">
+     <form class="appt-form" id="appt-book-form" novalidate>
+      <div class="appt-row">
+       <div class="appt-field">
+        <label for="appt-name">Full name *</label>
+        <input type="text" id="appt-name" name="name" required autocomplete="name" placeholder="Your name">
+       </div>
+       <div class="appt-field">
+        <label for="appt-phone">Mobile number *</label>
+        <input type="tel" id="appt-phone" name="phone" required autocomplete="tel" placeholder="01XXXXXXXXX">
+       </div>
+      </div>
+      <div class="appt-field">
+       <label for="appt-email">Email (optional)</label>
+       <input type="email" id="appt-email" name="email" autocomplete="email" placeholder="you@email.com">
+      </div>
+      <div class="appt-field">
+       <label for="appt-service">Service type *</label>
+       <select id="appt-service" name="serviceType" required></select>
+      </div>
+      <div class="appt-row">
+       <div class="appt-field">
+        <label for="appt-date">Preferred date *</label>
+        <input type="date" id="appt-date" name="date" required>
+       </div>
+       <div class="appt-field">
+        <label for="appt-time">Time slot *</label>
+        <select id="appt-time" name="time" required></select>
+       </div>
+      </div>
+      <div class="appt-field">
+       <label for="appt-notes">Notes (optional)</label>
+       <textarea id="appt-notes" name="notes" rows="3" placeholder="Product name, skin type, or any question..."></textarea>
+      </div>
+      <p class="appt-hint">By booking you agree we may call or SMS you to confirm the appointment.</p>
+      <div id="appt-book-error" class="appt-err" hidden></div>
+      <div id="appt-book-success" class="appt-success" hidden></div>
+      <button type="submit" class="appt-btn" id="appt-book-btn"><i class="ti ti-calendar-check"></i> Book appointment</button>
+     </form>
+    </div>
+    <div class="appt-panel" id="appt-panel-lookup" role="tabpanel" hidden>
+     <form class="appt-form" id="appt-lookup-form" novalidate>
+      <div class="appt-field">
+       <label for="appt-lookup-ref">Reference number *</label>
+       <input type="text" id="appt-lookup-ref" placeholder="APT-2026-........" autocomplete="off">
+      </div>
+      <div class="appt-field">
+       <label for="appt-lookup-phone">Mobile number *</label>
+       <input type="tel" id="appt-lookup-phone" placeholder="01XXXXXXXXX" autocomplete="tel">
+      </div>
+      <div id="appt-lookup-error" class="appt-err" hidden></div>
+      <div id="appt-lookup-result" hidden></div>
+      <button type="submit" class="appt-btn appt-btn-outline" id="appt-lookup-btn"><i class="ti ti-search"></i> Check appointment</button>
+     </form>
+    </div>
+   </div>
+  </div>
+  <div class="appt-card">
+   <div class="appt-head">
+    <h2 class="appt-title"><i class="ti ti-info-circle"></i> How it works</h2>
+    <p class="appt-sub">Free appointment for product guidance, beauty advice, or order collection at RakuShopBD.</p>
+   </div>
+   <div class="appt-body">
+    <div class="appt-step"><i class="ti ti-forms"></i><div><b>1) Fill the form</b><span>Name, phone, service, date and time slot.</span></div></div>
+    <div class="appt-step"><i class="ti ti-phone"></i><div><b>2) We confirm</b><span>Our team calls or SMS you within 24 hours.</span></div></div>
+    <div class="appt-step"><i class="ti ti-calendar-check"></i><div><b>3) Visit or call</b><span>Come at your slot or join the scheduled support call.</span></div></div>
+    <div class="appt-step"><i class="ti ti-receipt"></i><div><b>Save your reference</b><span>Use APT-2026-... + phone to check status anytime.</span></div></div>
+   </div>
+  </div>
+ </div>
+</div>
+</div><!-- /page-appointment -->
 
 
 <!-- ===================================================
@@ -1334,6 +1441,118 @@
 </div>
 </div><!-- /page-account -->
 
+<!-- AI Skin Scan (YouCam) — Derma-style wizard -->
+<button type="button" class="face-analyzer-fab" id="face-analyzer-fab" aria-label="ফ্রি স্কিন টেস্ট" title="ফ্রি স্কিন টেস্ট" style="display:none">
+ <span class="face-analyzer-fab-bubble" aria-hidden="true">
+  <span class="face-analyzer-fab-popup is-visible" id="fa-fab-popup">
+   <span class="face-analyzer-fab-emoji" id="fa-fab-emoji">👋</span>
+   <span class="face-analyzer-fab-msg" id="fa-fab-msg">ফ্রি স্কিন টেস্ট...</span>
+  </span>
+ </span>
+ <span class="face-analyzer-fab-avatar" aria-hidden="true">
+  <img class="face-analyzer-fab-avatar-img" id="fa-fab-avatar-img" src="/images/skin-scan-avatar-1.jpg" alt="" width="76" height="76" loading="lazy" decoding="async">
+  <span class="face-analyzer-fab-scan-ring"></span>
+  <span class="face-analyzer-fab-scan-grid"></span>
+ </span>
+</button>
+<div class="face-analyzer-backdrop" id="face-analyzer-backdrop" aria-hidden="true"></div>
+<div class="fa-modal" id="fa-modal" role="dialog" aria-labelledby="fa-brand-title" aria-modal="true">
+ <button type="button" class="fa-modal-close" id="face-analyzer-close" aria-label="Close"><i class="ti ti-x"></i></button>
+
+ <!-- Step 1: Intro -->
+ <div class="fa-step active" id="fa-step-intro" data-step="intro">
+  <div class="fa-brand" style="padding-top:28px;">
+   <div class="fa-brand-logo" id="fa-brand-title"><span>Raku</span> Scan</div>
+  </div>
+  <div class="fa-step-split">
+   <div class="fa-split-content">
+    <p class="fa-eyebrow">Personalized skincare</p>
+    <h2 class="fa-title">SKIN ANALYSIS</h2>
+    <p class="fa-desc">Analyze your skin concerns, and receive personalized skincare product recommendations.</p>
+    <button type="button" class="fa-btn-primary" id="fa-btn-start">START</button>
+   </div>
+   <div class="fa-split-visual">
+    <div class="fa-visual-bg" aria-hidden="true"></div>
+    <div class="fa-phone-mock" aria-hidden="true">
+     <div class="fa-phone-screen">
+      <span style="margin-top:12px;font-size:7px;letter-spacing:0.1em;">FACE SCAN IN PROGRESS</span>
+      <div class="scan-line"></div>
+      <div class="fa-phone-metrics">
+       <div>Skin Score <b>89</b> · Skin Age <b>30</b></div>
+       <div style="display:flex;justify-content:space-around;margin-top:6px;">
+        <span><b>86</b><br>Spots</span><span><b>76</b><br>Oil</span><span><b>95</b><br>Acne</span><span><b>79</b><br>Pores</span>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div>
+ </div>
+
+ <!-- Step 2: Instructions -->
+ <div class="fa-step" id="fa-step-instructions" data-step="instructions">
+  <div class="fa-brand" style="padding-top:20px;">
+   <div class="fa-brand-logo"><span>Raku</span> Scan</div>
+  </div>
+  <div class="fa-step-split">
+   <div class="fa-split-content">
+    <p class="fa-eyebrow">Get Ready to Start Skin Analysis</p>
+    <h2 class="fa-title dark">INSTRUCTIONS</h2>
+    <ul class="fa-instruction-list">
+     <li><span class="fa-instruction-icon"><i class="ti ti-glasses-off"></i></span><span>Take off your glasses and ensure there's no bangs on your forehead.</span></li>
+     <li><span class="fa-instruction-icon"><i class="ti ti-bulb"></i></span><span>Make sure that you're in a well-lighted environment.</span></li>
+     <li><span class="fa-instruction-icon"><i class="ti ti-lipstick"></i></span><span>Testing with no-makeup will get more accurate results.</span></li>
+     <li><span class="fa-instruction-icon"><i class="ti ti-user-circle"></i></span><span>Looking straight to the camera and keep your face in the circle.</span></li>
+    </ul>
+    <button type="button" class="fa-btn-primary" id="fa-btn-get-started" style="width:100%;max-width:280px;">GET STARTED</button>
+   </div>
+   <div class="fa-split-visual">
+    <div class="fa-visual-bg" aria-hidden="true"></div>
+    <div style="position:relative;z-index:2;text-align:center;color:#1e3a5f;font-size:13px;font-weight:600;padding:20px;">
+     <i class="ti ti-scan" style="font-size:48px;color:#5eb8d4;display:block;margin-bottom:12px;"></i>
+     Position your face in the guide during scan
+    </div>
+   </div>
+  </div>
+ </div>
+
+ <!-- Step 3: Loading -->
+ <div class="fa-step fa-step-loading" id="fa-step-loading" data-step="loading">
+  <div class="fa-loading-logo"><span>Raku</span> Scan</div>
+  <p class="fa-loading-sub">AI SKIN ANALYZER</p>
+  <div class="fa-ai-chip">AI</div>
+  <p class="fa-powered">Powered by <b>PERFECT</b> <a href="https://yce.perfectcorp.com/" target="_blank" rel="noopener noreferrer" style="color:inherit;"><i class="ti ti-external-link"></i></a></p>
+ </div>
+
+ <!-- Step 4: Live scan -->
+ <div class="fa-step fa-step-scan" id="fa-step-scan" data-step="scan">
+  <div class="fa-scan-video-wrap">
+   <video id="face-analyzer-video" playsinline autoplay muted aria-label="Live camera preview"></video>
+  </div>
+  <div class="fa-scan-overlay">
+   <div class="fa-scan-badge" id="fa-scan-badge">POSITION YOUR FACE IN THE CIRCLE</div>
+   <div class="fa-scan-face-guide" aria-hidden="true"></div>
+   <div class="fa-scan-line-live" aria-hidden="true"></div>
+   <div class="fa-scan-countdown" id="fa-scan-countdown" aria-live="polite" hidden></div>
+  </div>
+  <div class="fa-scan-actions">
+   <button type="button" class="fa-scan-btn fa-scan-btn-outline" id="fa-btn-upload-fallback">Upload photo</button>
+  </div>
+  <input type="file" id="face-analyzer-file" accept="image/jpeg,image/jpg,image/png" hidden>
+ </div>
+
+ <!-- Step 5: Results -->
+ <div class="fa-step fa-step-results" id="fa-step-results" data-step="results">
+  <div class="fa-brand" style="padding-top:8px;margin-bottom:8px;">
+   <div class="fa-brand-logo" style="font-size:28px;"><span>Raku</span> Scan</div>
+  </div>
+  <h2 class="fa-title dark" style="font-size:18px;margin-bottom:8px;">YOUR ANALYSIS</h2>
+  <div class="fa-status-msg" id="face-analyzer-status"></div>
+  <div id="face-analyzer-results"></div>
+  <button type="button" class="fa-btn-primary" id="fa-btn-scan-again" style="margin-top:16px;">SCAN AGAIN</button>
+ </div>
+</div>
+
 <footer class="footer" id="global-footer">
  <div class="footer-inner">
  <div class="footer-grid">
@@ -1353,13 +1572,15 @@
  <li><a href="#" data-footer-page="cart"><i class="ti ti-chevron-right"></i>My Cart</a></li>
  <li><a href="#" data-footer-page="account"><i class="ti ti-chevron-right"></i>My Account</a></li>
  <li><a href="/track" data-footer-page="track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
+ <li><a href="#" data-footer-page="appointment"><i class="ti ti-chevron-right"></i>Book Appointment</a></li>
  </ul></div>
  <div><div class="footer-heading">Help</div><ul class="footer-links">
  <li><a href="/track" data-footer-page="track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
+ <li><a href="#" data-footer-page="appointment"><i class="ti ti-chevron-right"></i>Book Appointment</a></li>
  <li><a href="#"><i class="ti ti-chevron-right"></i>Return Policy</a></li>
  <li><a href="#"><i class="ti ti-chevron-right"></i>Shipping Info</a></li>
  <li><a href="#"><i class="ti ti-chevron-right"></i>FAQ</a></li>
- <li><a href="#"><i class="ti ti-chevron-right"></i>Contact Us</a></li>
+ <li><a href="#" data-footer-page="appointment"><i class="ti ti-chevron-right"></i>Contact / Appointment</a></li>
  </ul></div>
  <div><div class="footer-heading">Contact</div><ul class="footer-links">
  <li><a href="#" id="footer-phone"><i class="ti ti-phone"></i>+880 1700-000000</a></li>
@@ -1388,11 +1609,18 @@
 <% if (typeof productJson !== 'undefined' && productJson) { %>
 <script>window.__RAKU_PRELOAD_PRODUCT=<%- productJson %>;</script>
 <% } %>
+<% if (typeof seoJson !== 'undefined' && seoJson) { %>
+<script>window.__RAKU_SEO=<%- seoJson %>;</script>
+<% } %>
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/maintenance-view.js?v=3" defer></script>
-<script src="/js/app.js?v=4" defer></script>
-<script src="/js/api.js?v=8" defer></script>
-<script src="/js/storefront-dynamic.js?v=5" defer></script>
+<script src="/js/seo.js?v=3" defer></script>
+<script src="/js/app.js?v=10" defer></script>
+<script src="/js/api.js?v=17" defer></script>
+<script src="/js/home-customer-reviews.js?v=4" defer></script>
+<script src="/js/appointment.js?v=2" defer></script>
+<script src="/js/face-analyzer.js?v=10" defer></script>
+<script src="/js/storefront-dynamic.js?v=9" defer></script>
 <script src="/js/search.js?v=4" defer></script>
 <script src="/js/account.js?v=8" defer></script>
 </body>

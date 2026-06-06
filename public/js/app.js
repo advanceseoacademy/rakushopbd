@@ -17,16 +17,21 @@ document.addEventListener('DOMContentLoaded', function() {
     success: document.getElementById('page-success'),
     account: document.getElementById('page-account'),
     wishlist: document.getElementById('page-wishlist'),
+    appointment: document.getElementById('page-appointment'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment'];
 
   // Show target route immediately (content fills via bootstrap / API)
   const initialRoute = (function parseInitial() {
     const parts = (location.pathname || '/').split('/').filter(Boolean);
     if (!parts.length) return { page: 'home' };
     const [page, param] = parts;
-    if (page === 'product' && param) return { page: 'product', productId: Number(param) };
+    if (page === 'product' && param) {
+      const decoded = decodeURIComponent(param);
+      if (/^\d+$/.test(decoded)) return { page: 'product', productId: Number(decoded) };
+      return { page: 'product', productSlug: decoded };
+    }
     if (page === 'category' && param) return { page: 'category', categorySlug: decodeURIComponent(param) };
     if (PAGE_NAMES.includes(page)) return { page };
     return { page: 'home' };
@@ -40,7 +45,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function buildPath(name, opts = {}) {
     if (name === 'home') return '/';
-    if (name === 'product' && opts.productId) return `/product/${opts.productId}`;
+    if (name === 'product') {
+      if (opts.productSlug) return `/product/${encodeURIComponent(opts.productSlug)}`;
+      if (opts.productId) return `/product/${opts.productId}`;
+    }
     if (name === 'category' && opts.categorySlug) {
       return `/category/${encodeURIComponent(opts.categorySlug)}`;
     }
@@ -52,7 +60,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (!parts.length) return { page: 'home' };
     const [page, param] = parts;
     if (page === 'product' && param) {
-      return { page: 'product', productId: Number(param) };
+      const decoded = decodeURIComponent(param);
+      if (/^\d+$/.test(decoded)) return { page: 'product', productId: Number(decoded) };
+      return { page: 'product', productSlug: decoded };
     }
     if (page === 'category' && param) {
       return { page: 'category', categorySlug: decodeURIComponent(param) };
@@ -69,7 +79,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (pages[name]) pages[name].style.display = 'block';
     const catNav = document.getElementById('global-cat-nav');
     if (catNav) {
-      catNav.style.display = name === 'home' || name === 'category' || name === 'account' ? '' : 'none';
+      catNav.style.display =
+        name === 'home' || name === 'category' || name === 'account' ? '' : 'none';
+    }
+    if (name === 'appointment' && window._rakuInitAppointmentPage) {
+      window._rakuInitAppointmentPage();
     }
     const skipUrl = opts.skipHash || opts.skipUrl;
     if (!skipUrl) {
@@ -79,6 +93,9 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     }
     window.scrollTo(0, 0);
+    if (window.RakuSEO) {
+      window.RakuSEO.onNavigate(name, opts);
+    }
   }
 
   async function restoreFromUrl() {
@@ -88,8 +105,9 @@ document.addEventListener('DOMContentLoaded', function() {
     routeRestoring = false;
 
     try {
-      if (route.page === 'product' && route.productId && window.openProduct) {
-        await window.openProduct(route.productId, { skipUrl: true });
+      if (route.page === 'product' && window.openProduct) {
+        if (route.productSlug) await window.openProduct(route.productSlug, { skipUrl: true });
+        else if (route.productId) await window.openProduct(route.productId, { skipUrl: true });
       } else if (route.page === 'category' && route.categorySlug && window.openCategory) {
         await window.openCategory(route.categorySlug, { skipUrl: true });
       } else if (route.page === 'cart' && window.renderCart) {
@@ -100,6 +118,8 @@ document.addEventListener('DOMContentLoaded', function() {
         await window.openWishlist();
       } else if (route.page === 'account' && window.openAccount) {
         window.openAccount();
+      } else if (route.page === 'appointment' && window._rakuInitAppointmentPage) {
+        window._rakuInitAppointmentPage();
       }
     } catch (err) {
       console.warn('Route restore failed', err);
@@ -162,6 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function updateBadges() {
     document.querySelectorAll('.cart-badge').forEach((b) => {
       b.textContent = cartCount;
+      b.hidden = cartCount === 0;
     });
     document.querySelectorAll('.wish-badge').forEach((b) => {
       b.textContent = wishCount;
@@ -188,12 +209,12 @@ document.addEventListener('DOMContentLoaded', function() {
       e.stopPropagation();
       cartCount++;
       updateBadges();
-      this.style.background = '#3B6D11';
-      this.innerHTML = '<i class="ti ti-check"></i>';
+      this.classList.add('added');
+      this.innerHTML = '<i class="ti ti-check"></i> Added';
       const self = this;
       setTimeout(() => {
-        self.style.background = '';
-        self.innerHTML = '<i class="ti ti-shopping-cart-plus"></i>';
+        self.classList.remove('added');
+        self.innerHTML = '<i class="ti ti-shopping-cart-plus"></i> Add to Cart';
       }, 1200);
     });
   });
@@ -207,14 +228,12 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Nav cart icon → cart (always re-render to reflect latest cart state)
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    if (btn.querySelector('.ti-shopping-cart')) {
-      btn.addEventListener('click', e => {
-        e.preventDefault();
-        showPage('cart');
-        if (window.renderCart) window.renderCart();
-      });
-    }
+  document.querySelectorAll('.nav-cart-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      showPage('cart');
+      if (window.renderCart) window.renderCart();
+    });
   });
 
   // Logo → home
@@ -340,6 +359,44 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnTrackOrder) btnTrackOrder.addEventListener('click', () => {
     if (window.openAccount) window.openAccount();
     else showPage('home');
+  });
+
+  // Mobile category menu (3-dot)
+  const mobileCatMenu = document.getElementById('mobile-cat-menu');
+  const mobileCatMenuBtn = document.getElementById('nav-mobile-menu-btn');
+  const mobileCatMenuClose = document.getElementById('mobile-cat-menu-close');
+  const mobileCatMenuBackdrop = document.getElementById('mobile-cat-menu-backdrop');
+
+  function openMobileCatMenu() {
+    if (!mobileCatMenu) return;
+    mobileCatMenu.classList.add('open');
+    mobileCatMenu.setAttribute('aria-hidden', 'false');
+    if (mobileCatMenuBtn) mobileCatMenuBtn.setAttribute('aria-expanded', 'true');
+    document.body.classList.add('mobile-cat-menu-open');
+  }
+
+  function closeMobileCatMenu() {
+    if (!mobileCatMenu) return;
+    mobileCatMenu.classList.remove('open');
+    mobileCatMenu.setAttribute('aria-hidden', 'true');
+    if (mobileCatMenuBtn) mobileCatMenuBtn.setAttribute('aria-expanded', 'false');
+    document.body.classList.remove('mobile-cat-menu-open');
+  }
+
+  window._rakuCloseMobileCatMenu = closeMobileCatMenu;
+
+  if (mobileCatMenuBtn && !mobileCatMenuBtn._rakuBound) {
+    mobileCatMenuBtn._rakuBound = true;
+    mobileCatMenuBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (mobileCatMenu?.classList.contains('open')) closeMobileCatMenu();
+      else openMobileCatMenu();
+    });
+  }
+  if (mobileCatMenuClose) mobileCatMenuClose.addEventListener('click', closeMobileCatMenu);
+  if (mobileCatMenuBackdrop) mobileCatMenuBackdrop.addEventListener('click', closeMobileCatMenu);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && mobileCatMenu?.classList.contains('open')) closeMobileCatMenu();
   });
 
   document.dispatchEvent(new CustomEvent('raku:ready'));

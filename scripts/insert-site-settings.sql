@@ -10,4 +10,5 @@ INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES
 ('trust_4_title', '24/7 customer support'),
 ('trust_4_sub', 'We are here to help anytime'),
 ('maintenance_message', 'We are upgrading our store for a better shopping experience. Please visit again shortly.'),
-('maintenance_announcement', '');
+('maintenance_announcement', ''),
+('face_analyzer_enabled', '1');

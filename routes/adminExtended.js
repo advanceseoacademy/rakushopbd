@@ -287,4 +287,105 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
+  // ——— Appointments ———
+  router.get('/appointments', requireAdmin, async (req, res) => {
+    try {
+      const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
+      const { serviceLabel } = require('../lib/appointments');
+      await ensureAppointmentsTable();
+
+      const { page, limit, status, search } = req.query;
+      const { page: p, limit: l, offset } = paginate(page, limit);
+      const where = [];
+      const params = [];
+
+      if (status && status !== 'all') {
+        where.push('status = ?');
+        params.push(status);
+      }
+      if (search && String(search).trim()) {
+        const q = `%${String(search).trim()}%`;
+        where.push(
+          `(reference_number LIKE ? OR customer_name LIKE ? OR customer_phone LIKE ?)`
+        );
+        params.push(q, q, q);
+      }
+
+      const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      const total = (
+        await query(`SELECT COUNT(*) AS c FROM appointments ${whereSql}`, params)
+      )[0];
+      const totalN = Number(total?.c ?? total?.count ?? Object.values(total || {})[0]) || 0;
+
+      const rows = await query(
+        `SELECT * FROM appointments ${whereSql}
+         ORDER BY appointment_date ASC, created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, l, offset]
+      );
+
+      const pendingRows = await query(
+        `SELECT COUNT(*) AS c FROM appointments WHERE status = 'pending'`
+      );
+      const pendingCount =
+        Number(pendingRows[0]?.c ?? Object.values(pendingRows[0] || {})[0]) || 0;
+
+      res.json({
+        ok: true,
+        appointments: rows.map((r) => ({
+          id: r.id,
+          referenceNumber: r.reference_number || r.referenceNumber,
+          customerName: r.customer_name || r.customerName,
+          customerPhone: r.customer_phone || r.customerPhone,
+          customerEmail: r.customer_email || r.customerEmail,
+          appointmentDate: r.appointment_date || r.appointmentDate,
+          appointmentTime: r.appointment_time || r.appointmentTime,
+          serviceType: r.service_type || r.serviceType,
+          serviceLabel: serviceLabel(r.service_type || r.serviceType),
+          notes: r.notes,
+          status: r.status,
+          createdAt: r.created_at || r.createdAt,
+        })),
+        pagination: {
+          page: p,
+          limit: l,
+          total: totalN,
+          pages: Math.max(1, Math.ceil(totalN / l)),
+        },
+        pendingCount,
+      });
+    } catch (err) {
+      console.error('admin appointments', err);
+      res.status(500).json({ ok: false, error: 'Could not load appointments' });
+    }
+  });
+
+  router.patch('/appointments/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
+      await ensureAppointmentsTable();
+      const status = String(req.body?.status || '').trim();
+      const allowed = ['pending', 'confirmed', 'completed', 'cancelled'];
+      if (!allowed.includes(status)) {
+        return res.status(400).json({ ok: false, error: 'Invalid status' });
+      }
+      await query('UPDATE appointments SET status = ? WHERE id = ?', [status, req.params.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('admin appointment patch', err);
+      res.status(500).json({ ok: false, error: 'Could not update appointment' });
+    }
+  });
+
+  router.delete('/appointments/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
+      await ensureAppointmentsTable();
+      await query('DELETE FROM appointments WHERE id = ?', [req.params.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not delete appointment' });
+    }
+  });
+
 };

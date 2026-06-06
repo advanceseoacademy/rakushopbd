@@ -283,6 +283,112 @@ table.tbl { width:100%; border-collapse:collapse; }
 }
 .pagination-bar .btn { margin: 0 2px; }
 
+/* Product modal */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.5);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open {
+  display: flex;
+}
+.modal-box {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 520px;
+  width: 100%;
+  max-height: 90vh;
+  overflow: auto;
+  padding: 24px;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.2);
+}
+.modal-box--product {
+  max-width: 640px;
+}
+.form-seo-panel {
+  margin: 16px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #f8fafc;
+}
+.form-seo-summary {
+  padding: 12px 14px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+}
+.form-seo-summary::-webkit-details-marker { display: none; }
+.form-seo-body {
+  padding: 0 14px 14px;
+  border-top: 1px solid var(--border);
+}
+.form-seo-body .form-group:first-child { margin-top: 14px; }
+.modal-box-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.modal-box-head h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.modal-box-close {
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 10px;
+  background: #f1f5f9;
+  color: #64748b;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.modal-box-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+.form-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+.modal-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.modal-form-actions .btn-primary {
+  flex: 1;
+  min-width: 140px;
+  justify-content: center;
+}
+body.product-modal-open,
+body.category-modal-open,
+body.coupon-modal-open,
+body.banner-modal-open {
+  overflow: hidden;
+}
+
 @media(max-width:900px) {
   .adm-menu-btn { display:flex; }
   .sidebar { transform:translateX(-100%); box-shadow:4px 0 24px rgba(0,0,0,0.18); }

@@ -298,7 +298,10 @@
         e.preventDefault();
         if (page === 'home' && window.showPage) window.showPage('home');
         else if (page === 'account' && window.showPage) window.showPage('account');
-        else if (page === 'cart' && window.showPage) window.showPage('cart');
+        else if (page === 'cart' && window.showPage) {
+          window.showPage('cart');
+          if (window.renderCart) void window.renderCart();
+        }
         else if (page === 'appointment' && window.showPage) window.showPage('appointment');
       });
     });

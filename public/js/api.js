@@ -1174,22 +1174,25 @@
   async function renderCheckout() {
     const data = await apiFetch('/cart');
     if (!data.ok) return;
+    if (!data.cart.length) {
+      if (window.showPage) window.showPage('cart');
+      return;
+    }
 
-    const box = document.querySelector('.checkout-summary-box');
+    const box = document.querySelector('#page-checkout .checkout-summary-box');
     if (!box) return;
 
-    const rows = box.querySelectorAll('.checkout-product-row');
-    rows.forEach((r) => r.remove());
+    box.querySelectorAll('.checkout-product-row').forEach((r) => r.remove());
 
-    const title = box.querySelector('.summary-title');
+    const anchor = box.querySelector('.summary-title') || box;
     data.cart.forEach((item) => {
       const row = document.createElement('div');
       row.className = 'checkout-product-row';
       row.innerHTML = `
         <div class="checkout-prod-img" style="background:${item.bgColor};">${cartThumbHtml(item)}</div>
-        <span class="checkout-prod-name">${item.name} ×${item.qty}</span>
+        <span class="checkout-prod-name">${escapeHtml(item.name)} ×${item.qty}</span>
         <span class="checkout-prod-price">${formatPrice(item.price * item.qty)}</span>`;
-      title.insertAdjacentElement('afterend', row);
+      anchor.insertAdjacentElement('afterend', row);
     });
 
     if (data.totals) {
@@ -1325,7 +1328,8 @@
     if (!root) return null;
     const method =
       scope === '#checkout-modal' ? getSelectedPaymentMethod() : root.querySelector('input[name="paymethod"]:checked')?.value;
-    const trxId = document.getElementById('cm-trxid')?.value?.trim();
+    const trxId =
+      scope === '#checkout-modal' ? document.getElementById('cm-trxid')?.value?.trim() || '' : '';
     let notes = root.querySelector('[name="notes"]')?.value?.trim() || '';
     if (trxId && method && method !== 'cod') {
       notes = [notes, `TrxID (${method}): ${trxId}`].filter(Boolean).join(' | ');
@@ -1350,10 +1354,12 @@
       alert('Please enter name, mobile number and address!');
       return;
     }
-    const payCfg = PAYMENT_UI[form.paymentMethod];
-    if (payCfg?.needsTrx && !form.trxId) {
-      alert('Please enter your payment Transaction ID (TrxID)!');
-      return;
+    if (scope === '#checkout-modal') {
+      const payCfg = PAYMENT_UI[form.paymentMethod];
+      if (payCfg?.needsTrx && !form.trxId) {
+        alert('Please enter your payment Transaction ID (TrxID)!');
+        return;
+      }
     }
     btn.disabled = true;
     const result = await apiFetch('/orders', { method: 'POST', body: JSON.stringify(form) });
@@ -1423,20 +1429,35 @@
     const data = await apiFetch('/cart');
     if (!data.ok || !data.cart.length) {
       alert('Your cart is empty!');
-      return;
+      return false;
     }
     await renderCheckoutModalSummary();
     await prefillCheckoutModal();
     const modal = document.getElementById('checkout-modal');
-    if (!modal) return;
+    if (!modal) return false;
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('checkout-modal-open');
     updatePaymentMethodUI(getSelectedPaymentMethod());
     document.getElementById('cm-name')?.focus();
+    return true;
+  }
+
+  async function proceedToCheckoutFromCart() {
+    const data = await apiFetch('/cart');
+    if (!data.ok || !data.cart.length) {
+      alert('Your cart is empty. Add products before checkout.');
+      return;
+    }
+    const opened = await openCheckoutModal();
+    if (!opened && window.showPage) {
+      window.showPage('checkout');
+      await renderCheckout();
+    }
   }
 
   window.openCheckoutModal = openCheckoutModal;
+  window.proceedToCheckoutFromCart = proceedToCheckoutFromCart;
   window.closeCheckoutModal = closeCheckoutModal;
 
   function bindCheckoutModal() {
@@ -1501,7 +1522,16 @@
       btnCartCheckout._rakuBound = true;
       btnCartCheckout.addEventListener('click', async (e) => {
         e.preventDefault();
-        await openCheckoutModal();
+        if (btnCartCheckout.disabled) {
+          alert('Your cart is empty. Add products first.');
+          return;
+        }
+        try {
+          await proceedToCheckoutFromCart();
+        } catch (err) {
+          console.error('Checkout failed', err);
+          alert('Could not open checkout. Please try again.');
+        }
       });
     }
 
@@ -1515,12 +1545,17 @@
     }
 
     document.querySelectorAll('.nav-cart-btn').forEach((btn) => {
-      if (btn._rakuBound) return;
-      btn._rakuBound = true;
-      btn.addEventListener('click', async (e) => {
+      if (btn._rakuNavBound) return;
+      btn._rakuNavBound = true;
+      btn.addEventListener('click', (e) => {
         e.preventDefault();
-        await renderCart();
-        if (window.showPage) window.showPage('cart');
+        if (window._rakuOpenCart) window._rakuOpenCart();
+        else if (window.showPage) {
+          window.showPage('cart');
+          if (window.renderCart) void window.renderCart();
+        } else {
+          window.location.href = '/cart';
+        }
       });
     });
 
@@ -1867,6 +1902,12 @@
   }
 
   document.addEventListener('raku:ready', async () => {
+    patchCheckoutForm();
+    bindCheckout();
+    bindTrackOrderModal();
+    bindCouponApply();
+    hookNavigation();
+
     const boot = window.__RAKU_BOOTSTRAP;
     const pathParts = (location.pathname || '/').split('/').filter(Boolean);
     const isHome = pathParts.length === 0;
@@ -1889,16 +1930,13 @@
 
     if (isHome && window.showPage) window.showPage('home', { skipUrl: true });
 
-    patchCheckoutForm();
-    bindCheckout();
-    bindTrackOrderModal();
-    bindCouponApply();
-    hookNavigation();
     bindCategoryFilterEvents();
 
     const onCart = /^\/cart\/?$/.test(location.pathname);
+    const onCheckout = /^\/checkout\/?$/.test(location.pathname);
     const sessionTasks = [syncCartBadge(), syncWishlist()];
     if (onCart) sessionTasks.push(renderCart());
+    if (onCheckout) sessionTasks.push(renderCheckout());
     void Promise.all(sessionTasks);
 
     if (window.requestIdleCallback) {

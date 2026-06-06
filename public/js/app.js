@@ -96,6 +96,12 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.RakuSEO) {
       window.RakuSEO.onNavigate(name, opts);
     }
+    if (name === 'cart' && window.renderCart) {
+      void window.renderCart();
+    }
+    if (name === 'checkout' && window.renderCheckout) {
+      void window.renderCheckout();
+    }
   }
 
   async function restoreFromUrl() {
@@ -203,36 +209,31 @@ document.addEventListener('DOMContentLoaded', function() {
     return cartCount;
   };
 
-  // Add to cart buttons (home product grid)
-  document.querySelectorAll('.add-cart-btn').forEach(btn => {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      cartCount++;
-      updateBadges();
-      this.classList.add('added');
-      this.innerHTML = '<i class="ti ti-check"></i> Added';
-      const self = this;
-      setTimeout(() => {
-        self.classList.remove('added');
-        self.innerHTML = '<i class="ti ti-shopping-cart-plus"></i> Add to Cart';
-      }, 1200);
+  function openCartPage() {
+    if (window.showPage) window.showPage('cart');
+    else window.location.href = '/cart';
+    if (window.renderCart) {
+      window.renderCart().catch((err) => console.warn('renderCart failed', err));
+    }
+  }
+  window._rakuOpenCart = openCartPage;
+
+  document.querySelectorAll('.nav-cart-btn').forEach((btn) => {
+    if (btn._rakuNavBound) return;
+    btn._rakuNavBound = true;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      openCartPage();
     });
   });
+
+  // Add to cart on home grid — handled by api.js (bindProductGridEvents)
 
   // Product card click → product page
   document.querySelectorAll('#page-home .product-card').forEach(card => {
     card.addEventListener('click', function(e) {
       if (e.target.closest('.add-cart-btn') || e.target.closest('.prod-wish')) return;
       showPage('product');
-    });
-  });
-
-  // Nav cart icon → cart (always re-render to reflect latest cart state)
-  document.querySelectorAll('.nav-cart-btn').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      showPage('cart');
-      if (window.renderCart) window.renderCart();
     });
   });
 
@@ -243,12 +244,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // ===== PRODUCT PAGE EVENTS =====
 
-  // Add to cart main button
-  const btnAddMain = document.getElementById('btn-add-to-cart-main');
-  if (btnAddMain) btnAddMain.addEventListener('click', () => {
-    cartCount++; updateBadges(); showPage('cart');
-    if (window.renderCart) window.renderCart();
-  });
+  // Add to cart / buy now handled by api.js (bindProductActions on product page)
 
   const btnBuyNow = document.getElementById('btn-buy-now');
   if (btnBuyNow) {

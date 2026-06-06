@@ -177,6 +177,76 @@
         </div>
       </div>
 
+      <div class="adm-section" id="sec-product-form">
+        <div class="product-form-page">
+          <div class="product-form-head">
+            <button type="button" class="btn btn-outline btn-sm" id="product-form-back"><i class="ti ti-arrow-left"></i> Back to Products</button>
+            <h2 id="product-form-title">Add Product</h2>
+          </div>
+          <div class="card product-form-card">
+            <form id="product-form">
+              <input type="hidden" id="pf-id" value="">
+              <div class="form-section-title">Basic info</div>
+              <div class="form-group"><label class="form-label">Product name *</label><input class="form-input" id="pf-name" required></div>
+              <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="pf-slug" placeholder="auto from name, e.g. smartwatch-pro"><small class="form-hint">Store link: /product/your-slug</small></div>
+              <div class="form-group"><label class="form-label">Category *</label><select class="form-input form-select" id="pf-category" required></select></div>
+              <div class="form-2col">
+                <div class="form-group"><label class="form-label">Price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" required></div>
+                <div class="form-group"><label class="form-label">Old price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0"></div>
+              </div>
+              <div class="form-2col">
+                <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="pf-sku" placeholder="PROD-001"></div>
+                <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
+              </div>
+              <div class="form-section-title">Content</div>
+              <div class="form-group"><label class="form-label">Short description</label><textarea class="form-input form-textarea" id="pf-short-desc" rows="2" maxlength="320" placeholder="Brief summary above Add to Cart on product page"></textarea></div>
+              <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="pf-desc" rows="5"></textarea></div>
+              <div class="form-section-title">Media</div>
+              <div class="form-group">
+                <label class="form-label">Product images</label>
+                <div class="pf-gallery-list" id="pf-gallery-list"></div>
+                <div class="pf-gallery-add-row">
+                  <input class="form-input" type="file" id="pf-gallery-files" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+                </div>
+                <small class="form-hint">Select multiple files at once. First image = main photo on store &amp; cards (max 12).</small>
+                <div class="pf-gallery-url-row">
+                  <input class="form-input" id="pf-image-url" placeholder="Or paste image URL and add">
+                  <button type="button" class="btn btn-outline btn-sm" id="pf-gallery-url-add">Add URL</button>
+                </div>
+              </div>
+              <div class="form-2col">
+                <div class="form-group"><label class="form-label">Icon class</label><input class="form-input" id="pf-icon" placeholder="ti-watch" value="ti-package"></div>
+                <div class="form-group"><label class="form-label">Icon color</label><input class="form-input" id="pf-icon-color" value="#2d8a2d"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="pf-bg" value="#e8f5e8"></div>
+              <div class="form-section-title">Display</div>
+              <div class="form-group"><label class="form-label">Tag</label>
+                <select class="form-input form-select" id="pf-tag">
+                  <option value="none">None</option><option value="discount">Discount</option>
+                  <option value="bestseller">Best seller</option><option value="hot">Hot</option><option value="new">New</option>
+                </select>
+              </div>
+              <div class="form-group"><label class="form-label"><input type="checkbox" id="pf-featured" checked> Show on homepage</label></div>
+              <details class="form-seo-panel" id="pf-seo-panel">
+                <summary class="form-seo-summary"><i class="ti ti-search"></i> SEO &amp; Search (optional)</summary>
+                <div class="form-seo-body">
+                  <div class="form-group"><label class="form-label">SEO title</label><input class="form-input" id="pf-seo-title" maxlength="255" placeholder="Google search title — leave blank to use product name"></div>
+                  <div class="form-group"><label class="form-label">SEO description</label><textarea class="form-input form-textarea" id="pf-seo-desc" rows="2" maxlength="320" placeholder="Meta description for search engines (max ~160 chars shown)"></textarea></div>
+                  <div class="form-group"><label class="form-label">SEO keywords</label><input class="form-input" id="pf-seo-keywords" maxlength="255" placeholder="smartwatch, fitness, bangladesh"></div>
+                  <div class="form-group"><label class="form-label">Image alt text</label><input class="form-input" id="pf-image-alt" maxlength="255" placeholder="Describe the product image for accessibility &amp; SEO"></div>
+                  <div class="form-group"><label class="form-label">Social share image (OG)</label><input class="form-input" id="pf-og-image" placeholder="/uploads/... or full URL — optional, overrides product image"></div>
+                </div>
+              </details>
+              <div class="product-form-actions">
+                <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Product</button>
+                <button type="button" class="btn btn-outline" id="pf-reset">Clear form</button>
+                <button type="button" class="btn btn-outline" id="product-form-cancel">Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
       <div class="adm-section" id="sec-customers">
         <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px;" id="customer-stats"></div>
         <div class="table-wrap" style="margin:0;">
@@ -269,6 +339,21 @@
                 <div class="form-group"><label class="form-label">Nagad number (checkout)</label><input class="form-input" id="set-payment-nagad" placeholder="01712-345678"></div>
                 <div class="form-group"><label class="form-label">Rocket number (checkout)</label><input class="form-input" id="set-payment-rocket" placeholder="01712-345678"></div>
                 <div class="form-group"><label class="form-label">Address</label><textarea class="form-input form-textarea" id="set-address"></textarea></div>
+                <div class="form-section-title" style="margin-top:20px;">Footer &amp; branding</div>
+                <div class="form-group"><label class="form-label">Footer description</label><textarea class="form-input form-textarea" id="set-footer-desc" rows="2" placeholder="Short about text under logo"></textarea></div>
+                <div class="form-group"><label class="form-label">Store hours</label><input class="form-input" id="set-store-hours" placeholder="9 AM — 10 PM"></div>
+                <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png"></div>
+                <div class="form-group"><label class="form-label">Upload logo</label><input class="form-input" type="file" id="set-logo-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
+                <div class="form-2col">
+                  <div class="form-group"><label class="form-label">Facebook URL</label><input class="form-input" id="set-social-facebook" type="url" placeholder="https://facebook.com/..."></div>
+                  <div class="form-group"><label class="form-label">Instagram URL</label><input class="form-input" id="set-social-instagram" type="url" placeholder="https://instagram.com/..."></div>
+                </div>
+                <div class="form-2col">
+                  <div class="form-group"><label class="form-label">YouTube URL</label><input class="form-input" id="set-social-youtube" type="url" placeholder="https://youtube.com/..."></div>
+                  <div class="form-group"><label class="form-label">WhatsApp URL</label><input class="form-input" id="set-social-whatsapp" type="url" placeholder="https://wa.me/880..."></div>
+                </div>
+                <div class="form-group"><label class="form-label">Quick Links</label><textarea class="form-input form-textarea" id="set-footer-quick" rows="6" placeholder="Home|page:home"></textarea><small class="form-hint">One link per line: <code>Label|page:home</code> or <code>Label|/track</code></small></div>
+                <div class="form-group"><label class="form-label">Help Links</label><textarea class="form-input form-textarea" id="set-footer-help" rows="6" placeholder="Return Policy|#"></textarea><small class="form-hint">Same format. Pages: home, cart, account, appointment</small></div>
                 <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Settings</button>
               </form>
             </div>
@@ -328,59 +413,6 @@
     </div>
   </div>
 </div>
-</div>
-
-<div class="modal-overlay" id="product-modal" aria-hidden="true">
-  <div class="modal-box modal-box--product" role="dialog" aria-labelledby="product-form-title">
-    <div class="modal-box-head">
-      <h3 id="product-form-title">Add Product</h3>
-      <button type="button" class="modal-box-close" id="product-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
-    </div>
-    <form id="product-form">
-      <input type="hidden" id="pf-id" value="">
-      <div class="form-group"><label class="form-label">Product name *</label><input class="form-input" id="pf-name" required></div>
-      <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="pf-slug" placeholder="auto from name, e.g. smartwatch-pro"><small class="form-hint">Store link: /product/your-slug</small></div>
-      <div class="form-group"><label class="form-label">Category *</label><select class="form-input form-select" id="pf-category" required></select></div>
-      <div class="form-2col">
-        <div class="form-group"><label class="form-label">Price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" required></div>
-        <div class="form-group"><label class="form-label">Old price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0"></div>
-      </div>
-      <div class="form-2col">
-        <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="pf-sku" placeholder="PROD-001"></div>
-        <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="pf-desc" rows="3"></textarea></div>
-      <div class="form-group"><label class="form-label">Image URL</label><input class="form-input" id="pf-image-url" placeholder="/uploads/..."></div>
-      <div class="form-group"><label class="form-label">Upload image</label><input class="form-input" type="file" id="pf-image-file" accept="image/*"></div>
-      <div class="form-2col">
-        <div class="form-group"><label class="form-label">Icon class</label><input class="form-input" id="pf-icon" placeholder="ti-watch" value="ti-package"></div>
-        <div class="form-group"><label class="form-label">Icon color</label><input class="form-input" id="pf-icon-color" value="#2d8a2d"></div>
-      </div>
-      <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="pf-bg" value="#e8f5e8"></div>
-      <div class="form-group"><label class="form-label">Tag</label>
-        <select class="form-input form-select" id="pf-tag">
-          <option value="none">None</option><option value="discount">Discount</option>
-          <option value="bestseller">Best seller</option><option value="hot">Hot</option><option value="new">New</option>
-        </select>
-      </div>
-      <div class="form-group"><label class="form-label"><input type="checkbox" id="pf-featured" checked> Show on homepage</label></div>
-      <details class="form-seo-panel" id="pf-seo-panel">
-        <summary class="form-seo-summary"><i class="ti ti-search"></i> SEO &amp; Search (optional)</summary>
-        <div class="form-seo-body">
-          <div class="form-group"><label class="form-label">SEO title</label><input class="form-input" id="pf-seo-title" maxlength="255" placeholder="Google search title — leave blank to use product name"></div>
-          <div class="form-group"><label class="form-label">SEO description</label><textarea class="form-input form-textarea" id="pf-seo-desc" rows="2" maxlength="320" placeholder="Meta description for search engines (max ~160 chars shown)"></textarea></div>
-          <div class="form-group"><label class="form-label">SEO keywords</label><input class="form-input" id="pf-seo-keywords" maxlength="255" placeholder="smartwatch, fitness, bangladesh"></div>
-          <div class="form-group"><label class="form-label">Image alt text</label><input class="form-input" id="pf-image-alt" maxlength="255" placeholder="Describe the product image for accessibility &amp; SEO"></div>
-          <div class="form-group"><label class="form-label">Social share image (OG)</label><input class="form-input" id="pf-og-image" placeholder="/uploads/... or full URL — optional, overrides product image"></div>
-        </div>
-      </details>
-      <div class="modal-form-actions">
-        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Product</button>
-        <button type="button" class="btn btn-outline" id="pf-reset">Clear</button>
-        <button type="button" class="btn btn-outline" id="product-modal-cancel">Cancel</button>
-      </div>
-    </form>
-  </div>
 </div>
 
 <div class="modal-overlay" id="category-modal" aria-hidden="true">
@@ -480,6 +512,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin.js?v=22"></script>
+<script src="/js/admin.js?v=28"></script>
 </body>
 </html>

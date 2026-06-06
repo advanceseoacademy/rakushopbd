@@ -22,6 +22,8 @@ const { registerAdminAuth } = require('./lib/registerAdminAuth');
 const { usePostgres, query } = require('./config/db');
 const { ensureAppointmentsTable } = require('./lib/ensureAppointmentsTable');
 const { ensureProductSeoColumns } = require('./lib/ensureProductSeoColumns');
+const { ensureProductImagesTable } = require('./lib/ensureProductImagesTable');
+const { ensureFooterSettings } = require('./lib/ensureFooterSettings');
 const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
 const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
 const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug } = require('./lib/seo');
@@ -212,6 +214,7 @@ app.listen(PORT, () => {
   console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
   ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
   ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
+  ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
   ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
 });

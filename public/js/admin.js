@@ -69,6 +69,7 @@
     orders: 'Orders',
     appointments: 'Appointments',
     products: 'Products',
+    'product-form': 'Add Product',
     customers: 'Customers',
     analytics: 'Analytics',
     categories: 'Categories',
@@ -89,10 +90,12 @@
   }
 
   function saveActivePage(page) {
-    if (!validPages.has(page)) return;
+    if (!validPages.has(page) && page !== 'product-form') return;
+    const toSave = page === 'product-form' ? 'products' : page;
+    if (!validPages.has(toSave)) return;
     try {
-      localStorage.setItem(ADMIN_PAGE_KEY, page);
-      sessionStorage.setItem(ADMIN_PAGE_KEY, page);
+      localStorage.setItem(ADMIN_PAGE_KEY, toSave);
+      sessionStorage.setItem(ADMIN_PAGE_KEY, toSave);
     } catch (_) {}
   }
 
@@ -182,12 +185,15 @@
     document.querySelectorAll('.adm-section').forEach((s) => s.classList.remove('active'));
     const sec = document.getElementById('sec-' + page);
     if (sec) sec.classList.add('active');
-    document.querySelectorAll('.nav-item').forEach((n) => n.classList.toggle('active', n.dataset.page === page));
+    document.querySelectorAll('.nav-item').forEach((n) => {
+      const navPage = n.dataset.page;
+      n.classList.toggle('active', navPage === page || (page === 'product-form' && navPage === 'products'));
+    });
     const title = pageTitles[page] || page;
     document.getElementById('page-title').textContent = title;
     document.getElementById('breadcrumb-current').textContent = title;
     window.scrollTo(0, 0);
-    saveActivePage(page);
+    if (page !== 'product-form') saveActivePage(page);
 
     if (page === 'dashboard') loadDashboard();
     if (page === 'orders') loadOrders();
@@ -290,37 +296,71 @@
   };
 
   document.getElementById('view-site-btn').onclick = () => window.open('/', '_blank');
-  function openProductModal() {
-    const modal = document.getElementById('product-modal');
-    if (!modal) return;
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('product-modal-open');
+
+  function setProductFormTitle(label) {
+    const h2 = document.getElementById('product-form-title');
+    const top = document.getElementById('page-title');
+    const bc = document.getElementById('breadcrumb-current');
+    if (h2) h2.textContent = label;
+    if (top) top.textContent = label;
+    if (bc) bc.textContent = label;
+    pageTitles['product-form'] = label;
+  }
+
+  async function openProductForm(product) {
+    await loadCategoriesList();
+    if (product) {
+      const detail = await api('/products/' + product.id);
+      if (detail.ok && detail.product) product = detail.product;
+      setProductFormTitle('Edit Product');
+      document.getElementById('pf-id').value = product.id;
+      document.getElementById('pf-name').value = product.name_bn;
+      const pfSlug = document.getElementById('pf-slug');
+      if (pfSlug) pfSlug.value = product.slug || '';
+      document.getElementById('pf-category').value = product.category_id;
+      document.getElementById('pf-price').value = product.price;
+      document.getElementById('pf-old-price').value = product.old_price || '';
+      document.getElementById('pf-stock').value = product.stock;
+      document.getElementById('pf-sku').value = product.sku || '';
+      document.getElementById('pf-desc').value = product.description_bn || '';
+      const pfShort = document.getElementById('pf-short-desc');
+      if (pfShort) pfShort.value = product.short_description || '';
+      const gallery = product.gallery_urls?.length
+        ? product.gallery_urls
+        : product.image_url
+          ? [product.image_url]
+          : [];
+      resetPfGallery(gallery);
+      document.getElementById('pf-icon').value = product.icon;
+      document.getElementById('pf-icon-color').value = product.icon_color;
+      document.getElementById('pf-bg').value = product.bg_color;
+      document.getElementById('pf-tag').value = product.tag_type;
+      document.getElementById('pf-featured').checked = !!product.is_featured;
+      document.getElementById('pf-seo-title').value = product.seo_title || '';
+      document.getElementById('pf-seo-desc').value = product.seo_description || '';
+      document.getElementById('pf-seo-keywords').value = product.seo_keywords || '';
+      document.getElementById('pf-image-alt').value = product.image_alt || '';
+      document.getElementById('pf-og-image').value = product.og_image || '';
+    } else {
+      resetProductForm();
+      setProductFormTitle('Add Product');
+    }
+    switchPage('product-form');
     setTimeout(() => document.getElementById('pf-name')?.focus(), 50);
   }
 
-  function closeProductModal() {
-    const modal = document.getElementById('product-modal');
-    if (!modal) return;
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('product-modal-open');
+  function closeProductForm() {
+    switchPage('products');
   }
 
   const addProductBtn = document.getElementById('add-product-btn');
   if (addProductBtn) {
-    addProductBtn.onclick = () => {
-      switchPage('products');
-      resetProductForm();
-      openProductModal();
-    };
+    addProductBtn.onclick = () => openProductForm();
   }
 
-  document.getElementById('product-modal-close')?.addEventListener('click', closeProductModal);
-  document.getElementById('product-modal-cancel')?.addEventListener('click', closeProductModal);
-  document.getElementById('product-modal')?.addEventListener('click', (e) => {
-    if (e.target.id === 'product-modal') closeProductModal();
-  });
+  document.getElementById('product-form-back')?.addEventListener('click', closeProductForm);
+  document.getElementById('product-form-cancel')?.addEventListener('click', closeProductForm);
+
   function openCategoryModal() {
     const modal = document.getElementById('category-modal');
     if (!modal) return;
@@ -354,9 +394,6 @@
   });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && document.getElementById('product-modal')?.classList.contains('open')) {
-      closeProductModal();
-    }
     if (e.key === 'Escape' && document.getElementById('category-modal')?.classList.contains('open')) {
       closeCategoryModal();
     }
@@ -754,6 +791,130 @@
   };
 
   // ——— Products ———
+  /** @type {{ url: string, file?: File, preview?: string }[]} */
+  let pfGalleryItems = [];
+  const PF_GALLERY_MAX = 12;
+
+  function revokePfGalleryPreviews(items) {
+    (items || pfGalleryItems).forEach((item) => {
+      if (item.preview && String(item.preview).startsWith('blob:')) {
+        URL.revokeObjectURL(item.preview);
+      }
+    });
+  }
+
+  function pfGalleryDisplayUrl(item) {
+    return item.preview || item.url;
+  }
+
+  async function uploadProductImage(file) {
+    const fd = new FormData();
+    fd.append('image', file);
+    const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+    return up.json();
+  }
+
+  function renderPfGallery() {
+    const el = document.getElementById('pf-gallery-list');
+    if (!el) return;
+    if (!pfGalleryItems.length) {
+      el.innerHTML = '<div class="pf-gallery-empty">No images yet. Upload files or add a URL below.</div>';
+      return;
+    }
+    el.innerHTML = pfGalleryItems
+      .map((item, i) => {
+        const src = pfGalleryDisplayUrl(item).replace(/"/g, '&quot;');
+        const pending = item.file ? '<span class="pf-gallery-pending">New</span>' : '';
+        return `<div class="pf-gallery-item" data-idx="${i}">
+          <img src="${src}" alt="">
+          <div class="pf-gallery-item-actions">
+            ${pending}
+            ${i === 0 ? '<span class="pf-gallery-main">Main</span>' : `<button type="button" class="btn btn-outline btn-sm pf-gallery-main-btn" data-idx="${i}">Set main</button>`}
+            <button type="button" class="btn btn-outline btn-sm pf-gallery-remove" data-idx="${i}">Remove</button>
+          </div>
+        </div>`;
+      })
+      .join('');
+    el.querySelectorAll('.pf-gallery-remove').forEach((btn) => {
+      btn.onclick = () => {
+        const idx = Number(btn.dataset.idx);
+        const item = pfGalleryItems[idx];
+        if (item?.preview?.startsWith('blob:')) URL.revokeObjectURL(item.preview);
+        pfGalleryItems.splice(idx, 1);
+        renderPfGallery();
+      };
+    });
+    el.querySelectorAll('.pf-gallery-main-btn').forEach((btn) => {
+      btn.onclick = () => {
+        const idx = Number(btn.dataset.idx);
+        const [item] = pfGalleryItems.splice(idx, 1);
+        pfGalleryItems.unshift(item);
+        renderPfGallery();
+      };
+    });
+  }
+
+  function resetPfGallery(urls) {
+    revokePfGalleryPreviews(pfGalleryItems);
+    pfGalleryItems = (Array.isArray(urls) ? urls : [])
+      .filter(Boolean)
+      .slice(0, PF_GALLERY_MAX)
+      .map((url) => ({ url: String(url) }));
+    const files = document.getElementById('pf-gallery-files');
+    const urlInput = document.getElementById('pf-image-url');
+    if (files) files.value = '';
+    if (urlInput) urlInput.value = '';
+    renderPfGallery();
+  }
+
+  document.getElementById('pf-gallery-files')?.addEventListener('change', (e) => {
+    const input = e.target;
+    const files = Array.from(input.files || []);
+    input.value = '';
+    if (!files.length) return;
+    let added = 0;
+    for (const file of files) {
+      if (pfGalleryItems.length >= PF_GALLERY_MAX) {
+        toast(`Maximum ${PF_GALLERY_MAX} images`, 'error');
+        break;
+      }
+      if (!/^image\/(jpeg|png|gif|webp)$/i.test(file.type)) continue;
+      const preview = URL.createObjectURL(file);
+      pfGalleryItems.push({ url: preview, preview, file });
+      added++;
+    }
+    if (added) renderPfGallery();
+  });
+
+  document.getElementById('pf-gallery-url-add')?.addEventListener('click', () => {
+    const input = document.getElementById('pf-image-url');
+    const url = input?.value?.trim();
+    if (!url) return;
+    if (pfGalleryItems.some((item) => item.url === url && !item.file)) {
+      toast('Image already in gallery', 'error');
+      return;
+    }
+    if (pfGalleryItems.length >= PF_GALLERY_MAX) {
+      toast(`Maximum ${PF_GALLERY_MAX} images`, 'error');
+      return;
+    }
+    pfGalleryItems.push({ url });
+    if (input) input.value = '';
+    renderPfGallery();
+  });
+
+  function productThumbHtml(p) {
+    const bg = p.bg_color || '#f0f0f0';
+    const icon = p.icon || 'ti ti-package';
+    const color = p.icon_color || '#2d8a2d';
+    if (p.image_url) {
+      const alt = String(p.name_bn || 'Product').replace(/"/g, '&quot;');
+      const src = String(p.image_url).replace(/"/g, '&quot;');
+      return `<div class="prod-thumb prod-thumb--img" style="background:${bg};"><img src="${src}" alt="${alt}" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon}" style="color:${color};" hidden></i></div>`;
+    }
+    return `<div class="prod-thumb" style="background:${bg};"><i class="${icon}" style="color:${color};"></i></div>`;
+  }
+
   async function loadCategoriesList() {
     const data = await api('/categories');
     if (!data.ok) return;
@@ -780,7 +941,7 @@
         const stockLbl = p.stock <= 0 ? 'Out of stock' : p.stock <= 5 ? 'Low' : 'Active';
         return `<tr>
           <td><div style="display:flex;align-items:center;gap:10px;">
-            <div class="prod-thumb" style="background:${p.bg_color};"><i class="${p.icon}" style="color:${p.icon_color};"></i></div>
+            ${productThumbHtml(p)}
             <div><div style="font-weight:600;">${p.name_bn}</div><small style="color:#94a3b8">${p.slug}</small></div></div></td>
           <td>${p.category_name}</td><td>৳${Number(p.price).toLocaleString()}</td><td>${p.stock}</td>
           <td><span class="badge ${stockCls}">${stockLbl}</span></td>
@@ -795,29 +956,7 @@
       btn.onclick = () => {
         const p = data.products.find((x) => x.id === Number(btn.dataset.editProduct));
         if (!p) return;
-        document.getElementById('product-form-title').textContent = 'Edit Product';
-        document.getElementById('pf-id').value = p.id;
-        document.getElementById('pf-name').value = p.name_bn;
-        const pfSlug = document.getElementById('pf-slug');
-        if (pfSlug) pfSlug.value = p.slug || '';
-        document.getElementById('pf-category').value = p.category_id;
-        document.getElementById('pf-price').value = p.price;
-        document.getElementById('pf-old-price').value = p.old_price || '';
-        document.getElementById('pf-stock').value = p.stock;
-        document.getElementById('pf-sku').value = p.sku || '';
-        document.getElementById('pf-desc').value = p.description_bn || '';
-        document.getElementById('pf-image-url').value = p.image_url || '';
-        document.getElementById('pf-icon').value = p.icon;
-        document.getElementById('pf-icon-color').value = p.icon_color;
-        document.getElementById('pf-bg').value = p.bg_color;
-        document.getElementById('pf-tag').value = p.tag_type;
-        document.getElementById('pf-featured').checked = !!p.is_featured;
-        document.getElementById('pf-seo-title').value = p.seo_title || '';
-        document.getElementById('pf-seo-desc').value = p.seo_description || '';
-        document.getElementById('pf-seo-keywords').value = p.seo_keywords || '';
-        document.getElementById('pf-image-alt').value = p.image_alt || '';
-        document.getElementById('pf-og-image').value = p.og_image || '';
-        openProductModal();
+        openProductForm(p);
       };
     });
 
@@ -857,24 +996,32 @@
     document.getElementById('pf-bg').value = '#e8f5e8';
     document.getElementById('pf-stock').value = 100;
     document.getElementById('pf-featured').checked = true;
-    ['pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image'].forEach((id) => {
+    ['pf-short-desc', 'pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+    resetPfGallery([]);
   }
 
   document.getElementById('product-form').onsubmit = async (e) => {
     e.preventDefault();
     const id = document.getElementById('pf-id').value;
-        let imageUrl = document.getElementById('pf-image-url').value.trim();
-    const fileInput = document.getElementById('pf-image-file');
-    if (fileInput?.files?.[0]) {
-      const fd = new FormData();
-      fd.append('image', fileInput.files[0]);
-      const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
-      const upData = await up.json();
-      if (upData.ok) imageUrl = upData.url;
+    const galleryUrls = [];
+    for (const item of pfGalleryItems) {
+      if (galleryUrls.length >= PF_GALLERY_MAX) break;
+      if (item.file) {
+        try {
+          const upData = await uploadProductImage(item.file);
+          if (upData.ok) galleryUrls.push(upData.url);
+          else toast(upData.error || 'Image upload failed', 'error');
+        } catch {
+          toast('Image upload failed', 'error');
+        }
+      } else if (item.url) {
+        galleryUrls.push(item.url);
+      }
     }
+    const imageUrl = galleryUrls[0] || null;
     const body = {
       name: document.getElementById('pf-name').value.trim(),
       slug: document.getElementById('pf-slug')?.value?.trim() || undefined,
@@ -884,7 +1031,9 @@
       stock: Number(document.getElementById('pf-stock').value),
       sku: document.getElementById('pf-sku').value.trim(),
       description: document.getElementById('pf-desc').value.trim(),
-      imageUrl: imageUrl || null,
+      shortDescription: document.getElementById('pf-short-desc')?.value?.trim() || null,
+      imageUrl,
+      galleryUrls,
       icon: document.getElementById('pf-icon').value,
       iconColor: document.getElementById('pf-icon-color').value,
       bgColor: document.getElementById('pf-bg').value,
@@ -901,7 +1050,7 @@
       : await api('/products', { method: 'POST', body: JSON.stringify(body) });
     if (data.ok) {
       toast(id ? 'Product updated' : 'Product created');
-      closeProductModal();
+      closeProductForm();
       resetProductForm();
       loadProducts(productsPage || 1);
     } else toast(data.error || 'Save failed', 'error');
@@ -1084,6 +1233,42 @@
   };
 
   // ——— Settings ———
+  function parseFooterLinksAdmin(raw) {
+    if (!raw) return [];
+    const text = String(raw).trim();
+    if (!text) return [];
+    try {
+      const parsed = JSON.parse(text);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (_) {}
+    return text
+      .split('\n')
+      .map((line) => {
+        const trimmed = line.trim();
+        if (!trimmed) return null;
+        const pipe = trimmed.indexOf('|');
+        const label = pipe >= 0 ? trimmed.slice(0, pipe).trim() : trimmed;
+        const target = pipe >= 0 ? trimmed.slice(pipe + 1).trim() : '#';
+        if (!label) return null;
+        if (target.startsWith('page:')) return { label, page: target.slice(5) };
+        return { label, href: target || '#' };
+      })
+      .filter(Boolean);
+  }
+
+  function footerLinksToText(raw) {
+    const links = parseFooterLinksAdmin(raw);
+    if (!links.length) return '';
+    return links
+      .map((l) => (l.page ? `${l.label}|page:${l.page}` : `${l.label}|${l.href || '#'}`))
+      .join('\n');
+  }
+
+  function footerLinksFromText(text) {
+    const links = parseFooterLinksAdmin(text);
+    return JSON.stringify(links);
+  }
+
   async function loadSettings() {
     const data = await api('/settings');
     if (!data.ok) return;
@@ -1100,6 +1285,24 @@
     const pr = document.getElementById('set-payment-rocket');
     if (pr) pr.value = s.payment_rocket || '';
     document.getElementById('set-address').value = s.contact_address || '';
+    const fd = document.getElementById('set-footer-desc');
+    if (fd) fd.value = s.footer_desc || '';
+    const sh = document.getElementById('set-store-hours');
+    if (sh) sh.value = s.store_hours || '';
+    const lu = document.getElementById('set-logo-url');
+    if (lu) lu.value = s.site_logo_url || '/images/rakushopbd-logo.png';
+    const sf = document.getElementById('set-social-facebook');
+    if (sf) sf.value = s.social_facebook || '';
+    const si = document.getElementById('set-social-instagram');
+    if (si) si.value = s.social_instagram || '';
+    const sy = document.getElementById('set-social-youtube');
+    if (sy) sy.value = s.social_youtube || '';
+    const sw = document.getElementById('set-social-whatsapp');
+    if (sw) sw.value = s.social_whatsapp || '';
+    const fq = document.getElementById('set-footer-quick');
+    if (fq) fq.value = footerLinksToText(s.footer_quick_links);
+    const fh = document.getElementById('set-footer-help');
+    if (fh) fh.value = footerLinksToText(s.footer_help_links);
     document.getElementById('set-free-min').value = s.free_delivery_min || '500';
     document.getElementById('set-delivery-fee').value = s.delivery_fee || '60';
     const outFee = document.getElementById('set-delivery-outside');
@@ -1296,6 +1499,15 @@
       payment_nagad: document.getElementById('set-payment-nagad')?.value || '',
       payment_rocket: document.getElementById('set-payment-rocket')?.value || '',
       contact_address: document.getElementById('set-address').value,
+      footer_desc: document.getElementById('set-footer-desc')?.value?.trim() || '',
+      store_hours: document.getElementById('set-store-hours')?.value?.trim() || '',
+      site_logo_url: document.getElementById('set-logo-url')?.value?.trim() || '',
+      social_facebook: document.getElementById('set-social-facebook')?.value?.trim() || '',
+      social_instagram: document.getElementById('set-social-instagram')?.value?.trim() || '',
+      social_youtube: document.getElementById('set-social-youtube')?.value?.trim() || '',
+      social_whatsapp: document.getElementById('set-social-whatsapp')?.value?.trim() || '',
+      footer_quick_links: footerLinksFromText(document.getElementById('set-footer-quick')?.value || ''),
+      footer_help_links: footerLinksFromText(document.getElementById('set-footer-help')?.value || ''),
       free_delivery_min: document.getElementById('set-free-min').value,
       delivery_fee: document.getElementById('set-delivery-fee').value,
       delivery_fee_outside: document.getElementById('set-delivery-outside')?.value || '120',
@@ -1313,6 +1525,23 @@
 
   document.getElementById('settings-form').onsubmit = async (e) => {
     e.preventDefault();
+    const logoFile = document.getElementById('set-logo-file');
+    const logoUrlInput = document.getElementById('set-logo-url');
+    if (logoFile?.files?.[0]) {
+      try {
+        const upData = await uploadProductImage(logoFile.files[0]);
+        if (upData.ok && logoUrlInput) {
+          logoUrlInput.value = upData.url;
+          logoFile.value = '';
+        } else if (!upData.ok) {
+          toast(upData.error || 'Logo upload failed', 'error');
+          return;
+        }
+      } catch {
+        toast('Logo upload failed', 'error');
+        return;
+      }
+    }
     const data = await api('/settings', { method: 'PUT', body: JSON.stringify({ settings: collectSettings() }) });
     if (data.ok) toast('Settings saved');
     else toast(data.error || 'Failed', 'error');

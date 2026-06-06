@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Track Order • RakuShopBD</title>
 <link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/main.css?v=4">
-<link rel="stylesheet" href="/css/responsive.css?v=1">
+<link rel="stylesheet" href="/css/main.css?v=27">
+<link rel="stylesheet" href="/css/category.css?v=3">
+<link rel="stylesheet" href="/css/responsive.css?v=13">
 <style>
+  .header-icon-btn.is-active { color: var(--primary); }
   .track-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
   .track-grid { display:grid; grid-template-columns:1.1fr .9fr; gap:16px; }
   @media(max-width:900px){ .track-grid { grid-template-columns:1fr; } }
@@ -76,44 +78,7 @@
 </style>
 </head>
 <body>
-<div class="announcement">
- <i class="ti ti-bolt"></i>
- <span>Track your order in seconds with Order ID</span>
- <i class="ti ti-bolt"></i>
-</div>
-
-<nav class="navbar">
- <div class="navbar-inner">
- <a href="/" class="logo site-logo-link" aria-label="RakuShopBD — Home">
-  <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
- </a>
- <div class="search-wrap" id="header-search-wrap">
- <div class="search-bar">
- <select class="search-select" id="search-category" aria-label="Category">
- <option value="all">All Products</option>
- </select>
- <div class="search-field">
- <input class="search-input" id="search-input" type="text" autocomplete="off" placeholder="Search products..." aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
- <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
- </div>
- <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
- </div>
- <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
- </div>
- <div class="nav-actions">
- <a href="/wishlist" class="nav-btn" id="nav-wishlist-btn">
- <i class="ti ti-heart"></i><span>Wishlist</span>
- <span class="badge wish-badge">0</span>
- </a>
- <a href="/cart" class="nav-btn nav-cart-btn">
- <i class="ti ti-shopping-cart"></i><span>Cart</span>
- <span class="badge cart-badge">0</span>
- </a>
- <a href="/account" class="nav-btn" id="nav-account-btn"><i class="ti ti-user"></i><span id="nav-account-label">Login / Register</span></a>
- <a href="/track" class="nav-btn" id="nav-track-btn"><i class="ti ti-truck-delivery"></i><span>Track</span></a>
- </div>
- </div>
-</nav>
+<%- include('partials/storefront-header') %>
 
 <div class="track-wrap">
   <div class="track-grid">
@@ -156,20 +121,20 @@
   <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--footer" width="300" height="76">
  </a>
  <p class="footer-desc">Bangladesh's trusted online shopping platform. Huge selection, great prices, and fast delivery.</p>
- <div class="footer-social">
+ <div class="footer-social" id="footer-social">
  <a href="#" class="social-btn"><i class="ti ti-brand-facebook"></i></a>
  <a href="#" class="social-btn"><i class="ti ti-brand-instagram"></i></a>
  <a href="#" class="social-btn"><i class="ti ti-brand-youtube"></i></a>
  <a href="#" class="social-btn"><i class="ti ti-brand-whatsapp"></i></a>
  </div></div>
- <div><div class="footer-heading">Quick Links</div><ul class="footer-links">
+ <div><div class="footer-heading">Quick Links</div><ul class="footer-links" id="footer-quick-links">
  <li><a href="/"><i class="ti ti-chevron-right"></i>Home</a></li>
  <li><a href="/"><i class="ti ti-chevron-right"></i>All Categories</a></li>
  <li><a href="/cart"><i class="ti ti-chevron-right"></i>My Cart</a></li>
  <li><a href="/account"><i class="ti ti-chevron-right"></i>My Account</a></li>
  <li><a href="/track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
  </ul></div>
- <div><div class="footer-heading">Help</div><ul class="footer-links">
+ <div><div class="footer-heading">Help</div><ul class="footer-links" id="footer-help-links">
  <li><a href="/track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
  <li><a href="#"><i class="ti ti-chevron-right"></i>Return Policy</a></li>
  <li><a href="#"><i class="ti ti-chevron-right"></i>Shipping Info</a></li>
@@ -190,15 +155,18 @@
  <span style="font-size:11px; margin-right:4px;">Payment:</span>
  <span class="pay-badge"><i class="ti ti-credit-card"></i>bKash</span>
  <span class="pay-badge"><i class="ti ti-credit-card"></i>Nagad</span>
- <span class="pay-badge"><i class="ti ti-credit-card"></i>Visa</span>
- <span class="pay-badge"><i class="ti ti-credit-card"></i>MasterCard</span>
- <span class="pay-badge"><i class="ti ti-building-bank"></i>Bank</span>
  </div>
  </div>
  </div>
 </footer>
 
-<script>window.RAKU_API_BASE='';</script>
+<script>window.RAKU_API_BASE='';window.RAKU_STANDALONE=true;window.RAKU_FOOTER_AUTOLOAD=true;</script>
+<script src="/js/maintenance-view.js?v=3" defer></script>
+<script src="/js/standalone-shell.js?v=1" defer></script>
+<script src="/js/api.js?v=23" defer></script>
+<script src="/js/storefront-dynamic.js?v=18" defer></script>
+<script src="/js/search.js?v=4" defer></script>
+<script src="/js/footer-settings.js?v=2" defer></script>
 <script src="/js/track.js?v=1" defer></script>
 </body>
 </html>

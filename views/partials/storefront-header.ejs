@@ -1,0 +1,72 @@
+<!-- Announcement Bar -->
+<div class="announcement">
+ <i class="ti ti-bolt"></i>
+ <span>Special offer: 10% off on orders over ৳1000 — Code: <strong>RakuShopBD10</strong></span>
+ <i class="ti ti-bolt"></i>
+</div>
+
+<!-- Navbar -->
+<nav class="navbar">
+ <div class="navbar-inner">
+  <div class="navbar-top">
+   <button type="button" class="navbar-hamburger" id="nav-mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-cat-menu">
+    <span class="navbar-hamburger-line"></span>
+    <span class="navbar-hamburger-line"></span>
+    <span class="navbar-hamburger-line"></span>
+   </button>
+   <a href="#" class="logo site-logo-link" aria-label="RakuShopBD — Home">
+    <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
+   </a>
+   <div class="nav-actions nav-actions--header">
+    <a href="#" class="header-icon-btn" id="nav-wishlist-btn" aria-label="Wishlist">
+     <i class="ti ti-heart"></i>
+     <span class="header-icon-badge wish-badge">0</span>
+    </a>
+    <a href="/cart" class="header-icon-btn nav-cart-btn" aria-label="Cart">
+     <i class="ti ti-shopping-cart"></i>
+     <span class="header-icon-badge cart-badge">0</span>
+    </a>
+    <a href="#" class="header-icon-btn" id="nav-account-btn" aria-label="Account">
+     <i class="ti ti-user"></i>
+     <span class="header-icon-label" id="nav-account-label">Account</span>
+    </a>
+    <a href="/track" class="header-icon-btn nav-track-desktop" id="nav-track-btn" aria-label="Track order">
+     <i class="ti ti-truck-delivery"></i>
+     <span class="header-icon-label">Track</span>
+    </a>
+   </div>
+  </div>
+  <div class="navbar-search-row">
+   <div class="search-wrap" id="header-search-wrap">
+    <div class="search-bar">
+     <select class="search-select" id="search-category" aria-label="Category">
+      <option value="all">All Products</option>
+     </select>
+     <div class="search-field">
+      <input class="search-input" id="search-input" type="search" autocomplete="off" placeholder="Search for product" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
+      <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
+      <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
+     </div>
+    </div>
+    <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
+   </div>
+  </div>
+ </div>
+</nav>
+
+<!-- Category Nav - shown on home (desktop) -->
+<div class="cat-nav" id="global-cat-nav">
+ <div class="cat-nav-inner"></div>
+</div>
+
+<!-- Mobile category menu -->
+<div id="mobile-cat-menu" class="mobile-cat-menu" aria-hidden="true">
+ <div class="mobile-cat-menu-backdrop" id="mobile-cat-menu-backdrop"></div>
+ <aside class="mobile-cat-menu-panel" role="dialog" aria-modal="true" aria-labelledby="mobile-cat-menu-title">
+ <div class="mobile-cat-menu-header">
+ <h2 id="mobile-cat-menu-title">Categories</h2>
+ <button type="button" class="mobile-cat-menu-close" id="mobile-cat-menu-close" aria-label="Close menu"><i class="ti ti-x"></i></button>
+ </div>
+ <nav class="mobile-cat-menu-list" id="mobile-cat-menu-list"></nav>
+ </aside>
+</div>

@@ -121,6 +121,7 @@
     input.blur();
     if (window.openProduct) window.openProduct(id);
     else if (window.showPage) window.showPage('product');
+    else window.location.href = `/product/${encodeURIComponent(id)}`;
   }
 
   async function runFullSearch() {
@@ -130,6 +131,13 @@
     if (!q) return;
 
     if (window.showPage) window.showPage('home');
+    else if (window.RAKU_STANDALONE) {
+      const cat = getCategory();
+      const params = new URLSearchParams({ search: q });
+      if (cat !== 'all') params.set('category', cat);
+      window.location.href = `/?${params.toString()}`;
+      return;
+    }
 
     const cat = getCategory();
     const params = new URLSearchParams({ search: q, limit: '24' });

@@ -406,8 +406,10 @@ router.get('/products/:ref', async (req, res) => {
       [byId ? Number(ref) : ref]
     );
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Product not found' });
+    const { attachGalleryToProduct } = require('../lib/productImages');
+    const product = await attachGalleryToProduct(rows[0]);
     cachePublic(res, 120);
-    res.json({ ok: true, product: rows[0] });
+    res.json({ ok: true, product });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Server error' });

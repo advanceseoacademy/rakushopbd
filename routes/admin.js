@@ -10,6 +10,7 @@ const { sql: sqlDialect, upsertSiteSettingSql, returningId } = require('../lib/d
 const { firstInsertId } = require('../config/db');
 const { saveSession } = require('../lib/sessionSave');
 const { signAdminToken, getAdminIdFromRequest, setAdminAuthCookie, clearAdminAuthCookie } = require('../lib/adminToken');
+const { attachGalleryToProduct, syncProductGallery } = require('../lib/productImages');
 
 const router = express.Router();
 
@@ -363,6 +364,24 @@ router.get('/products', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/products/:id', requireAdmin, async (req, res) => {
+  try {
+    const productId = Number(req.params.id);
+    if (!productId) return res.status(400).json({ ok: false, error: 'Invalid product' });
+    const rows = await query(
+      `SELECT p.*, c.name_bn AS category_name, c.slug AS category_slug
+       FROM products p JOIN categories c ON c.id = p.category_id WHERE p.id = ? LIMIT 1`,
+      [productId]
+    );
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Product not found' });
+    const product = await attachGalleryToProduct(rows[0]);
+    res.json({ ok: true, product });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load product' });
+  }
+});
+
 router.post('/products', requireAdmin, async (req, res) => {
   try {
     const {
@@ -372,6 +391,7 @@ router.post('/products', requireAdmin, async (req, res) => {
       oldPrice,
       stock,
       description,
+      shortDescription,
       icon,
       iconColor,
       bgColor,
@@ -381,6 +401,7 @@ router.post('/products', requireAdmin, async (req, res) => {
       isFeatured,
       sku,
       imageUrl,
+      galleryUrls,
       seoTitle,
       seoDescription,
       seoKeywords,
@@ -395,16 +416,17 @@ router.post('/products', requireAdmin, async (req, res) => {
     if (existing.length) slug = `${slug}-${Date.now()}`;
 
     const result = await query(
-      `INSERT INTO products (category_id, slug, sku, name_bn, description_bn, price, old_price, stock,
+      `INSERT INTO products (category_id, slug, sku, name_bn, description_bn, short_description, price, old_price, stock,
         icon, icon_color, bg_color, image_url, tag_type, tag_text, discount_percent, is_featured,
         seo_title, seo_description, seo_keywords, image_alt, og_image)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
       [
         categoryId,
         slug,
         sku || null,
         name,
         description || null,
+        shortDescription || null,
         price,
         oldPrice || null,
         stock ?? 100,
@@ -424,6 +446,12 @@ router.post('/products', requireAdmin, async (req, res) => {
       ]
     );
     const newId = firstInsertId(result) ?? (await query('SELECT id FROM products WHERE slug = ?', [slug]))[0]?.id;
+    if (newId) {
+      const synced = await syncProductGallery(newId, galleryUrls, imageUrl);
+      if (synced[0] && synced[0] !== imageUrl) {
+        await query('UPDATE products SET image_url = ? WHERE id = ?', [synced[0], newId]);
+      }
+    }
     clearStoreBootstrapCache();
     res.json({ ok: true, id: newId });
   } catch (err) {
@@ -442,6 +470,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       oldPrice,
       stock,
       description,
+      shortDescription,
       icon,
       iconColor,
       bgColor,
@@ -451,6 +480,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       isFeatured,
       sku,
       imageUrl,
+      galleryUrls,
       seoTitle,
       seoDescription,
       seoKeywords,
@@ -464,6 +494,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       sku || null,
       name,
       description || null,
+      shortDescription || null,
       price,
       oldPrice || null,
       stock ?? 0,
@@ -490,12 +521,16 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
     }
     params.push(productId);
     await query(
-      `UPDATE products SET category_id=?, sku=?, name_bn=?, description_bn=?, price=?, old_price=?, stock=?,
+      `UPDATE products SET category_id=?, sku=?, name_bn=?, description_bn=?, short_description=?, price=?, old_price=?, stock=?,
         icon=?, icon_color=?, bg_color=?, image_url=?, tag_type=?, tag_text=?, discount_percent=?, is_featured=?,
         seo_title=?, seo_description=?, seo_keywords=?, image_alt=?, og_image=?${slugClause}
        WHERE id=?`,
       params
     );
+    const synced = await syncProductGallery(productId, req.body.galleryUrls, imageUrl);
+    if (synced[0] && synced[0] !== imageUrl) {
+      await query('UPDATE products SET image_url = ? WHERE id = ?', [synced[0], productId]);
+    }
     clearStoreBootstrapCache();
     res.json({ ok: true });
   } catch (err) {

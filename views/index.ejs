@@ -2,7 +2,7 @@
 <html lang="en-BD">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <%- include('partials/seo-head', { seo: typeof seo !== 'undefined' ? seo : null }) %>
 <link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
 <link rel="preload" href="/images/rakushopbd-logo.png" as="image">
@@ -12,90 +12,19 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/main.css?v=20">
+<link rel="stylesheet" href="/css/main.css?v=27">
 <link rel="stylesheet" href="/css/category.css?v=3">
 <link rel="stylesheet" href="/css/account.css?v=6">
 <link rel="stylesheet" href="/css/cart.css?v=3">
 <link rel="stylesheet" href="/css/checkout-modal.css?v=4">
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
-<link rel="stylesheet" href="/css/responsive.css?v=1">
+<link rel="stylesheet" href="/css/responsive.css?v=13">
 <link rel="stylesheet" href="/css/appointment.css?v=2">
 <link rel="stylesheet" href="/css/face-analyzer.css?v=9">
 </head>
 <body>
-<!-- Announcement Bar -->
-<div class="announcement">
- <i class="ti ti-bolt"></i>
- <span>Special offer: 10% off on orders over ৳1000 — Code: <strong>RakuShopBD10</strong></span>
- <i class="ti ti-bolt"></i>
-</div>
-
-<!-- Navbar -->
-<nav class="navbar">
- <div class="navbar-inner">
-  <div class="navbar-top">
-   <button type="button" class="navbar-hamburger" id="nav-mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-cat-menu">
-    <span class="navbar-hamburger-line"></span>
-    <span class="navbar-hamburger-line"></span>
-    <span class="navbar-hamburger-line"></span>
-   </button>
-   <a href="#" class="logo site-logo-link" aria-label="RakuShopBD — Home">
-    <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
-   </a>
-   <div class="nav-actions nav-actions--header">
-    <a href="#" class="header-icon-btn" id="nav-wishlist-btn" aria-label="Wishlist">
-     <i class="ti ti-heart"></i>
-     <span class="header-icon-badge wish-badge">0</span>
-    </a>
-    <a href="/cart" class="header-icon-btn nav-cart-btn" aria-label="Cart">
-     <i class="ti ti-shopping-cart"></i>
-     <span class="header-icon-badge cart-badge">0</span>
-    </a>
-    <a href="#" class="header-icon-btn" id="nav-account-btn" aria-label="Account">
-     <i class="ti ti-user"></i>
-     <span class="header-icon-label" id="nav-account-label">Account</span>
-    </a>
-    <a href="/track" class="header-icon-btn nav-track-desktop" id="nav-track-btn" aria-label="Track order">
-     <i class="ti ti-truck-delivery"></i>
-     <span class="header-icon-label">Track</span>
-    </a>
-   </div>
-  </div>
-  <div class="navbar-search-row">
-   <div class="search-wrap" id="header-search-wrap">
-    <div class="search-bar">
-     <select class="search-select" id="search-category" aria-label="Category">
-      <option value="all">All Products</option>
-     </select>
-     <div class="search-field">
-      <input class="search-input" id="search-input" type="search" autocomplete="off" placeholder="Search for product" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
-      <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
-      <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
-     </div>
-    </div>
-    <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
-   </div>
-  </div>
- </div>
-</nav>
-
-<!-- Category Nav - shown on home (desktop) -->
-<div class="cat-nav" id="global-cat-nav">
- <div class="cat-nav-inner"></div>
-</div>
-
-<!-- Mobile category menu (3-dot) -->
-<div id="mobile-cat-menu" class="mobile-cat-menu" aria-hidden="true">
- <div class="mobile-cat-menu-backdrop" id="mobile-cat-menu-backdrop"></div>
- <aside class="mobile-cat-menu-panel" role="dialog" aria-modal="true" aria-labelledby="mobile-cat-menu-title">
- <div class="mobile-cat-menu-header">
- <h2 id="mobile-cat-menu-title">Categories</h2>
- <button type="button" class="mobile-cat-menu-close" id="mobile-cat-menu-close" aria-label="Close menu"><i class="ti ti-x"></i></button>
- </div>
- <nav class="mobile-cat-menu-list" id="mobile-cat-menu-list"></nav>
- </aside>
-</div>
+<%- include('partials/storefront-header') %>
 
 <!-- PAGE CONTENT START -->
 <div id="page-home">
@@ -146,8 +75,10 @@
  <div class="section-title" id="categories-section-title">Shop by Category</div>
  <a href="#" class="see-all" id="see-all-categories">All Categories <i class="ti ti-arrow-right"></i></a>
  </div>
- <div class="category-grid">
- <p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;">Loading categories…</p>
+ <div class="home-scroll-wrap category-scroll-wrap category-scroll-wrap--home">
+ <div class="home-scroll-track category-scroll-track" id="home-category-track">
+ <p class="category-scroll-empty">Loading categories…</p>
+ </div>
  </div>
  </div>
 
@@ -267,7 +198,7 @@
 .pv-breadcrumb i { font-size:11px; }
 .pv-wrap { max-width:1200px; margin:0 auto; padding:16px 20px 32px; display:grid; grid-template-columns:1fr 1fr; gap:32px; }
 @media(max-width:768px){ .pv-wrap { grid-template-columns:1fr; gap:20px; } }
-@media(max-width:480px){ .pv-action-row { flex-direction:column; } .btn-add-cart,.btn-buy { width:100%; } .main-product-img { height:240px; } .pv-price { font-size:24px; } }
+@media(max-width:480px){ .pv-action-row { flex-direction:column; } .btn-add-cart,.btn-buy { width:100%; } .main-product-img { height:240px; } .pv-price { font-size:22px; } .pv-price-row { padding:6px 12px; margin-bottom:10px; } }
 
 /* Gallery */
 .pv-gallery {}
@@ -288,6 +219,7 @@
 }
 .thumb-img.active, .thumb-img:hover { border-color:var(--primary); }
 .thumb-img i { font-size:30px; }
+.thumb-img img { width:100%; height:100%; object-fit:cover; border-radius:inherit; display:block; }
 
 /* Info */
 .pv-info {}
@@ -298,10 +230,20 @@
 .pv-rating-num { font-size:14px; font-weight:600; }
 .pv-reviews { font-size:12px; color:var(--text-muted); }
 .pv-sold { font-size:12px; color:var(--green); font-weight:600; background:var(--green-pale); padding:3px 10px; border-radius:20px; }
-.pv-price-row { display:flex; align-items:baseline; gap:10px; margin-bottom:16px; padding:14px 16px; background:var(--surface2); border-radius:var(--radius-md); border:1px solid var(--border); }
-.pv-price { font-size:32px; font-weight:700; color:var(--accent); }
-.pv-old-price { font-size:16px; color:var(--text-light); text-decoration:line-through; }
-.pv-discount-badge { background:var(--accent-light); color:var(--accent-dark); font-size:12px; font-weight:700; padding:4px 10px; border-radius:20px; }
+.pv-short-desc {
+ font-size:14px; line-height:1.65; color:var(--text-muted);
+ margin:0 0 14px; padding-top:2px;
+ display:none;
+}
+.pv-short-desc:not(:empty) { display:block; }
+.pv-price-row {
+ display:inline-flex; align-items:center; flex-wrap:wrap; gap:8px;
+ margin-bottom:12px; padding:8px 14px; max-width:100%;
+ background:var(--surface2); border-radius:var(--radius-md); border:1px solid var(--border);
+}
+.pv-price { font-size:26px; font-weight:700; color:var(--accent); line-height:1.1; }
+.pv-old-price { font-size:14px; color:var(--text-light); text-decoration:line-through; }
+.pv-discount-badge { background:var(--accent-light); color:var(--accent-dark); font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; }
 
 .variant-label { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.3px; }
 
@@ -327,13 +269,13 @@
 .btn-wish-lg:hover { border-color:var(--accent); background:var(--accent-light); }
 .btn-wish-lg i { font-size:22px; color:var(--text-muted); }
 
-.pv-meta { display:flex; flex-direction:column; gap:8px; margin-bottom:18px; }
+.pv-meta { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
 .pv-meta-row { display:flex; align-items:center; gap:8px; font-size:13px; }
 .pv-meta-row i { font-size:16px; color:var(--primary); }
 .pv-meta-label { color:var(--text-muted); min-width:90px; }
-.pv-meta-val { color:var(--text); font-weight:500; }
+.pv-meta-val { color:var(--text); font-size:13px; font-weight:600; word-break:break-word; }
 
-.pv-delivery-box { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:18px; }
+.pv-delivery-box { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:16px; }
 .pv-delivery-title { font-size:13px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
 .pv-delivery-title i { color:var(--primary); }
 .pv-delivery-item { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-muted); padding:5px 0; border-bottom:1px solid var(--border); }
@@ -409,12 +351,7 @@
  <span class="pv-stock"><i class="ti ti-circle-check-filled"></i> In stock (47 left)</span>
  </div>
 
- <!-- Actions -->
- <div class="pv-action-row">
- <button class="btn-add-cart" id="btn-add-to-cart-main"><i class="ti ti-shopping-cart-plus"></i> Add to Cart</button>
- <button class="btn-buy" id="btn-buy-now"><i class="ti ti-bolt"></i> Shop Now</button>
- <button class="btn-wish-lg"><i class="ti ti-heart"></i></button>
- </div>
+ <p class="pv-short-desc" id="pv-short-desc"></p>
 
  <!-- Meta -->
  <div class="pv-meta">
@@ -430,6 +367,13 @@
  <div class="pv-delivery-box">
  <div class="pv-delivery-title"><i class="ti ti-truck-delivery"></i> Delivery information</div>
  <div id="pv-delivery-list"></div>
+ </div>
+
+ <!-- Actions -->
+ <div class="pv-action-row">
+ <button class="btn-add-cart" id="btn-add-to-cart-main"><i class="ti ti-shopping-cart-plus"></i> Add to Cart</button>
+ <button class="btn-buy" id="btn-buy-now"><i class="ti ti-bolt"></i> Shop Now</button>
+ <button class="btn-wish-lg"><i class="ti ti-heart"></i></button>
  </div>
  </div>
 </div>
@@ -1560,13 +1504,13 @@
   <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--footer" width="300" height="76">
  </a>
  <p class="footer-desc">Bangladesh's trusted online shopping platform. Huge selection, great prices, and fast delivery.</p>
- <div class="footer-social">
+ <div class="footer-social" id="footer-social">
  <a href="#" class="social-btn"><i class="ti ti-brand-facebook"></i></a>
  <a href="#" class="social-btn"><i class="ti ti-brand-instagram"></i></a>
  <a href="#" class="social-btn"><i class="ti ti-brand-youtube"></i></a>
  <a href="#" class="social-btn"><i class="ti ti-brand-whatsapp"></i></a>
  </div></div>
- <div><div class="footer-heading">Quick Links</div><ul class="footer-links">
+ <div><div class="footer-heading">Quick Links</div><ul class="footer-links" id="footer-quick-links">
  <li><a href="#" data-footer-page="home"><i class="ti ti-chevron-right"></i>Home</a></li>
  <li><a href="#" data-footer-page="home"><i class="ti ti-chevron-right"></i>All Categories</a></li>
  <li><a href="#" data-footer-page="cart"><i class="ti ti-chevron-right"></i>My Cart</a></li>
@@ -1574,7 +1518,7 @@
  <li><a href="/track" data-footer-page="track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
  <li><a href="#" data-footer-page="appointment"><i class="ti ti-chevron-right"></i>Book Appointment</a></li>
  </ul></div>
- <div><div class="footer-heading">Help</div><ul class="footer-links">
+ <div><div class="footer-heading">Help</div><ul class="footer-links" id="footer-help-links">
  <li><a href="/track" data-footer-page="track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
  <li><a href="#" data-footer-page="appointment"><i class="ti ti-chevron-right"></i>Book Appointment</a></li>
  <li><a href="#"><i class="ti ti-chevron-right"></i>Return Policy</a></li>
@@ -1596,9 +1540,6 @@
  <span style="font-size:11px; margin-right:4px;">Payment:</span>
  <span class="pay-badge"><i class="ti ti-credit-card"></i>bKash</span>
  <span class="pay-badge"><i class="ti ti-credit-card"></i>Nagad</span>
- <span class="pay-badge"><i class="ti ti-credit-card"></i>Visa</span>
- <span class="pay-badge"><i class="ti ti-credit-card"></i>MasterCard</span>
- <span class="pay-badge"><i class="ti ti-building-bank"></i>Bank</span>
  </div>
  </div>
  </div>
@@ -1616,11 +1557,12 @@
 <script src="/js/maintenance-view.js?v=3" defer></script>
 <script src="/js/seo.js?v=3" defer></script>
 <script src="/js/app.js?v=13" defer></script>
-<script src="/js/api.js?v=20" defer></script>
+<script src="/js/api.js?v=23" defer></script>
 <script src="/js/home-customer-reviews.js?v=4" defer></script>
 <script src="/js/appointment.js?v=2" defer></script>
 <script src="/js/face-analyzer.js?v=10" defer></script>
-<script src="/js/storefront-dynamic.js?v=9" defer></script>
+<script src="/js/footer-settings.js?v=2" defer></script>
+<script src="/js/storefront-dynamic.js?v=18" defer></script>
 <script src="/js/search.js?v=4" defer></script>
 <script src="/js/account.js?v=8" defer></script>
 </body>

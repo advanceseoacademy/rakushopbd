@@ -38,30 +38,8 @@
     const name = settings.site_name || 'RakuShopBD';
     if (window.RakuSEO) window.RakuSEO.apply(window.RakuSEO.forHome());
     else document.title = `${name} — Best Online Shopping`;
-    const fd = document.querySelector('.footer-desc');
-    if (fd && settings.footer_desc) fd.textContent = settings.footer_desc;
-    else if (fd && settings.site_tagline) fd.textContent = settings.site_tagline;
 
-    const phone = document.getElementById('footer-phone');
-    if (phone && settings.contact_phone) {
-      phone.href = `tel:${settings.contact_phone.replace(/\s/g, '')}`;
-      phone.innerHTML = `<i class="ti ti-phone"></i>${escapeHtml(settings.contact_phone)}`;
-    }
-    const email = document.getElementById('footer-email');
-    if (email && settings.contact_email) {
-      email.href = `mailto:${settings.contact_email}`;
-      email.innerHTML = `<i class="ti ti-mail"></i>${escapeHtml(settings.contact_email)}`;
-    }
-    const addr = document.getElementById('footer-address');
-    if (addr && settings.contact_address) {
-      addr.innerHTML = `<i class="ti ti-map-pin"></i>${escapeHtml(settings.contact_address)}`;
-    }
-    const hours = document.getElementById('footer-hours');
-    if (hours && settings.store_hours) {
-      hours.innerHTML = `<i class="ti ti-clock"></i>${escapeHtml(settings.store_hours)}`;
-    }
-    const copy = document.getElementById('footer-copyright');
-    if (copy) copy.textContent = `© ${new Date().getFullYear()} ${name} — All rights reserved`;
+    if (window._rakuApplyFooterSettings) window._rakuApplyFooterSettings(settings);
 
     const freeMin = settings.free_delivery_min || '500';
     const trust = [
@@ -139,15 +117,42 @@
 
   let categoriesShowAll = false;
 
+  function syncCategoryAutoScroll(isMobile, itemCount) {
+    const stop = window._rakuStopHomeScrollAuto;
+    const start = window._rakuInitHomeScrollAuto;
+    if (!stop || !start) return;
+
+    if (!isMobile || categoriesShowAll || itemCount < 2) {
+      stop('home-category-track');
+      return;
+    }
+
+    const bootAuto = (attempt) => {
+      const track = document.getElementById('home-category-track');
+      if (!track) return;
+      const canScroll = track.scrollWidth > track.clientWidth + 4;
+      if (canScroll || attempt >= 10) {
+        start('home-category-track', 3400);
+        return;
+      }
+      requestAnimationFrame(() => bootAuto(attempt + 1));
+    };
+
+    requestAnimationFrame(() => bootAuto(0));
+  }
+
   function renderCategoryGridHome(categories, opts = {}) {
-    const grid = document.querySelector('#categories .category-grid');
-    if (!grid) return;
+    const track = document.getElementById('home-category-track');
+    const wrap = document.querySelector('#categories .category-scroll-wrap');
+    if (!track) return;
     const list = categories || window._rakuCategories || [];
     if (opts.showAll != null) categoriesShowAll = Boolean(opts.showAll);
-    const show = categoriesShowAll ? list : list.slice(0, 6);
+    const mobileScroll = window.matchMedia('(max-width: 768px)').matches;
+    const show = categoriesShowAll ? list : mobileScroll ? list : list.slice(0, 6);
 
-    grid.classList.toggle('category-grid--all', categoriesShowAll);
-    grid.innerHTML = show.length
+    track.classList.toggle('category-grid--all', categoriesShowAll);
+    if (wrap) wrap.classList.toggle('category-scroll-wrap--home', !categoriesShowAll);
+    track.innerHTML = show.length
       ? show
           .map((c, i) => {
             const pal = palette(i);
@@ -159,15 +164,17 @@
       </a>`;
           })
           .join('')
-      : '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);padding:24px;">No categories yet.</p>';
+      : '<p class="category-scroll-empty">No categories yet.</p>';
 
-    grid.querySelectorAll('.cat-card').forEach((card) => {
+    track.querySelectorAll('.cat-card').forEach((card) => {
       card.addEventListener('click', (e) => {
         e.preventDefault();
         const slug = card.dataset.catSlug;
         if (window.openCategory) window.openCategory(slug);
       });
     });
+
+    syncCategoryAutoScroll(mobileScroll, show.length);
 
     const titleEl = document.getElementById('categories-section-title');
     if (titleEl) {
@@ -192,6 +199,19 @@
     }
   }
 
+  if (!window._rakuCatResizeBound) {
+    window._rakuCatResizeBound = true;
+    let catResizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(catResizeTimer);
+      catResizeTimer = setTimeout(() => {
+        if (window._rakuCategories?.length) {
+          renderCategoryGridHome(window._rakuCategories);
+        }
+      }, 150);
+    });
+  }
+
   window._rakuShowAllCategories = function () {
     categoriesShowAll = true;
     renderCategoryGridHome(window._rakuCategories, { showAll: true });
@@ -200,6 +220,12 @@
 
   function bindCategoryLink(link, onNavigate) {
     link.addEventListener('click', (e) => {
+      if (window.RAKU_STANDALONE) {
+        const href = link.getAttribute('href');
+        if (href && href !== '#') window.location.href = href;
+        if (typeof onNavigate === 'function') onNavigate();
+        return;
+      }
       e.preventDefault();
       const slug = link.dataset.navSlug;
       if (slug && window.openCategory) window.openCategory(slug);
@@ -220,6 +246,11 @@
     inner.innerHTML = html;
     inner.querySelectorAll('.cat-link').forEach((link) => {
       link.addEventListener('click', (e) => {
+        if (window.RAKU_STANDALONE) {
+          const href = link.getAttribute('href');
+          if (href && href !== '#') window.location.href = href;
+          return;
+        }
         e.preventDefault();
         inner.querySelectorAll('.cat-link').forEach((l) => l.classList.remove('active'));
         link.classList.add('active');
@@ -306,6 +337,7 @@
       });
     });
   }
+  window._rakuBindFooterLinks = bindFooterLinks;
 
   window._rakuRenderSuccessOrder = function (result) {
     const box = document.getElementById('success-order-summary');
@@ -323,6 +355,16 @@
       orderBox.innerHTML = `<i class="ti ti-receipt"></i> Order ID: #${escapeHtml(result.orderNumber)}`;
     }
   };
+
+  function productShortDescription(p) {
+    const short = String(p.short_description || '').trim();
+    if (short) return short;
+    const desc = String(p.description_bn || '').trim();
+    if (!desc) return '';
+    const first = desc.split(/\n+/).find((line) => line.trim()) || desc;
+    const line = first.trim();
+    return line.length > 240 ? `${line.slice(0, 237)}…` : line;
+  }
 
   window._rakuEnhanceProductPageSync = function (p) {
     if (!p) return;
@@ -345,6 +387,13 @@
     if (rev) rev.textContent = `(${Number(p.review_count) || 0} Reviews)`;
     const sold = document.querySelector('#page-product .pv-sold');
     if (sold) sold.style.display = 'none';
+
+    const shortDesc = document.getElementById('pv-short-desc');
+    if (shortDesc) {
+      const text = productShortDescription(p);
+      shortDesc.textContent = text;
+      shortDesc.style.display = text ? '' : 'none';
+    }
 
     const discBadge = document.querySelector('#page-product .pv-discount-badge');
     if (discBadge) {
@@ -374,7 +423,10 @@
     }
 
     const sku = document.getElementById('pv-sku');
-    if (sku) sku.textContent = (p.slug || `SKU-${p.id}`).toUpperCase();
+    if (sku) {
+      const val = String(p.sku || '').trim();
+      sku.textContent = val || `SKU-${p.id}`;
+    }
 
     const desc = document.getElementById('tab-desc-content');
     if (desc) {
@@ -400,9 +452,6 @@
         <tr><td>Price</td><td>${fmt(p.price)}${p.old_price ? ` (was ${fmt(p.old_price)})` : ''}</td></tr>
       </table>`;
     }
-
-    const thumbRow = document.querySelector('#page-product .thumb-row');
-    if (thumbRow) thumbRow.style.display = 'none';
   };
 
   window._rakuEnhanceProductPageRelated = async function (p) {

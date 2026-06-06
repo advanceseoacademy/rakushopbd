@@ -192,8 +192,14 @@
   async function syncCartBadge() {
     try {
       const data = await apiFetch('/cart');
-      if (data.ok && window._rakuSetCartCount) {
+      if (!data.ok) return;
+      if (window._rakuSetCartCount) {
         window._rakuSetCartCount(data.count);
+      } else {
+        document.querySelectorAll('.cart-badge').forEach((b) => {
+          b.textContent = data.count;
+          b.hidden = !data.count;
+        });
       }
     } catch (_) {}
   }
@@ -203,7 +209,14 @@
       const data = await apiFetch('/wishlist');
       if (!data.ok) return;
       wishlistIds = new Set(data.ids || []);
-      if (window._rakuSetWishCount) window._rakuSetWishCount(data.count);
+      if (window._rakuSetWishCount) {
+        window._rakuSetWishCount(data.count);
+      } else {
+        document.querySelectorAll('.wish-badge').forEach((b) => {
+          b.textContent = data.count;
+          b.hidden = !data.count;
+        });
+      }
       applyWishlistUI();
     } catch (_) {}
   }
@@ -654,10 +667,86 @@
   }
 
   window.openCategory = openCategory;
+  window.openProduct = openProduct;
   window.renderCart = renderCart;
   window.renderCheckout = renderCheckout;
   window.productCardHtml = productCardHtml;
   window.bindProductGridEvents = bindProductGridEvents;
+
+  function productGalleryUrls(p) {
+    const gallery = Array.isArray(p?.gallery_urls) ? p.gallery_urls.filter(Boolean) : [];
+    if (p?.image_url) {
+      if (!gallery.length) return [p.image_url];
+      if (!gallery.includes(p.image_url)) return [p.image_url, ...gallery];
+    }
+    return gallery;
+  }
+
+  function setMainProductPhoto(mainEl, url, alt, bgColor, icon, iconColor) {
+    if (!mainEl) return;
+    if (bgColor) mainEl.style.background = bgColor;
+    let imgEl = mainEl.querySelector('img.product-photo');
+    if (url) {
+      mainEl.querySelectorAll(':scope > i').forEach((i) => i.remove());
+      if (!imgEl) {
+        imgEl = document.createElement('img');
+        imgEl.className = 'product-photo';
+        imgEl.style.cssText = 'width:100%;height:100%;object-fit:contain;';
+        imgEl.loading = 'eager';
+        imgEl.decoding = 'async';
+        mainEl.appendChild(imgEl);
+      }
+      if (imgEl.src !== url) imgEl.src = url;
+      imgEl.alt = (alt || 'Product').trim();
+    } else {
+      if (imgEl) imgEl.remove();
+      let mainIcon = mainEl.querySelector(':scope > i');
+      if (!mainIcon) {
+        mainIcon = document.createElement('i');
+        mainEl.appendChild(mainIcon);
+      }
+      mainIcon.className = icon || 'ti ti-package';
+      mainIcon.style.color = iconColor || '#2d8a2d';
+    }
+  }
+
+  function paintProductGallery(p) {
+    const urls = productGalleryUrls(p);
+    const mainImg = document.querySelector('#page-product .main-product-img');
+    const thumbRow = document.querySelector('#page-product .thumb-row');
+    const alt = (p.image_alt || p.name_bn || 'Product').trim();
+
+    if (!urls.length) {
+      setMainProductPhoto(mainImg, null, alt, p.bg_color, p.icon, p.icon_color);
+      if (thumbRow) thumbRow.style.display = 'none';
+      return;
+    }
+
+    setMainProductPhoto(mainImg, urls[0], alt, p.bg_color, p.icon, p.icon_color);
+
+    if (!thumbRow) return;
+    if (urls.length <= 1) {
+      thumbRow.style.display = 'none';
+      return;
+    }
+
+    thumbRow.style.display = '';
+    thumbRow.innerHTML = urls
+      .map(
+        (url, i) =>
+          `<div class="thumb-img${i === 0 ? ' active' : ''}" data-url="${encodeURIComponent(url)}" style="background:${p.bg_color || '#f5f5f5'};"><img src="${url.replace(/"/g, '&quot;')}" alt="" loading="lazy"></div>`
+      )
+      .join('');
+
+    thumbRow.querySelectorAll('.thumb-img').forEach((thumb) => {
+      thumb.onclick = () => {
+        thumbRow.querySelectorAll('.thumb-img').forEach((t) => t.classList.remove('active'));
+        thumb.classList.add('active');
+        const url = decodeURIComponent(thumb.dataset.url || '');
+        setMainProductPhoto(mainImg, url, alt, p.bg_color, p.icon, p.icon_color);
+      };
+    });
+  }
 
   function paintProductCore(p) {
     if (!p) return;
@@ -676,40 +765,7 @@
     const catEl = document.querySelector('#page-product .pv-cat');
     if (catEl) catEl.textContent = `${p.category_name || ''} › ${p.name_bn || ''}`.replace(/^ › /, '');
 
-    const mainImg = document.querySelector('.main-product-img');
-    if (mainImg) {
-      mainImg.style.background = p.bg_color;
-      let imgEl = mainImg.querySelector('img.product-photo');
-      if (p.image_url) {
-        if (!imgEl) {
-          imgEl = document.createElement('img');
-          imgEl.className = 'product-photo';
-          imgEl.style.cssText = 'width:100%;height:100%;object-fit:contain;';
-          imgEl.loading = 'eager';
-          imgEl.decoding = 'async';
-          mainImg.innerHTML = '';
-          mainImg.appendChild(imgEl);
-        }
-        if (imgEl.src !== p.image_url) imgEl.src = p.image_url;
-        imgEl.alt = (p.image_alt || p.name_bn || 'Product').trim();
-      } else {
-        if (imgEl) imgEl.remove();
-        let mainIcon = mainImg.querySelector('i');
-        if (!mainIcon) {
-          mainIcon = document.createElement('i');
-          mainImg.appendChild(mainIcon);
-        }
-        mainIcon.className = p.icon;
-        mainIcon.style.color = p.icon_color;
-      }
-    }
-
-    document.querySelectorAll('.thumb-img').forEach((t, i) => {
-      if (i === 0) {
-        t.style.background = p.bg_color;
-        t.classList.add('active');
-      }
-    });
+    paintProductGallery(p);
   }
 
   function bindProductActions(p) {
@@ -1517,6 +1573,33 @@
   }
 
   function hookNavigation() {
+    if (window.RAKU_STANDALONE) {
+      document.querySelectorAll('.site-logo-link').forEach((l) => {
+        if (l._rakuStandaloneBound) return;
+        l._rakuStandaloneBound = true;
+        l.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.location.href = '/';
+        });
+      });
+      const navWish = document.getElementById('nav-wishlist-btn');
+      if (navWish && !navWish._rakuBound) {
+        navWish._rakuBound = true;
+        navWish.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.location.href = '/wishlist';
+        });
+      }
+      const navAcc = document.getElementById('nav-account-btn');
+      if (navAcc && !navAcc._rakuBound) {
+        navAcc._rakuBound = true;
+        navAcc.addEventListener('click', (e) => {
+          e.preventDefault();
+          window.location.href = '/account';
+        });
+      }
+    }
+
     const btnCartCheckout = document.getElementById('btn-cart-checkout');
     if (btnCartCheckout && !btnCartCheckout._rakuBound) {
       btnCartCheckout._rakuBound = true;
@@ -1728,7 +1811,10 @@
     const track = document.getElementById(trackId);
     if (!track) return;
 
-    const cards = () => track.querySelectorAll('.product-card, .home-review-card');
+    const isCategoryTrack = trackId === 'home-category-track';
+    if (isCategoryTrack && !window.matchMedia('(max-width: 768px)').matches) return;
+
+    const cards = () => track.querySelectorAll('.product-card, .home-review-card, .cat-card');
     if (cards().length < 2) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -1788,6 +1874,7 @@
   }
 
   window._rakuInitHomeScrollAuto = initHomeScrollAuto;
+  window._rakuStopHomeScrollAuto = stopHomeScrollAuto;
 
   function paintHomeScrollTrack(trackId, list) {
     const track = document.getElementById(trackId);
@@ -1908,10 +1995,19 @@
     bindCouponApply();
     hookNavigation();
 
-    const boot = window.__RAKU_BOOTSTRAP;
     const pathParts = (location.pathname || '/').split('/').filter(Boolean);
     const isHome = pathParts.length === 0;
 
+    // Reload-safe: paint /product, /category, etc. before bootstrap (uses __RAKU_PRELOAD_PRODUCT)
+    if (!isHome && window._rakuRestoreRoute) {
+      try {
+        await window._rakuRestoreRoute();
+      } catch (err) {
+        console.warn('Route restore failed', err);
+      }
+    }
+
+    const boot = window.__RAKU_BOOTSTRAP;
     let blocked = false;
     if (boot) blocked = await applyBootstrap(boot);
     else {
@@ -1943,12 +2039,6 @@
       requestIdleCallback(() => prefillReviewName(), { timeout: 3000 });
     } else {
       setTimeout(() => prefillReviewName(), 200);
-    }
-
-    if (window._rakuRestoreRoute) {
-      await window._rakuRestoreRoute();
-    } else if (!isHome && window.showPage) {
-      window.showPage('home');
     }
   });
 })();

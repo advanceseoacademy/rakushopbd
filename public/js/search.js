@@ -48,6 +48,17 @@
       .replace(/"/g, '&quot;');
   }
 
+  function suggestThumbHtml(p) {
+    if (p.image_url) {
+      const alt = escapeHtml((p.image_alt || p.name_bn || 'Product').trim());
+      const src = escapeHtml(p.image_url);
+      return `<img src="${src}" alt="${alt}" loading="lazy" decoding="async">`;
+    }
+    const raw = String(p.icon || 'ti-package').trim();
+    const iconClass = raw.startsWith('ti ') ? raw : raw.startsWith('ti-') ? `ti ${raw}` : raw;
+    return `<i class="${escapeHtml(iconClass)}" style="color:${escapeHtml(p.icon_color || '#2d8a2d')};"></i>`;
+  }
+
   function renderSuggest(list, state) {
     if (state === 'loading') {
       dropdown.innerHTML = '<div class="search-suggest-loading"><i class="ti ti-loader"></i> Searching...</div>';
@@ -67,7 +78,7 @@
         ${list
           .map(
             (p, i) => `<div class="search-suggest-item" role="option" tabindex="0" data-index="${i}" data-id="${p.id}">
-          <div class="search-suggest-thumb" style="background:${escapeHtml(p.bg_color)};"><i class="${escapeHtml(p.icon)}" style="color:${escapeHtml(p.icon_color)};"></i></div>
+          <div class="search-suggest-thumb" style="background:${escapeHtml(p.image_url ? '#fff' : p.bg_color)};">${suggestThumbHtml(p)}</div>
           <div class="search-suggest-info">
             <span class="search-suggest-name">${escapeHtml(p.name_bn)}</span>
             <span class="search-suggest-cat">${escapeHtml(p.category_name)}</span>

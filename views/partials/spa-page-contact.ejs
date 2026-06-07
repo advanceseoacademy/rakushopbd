@@ -1,0 +1,94 @@
+<div class="page-wrap">
+  <div class="page-hero">
+    <h1 class="page-title"><i class="ti ti-headset"></i> Contact Us</h1>
+    <p class="page-sub">Questions about an order, product or delivery? Send us a message — our team will get back to you as soon as possible.</p>
+  </div>
+
+  <div class="contact-grid">
+    <div class="page-card">
+      <div class="page-card-head">
+        <h2 class="page-title" style="font-size:18px;"><i class="ti ti-mail"></i> Send a message</h2>
+      </div>
+      <div class="page-card-body">
+        <div class="contact-alert" id="contact-alert" hidden></div>
+        <form class="contact-form" id="contact-form" novalidate>
+          <div class="contact-row">
+            <div class="contact-field">
+              <label for="contact-name">Full name *</label>
+              <input type="text" id="contact-name" name="name" required autocomplete="name" placeholder="Your name">
+            </div>
+            <div class="contact-field">
+              <label for="contact-phone">Mobile number *</label>
+              <input type="tel" id="contact-phone" name="phone" required autocomplete="tel" placeholder="01XXXXXXXXX">
+            </div>
+          </div>
+          <div class="contact-field">
+            <label for="contact-email">Email (optional)</label>
+            <input type="email" id="contact-email" name="email" autocomplete="email" placeholder="you@email.com">
+          </div>
+          <div class="contact-field">
+            <label for="contact-subject">Subject *</label>
+            <select id="contact-subject" name="subject" required>
+              <option value="">Select a topic</option>
+              <option value="order">Order status</option>
+              <option value="delivery">Delivery issue</option>
+              <option value="product">Product question</option>
+              <option value="return">Return / exchange</option>
+              <option value="payment">Payment</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="contact-field">
+            <label for="contact-message">Message *</label>
+            <textarea id="contact-message" name="message" required placeholder="Write your message here…"></textarea>
+          </div>
+          <button type="submit" class="contact-submit" id="contact-submit"><i class="ti ti-send"></i> Send message</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="page-card">
+      <div class="page-card-head">
+        <h2 class="page-title" style="font-size:18px;"><i class="ti ti-map-pin"></i> Get in touch</h2>
+      </div>
+      <div class="page-card-body">
+        <div class="contact-info-list">
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="ti ti-phone"></i></div>
+            <div class="contact-info-body">
+              <b>Phone</b>
+              <a href="tel:+8801700000000" id="contact-info-phone">+880 1700-000000</a>
+            </div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="ti ti-mail"></i></div>
+            <div class="contact-info-body">
+              <b>Email</b>
+              <a href="mailto:support@rakushopbd.com" id="contact-info-email">support@RakuShopBD.com</a>
+            </div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="ti ti-map-pin"></i></div>
+            <div class="contact-info-body">
+              <b>Address</b>
+              <span id="contact-info-address">Dhaka, Bangladesh</span>
+            </div>
+          </div>
+          <div class="contact-info-item">
+            <div class="contact-info-icon"><i class="ti ti-clock"></i></div>
+            <div class="contact-info-body">
+              <b>Store hours</b>
+              <span id="contact-info-hours">9 AM — 10 PM</span>
+            </div>
+          </div>
+        </div>
+        <div class="contact-quick-links">
+          <a href="/track"><i class="ti ti-truck-delivery"></i> Track order</a>
+          <a href="/faq"><i class="ti ti-help-circle"></i> FAQ</a>
+          <a href="/appointment"><i class="ti ti-calendar"></i> Book appointment</a>
+          <a href="#" id="contact-whatsapp" target="_blank" rel="noopener noreferrer" hidden><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -57,10 +57,13 @@
   let categories = [];
   let coupons = [];
   let banners = [];
+  let faqs = [];
   let currentOrderId = null;
 
   let ordersPage = 1;
   let appointmentsPage = 1;
+  let contactsPage = 1;
+  let subscribersPage = 1;
   let productsPage = 1;
   let authRedirectHold = false;
 
@@ -68,14 +71,17 @@
     dashboard: 'Dashboard',
     orders: 'Orders',
     appointments: 'Appointments',
+    contacts: 'Contact Messages',
     products: 'Products',
     'product-form': 'Add Product',
     customers: 'Customers',
     analytics: 'Analytics',
     categories: 'Categories',
+    faq: 'FAQ',
     coupons: 'Coupons',
     reviews: 'Reviews',
     banners: 'Banners',
+    marketing: 'Marketing',
     settings: 'Settings',
   };
   const validPages = new Set(Object.keys(pageTitles));
@@ -198,14 +204,17 @@
     if (page === 'dashboard') loadDashboard();
     if (page === 'orders') loadOrders();
     if (page === 'appointments') loadAppointments();
+    if (page === 'contacts') loadContactMessages();
     if (page === 'products') loadProducts();
     if (page === 'customers') loadCustomers();
     if (page === 'categories') loadCategories();
+    if (page === 'faq') loadFaqs();
     if (page === 'coupons') loadCoupons();
     if (page === 'settings') loadSettings();
     if (page === 'analytics') loadAnalytics();
     if (page === 'reviews') loadReviews();
     if (page === 'banners') loadBanners();
+    if (page === 'marketing') loadMarketing();
   }
 
   window.adminSwitchPage = switchPage;
@@ -532,6 +541,12 @@
     api('/appointments?limit=1&page=1').then((d) => {
       if (d.ok && d.pendingCount != null) setAppointmentBadge(d.pendingCount);
     });
+    api('/contact-messages?limit=1&page=1').then((d) => {
+      if (d.ok && d.newCount != null) setContactBadge(d.newCount);
+    });
+    api('/phone-subscribers?limit=1&page=1').then((d) => {
+      if (d.ok && d.newCount != null) setSubscriberBadge(d.newCount);
+    });
 
     document.getElementById('dash-orders-tbody').innerHTML = data.recentOrders
       .map(
@@ -545,8 +560,8 @@
 
     const actEl = document.getElementById('dash-activity');
     if (actEl) {
-      const icons = { order: 'ti-shopping-bag', user: 'ti-user-plus', alert: 'ti-alert-triangle', review: 'ti-star' };
-      const colors = { order: '#e8f5e8', user: '#dcfce7', alert: '#fee2e2', review: '#fef3c7' };
+      const icons = { order: 'ti-shopping-bag', user: 'ti-user-plus', alert: 'ti-alert-triangle', review: 'ti-star', contact: 'ti-mail' };
+      const colors = { order: '#e8f5e8', user: '#dcfce7', alert: '#fee2e2', review: '#fef3c7', contact: '#dbeafe' };
       const acts = data.activity || [];
       actEl.innerHTML = acts.length
         ? acts
@@ -699,6 +714,36 @@
     el.style.display = c > 0 ? '' : 'none';
   }
 
+  function setContactBadge(n) {
+    const el = document.getElementById('contact-badge');
+    if (!el) return;
+    const c = Number(n) || 0;
+    el.textContent = c > 99 ? '99+' : String(c);
+    el.style.display = c > 0 ? '' : 'none';
+  }
+
+  function setSubscriberBadge(n) {
+    const el = document.getElementById('subscriber-badge');
+    if (!el) return;
+    const c = Number(n) || 0;
+    el.textContent = c > 99 ? '99+' : String(c);
+    el.style.display = c > 0 ? '' : 'none';
+  }
+
+  function escHtml(s) {
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function contactStatusBadge(status) {
+    const labels = { new: 'New', read: 'Read', replied: 'Replied', archived: 'Archived' };
+    const cls = { new: 'amber', read: 'blue', replied: 'green', archived: 'gray' };
+    return `<span class="badge badge-${cls[status] || 'gray'}">${labels[status] || escHtml(status)}</span>`;
+  }
+
   async function loadAppointments(page) {
     if (page) appointmentsPage = page;
     const status = document.getElementById('appointments-status-filter')?.value || 'all';
@@ -713,11 +758,17 @@
     if (!tbody) return;
     tbody.innerHTML = (data.appointments || [])
       .map(
-        (a) => `<tr>
+        (a) => {
+          const notesRaw = String(a.notes || '').trim();
+          const notesHtml = notesRaw
+            ? `<span title="${escHtml(notesRaw)}">${escHtml(notesRaw.length > 100 ? notesRaw.slice(0, 100) + '…' : notesRaw)}</span>`
+            : '<span style="color:#94a3b8">—</span>';
+          return `<tr>
         <td><b>${a.referenceNumber}</b><br><small style="color:#94a3b8">${fmtDate(a.createdAt)}</small></td>
-        <td>${a.customerName}<br><small style="color:#94a3b8">${a.customerPhone}</small></td>
-        <td>${a.serviceLabel || a.serviceType}</td>
-        <td>${a.appointmentDate}<br><small>${a.appointmentTime}</small></td>
+        <td>${escHtml(a.customerName)}<br><small style="color:#94a3b8">${escHtml(a.customerPhone)}</small>${a.customerEmail ? `<br><small style="color:#94a3b8">${escHtml(a.customerEmail)}</small>` : ''}</td>
+        <td>${escHtml(a.serviceLabel || a.serviceType)}</td>
+        <td>${a.appointmentDate}<br><small>${escHtml(a.appointmentTime)}</small></td>
+        <td style="max-width:220px;white-space:normal;line-height:1.45;">${notesHtml}</td>
         <td>${statusBadgeHtml(a.status)}</td>
         <td>
           <select class="tbl-select" style="min-width:110px" data-appt-status="${a.id}">
@@ -726,7 +777,8 @@
             <option value="completed" ${a.status === 'completed' ? 'selected' : ''}>Completed</option>
             <option value="cancelled" ${a.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
           </select>
-        </td></tr>`
+        </td></tr>`;
+        }
       )
       .join('');
 
@@ -758,6 +810,351 @@
 
   document.getElementById('appointments-status-filter')?.addEventListener('change', () => loadAppointments(1));
   document.getElementById('appointments-search')?.addEventListener('input', debounce(() => loadAppointments(1), 400));
+
+  async function loadContactMessages(page) {
+    if (page) contactsPage = page;
+    const status = document.getElementById('contacts-status-filter')?.value || 'all';
+    const search = document.getElementById('contacts-search')?.value.trim() || '';
+    const q = new URLSearchParams({ page: contactsPage, limit: 20 });
+    if (status !== 'all') q.set('status', status);
+    if (search) q.set('search', search);
+    const data = await api('/contact-messages?' + q.toString());
+    if (!data.ok) return;
+    if (data.newCount != null) setContactBadge(data.newCount);
+    const tbody = document.getElementById('contacts-tbody');
+    if (!tbody) return;
+
+    if (!data.messages?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">No contact messages yet.</td></tr>';
+    } else {
+      tbody.innerHTML = data.messages
+        .map((m) => {
+          const preview = escHtml(String(m.message || '').slice(0, 120));
+          const full = escHtml(m.message || '');
+          const emailLine = m.customerEmail
+            ? `<br><small style="color:#94a3b8">${escHtml(m.customerEmail)}</small>`
+            : '';
+          return `<tr>
+        <td><b>${escHtml(m.customerName)}</b><br><small style="color:#94a3b8">${escHtml(m.customerPhone)}</small>${emailLine}</td>
+        <td>${escHtml(m.subjectLabel || m.subject)}</td>
+        <td><span title="${full}">${preview}${String(m.message || '').length > 120 ? '…' : ''}</span></td>
+        <td>${fmtDate(m.createdAt)}</td>
+        <td>${contactStatusBadge(m.status)}</td></tr>`;
+        })
+        .join('');
+    }
+
+    const pag = data.pagination;
+    const pagEl = document.getElementById('contacts-pagination');
+    if (pagEl && pag) {
+      pagEl.innerHTML = `<span>Page ${pag.page} of ${pag.pages} (${pag.total} messages)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} data-cp="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page >= pag.pages ? 'disabled' : ''} data-cp="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-cp]').forEach((b) => {
+        b.onclick = () => loadContactMessages(contactsPage + Number(b.dataset.cp));
+      });
+    }
+  }
+
+  document.getElementById('contacts-status-filter')?.addEventListener('change', () => loadContactMessages(1));
+  document.getElementById('contacts-search')?.addEventListener('input', debounce(() => loadContactMessages(1), 400));
+
+  function subscriberStatusBadge(status) {
+    const map = {
+      new: ['badge-amber', 'New'],
+      read: ['badge-blue', 'Read'],
+      archived: ['badge-gray', 'Archived'],
+    };
+    const [cls, lbl] = map[status] || ['badge-gray', status];
+    return `<span class="badge ${cls}">${lbl}</span>`;
+  }
+
+  function setMktImagePreview(wrapId, imgId, url) {
+    const wrap = document.getElementById(wrapId);
+    const img = document.getElementById(imgId);
+    if (!wrap || !img) return;
+    const src = String(url || '').trim();
+    if (src) {
+      img.src = src;
+      wrap.hidden = false;
+    } else {
+      img.removeAttribute('src');
+      wrap.hidden = true;
+    }
+  }
+
+  function collectMarketingSettings() {
+    return {
+      marketing_enabled: document.getElementById('mkt-enabled')?.checked ? '1' : '0',
+      marketing_card1_title: document.getElementById('mkt1-title')?.value.trim() || '',
+      marketing_card1_desc: document.getElementById('mkt1-desc')?.value.trim() || '',
+      marketing_card1_btn: document.getElementById('mkt1-btn')?.value.trim() || '',
+      marketing_card1_link: document.getElementById('mkt1-link')?.value.trim() || '#products',
+      marketing_card1_image: document.getElementById('mkt1-image')?.value.trim() || '',
+      marketing_card1_bg: document.getElementById('mkt1-bg')?.value.trim() || '#fce4ec',
+      marketing_card2_title: document.getElementById('mkt2-title')?.value.trim() || '',
+      marketing_card2_desc: document.getElementById('mkt2-desc')?.value.trim() || '',
+      marketing_card2_btn: document.getElementById('mkt2-btn')?.value.trim() || 'Submit',
+      marketing_card2_image: document.getElementById('mkt2-image')?.value.trim() || '',
+      marketing_card2_bg: document.getElementById('mkt2-bg')?.value.trim() || '#ede7f6',
+    };
+  }
+
+  async function loadMarketing() {
+    const data = await api('/settings');
+    if (data.ok && data.settings) {
+      const s = data.settings;
+      const en = document.getElementById('mkt-enabled');
+      if (en) en.checked = s.marketing_enabled !== '0';
+      document.getElementById('mkt1-title').value = s.marketing_card1_title || '';
+      document.getElementById('mkt1-desc').value = s.marketing_card1_desc || '';
+      document.getElementById('mkt1-btn').value = s.marketing_card1_btn || '';
+      document.getElementById('mkt1-link').value = s.marketing_card1_link || '';
+      document.getElementById('mkt1-image').value = s.marketing_card1_image || '';
+      document.getElementById('mkt1-bg').value = s.marketing_card1_bg || '#fce4ec';
+      setMktImagePreview('mkt1-preview-wrap', 'mkt1-preview', s.marketing_card1_image);
+      const mkt1File = document.getElementById('mkt1-file');
+      if (mkt1File) mkt1File.value = '';
+      document.getElementById('mkt2-title').value = s.marketing_card2_title || '';
+      document.getElementById('mkt2-desc').value = s.marketing_card2_desc || '';
+      document.getElementById('mkt2-btn').value = s.marketing_card2_btn || 'Submit';
+      document.getElementById('mkt2-image').value = s.marketing_card2_image || '';
+      document.getElementById('mkt2-bg').value = s.marketing_card2_bg || '#ede7f6';
+      setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', s.marketing_card2_image);
+      const mkt2File = document.getElementById('mkt2-file');
+      if (mkt2File) mkt2File.value = '';
+    }
+    await loadPhoneSubscribers();
+  }
+
+  document.getElementById('mkt1-file')?.addEventListener('change', (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setMktImagePreview('mkt1-preview-wrap', 'mkt1-preview', URL.createObjectURL(f));
+  });
+  document.getElementById('mkt2-file')?.addEventListener('change', (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', URL.createObjectURL(f));
+  });
+  document.getElementById('mkt1-image')?.addEventListener('input', (e) => {
+    setMktImagePreview('mkt1-preview-wrap', 'mkt1-preview', e.target.value);
+  });
+  document.getElementById('mkt2-image')?.addEventListener('input', (e) => {
+    setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', e.target.value);
+  });
+
+  document.getElementById('marketing-save-btn')?.addEventListener('click', async () => {
+    let img1 = document.getElementById('mkt1-image')?.value.trim() || '';
+    let img2 = document.getElementById('mkt2-image')?.value.trim() || '';
+    const f1 = document.getElementById('mkt1-file')?.files?.[0];
+    const f2 = document.getElementById('mkt2-file')?.files?.[0];
+
+    if (f1) {
+      const up = await uploadProductImage(f1);
+      if (!up.ok) {
+        toast(up.error || 'Left card image upload failed', 'error');
+        return;
+      }
+      img1 = up.url;
+      document.getElementById('mkt1-image').value = img1;
+      document.getElementById('mkt1-file').value = '';
+      setMktImagePreview('mkt1-preview-wrap', 'mkt1-preview', img1);
+    }
+    if (f2) {
+      const up = await uploadProductImage(f2);
+      if (!up.ok) {
+        toast(up.error || 'Right card image upload failed', 'error');
+        return;
+      }
+      img2 = up.url;
+      document.getElementById('mkt2-image').value = img2;
+      document.getElementById('mkt2-file').value = '';
+      setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', img2);
+    }
+
+    const settings = collectMarketingSettings();
+    settings.marketing_card1_image = img1;
+    settings.marketing_card2_image = img2;
+
+    const data = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
+    });
+    if (data.ok) toast('Marketing cards saved');
+    else toast(data.error || 'Save failed', 'error');
+  });
+
+  async function loadPhoneSubscribers(page) {
+    if (page) subscribersPage = page;
+    const status = document.getElementById('subscribers-status-filter')?.value || 'all';
+    const search = document.getElementById('subscribers-search')?.value.trim() || '';
+    const q = new URLSearchParams({ page: subscribersPage, limit: 20 });
+    if (status !== 'all') q.set('status', status);
+    if (search) q.set('search', search);
+    const data = await api('/phone-subscribers?' + q.toString());
+    if (!data.ok) return;
+    if (data.newCount != null) setSubscriberBadge(data.newCount);
+
+    const tbody = document.getElementById('subscribers-tbody');
+    if (!tbody) return;
+
+    if (!data.subscribers?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">No phone subscribers yet.</td></tr>';
+    } else {
+      tbody.innerHTML = data.subscribers
+        .map(
+          (row) => `<tr>
+        <td><b>${escHtml(row.customerPhone)}</b></td>
+        <td>${escHtml(row.source || 'marketing')}</td>
+        <td>${fmtDate(row.createdAt)}</td>
+        <td>${subscriberStatusBadge(row.status)}</td>
+        <td>
+          <select class="tbl-select subscriber-status" data-id="${row.id}" style="min-width:100px;padding:4px 8px;font-size:12px;">
+            <option value="new" ${row.status === 'new' ? 'selected' : ''}>New</option>
+            <option value="read" ${row.status === 'read' ? 'selected' : ''}>Read</option>
+            <option value="archived" ${row.status === 'archived' ? 'selected' : ''}>Archived</option>
+          </select>
+          <button type="button" class="btn btn-danger btn-xs subscriber-del" data-id="${row.id}">Delete</button>
+        </td></tr>`
+        )
+        .join('');
+
+      tbody.querySelectorAll('.subscriber-status').forEach((sel) => {
+        sel.onchange = async () => {
+          const r = await api('/phone-subscribers/' + sel.dataset.id, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: sel.value }),
+          });
+          if (r.ok) loadPhoneSubscribers(subscribersPage);
+          else toast(r.error || 'Update failed', 'error');
+        };
+      });
+      tbody.querySelectorAll('.subscriber-del').forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm('Delete this subscriber?')) return;
+          const r = await api('/phone-subscribers/' + btn.dataset.id, { method: 'DELETE' });
+          if (r.ok) {
+            toast('Deleted');
+            loadPhoneSubscribers(subscribersPage);
+          } else toast(r.error || 'Delete failed', 'error');
+        };
+      });
+    }
+
+    const pag = data.pagination;
+    const pagEl = document.getElementById('subscribers-pagination');
+    if (pagEl && pag) {
+      pagEl.innerHTML = `<span>Page ${pag.page} of ${pag.pages} (${pag.total} subscribers)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} data-sp="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page >= pag.pages ? 'disabled' : ''} data-sp="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-sp]').forEach((b) => {
+        b.onclick = () => loadPhoneSubscribers(subscribersPage + Number(b.dataset.sp));
+      });
+    }
+  }
+
+  document.getElementById('subscribers-status-filter')?.addEventListener('change', () => loadPhoneSubscribers(1));
+  document.getElementById('subscribers-search')?.addEventListener('input', debounce(() => loadPhoneSubscribers(1), 400));
+
+  function openFaqModal() {
+    document.getElementById('faq-modal')?.classList.add('open');
+  }
+
+  function closeFaqModal() {
+    document.getElementById('faq-modal')?.classList.remove('open');
+  }
+
+  function resetFaqForm() {
+    document.getElementById('faq-form-title').textContent = 'Add FAQ';
+    document.getElementById('faq-id').value = '';
+    document.getElementById('faq-question').value = '';
+    document.getElementById('faq-answer').value = '';
+    document.getElementById('faq-sort').value = '0';
+    document.getElementById('faq-active').checked = true;
+  }
+
+  async function loadFaqs() {
+    const data = await api('/faqs');
+    if (!data.ok) return;
+    faqs = data.faqs || [];
+    const tbody = document.getElementById('faq-tbody');
+    if (!tbody) return;
+    if (!faqs.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">No FAQs yet. Click “Add FAQ” to create one.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = faqs
+      .map((f) => {
+        const preview = escHtml(String(f.answer || '').replace(/<[^>]+>/g, ' ').slice(0, 80));
+        return `<tr>
+        <td>${f.sortOrder ?? 0}</td>
+        <td><b>${escHtml(f.question)}</b></td>
+        <td>${preview}${String(f.answer || '').length > 80 ? '…' : ''}</td>
+        <td><span class="badge badge-${f.isActive ? 'green' : 'gray'}">${f.isActive ? 'Active' : 'Hidden'}</span></td>
+        <td>
+          <button type="button" class="btn btn-outline btn-xs" data-edit-faq="${f.id}">Edit</button>
+          <button type="button" class="btn btn-danger btn-xs" data-del-faq="${f.id}">Delete</button>
+        </td></tr>`;
+      })
+      .join('');
+
+    tbody.querySelectorAll('[data-edit-faq]').forEach((btn) => {
+      btn.onclick = () => {
+        const f = faqs.find((x) => x.id === Number(btn.dataset.editFaq));
+        if (!f) return;
+        document.getElementById('faq-form-title').textContent = 'Edit FAQ';
+        document.getElementById('faq-id').value = f.id;
+        document.getElementById('faq-question').value = f.question || '';
+        document.getElementById('faq-answer').value = f.answer || '';
+        document.getElementById('faq-sort').value = f.sortOrder ?? 0;
+        document.getElementById('faq-active').checked = !!f.isActive;
+        openFaqModal();
+      };
+    });
+
+    tbody.querySelectorAll('[data-del-faq]').forEach((btn) => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this FAQ?')) return;
+        const res = await api('/faqs/' + btn.dataset.delFaq, { method: 'DELETE' });
+        if (res.ok) {
+          toast('FAQ deleted');
+          loadFaqs();
+        } else toast(res.error || 'Delete failed', 'error');
+      };
+    });
+  }
+
+  document.getElementById('add-faq-btn')?.addEventListener('click', () => {
+    resetFaqForm();
+    openFaqModal();
+  });
+  document.getElementById('faq-modal-close')?.addEventListener('click', closeFaqModal);
+  document.getElementById('faq-modal-cancel')?.addEventListener('click', closeFaqModal);
+  document.getElementById('faq-reset')?.addEventListener('click', resetFaqForm);
+
+  document.getElementById('faq-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('faq-id').value;
+    const body = {
+      question: document.getElementById('faq-question').value.trim(),
+      answer: document.getElementById('faq-answer').value.trim(),
+      sortOrder: Number(document.getElementById('faq-sort').value) || 0,
+      isActive: document.getElementById('faq-active').checked,
+    };
+    const res = id
+      ? await api('/faqs/' + id, { method: 'PUT', body: JSON.stringify(body) })
+      : await api('/faqs', { method: 'POST', body: JSON.stringify(body) });
+    if (res.ok) {
+      toast(id ? 'FAQ updated' : 'FAQ created');
+      closeFaqModal();
+      resetFaqForm();
+      loadFaqs();
+    } else toast(res.error || 'Save failed', 'error');
+  });
 
   async function openOrderModal(id) {
     currentOrderId = id;
@@ -826,7 +1223,7 @@
         const src = pfGalleryDisplayUrl(item).replace(/"/g, '&quot;');
         const pending = item.file ? '<span class="pf-gallery-pending">New</span>' : '';
         return `<div class="pf-gallery-item" data-idx="${i}">
-          <img src="${src}" alt="">
+          <img src="${src}" alt="" width="108" height="108">
           <div class="pf-gallery-item-actions">
             ${pending}
             ${i === 0 ? '<span class="pf-gallery-main">Main</span>' : `<button type="button" class="btn btn-outline btn-sm pf-gallery-main-btn" data-idx="${i}">Set main</button>`}
@@ -910,7 +1307,7 @@
     if (p.image_url) {
       const alt = String(p.name_bn || 'Product').replace(/"/g, '&quot;');
       const src = String(p.image_url).replace(/"/g, '&quot;');
-      return `<div class="prod-thumb prod-thumb--img" style="background:${bg};"><img src="${src}" alt="${alt}" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon}" style="color:${color};" hidden></i></div>`;
+      return `<div class="prod-thumb prod-thumb--img" style="background:${bg};"><img src="${src}" alt="${alt}" width="42" height="42" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon}" style="color:${color};" hidden></i></div>`;
     }
     return `<div class="prod-thumb" style="background:${bg};"><i class="${icon}" style="color:${color};"></i></div>`;
   }

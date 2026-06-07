@@ -576,13 +576,15 @@
     if (window.requestIdleCallback) requestIdleCallback(runSession, { timeout: 2500 });
     else setTimeout(runSession, 250);
 
-    const navBtn = document.getElementById('nav-account-btn');
-    if (navBtn) {
+    ['nav-account-btn', 'nav-account-btn-desktop'].forEach((id) => {
+      const navBtn = document.getElementById(id);
+      if (!navBtn || navBtn._rakuAccountBound) return;
+      navBtn._rakuAccountBound = true;
       navBtn.addEventListener('click', (e) => {
         e.preventDefault();
         window.openAccount();
       });
-    }
+    });
 
     document.querySelectorAll('.acc-breadcrumb .link[data-page="home"]').forEach((el) => {
       el.addEventListener('click', () => {

@@ -9,6 +9,9 @@ const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
 const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
+const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
+const { ensurePhoneSubscribersTable } = require('../lib/ensurePhoneSubscribersTable');
+const { ensureFaqsTable } = require('../lib/ensureFaqsTable');
 const {
   SERVICE_TYPES,
   TIME_SLOTS,
@@ -525,9 +528,17 @@ router.post('/cart/add', async (req, res) => {
     const addQty = Math.max(1, Math.min(99, Number(qty) || 1));
 
     if (existing) {
-      existing.qty = Math.min(99, existing.qty + addQty);
-    } else {
-      cart.push({
+      return res.json({
+        ok: false,
+        alreadyInCart: true,
+        error: 'This product is already in your cart',
+        cart,
+        count: cart.reduce((s, i) => s + i.qty, 0),
+        totals: await cartTotalsResponse(cart, req),
+      });
+    }
+
+    cart.push({
         productId: p.id,
         name: p.name_bn,
         category: p.category_name,
@@ -539,7 +550,6 @@ router.post('/cart/add', async (req, res) => {
         bgColor: p.bg_color,
         imageUrl: p.image_url || null,
       });
-    }
 
     res.json({
       ok: true,
@@ -835,5 +845,97 @@ router.get('/appointments/lookup', async (req, res) => {
 });
 
 router.use('/face-analyzer', require('./faceAnalyzer'));
+
+router.get('/faqs', async (req, res) => {
+  try {
+    await ensureFaqsTable();
+    const { faqToPublic } = require('../lib/faqs');
+    const rows = await query(
+      'SELECT id, question, answer, sort_order FROM faqs WHERE is_active = 1 ORDER BY sort_order ASC, id ASC'
+    );
+    cachePublic(res, 120);
+    res.json({ ok: true, faqs: rows.map(faqToPublic) });
+  } catch (err) {
+    console.error('faqs GET', err);
+    res.status(500).json({ ok: false, error: 'Could not load FAQs' });
+  }
+});
+
+router.post('/contact', async (req, res) => {
+  try {
+    await ensureContactMessagesTable();
+    const customerName = String(req.body.name || '').trim().slice(0, 120);
+    const customerPhone = String(req.body.phone || '').replace(/\s/g, '').slice(0, 30);
+    const email = req.body.email ? String(req.body.email).trim().slice(0, 120) : null;
+    const subject = String(req.body.subject || '').trim().slice(0, 160);
+    const message = String(req.body.message || '').trim().slice(0, 2000);
+
+    if (!customerName) {
+      return res.status(400).json({ ok: false, error: 'Please enter your name' });
+    }
+    if (!/^01[3-9]\d{8}$/.test(customerPhone)) {
+      return res.status(400).json({ ok: false, error: 'Enter a valid Bangladesh mobile number (01XXXXXXXXX)' });
+    }
+    if (!subject) {
+      return res.status(400).json({ ok: false, error: 'Please select a subject' });
+    }
+    if (message.length < 10) {
+      return res.status(400).json({ ok: false, error: 'Please write a message (at least 10 characters)' });
+    }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ ok: false, error: 'Enter a valid email address' });
+    }
+
+    await query(
+      `INSERT INTO contact_messages (
+         customer_name, customer_phone, customer_email, subject, message, status
+       ) VALUES (?, ?, ?, ?, ?, 'new')${returningId()}`,
+      [customerName, customerPhone, email, subject, message]
+    );
+
+    res.json({
+      ok: true,
+      message: 'Thank you! Your message has been sent. We will contact you soon.',
+    });
+  } catch (err) {
+    console.error('contact POST', err);
+    res.status(500).json({ ok: false, error: 'Could not send message. Please try again.' });
+  }
+});
+
+router.post('/marketing/subscribe', async (req, res) => {
+  try {
+    await ensurePhoneSubscribersTable();
+    const customerPhone = String(req.body.phone || '').replace(/\s/g, '').slice(0, 30);
+    if (!/^01[3-9]\d{8}$/.test(customerPhone)) {
+      return res.status(400).json({ ok: false, error: 'Enter a valid Bangladesh mobile number (01XXXXXXXXX)' });
+    }
+
+    const existing = await query(
+      'SELECT id FROM phone_subscribers WHERE customer_phone = ? LIMIT 1',
+      [customerPhone]
+    );
+    if (existing.length) {
+      return res.json({
+        ok: true,
+        alreadySubscribed: true,
+        message: 'You are already subscribed. Thank you!',
+      });
+    }
+
+    await query(
+      `INSERT INTO phone_subscribers (customer_phone, source, status) VALUES (?, 'marketing', 'new')${returningId()}`,
+      [customerPhone]
+    );
+
+    res.json({
+      ok: true,
+      message: 'Thank you! We will send you updates and surprise offers soon.',
+    });
+  } catch (err) {
+    console.error('marketing subscribe POST', err);
+    res.status(500).json({ ok: false, error: 'Could not subscribe. Please try again.' });
+  }
+});
 
 module.exports = router;

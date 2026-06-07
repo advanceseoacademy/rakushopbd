@@ -18,9 +18,11 @@ document.addEventListener('DOMContentLoaded', function() {
     account: document.getElementById('page-account'),
     wishlist: document.getElementById('page-wishlist'),
     appointment: document.getElementById('page-appointment'),
+    faq: document.getElementById('page-faq'),
+    contact: document.getElementById('page-contact'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact'];
 
   // Show target route immediately (content fills via bootstrap / API)
   const initialRoute = (function parseInitial() {
@@ -40,6 +42,7 @@ document.addEventListener('DOMContentLoaded', function() {
   Object.entries(pages).forEach(([name, el]) => {
     if (el) el.style.display = name === initialRoute.page ? 'block' : 'none';
   });
+  updateHeaderNavActive(initialRoute.page);
 
   let routeRestoring = false;
 
@@ -71,6 +74,22 @@ document.addEventListener('DOMContentLoaded', function() {
     return { page: 'home' };
   }
 
+  function updateHeaderNavActive(pageName) {
+    const hrefMap = {
+      home: '/',
+      appointment: '/appointment',
+      faq: '/faq',
+      contact: '/contact',
+    };
+    const activeHref = hrefMap[pageName] || null;
+    document.querySelectorAll('.navbar-main-link').forEach((link) => {
+      link.classList.toggle('is-active', activeHref && link.getAttribute('href') === activeHref);
+    });
+    document.querySelectorAll('.mobile-cat-menu-extra .mobile-cat-link').forEach((link) => {
+      link.classList.toggle('active', activeHref && link.getAttribute('href') === activeHref);
+    });
+  }
+
   function showPage(name, opts) {
     if (typeof opts !== 'object' || opts === null) opts = {};
     Object.values(pages).forEach((p) => {
@@ -78,13 +97,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     if (pages[name]) pages[name].style.display = 'block';
     const catNav = document.getElementById('global-cat-nav');
-    if (catNav) {
-      catNav.style.display =
-        name === 'home' || name === 'category' || name === 'account' ? '' : 'none';
-    }
+    if (catNav) catNav.style.display = 'none';
     if (name === 'appointment' && window._rakuInitAppointmentPage) {
       window._rakuInitAppointmentPage();
     }
+    if (name === 'faq' && window._rakuInitFaqPage) {
+      window._rakuInitFaqPage();
+    }
+    if (name === 'contact' && window._rakuInitContactPage) {
+      window._rakuInitContactPage();
+    }
+    updateHeaderNavActive(name);
     const skipUrl = opts.skipHash || opts.skipUrl;
     if (!skipUrl) {
       const path = buildPath(name, opts);
@@ -126,6 +149,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window.openAccount();
       } else if (route.page === 'appointment' && window._rakuInitAppointmentPage) {
         window._rakuInitAppointmentPage();
+      } else if (route.page === 'faq' && window._rakuInitFaqPage) {
+        window._rakuInitFaqPage();
+      } else if (route.page === 'contact' && window._rakuInitContactPage) {
+        window._rakuInitContactPage();
       }
     } catch (err) {
       console.warn('Route restore failed', err);
@@ -198,13 +225,14 @@ document.addEventListener('DOMContentLoaded', function() {
   window.showPage = showPage;
   window._rakuRestoreRoute = restoreFromUrl;
   window._rakuSetCartCount = function (n) {
-    cartCount = n;
+    cartCount = Math.max(0, Number(n) || 0);
     updateBadges();
   };
   window._rakuSetWishCount = function (n) {
-    wishCount = n;
+    wishCount = Math.max(0, Number(n) || 0);
     updateBadges();
   };
+  updateBadges();
   window._rakuGetCartCount = function () {
     return cartCount;
   };
@@ -381,6 +409,89 @@ document.addEventListener('DOMContentLoaded', function() {
 
   window._rakuCloseMobileCatMenu = closeMobileCatMenu;
 
+  const catDropdown = document.getElementById('header-cat-dropdown');
+  const browseBtn = document.getElementById('nav-browse-cats-btn');
+
+  function closeCatDropdown() {
+    if (!catDropdown) return;
+    catDropdown.hidden = true;
+    if (browseBtn) browseBtn.setAttribute('aria-expanded', 'false');
+  }
+  window._rakuCloseCatDropdown = closeCatDropdown;
+
+  if (browseBtn && !browseBtn._rakuBound) {
+    browseBtn._rakuBound = true;
+    browseBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (window.matchMedia('(max-width: 768px)').matches) {
+        if (mobileCatMenu?.classList.contains('open')) closeMobileCatMenu();
+        else openMobileCatMenu();
+        return;
+      }
+      if (!catDropdown) return;
+      const willOpen = catDropdown.hidden;
+      catDropdown.hidden = !willOpen;
+      browseBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!catDropdown || catDropdown.hidden) return;
+    if (e.target.closest('.navbar-browse-wrap')) return;
+    closeCatDropdown();
+  });
+
+  document.querySelectorAll('.navbar-main-link[data-nav-page]').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const page = link.dataset.navPage;
+      const scrollId = link.dataset.navScroll;
+      if (window.showPage) window.showPage(page);
+      closeCatDropdown();
+      if (scrollId) {
+        requestAnimationFrame(() => {
+          document.getElementById(scrollId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+      }
+    });
+  });
+
+  document.querySelectorAll('.navbar-main-link.navbar-main-link--plain').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      const href = link.getAttribute('href');
+      if (!href || href === '#') return;
+      const spaRoutes = {
+        '/': 'home',
+        '/appointment': 'appointment',
+        '/faq': 'faq',
+        '/contact': 'contact',
+      };
+      if (spaRoutes[href] && window.showPage && !window.RAKU_STANDALONE) {
+        e.preventDefault();
+        showPage(spaRoutes[href]);
+        closeCatDropdown();
+      }
+    });
+  });
+
+  document.querySelectorAll('.mobile-cat-menu-extra .mobile-cat-link').forEach((link) => {
+    link.addEventListener('click', (e) => {
+      const href = link.getAttribute('href');
+      const spaRoutes = {
+        '/': 'home',
+        '/appointment': 'appointment',
+        '/faq': 'faq',
+        '/contact': 'contact',
+      };
+      if (spaRoutes[href] && window.showPage && !window.RAKU_STANDALONE) {
+        e.preventDefault();
+        closeMobileCatMenu();
+        showPage(spaRoutes[href]);
+      }
+    });
+  });
+
   if (mobileCatMenuBtn && !mobileCatMenuBtn._rakuBound) {
     mobileCatMenuBtn._rakuBound = true;
     mobileCatMenuBtn.addEventListener('click', (e) => {
@@ -393,6 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
   if (mobileCatMenuBackdrop) mobileCatMenuBackdrop.addEventListener('click', closeMobileCatMenu);
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && mobileCatMenu?.classList.contains('open')) closeMobileCatMenu();
+    if (e.key === 'Escape') closeCatDropdown();
   });
 
   document.dispatchEvent(new CustomEvent('raku:ready'));

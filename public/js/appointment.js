@@ -24,7 +24,8 @@
       const res = await fetch(API + '/appointments/meta');
       const data = await res.json();
       if (!data.ok) return;
-      serviceSel.innerHTML = (data.serviceTypes || [])
+      const types = (data.serviceTypes || []).filter((s) => s.value !== 'store_visit');
+      serviceSel.innerHTML = types
         .map((s) => `<option value="${escapeAttr(s.value)}">${escapeHtml(s.label)}</option>`)
         .join('');
       timeSel.innerHTML =
@@ -181,6 +182,10 @@
   }
 
   window._rakuInitAppointmentPage = initAppointmentPage;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (document.getElementById('appt-book-form')) initAppointmentPage();
+  });
 
   document.addEventListener('raku:ready', () => {
     if (/^\/appointment\/?$/.test(location.pathname)) initAppointmentPage();

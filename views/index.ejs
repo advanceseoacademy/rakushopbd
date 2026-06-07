@@ -12,16 +12,18 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/main.css?v=27">
+<link rel="stylesheet" href="/css/main.css?v=39">
 <link rel="stylesheet" href="/css/category.css?v=3">
 <link rel="stylesheet" href="/css/account.css?v=6">
 <link rel="stylesheet" href="/css/cart.css?v=3">
-<link rel="stylesheet" href="/css/checkout-modal.css?v=4">
+<link rel="stylesheet" href="/css/checkout-modal.css?v=9">
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
-<link rel="stylesheet" href="/css/responsive.css?v=13">
+<link rel="stylesheet" href="/css/responsive.css?v=19">
+<link rel="stylesheet" href="/css/home-marketing.css?v=4">
 <link rel="stylesheet" href="/css/appointment.css?v=2">
 <link rel="stylesheet" href="/css/face-analyzer.css?v=9">
+<link rel="stylesheet" href="/css/pages.css?v=2">
 </head>
 <body>
 <%- include('partials/storefront-header') %>
@@ -94,6 +96,36 @@
  <p class="home-scroll-loading">Loading products...</p>
  </div>
  </div>
+ </section>
+
+ <!-- Marketing cards (admin editable) -->
+ <section class="home-marketing" id="home-marketing" hidden>
+   <div class="home-marketing-grid">
+     <article class="home-marketing-card" id="marketing-card-1">
+       <div class="home-marketing-img" id="marketing-img-1"><i class="ti ti-photo"></i></div>
+       <div class="home-marketing-body">
+         <h3 class="home-marketing-title" id="marketing-title-1">Save More with Group Shopping!</h3>
+         <p class="home-marketing-desc" id="marketing-desc-1"></p>
+         <div class="home-marketing-actions">
+           <a class="home-marketing-btn" id="marketing-btn-1" href="#products">Start Group Shopping</a>
+         </div>
+       </div>
+     </article>
+     <article class="home-marketing-card" id="marketing-card-2">
+       <div class="home-marketing-img" id="marketing-img-2"><i class="ti ti-photo"></i></div>
+       <div class="home-marketing-body">
+         <h3 class="home-marketing-title" id="marketing-title-2">Get Surprise gift</h3>
+         <p class="home-marketing-desc" id="marketing-desc-2"></p>
+         <div class="home-marketing-actions">
+           <form class="home-marketing-form" id="marketing-subscribe-form">
+             <input type="tel" id="marketing-phone" name="phone" placeholder="Phone Number" inputmode="numeric" autocomplete="tel" maxlength="11" required>
+             <button type="submit" class="home-marketing-btn" id="marketing-btn-2">Submit</button>
+           </form>
+           <p class="home-marketing-msg" id="marketing-subscribe-msg" hidden></p>
+         </div>
+       </div>
+     </article>
+   </div>
  </section>
 
  <!-- New Arrivals -->
@@ -481,7 +513,7 @@
   <div class="appt-card">
    <div class="appt-head">
     <h1 class="appt-title"><i class="ti ti-calendar-plus"></i> Book an appointment</h1>
-    <p class="appt-sub">Choose a date and time for product advice, in-store visit, or support. We are open Saturday–Thursday (closed Friday).</p>
+    <p class="appt-sub">Choose a date and time for product advice or support. We are open Saturday–Thursday (closed Friday).</p>
    </div>
    <div class="appt-body">
     <div class="appt-tabs" role="tablist">
@@ -561,6 +593,19 @@
 </div>
 </div><!-- /page-appointment -->
 
+<!-- ===================================================
+ FAQ PAGE
+=================================================== -->
+<div id="page-faq" style="display:none;">
+<%- include('partials/spa-page-faq') %>
+</div><!-- /page-faq -->
+
+<!-- ===================================================
+ CONTACT PAGE
+=================================================== -->
+<div id="page-contact" style="display:none;">
+<%- include('partials/spa-page-contact') %>
+</div><!-- /page-contact -->
 
 <!-- ===================================================
  CART PAGE
@@ -1497,53 +1542,7 @@
  </div>
 </div>
 
-<footer class="footer" id="global-footer">
- <div class="footer-inner">
- <div class="footer-grid">
- <div><a href="#" class="footer-logo site-logo-link" aria-label="RakuShopBD — Home">
-  <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--footer" width="300" height="76">
- </a>
- <p class="footer-desc">Bangladesh's trusted online shopping platform. Huge selection, great prices, and fast delivery.</p>
- <div class="footer-social" id="footer-social">
- <a href="#" class="social-btn"><i class="ti ti-brand-facebook"></i></a>
- <a href="#" class="social-btn"><i class="ti ti-brand-instagram"></i></a>
- <a href="#" class="social-btn"><i class="ti ti-brand-youtube"></i></a>
- <a href="#" class="social-btn"><i class="ti ti-brand-whatsapp"></i></a>
- </div></div>
- <div><div class="footer-heading">Quick Links</div><ul class="footer-links" id="footer-quick-links">
- <li><a href="#" data-footer-page="home"><i class="ti ti-chevron-right"></i>Home</a></li>
- <li><a href="#" data-footer-page="home"><i class="ti ti-chevron-right"></i>All Categories</a></li>
- <li><a href="#" data-footer-page="cart"><i class="ti ti-chevron-right"></i>My Cart</a></li>
- <li><a href="#" data-footer-page="account"><i class="ti ti-chevron-right"></i>My Account</a></li>
- <li><a href="/track" data-footer-page="track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
- <li><a href="#" data-footer-page="appointment"><i class="ti ti-chevron-right"></i>Book Appointment</a></li>
- </ul></div>
- <div><div class="footer-heading">Help</div><ul class="footer-links" id="footer-help-links">
- <li><a href="/track" data-footer-page="track"><i class="ti ti-chevron-right"></i>Track Order</a></li>
- <li><a href="#" data-footer-page="appointment"><i class="ti ti-chevron-right"></i>Book Appointment</a></li>
- <li><a href="#"><i class="ti ti-chevron-right"></i>Return Policy</a></li>
- <li><a href="#"><i class="ti ti-chevron-right"></i>Shipping Info</a></li>
- <li><a href="#"><i class="ti ti-chevron-right"></i>FAQ</a></li>
- <li><a href="#" data-footer-page="appointment"><i class="ti ti-chevron-right"></i>Contact / Appointment</a></li>
- </ul></div>
- <div><div class="footer-heading">Contact</div><ul class="footer-links">
- <li><a href="#" id="footer-phone"><i class="ti ti-phone"></i>+880 1700-000000</a></li>
- <li><a href="#" id="footer-email"><i class="ti ti-mail"></i>support@RakuShopBD.com</a></li>
- <li><a href="#" id="footer-address"><i class="ti ti-map-pin"></i>Dhaka, Bangladesh</a></li>
- <li><a href="#" id="footer-hours"><i class="ti ti-clock"></i>9 AM — 10 PM</a></li>
- </ul></div>
- </div>
- <hr class="footer-divider">
- <div class="footer-bottom">
- <span id="footer-copyright">© 2026 RakuShopBD — All rights reserved</span>
- <div class="footer-payment">
- <span style="font-size:11px; margin-right:4px;">Payment:</span>
- <span class="pay-badge"><i class="ti ti-credit-card"></i>bKash</span>
- <span class="pay-badge"><i class="ti ti-credit-card"></i>Nagad</span>
- </div>
- </div>
- </div>
-</footer>
+<%- include('partials/storefront-footer', { spaFooter: true }) %>
 <% if (typeof bootstrapJson !== 'undefined' && bootstrapJson) { %>
 <script>window.__RAKU_BOOTSTRAP=<%- bootstrapJson %>;</script>
 <% } %>
@@ -1556,14 +1555,18 @@
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/maintenance-view.js?v=3" defer></script>
 <script src="/js/seo.js?v=3" defer></script>
-<script src="/js/app.js?v=13" defer></script>
-<script src="/js/api.js?v=23" defer></script>
+<script src="/js/app.js?v=17" defer></script>
+<script src="/js/header-scroll.js?v=2" defer></script>
+<script src="/js/api.js?v=27" defer></script>
 <script src="/js/home-customer-reviews.js?v=4" defer></script>
-<script src="/js/appointment.js?v=2" defer></script>
+<script src="/js/home-marketing.js?v=2" defer></script>
+<script src="/js/appointment.js?v=3" defer></script>
 <script src="/js/face-analyzer.js?v=10" defer></script>
-<script src="/js/footer-settings.js?v=2" defer></script>
-<script src="/js/storefront-dynamic.js?v=18" defer></script>
-<script src="/js/search.js?v=4" defer></script>
-<script src="/js/account.js?v=8" defer></script>
+<script src="/js/footer-settings.js?v=4" defer></script>
+<script src="/js/storefront-dynamic.js?v=20" defer></script>
+<script src="/js/search.js?v=5" defer></script>
+<script src="/js/account.js?v=9" defer></script>
+<script src="/js/faq.js?v=3" defer></script>
+<script src="/js/contact.js?v=2" defer></script>
 </body>
 </html>

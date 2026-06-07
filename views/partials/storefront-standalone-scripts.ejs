@@ -1,0 +1,16 @@
+<% if (typeof bootstrapJson !== 'undefined' && bootstrapJson) { %>
+<script>window.__RAKU_BOOTSTRAP=<%- bootstrapJson %>;</script>
+<% } %>
+<script>window.RAKU_API_BASE='';window.RAKU_STANDALONE=true;window.RAKU_FOOTER_AUTOLOAD=true;</script>
+<script src="/js/maintenance-view.js?v=3" defer></script>
+<script src="/js/seo.js?v=3" defer></script>
+<script src="/js/standalone-shell.js?v=3" defer></script>
+<script src="/js/header-scroll.js?v=2" defer></script>
+<script src="/js/api.js?v=27" defer></script>
+<script src="/js/footer-settings.js?v=4" defer></script>
+<script src="/js/storefront-dynamic.js?v=20" defer></script>
+<script src="/js/search.js?v=5" defer></script>
+<script src="/js/account.js?v=9" defer></script>
+<% if (typeof pageScript !== 'undefined' && pageScript) { %>
+<script src="<%= pageScript %>" defer></script>
+<% } %>

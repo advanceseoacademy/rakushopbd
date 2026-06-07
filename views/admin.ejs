@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/admin.css">
+<link rel="stylesheet" href="/css/admin.css?v=3">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
 </head>
 <body>
@@ -46,14 +46,17 @@
     <div class="nav-item active" data-page="dashboard"><i class="ti ti-dashboard"></i> Dashboard</div>
     <div class="nav-item" data-page="orders"><i class="ti ti-shopping-bag"></i> Orders <span class="nav-badge" id="order-badge">0</span></div>
     <div class="nav-item" data-page="appointments"><i class="ti ti-calendar"></i> Appointments <span class="nav-badge nav-badge-amber" id="appointment-badge">0</span></div>
+    <div class="nav-item" data-page="contacts"><i class="ti ti-mail"></i> Contact Messages <span class="nav-badge nav-badge-amber" id="contact-badge">0</span></div>
     <div class="nav-item" data-page="products"><i class="ti ti-box"></i> Products</div>
     <div class="nav-item" data-page="customers"><i class="ti ti-users"></i> Customers</div>
     <div class="nav-item" data-page="analytics"><i class="ti ti-chart-bar"></i> Analytics</div>
     <div class="sidebar-section">Manage</div>
     <div class="nav-item" data-page="categories"><i class="ti ti-category"></i> Categories</div>
+    <div class="nav-item" data-page="faq"><i class="ti ti-help-circle"></i> FAQ</div>
     <div class="nav-item" data-page="coupons"><i class="ti ti-discount"></i> Coupons</div>
     <div class="nav-item" data-page="reviews"><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
     <div class="nav-item" data-page="banners"><i class="ti ti-photo"></i> Banners</div>
+    <div class="nav-item" data-page="marketing"><i class="ti ti-speakerphone"></i> Marketing <span class="nav-badge nav-badge-amber" id="subscriber-badge">0</span></div>
     <div class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Settings</div>
     <div class="sidebar-footer">
       <div class="sidebar-user">
@@ -145,7 +148,7 @@
           <div class="table-header">
             <h3>Customer Appointments</h3>
             <div class="table-actions">
-              <input class="tbl-search" id="appointments-search" type="text" placeholder="Search ref, name, phone...">
+              <input class="tbl-search" id="appointments-search" type="text" placeholder="Search ref, name, phone, notes...">
               <select class="tbl-select" id="appointments-status-filter">
                 <option value="all">All status</option>
                 <option value="pending">Pending</option>
@@ -155,9 +158,30 @@
               </select>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Reference</th><th>Customer</th><th>Service</th><th>Date & time</th><th>Status</th><th>Action</th></tr></thead>
+          <table class="tbl"><thead><tr><th>Reference</th><th>Customer</th><th>Service</th><th>Date & time</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="appointments-tbody"></tbody></table>
           <div class="pagination-bar" id="appointments-pagination"></div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-contacts">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Contact form messages</h3>
+            <div class="table-actions">
+              <input class="tbl-search" id="contacts-search" type="text" placeholder="Search name, phone, subject, message...">
+              <select class="tbl-select" id="contacts-status-filter">
+                <option value="all">All status</option>
+                <option value="new">New</option>
+                <option value="read">Read</option>
+                <option value="replied">Replied</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr><th>Customer</th><th>Subject</th><th>Message</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody id="contacts-tbody"></tbody></table>
+          <div class="pagination-bar" id="contacts-pagination"></div>
         </div>
       </div>
 
@@ -284,6 +308,19 @@
         </div>
       </div>
 
+      <div class="adm-section" id="sec-faq">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>FAQ — Frequently Asked Questions</h3>
+            <div class="table-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="add-faq-btn"><i class="ti ti-plus"></i> Add FAQ</button>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr><th>Order</th><th>Question</th><th>Answer preview</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="faq-tbody"></tbody></table>
+        </div>
+      </div>
+
       <div class="adm-section" id="sec-reviews">
         <div class="table-wrap" style="margin:0;">
           <div class="table-header">
@@ -321,6 +358,72 @@
           </div>
           <table class="tbl"><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min order</th><th>Used</th><th>Expires</th><th>Actions</th></tr></thead>
           <tbody id="coupons-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-marketing">
+        <div class="grid-2" style="margin-bottom:20px;">
+          <div class="card">
+            <div class="card-title">Left marketing card</div>
+            <form id="marketing-card1-form">
+              <div class="form-group"><label class="form-label">Heading</label><input class="form-input" id="mkt1-title"></div>
+              <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="mkt1-desc" rows="4"></textarea></div>
+              <div class="form-2col">
+                <div class="form-group"><label class="form-label">Button text</label><input class="form-input" id="mkt1-btn"></div>
+                <div class="form-group"><label class="form-label">Button link</label><input class="form-input" id="mkt1-link" placeholder="#products or /appointment"></div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Image</label>
+                <input class="form-input" id="mkt1-image" placeholder="/uploads/... or https://...">
+                <input class="form-input" type="file" id="mkt1-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
+                <div id="mkt1-preview-wrap" hidden style="margin-top:8px;">
+                  <img id="mkt1-preview" alt="Preview" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">
+                </div>
+              </div>
+              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt1-bg" placeholder="#fce4ec"></div>
+            </form>
+          </div>
+          <div class="card">
+            <div class="card-title">Right marketing card (phone subscribe)</div>
+            <form id="marketing-card2-form">
+              <div class="form-group"><label class="form-label">Heading</label><input class="form-input" id="mkt2-title"></div>
+              <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="mkt2-desc" rows="4"></textarea></div>
+              <div class="form-group"><label class="form-label">Submit button text</label><input class="form-input" id="mkt2-btn" placeholder="Submit"></div>
+              <div class="form-group">
+                <label class="form-label">Image</label>
+                <input class="form-input" id="mkt2-image" placeholder="/uploads/... or https://...">
+                <input class="form-input" type="file" id="mkt2-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
+                <div id="mkt2-preview-wrap" hidden style="margin-top:8px;">
+                  <img id="mkt2-preview" alt="Preview" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">
+                </div>
+              </div>
+              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt2-bg" placeholder="#ede7f6"></div>
+            </form>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:20px;">
+          <div class="settings-row" style="margin-bottom:14px;">
+            <div><div>Show marketing section on homepage</div><div class="settings-row-info">Below Best Selling Products</div></div>
+            <label class="toggle"><input type="checkbox" id="mkt-enabled" checked><span class="toggle-slider"></span></label>
+          </div>
+          <button type="button" class="btn btn-primary" id="marketing-save-btn"><i class="ti ti-device-floppy"></i> Save marketing cards</button>
+        </div>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Phone subscribers</h3>
+            <div class="table-actions">
+              <input class="tbl-search" id="subscribers-search" type="text" placeholder="Search phone number...">
+              <select class="tbl-select" id="subscribers-status-filter">
+                <option value="all">All status</option>
+                <option value="new">New</option>
+                <option value="read">Read</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr><th>Phone</th><th>Source</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="subscribers-tbody"></tbody></table>
+          <div class="pagination-bar" id="subscribers-pagination"></div>
         </div>
       </div>
 
@@ -495,6 +598,29 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="faq-modal" aria-hidden="true">
+  <div class="modal-box modal-box--wide">
+    <div class="modal-box-head">
+      <h3 id="faq-form-title">Add FAQ</h3>
+      <button type="button" class="modal-box-close" id="faq-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="faq-form">
+      <input type="hidden" id="faq-id" value="">
+      <div class="form-group"><label class="form-label">Question *</label><input class="form-input" id="faq-question" required maxlength="500" placeholder="How do I place an order?"></div>
+      <div class="form-group"><label class="form-label">Answer *</label><textarea class="form-input form-textarea" id="faq-answer" rows="6" required placeholder="Write the answer here…"></textarea><small class="form-hint">You can use basic HTML for links, e.g. <code>&lt;a href="/track"&gt;Track Order&lt;/a&gt;</code></small></div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Sort order</label><input class="form-input" id="faq-sort" type="number" min="0" value="0"></div>
+        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;"><label class="form-label"><input type="checkbox" id="faq-active" checked> Show on FAQ page</label></div>
+      </div>
+      <div class="modal-box-actions">
+        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save FAQ</button>
+        <button type="button" class="btn btn-outline" id="faq-reset">Clear</button>
+        <button type="button" class="btn btn-outline" id="faq-modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay" id="order-modal">
   <div class="modal-box">
     <h3>Order Details</h3>
@@ -512,6 +638,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin.js?v=28"></script>
+<script src="/js/admin.js?v=36"></script>
 </body>
 </html>

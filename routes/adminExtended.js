@@ -26,6 +26,14 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       const reviews = await query(
         `SELECT customer_name, created_at FROM product_reviews WHERE status = 'pending' ORDER BY created_at DESC LIMIT 3`
       ).catch(() => []);
+      let contacts = [];
+      try {
+        const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
+        await ensureContactMessagesTable();
+        contacts = await query(
+          `SELECT customer_name, subject, created_at FROM contact_messages WHERE status = 'new' ORDER BY created_at DESC LIMIT 3`
+        );
+      } catch (_) {}
 
       const items = [];
       orders.forEach((o) =>
@@ -43,6 +51,13 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       );
       reviews.forEach((r) =>
         items.push({ type: 'review', text: `Review pending from ${r.customer_name}`, time: r.created_at })
+      );
+      contacts.forEach((c) =>
+        items.push({
+          type: 'contact',
+          text: `Contact message from ${c.customer_name} — ${c.subject || 'general'}`,
+          time: c.created_at,
+        })
       );
       items.sort((a, b) => new Date(b.time) - new Date(a.time));
       res.json({ ok: true, activity: items.slice(0, 10) });
@@ -306,9 +321,9 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       if (search && String(search).trim()) {
         const q = `%${String(search).trim()}%`;
         where.push(
-          `(reference_number LIKE ? OR customer_name LIKE ? OR customer_phone LIKE ?)`
+          `(reference_number LIKE ? OR customer_name LIKE ? OR customer_phone LIKE ? OR notes LIKE ?)`
         );
-        params.push(q, q, q);
+        params.push(q, q, q, q);
       }
 
       const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
@@ -385,6 +400,244 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ ok: false, error: 'Could not delete appointment' });
+    }
+  });
+
+  // ——— FAQ ———
+  router.get('/faqs', requireAdmin, async (req, res) => {
+    try {
+      const { ensureFaqsTable } = require('../lib/ensureFaqsTable');
+      const { faqToPublic } = require('../lib/faqs');
+      await ensureFaqsTable();
+      const rows = await query('SELECT * FROM faqs ORDER BY sort_order ASC, id ASC');
+      res.json({ ok: true, faqs: rows.map(faqToPublic) });
+    } catch (err) {
+      console.error('admin faqs GET', err);
+      res.status(500).json({ ok: false, error: 'Could not load FAQs' });
+    }
+  });
+
+  router.post('/faqs', requireAdmin, async (req, res) => {
+    try {
+      const { ensureFaqsTable } = require('../lib/ensureFaqsTable');
+      await ensureFaqsTable();
+      const question = String(req.body?.question || '').trim().slice(0, 500);
+      const answer = String(req.body?.answer || '').trim().slice(0, 8000);
+      const sortOrder = Number(req.body?.sortOrder) || 0;
+      const isActive = req.body?.isActive !== false;
+      if (!question) return res.status(400).json({ ok: false, error: 'Question is required' });
+      if (!answer) return res.status(400).json({ ok: false, error: 'Answer is required' });
+      await query(
+        'INSERT INTO faqs (question, answer, sort_order, is_active) VALUES (?, ?, ?, ?)',
+        [question, answer, sortOrder, isActive ? 1 : 0]
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('admin faqs POST', err);
+      res.status(500).json({ ok: false, error: 'Could not create FAQ' });
+    }
+  });
+
+  router.put('/faqs/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureFaqsTable } = require('../lib/ensureFaqsTable');
+      await ensureFaqsTable();
+      const question = String(req.body?.question || '').trim().slice(0, 500);
+      const answer = String(req.body?.answer || '').trim().slice(0, 8000);
+      const sortOrder = Number(req.body?.sortOrder) || 0;
+      const isActive = req.body?.isActive !== false;
+      if (!question) return res.status(400).json({ ok: false, error: 'Question is required' });
+      if (!answer) return res.status(400).json({ ok: false, error: 'Answer is required' });
+      await query(
+        'UPDATE faqs SET question = ?, answer = ?, sort_order = ?, is_active = ? WHERE id = ?',
+        [question, answer, sortOrder, isActive ? 1 : 0, req.params.id]
+      );
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('admin faqs PUT', err);
+      res.status(500).json({ ok: false, error: 'Could not update FAQ' });
+    }
+  });
+
+  router.delete('/faqs/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureFaqsTable } = require('../lib/ensureFaqsTable');
+      await ensureFaqsTable();
+      await query('DELETE FROM faqs WHERE id = ?', [req.params.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not delete FAQ' });
+    }
+  });
+
+  // ——— Contact messages ———
+  router.get('/contact-messages', requireAdmin, async (req, res) => {
+    try {
+      const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
+      const { contactToPublic } = require('../lib/contactMessages');
+      await ensureContactMessagesTable();
+
+      const { page, limit, status, search } = req.query;
+      const { page: p, limit: l, offset } = paginate(page, limit);
+      const where = [];
+      const params = [];
+
+      if (status && status !== 'all') {
+        where.push('status = ?');
+        params.push(status);
+      }
+      if (search && String(search).trim()) {
+        const q = `%${String(search).trim()}%`;
+        where.push(
+          `(customer_name LIKE ? OR customer_phone LIKE ? OR customer_email LIKE ? OR subject LIKE ? OR message LIKE ?)`
+        );
+        params.push(q, q, q, q, q);
+      }
+
+      const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      const total = (
+        await query(`SELECT COUNT(*) AS c FROM contact_messages ${whereSql}`, params)
+      )[0];
+      const totalN = Number(total?.c ?? total?.count ?? Object.values(total || {})[0]) || 0;
+
+      const rows = await query(
+        `SELECT * FROM contact_messages ${whereSql}
+         ORDER BY created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, l, offset]
+      );
+
+      const newRows = await query(
+        `SELECT COUNT(*) AS c FROM contact_messages WHERE status = 'new'`
+      );
+      const newCount = Number(newRows[0]?.c ?? Object.values(newRows[0] || {})[0]) || 0;
+
+      res.json({
+        ok: true,
+        messages: rows.map(contactToPublic),
+        pagination: {
+          page: p,
+          limit: l,
+          total: totalN,
+          pages: Math.max(1, Math.ceil(totalN / l)),
+        },
+        newCount,
+      });
+    } catch (err) {
+      console.error('admin contact messages', err);
+      res.status(500).json({ ok: false, error: 'Could not load contact messages' });
+    }
+  });
+
+  router.patch('/contact-messages/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
+      await ensureContactMessagesTable();
+      const status = String(req.body?.status || '').trim();
+      const allowed = ['new', 'read', 'replied', 'archived'];
+      if (!allowed.includes(status)) {
+        return res.status(400).json({ ok: false, error: 'Invalid status' });
+      }
+      await query('UPDATE contact_messages SET status = ? WHERE id = ?', [status, req.params.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('admin contact message patch', err);
+      res.status(500).json({ ok: false, error: 'Could not update message' });
+    }
+  });
+
+  router.delete('/contact-messages/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
+      await ensureContactMessagesTable();
+      await query('DELETE FROM contact_messages WHERE id = ?', [req.params.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not delete message' });
+    }
+  });
+
+  // ——— Phone subscribers (marketing) ———
+  router.get('/phone-subscribers', requireAdmin, async (req, res) => {
+    try {
+      const { ensurePhoneSubscribersTable } = require('../lib/ensurePhoneSubscribersTable');
+      const { subscriberToPublic } = require('../lib/phoneSubscribers');
+      await ensurePhoneSubscribersTable();
+
+      const { page, limit, status, search } = req.query;
+      const { page: p, limit: l, offset } = paginate(page, limit);
+      const where = [];
+      const params = [];
+
+      if (status && status !== 'all') {
+        where.push('status = ?');
+        params.push(status);
+      }
+      if (search && String(search).trim()) {
+        const q = `%${String(search).trim()}%`;
+        where.push('customer_phone LIKE ?');
+        params.push(q);
+      }
+
+      const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      const total = (
+        await query(`SELECT COUNT(*) AS c FROM phone_subscribers ${whereSql}`, params)
+      )[0];
+      const totalN = Number(total?.c ?? total?.count ?? Object.values(total || {})[0]) || 0;
+
+      const rows = await query(
+        `SELECT * FROM phone_subscribers ${whereSql}
+         ORDER BY created_at DESC
+         LIMIT ? OFFSET ?`,
+        [...params, l, offset]
+      );
+
+      const newRows = await query(
+        `SELECT COUNT(*) AS c FROM phone_subscribers WHERE status = 'new'`
+      );
+      const newCount = Number(newRows[0]?.c ?? Object.values(newRows[0] || {})[0]) || 0;
+
+      res.json({
+        ok: true,
+        subscribers: rows.map(subscriberToPublic),
+        pagination: {
+          page: p,
+          limit: l,
+          total: totalN,
+          pages: Math.max(1, Math.ceil(totalN / l)),
+        },
+        newCount,
+      });
+    } catch (err) {
+      console.error('admin phone subscribers', err);
+      res.status(500).json({ ok: false, error: 'Could not load subscribers' });
+    }
+  });
+
+  router.patch('/phone-subscribers/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensurePhoneSubscribersTable } = require('../lib/ensurePhoneSubscribersTable');
+      await ensurePhoneSubscribersTable();
+      const status = String(req.body?.status || '').trim();
+      const allowed = ['new', 'read', 'archived'];
+      if (!allowed.includes(status)) {
+        return res.status(400).json({ ok: false, error: 'Invalid status' });
+      }
+      await query('UPDATE phone_subscribers SET status = ? WHERE id = ?', [status, req.params.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not update subscriber' });
+    }
+  });
+
+  router.delete('/phone-subscribers/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensurePhoneSubscribersTable } = require('../lib/ensurePhoneSubscribersTable');
+      await ensurePhoneSubscribersTable();
+      await query('DELETE FROM phone_subscribers WHERE id = ?', [req.params.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not delete subscriber' });
     }
   });
 

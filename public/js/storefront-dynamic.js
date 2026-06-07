@@ -41,6 +41,14 @@
 
     if (window._rakuApplyFooterSettings) window._rakuApplyFooterSettings(settings);
 
+    const supportLink = document.getElementById('header-support');
+    const supportPhone = document.getElementById('header-support-phone');
+    const phone = (settings.contact_phone || '').trim();
+    if (supportPhone && phone) {
+      supportPhone.textContent = phone;
+      if (supportLink) supportLink.href = `tel:${phone.replace(/\s/g, '')}`;
+    }
+
     const freeMin = settings.free_delivery_min || '500';
     const trust = [
       {
@@ -235,9 +243,10 @@
   }
 
   function renderGlobalCatNav(categories) {
-    const nav = document.getElementById('global-cat-nav');
-    if (!nav) return;
-    const inner = nav.querySelector('.cat-nav-inner') || nav;
+    const dropdown = document.getElementById('header-cat-dropdown-list');
+    const legacyNav = document.getElementById('global-cat-nav');
+    const inner = dropdown || legacyNav?.querySelector('.cat-nav-inner') || legacyNav;
+    if (!inner) return;
     let html = `<a href="/" class="cat-link" data-nav="home"><i class="ti ti-home"></i> Home</a>`;
     categories.forEach((c) => {
       html += `<a href="/category/${encodeURIComponent(c.slug)}" class="cat-link" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
@@ -246,6 +255,7 @@
     inner.innerHTML = html;
     inner.querySelectorAll('.cat-link').forEach((link) => {
       link.addEventListener('click', (e) => {
+        if (window._rakuCloseCatDropdown) window._rakuCloseCatDropdown();
         if (window.RAKU_STANDALONE) {
           const href = link.getAttribute('href');
           if (href && href !== '#') window.location.href = href;
@@ -321,9 +331,9 @@
     document.querySelectorAll('.footer-links a[data-footer-page]').forEach((a) => {
       a.addEventListener('click', (e) => {
         const page = a.dataset.footerPage;
-        if (page === 'track') {
+        if (page === 'track' || page === 'faq' || page === 'contact') {
           e.preventDefault();
-          window.location.href = '/track';
+          window.location.href = page === 'track' ? '/track' : page === 'faq' ? '/faq' : '/contact';
           return;
         }
         e.preventDefault();

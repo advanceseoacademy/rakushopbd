@@ -5,59 +5,89 @@
  <i class="ti ti-bolt"></i>
 </div>
 
-<!-- Navbar -->
-<nav class="navbar">
+<!-- Navbar — dual row (logo + search + support | categories + links + icons) -->
+<nav class="navbar navbar--dual">
  <div class="navbar-inner">
-  <div class="navbar-top">
-   <button type="button" class="navbar-hamburger" id="nav-mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-cat-menu">
-    <span class="navbar-hamburger-line"></span>
-    <span class="navbar-hamburger-line"></span>
-    <span class="navbar-hamburger-line"></span>
-   </button>
-   <a href="#" class="logo site-logo-link" aria-label="RakuShopBD — Home">
-    <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
+  <div class="navbar-row navbar-row--primary">
+   <div class="navbar-mobile-top">
+    <button type="button" class="navbar-hamburger" id="nav-mobile-menu-btn" aria-label="Open menu" aria-expanded="false" aria-controls="mobile-cat-menu">
+     <span class="navbar-hamburger-line"></span>
+     <span class="navbar-hamburger-line"></span>
+     <span class="navbar-hamburger-line"></span>
+    </button>
+    <a href="/" class="logo site-logo-link" aria-label="RakuShopBD — Home">
+     <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
+    </a>
+    <div class="nav-actions nav-actions--header nav-actions--mobile-bar">
+     <a href="#" class="header-icon-btn" id="nav-wishlist-btn" aria-label="Wishlist">
+      <i class="ti ti-heart"></i>
+      <span class="header-icon-badge wish-badge" hidden>0</span>
+     </a>
+     <a href="/cart" class="header-icon-btn nav-cart-btn" aria-label="Cart">
+      <i class="ti ti-shopping-cart"></i>
+      <span class="header-icon-badge cart-badge" hidden>0</span>
+     </a>
+     <a href="#" class="header-icon-btn" id="nav-account-btn" aria-label="Account">
+      <i class="ti ti-user"></i>
+      <span class="header-icon-label" id="nav-account-label">Account</span>
+     </a>
+    </div>
+   </div>
+   <div class="navbar-search-row">
+    <div class="search-wrap" id="header-search-wrap">
+     <div class="search-bar">
+      <select class="search-select" id="search-category" aria-label="Category">
+       <option value="all">All Products</option>
+      </select>
+      <div class="search-field">
+       <input class="search-input" id="search-input" type="search" autocomplete="off" placeholder="Search for product" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
+       <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
+       <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
+      </div>
+     </div>
+     <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
+    </div>
+   </div>
+   <a href="tel:+8801700000000" class="header-support" id="header-support">
+    <span class="header-support-icon" aria-hidden="true"><i class="ti ti-phone"></i></span>
+    <span class="header-support-body">
+     <span class="header-support-label">Support</span>
+     <strong class="header-support-phone" id="header-support-phone">+880 1700-000000</strong>
+    </span>
    </a>
-   <div class="nav-actions nav-actions--header">
-    <a href="#" class="header-icon-btn" id="nav-wishlist-btn" aria-label="Wishlist">
+  </div>
+  <div class="navbar-row navbar-row--secondary">
+   <div class="navbar-browse-wrap">
+    <button type="button" class="navbar-browse-btn" id="nav-browse-cats-btn" aria-expanded="false" aria-controls="header-cat-dropdown">
+     Browse Categories <i class="ti ti-chevron-down"></i>
+    </button>
+    <div class="header-cat-dropdown" id="header-cat-dropdown" hidden>
+     <div class="header-cat-dropdown-inner" id="header-cat-dropdown-list"></div>
+    </div>
+   </div>
+   <nav class="navbar-main-nav" id="navbar-main-nav" aria-label="Main navigation">
+    <a href="/" class="navbar-main-link navbar-main-link--plain">Home</a>
+    <a href="/appointment" class="navbar-main-link navbar-main-link--plain">Appointment</a>
+    <a href="/track" class="navbar-main-link navbar-main-link--plain">Track Order</a>
+    <a href="/faq" class="navbar-main-link navbar-main-link--plain">FAQ</a>
+    <a href="/contact" class="navbar-main-link navbar-main-link--plain">Contact</a>
+   </nav>
+   <div class="nav-actions nav-actions--header nav-actions--desktop-bar">
+    <a href="#" class="header-icon-btn" id="nav-wishlist-btn-desktop" aria-label="Wishlist">
      <i class="ti ti-heart"></i>
-     <span class="header-icon-badge wish-badge">0</span>
+     <span class="header-icon-badge wish-badge" hidden>0</span>
     </a>
     <a href="/cart" class="header-icon-btn nav-cart-btn" aria-label="Cart">
      <i class="ti ti-shopping-cart"></i>
-     <span class="header-icon-badge cart-badge">0</span>
+     <span class="header-icon-badge cart-badge" hidden>0</span>
     </a>
-    <a href="#" class="header-icon-btn" id="nav-account-btn" aria-label="Account">
+    <a href="#" class="header-icon-btn" id="nav-account-btn-desktop" aria-label="Account">
      <i class="ti ti-user"></i>
-     <span class="header-icon-label" id="nav-account-label">Account</span>
     </a>
-    <a href="/track" class="header-icon-btn nav-track-desktop" id="nav-track-btn" aria-label="Track order">
-     <i class="ti ti-truck-delivery"></i>
-     <span class="header-icon-label">Track</span>
-    </a>
-   </div>
-  </div>
-  <div class="navbar-search-row">
-   <div class="search-wrap" id="header-search-wrap">
-    <div class="search-bar">
-     <select class="search-select" id="search-category" aria-label="Category">
-      <option value="all">All Products</option>
-     </select>
-     <div class="search-field">
-      <input class="search-input" id="search-input" type="search" autocomplete="off" placeholder="Search for product" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
-      <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
-      <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
-     </div>
-    </div>
-    <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
    </div>
   </div>
  </div>
 </nav>
-
-<!-- Category Nav - shown on home (desktop) -->
-<div class="cat-nav" id="global-cat-nav">
- <div class="cat-nav-inner"></div>
-</div>
 
 <!-- Mobile category menu -->
 <div id="mobile-cat-menu" class="mobile-cat-menu" aria-hidden="true">
@@ -68,5 +98,12 @@
  <button type="button" class="mobile-cat-menu-close" id="mobile-cat-menu-close" aria-label="Close menu"><i class="ti ti-x"></i></button>
  </div>
  <nav class="mobile-cat-menu-list" id="mobile-cat-menu-list"></nav>
+ <nav class="mobile-cat-menu-extra" aria-label="Pages">
+  <a href="/" class="mobile-cat-link"><i class="ti ti-home"></i> Home</a>
+  <a href="/track" class="mobile-cat-link"><i class="ti ti-truck-delivery"></i> Track Order</a>
+  <a href="/appointment" class="mobile-cat-link"><i class="ti ti-calendar"></i> Appointment</a>
+  <a href="/faq" class="mobile-cat-link"><i class="ti ti-help-circle"></i> FAQ</a>
+  <a href="/contact" class="mobile-cat-link"><i class="ti ti-mail"></i> Contact</a>
+ </nav>
  </aside>
 </div>

@@ -24,6 +24,10 @@ const { ensureAppointmentsTable } = require('./lib/ensureAppointmentsTable');
 const { ensureProductSeoColumns } = require('./lib/ensureProductSeoColumns');
 const { ensureProductImagesTable } = require('./lib/ensureProductImagesTable');
 const { ensureFooterSettings } = require('./lib/ensureFooterSettings');
+const { ensureContactMessagesTable } = require('./lib/ensureContactMessagesTable');
+const { ensurePhoneSubscribersTable } = require('./lib/ensurePhoneSubscribersTable');
+const { ensureMarketingSettings } = require('./lib/ensureMarketingSettings');
+const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
 const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
 const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
 const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug } = require('./lib/seo');
@@ -95,9 +99,19 @@ app.use(
 );
 
 // Public utility pages — registered before maintenance gate (always reachable)
-app.get('/track', (req, res) => {
-  res.render('track');
-});
+app.get('/track', (req, res) => renderStandalonePage(req, res, 'track'));
+
+async function renderStandalonePage(req, res, viewName) {
+  try {
+    const bootstrap = await getStoreBootstrap(req);
+    const seo = await buildPageSeo(req, { bootstrap });
+    const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
+    res.render(viewName, { bootstrapJson, seo });
+  } catch (err) {
+    console.error(`renderStandalonePage ${viewName}`, err);
+    res.render(viewName, { bootstrapJson: null, seo: null });
+  }
+}
 
 app.use(renderMaintenanceIfNeeded);
 
@@ -183,7 +197,7 @@ app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact'],
   (req, res) => renderStorefront(req, res)
 );
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));
@@ -215,6 +229,10 @@ app.listen(PORT, () => {
   ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
   ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
   ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
+  ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
+  ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
+  ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
+  ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
   ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
 });

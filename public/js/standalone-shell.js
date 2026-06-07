@@ -1,5 +1,5 @@
 /**
- * Standalone pages (track, etc.) — same header as home without full SPA shell.
+ * Standalone pages (track, faq, contact, etc.) — shared header behavior.
  */
 (function () {
   if (!window.RAKU_STANDALONE) return;
@@ -43,14 +43,25 @@
     });
   }
 
+  function markHeaderNavActive() {
+    const path = location.pathname.replace(/\/$/, '') || '/';
+    const activeHref =
+      path === '/'
+        ? '/'
+        : ['/appointment', '/track', '/faq', '/contact'].includes(path)
+          ? path
+          : null;
+
+    document.querySelectorAll('.navbar-main-link').forEach((link) => {
+      link.classList.toggle('is-active', activeHref && link.getAttribute('href') === activeHref);
+    });
+    document.querySelectorAll('.mobile-cat-menu-extra .mobile-cat-link').forEach((link) => {
+      link.classList.toggle('active', activeHref && link.getAttribute('href') === activeHref);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
-    const catNav = document.getElementById('global-cat-nav');
-    if (catNav) catNav.style.display = 'none';
-
-    if (/^\/track\/?$/i.test(location.pathname)) {
-      document.getElementById('nav-track-btn')?.classList.add('is-active');
-    }
-
+    markHeaderNavActive();
     bindMobileCatMenu();
     document.dispatchEvent(new CustomEvent('raku:ready'));
   });

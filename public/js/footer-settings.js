@@ -10,29 +10,50 @@
       .replace(/"/g, '&quot;');
   }
 
+  function normalizeFooterLink(link) {
+    if (!link) return link;
+    const label = String(link.label || '').trim();
+    if (label === 'FAQ' && (!link.href || link.href === '#')) {
+      return { label: 'FAQ', href: '/faq' };
+    }
+    if (
+      (label === 'Contact Us' || label === 'Contact / Appointment') &&
+      (link.page === 'appointment' || !link.href || link.href === '#')
+    ) {
+      return { label: 'Contact Us', href: '/contact' };
+    }
+    if (link.page === 'faq') return { label: label || 'FAQ', href: '/faq' };
+    if (link.page === 'contact') return { label: label || 'Contact Us', href: '/contact' };
+    return link;
+  }
+
   function parseFooterLinks(raw) {
     if (!raw) return null;
     const text = String(raw).trim();
     if (!text) return null;
+    let links = null;
     try {
       const parsed = JSON.parse(text);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) links = parsed;
     } catch (_) {
       /* line format fallback */
     }
-    return text
-      .split('\n')
-      .map((line) => {
-        const trimmed = line.trim();
-        if (!trimmed) return null;
-        const pipe = trimmed.indexOf('|');
-        const label = pipe >= 0 ? trimmed.slice(0, pipe).trim() : trimmed;
-        const target = pipe >= 0 ? trimmed.slice(pipe + 1).trim() : '#';
-        if (!label) return null;
-        if (target.startsWith('page:')) return { label, page: target.slice(5) };
-        return { label, href: target || '#' };
-      })
-      .filter(Boolean);
+    if (!links) {
+      links = text
+        .split('\n')
+        .map((line) => {
+          const trimmed = line.trim();
+          if (!trimmed) return null;
+          const pipe = trimmed.indexOf('|');
+          const label = pipe >= 0 ? trimmed.slice(0, pipe).trim() : trimmed;
+          const target = pipe >= 0 ? trimmed.slice(pipe + 1).trim() : '#';
+          if (!label) return null;
+          if (target.startsWith('page:')) return { label, page: target.slice(5) };
+          return { label, href: target || '#' };
+        })
+        .filter(Boolean);
+    }
+    return links.map(normalizeFooterLink);
   }
 
   const PAGE_HREFS = {
@@ -41,6 +62,8 @@
     account: '/account',
     appointment: '/appointment',
     track: '/track',
+    faq: '/faq',
+    contact: '/contact',
   };
 
   function linkHtml(link, usePageRoutes) {
@@ -105,11 +128,12 @@
       ];
       socialWrap.innerHTML = items
         .map(({ key, icon }) => {
-          const url = (settings[key] || '').trim();
-          if (!url) return '';
-          return `<a href="${escapeHtml(url)}" class="social-btn" target="_blank" rel="noopener noreferrer" aria-label="${key.replace('social_', '')}"><i class="ti ${icon}"></i></a>`;
+          const url = (settings[key] || '').trim() || '#';
+          const external = url !== '#';
+          return `<a href="${escapeHtml(url)}" class="social-btn"${
+            external ? ' target="_blank" rel="noopener noreferrer"' : ''
+          } aria-label="${key.replace('social_', '')}"><i class="ti ${icon}"></i></a>`;
         })
-        .filter(Boolean)
         .join('');
     }
 

@@ -1,0 +1,18 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<%- include('seo-head', { seo: typeof seo !== 'undefined' ? seo : null }) %>
+<link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
+<link rel="preload" href="/images/rakushopbd-logo.png" as="image">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
+<link rel="stylesheet" href="/css/main.css?v=39">
+<link rel="stylesheet" href="/css/category.css?v=3">
+<link rel="stylesheet" href="/css/responsive.css?v=19">
+<% if (typeof pagesCss !== 'undefined' && pagesCss) { %>
+<link rel="stylesheet" href="<%= pagesCss %>">
+<% } %>
+<style>body{font-family:'Inter',system-ui,-apple-system,sans-serif;}</style>

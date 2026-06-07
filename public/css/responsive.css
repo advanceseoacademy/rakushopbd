@@ -76,8 +76,17 @@ svg {
   }
 
   .navbar-inner {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .navbar-row--primary {
     padding-left: max(16px, var(--safe-left));
     padding-right: max(16px, var(--safe-right));
+  }
+
+  .navbar-row--secondary {
+    display: none;
   }
 
   .mobile-cat-menu-panel {
@@ -579,17 +588,21 @@ svg {
 /* ——— Checkout modal ——— */
 @media (max-width: 768px) {
   .checkout-modal-overlay {
+    display: flex;
+    flex-direction: column;
     padding: 0;
-    align-items: flex-end;
-    padding-bottom: var(--safe-bottom);
+    overflow: hidden;
   }
 
   .checkout-modal-box {
     width: 100%;
     max-width: 100%;
-    max-height: min(92vh, calc(100dvh - var(--safe-top) - 8px));
-    border-radius: 18px 18px 0 0;
+    height: 100dvh;
+    max-height: 100dvh;
     margin: 0;
+    border-radius: 0;
+    overflow: hidden;
+    box-shadow: none;
   }
 
   .checkout-modal-head {
@@ -598,14 +611,18 @@ svg {
   }
 
   .checkout-modal-body {
-    padding: 14px 16px calc(20px + var(--safe-bottom));
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+    padding: 14px 16px calc(24px + var(--safe-bottom));
   }
 
   .checkout-modal-body .card-row {
     grid-template-columns: 1fr;
   }
 
-  /* Hide face scan FAB while checkout is open */
   body.checkout-modal-open .face-analyzer-fab {
     visibility: hidden;
     pointer-events: none;
@@ -737,12 +754,12 @@ svg {
     display: none;
   }
 
-  /* ~3.6 cards visible — extra width forces swipe + auto-scroll */
+  /* Exactly 3 cards visible — swipe for more */
   .category-scroll-wrap--home #home-category-track:not(.category-grid--all) .cat-card {
-    flex: 0 0 calc((100vw - 32px) / 3.6) !important;
-    min-width: calc((100vw - 32px) / 3.6) !important;
-    width: calc((100vw - 32px) / 3.6) !important;
-    max-width: calc((100vw - 32px) / 3.6) !important;
+    flex: 0 0 calc((100% - 20px) / 3) !important;
+    min-width: calc((100% - 20px) / 3) !important;
+    width: calc((100% - 20px) / 3) !important;
+    max-width: calc((100% - 20px) / 3) !important;
     flex-shrink: 0 !important;
     box-sizing: border-box;
   }

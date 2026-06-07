@@ -4,6 +4,7 @@ const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
 const { getBestSellingProducts, getNewArrivalProducts } = require('../lib/homeProducts');
+const { getRecommendedProducts } = require('../lib/productRecommendations');
 const { getAdminIdFromRequest } = require('../lib/adminToken');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
@@ -11,6 +12,7 @@ const { firstInsertId } = require('../config/db');
 const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
 const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
 const { ensurePhoneSubscribersTable } = require('../lib/ensurePhoneSubscribersTable');
+const { listActiveMessengerChats } = require('../lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('../lib/ensureFaqsTable');
 const {
   SERVICE_TYPES,
@@ -176,6 +178,16 @@ router.get('/banners', async (req, res) => {
     res.json({ ok: true, banners });
   } catch (err) {
     res.json({ ok: true, banners: [] });
+  }
+});
+
+router.get('/messenger-chats', async (req, res) => {
+  try {
+    const chats = await listActiveMessengerChats();
+    cachePublic(res, 120);
+    res.json({ ok: true, chats });
+  } catch (err) {
+    res.json({ ok: true, chats: [] });
   }
 });
 
@@ -398,9 +410,37 @@ router.get('/products', async (req, res) => {
   }
 });
 
+router.get('/products/recommended', async (req, res) => {
+  try {
+    const recentProductIds = String(req.query.recent || '')
+      .split(',')
+      .map((id) => Number(id))
+      .filter(Boolean);
+    const recentCategorySlugs = String(req.query.categories || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    const limit = Math.min(24, Math.max(4, Number(req.query.limit) || 12));
+    const data = await getRecommendedProducts(query, req, {
+      recentProductIds,
+      recentCategorySlugs,
+      limit,
+    });
+    res.set('Cache-Control', 'private, no-store');
+    res.json({ ok: true, ...data });
+  } catch (err) {
+    console.error('products/recommended', err);
+    res.status(500).json({ ok: false, error: 'Could not load recommendations' });
+  }
+});
+
 router.get('/products/:ref', async (req, res) => {
   try {
     const ref = String(req.params.ref || '').trim();
+    const reserved = new Set(['recommended', 'home-sections']);
+    if (reserved.has(ref.toLowerCase())) {
+      return res.status(404).json({ ok: false, error: 'Use /api/products/recommended' });
+    }
     const byId = /^\d+$/.test(ref);
     const rows = await query(
       `SELECT p.*, c.slug AS category_slug, c.name_bn AS category_name
@@ -523,6 +563,9 @@ router.post('/cart/add', async (req, res) => {
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Product not found' });
 
     const p = rows[0];
+    if (Number(p.stock) <= 0) {
+      return res.status(400).json({ ok: false, error: 'This product is out of stock. Please pre-order instead.' });
+    }
     const cart = getCart(req);
     const existing = cart.find((i) => i.productId === p.id);
     const addQty = Math.max(1, Math.min(99, Number(qty) || 1));

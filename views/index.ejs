@@ -12,18 +12,18 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/main.css?v=39">
+<link rel="stylesheet" href="/css/main.css?v=51">
 <link rel="stylesheet" href="/css/category.css?v=3">
 <link rel="stylesheet" href="/css/account.css?v=6">
 <link rel="stylesheet" href="/css/cart.css?v=3">
 <link rel="stylesheet" href="/css/checkout-modal.css?v=9">
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
-<link rel="stylesheet" href="/css/responsive.css?v=19">
+<link rel="stylesheet" href="/css/responsive.css?v=22">
 <link rel="stylesheet" href="/css/home-marketing.css?v=4">
 <link rel="stylesheet" href="/css/appointment.css?v=2">
 <link rel="stylesheet" href="/css/face-analyzer.css?v=9">
-<link rel="stylesheet" href="/css/pages.css?v=2">
+<link rel="stylesheet" href="/css/pages.css?v=3">
 </head>
 <body>
 <%- include('partials/storefront-header') %>
@@ -141,6 +141,19 @@
  </div>
  </section>
 
+ <!-- Recommended For You (behavior-based) -->
+ <section class="home-product-section home-recommendations" id="section-recommended-for-you" hidden>
+ <div class="section-header">
+ <h2 class="section-title"><i class="ti ti-sparkles" style="color:var(--primary);font-size:20px;vertical-align:-2px;"></i> Recommended For You</h2>
+ <p class="home-reviews-sub" id="recommended-subtitle">Picks based on your shopping activity</p>
+ </div>
+ <div class="home-scroll-wrap">
+ <div class="home-scroll-track" id="track-recommended-for-you">
+ <p class="home-scroll-loading">Finding picks for you...</p>
+ </div>
+ </div>
+ </section>
+
  <!-- Customer Reviews -->
  <section class="home-customer-reviews" id="section-customer-reviews">
  <div class="section-header">
@@ -149,6 +162,17 @@
  </div>
  <div class="home-scroll-wrap">
  <div class="home-scroll-track home-reviews-track" id="track-customer-reviews"></div>
+ </div>
+ </section>
+
+ <!-- Messenger chat reviews (admin screenshots) -->
+ <section class="home-messenger-reviews" id="section-messenger-reviews" hidden>
+ <div class="section-header">
+ <h2 class="section-title" id="messenger-reviews-title">Messenger Customer Reviews</h2>
+ <p class="home-reviews-sub" id="messenger-reviews-sub">Real Facebook Messenger conversations with our happy customers</p>
+ </div>
+ <div class="home-scroll-wrap">
+ <div class="home-scroll-track home-messenger-track" id="track-messenger-reviews"></div>
  </div>
  </section>
  </div><!-- /products -->
@@ -224,13 +248,14 @@
 =================================================== -->
 <div id="page-product" style="display:none;">
 <style>
-.pv-breadcrumb { max-width:1200px; margin:0 auto; padding:14px 20px 0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); }
+#page-product { padding-top: 4px; }
+.pv-breadcrumb { max-width:1200px; margin:0 auto; padding:12px 20px 0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); flex-wrap:wrap; }
 .pv-breadcrumb a { color:var(--text-muted); text-decoration:none; cursor:pointer; }
 .pv-breadcrumb a:hover { color:var(--primary); }
 .pv-breadcrumb i { font-size:11px; }
-.pv-wrap { max-width:1200px; margin:0 auto; padding:16px 20px 32px; display:grid; grid-template-columns:1fr 1fr; gap:32px; }
+.pv-wrap { max-width:1200px; margin:0 auto; padding:12px 20px 32px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:32px; align-items:start; }
 @media(max-width:768px){ .pv-wrap { grid-template-columns:1fr; gap:20px; } }
-@media(max-width:480px){ .pv-action-row { flex-direction:column; } .btn-add-cart,.btn-buy { width:100%; } .main-product-img { height:240px; } .pv-price { font-size:22px; } .pv-price-row { padding:6px 12px; margin-bottom:10px; } }
+@media(max-width:480px){ .pv-action-row { flex-direction:column; } .btn-add-cart,.btn-buy,.btn-preorder { width:100%; } .main-product-img { height:240px; } .pv-price { font-size:22px; } .pv-price-row { padding:6px 12px; margin-bottom:10px; } }
 
 /* Gallery */
 .pv-gallery {}
@@ -254,20 +279,51 @@
 .thumb-img img { width:100%; height:100%; object-fit:cover; border-radius:inherit; display:block; }
 
 /* Info */
-.pv-info {}
+.pv-info { min-width: 0; }
 .pv-cat { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
-.pv-title { font-size:22px; font-weight:700; color:var(--text); line-height:1.3; margin-bottom:10px; }
+.pv-title { font-size:22px; font-weight:700; color:var(--text); line-height:1.35; margin-bottom:10px; word-break:break-word; }
 .pv-rating-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
 .pv-stars { color:#EF9F27; font-size:16px; }
 .pv-rating-num { font-size:14px; font-weight:600; }
 .pv-reviews { font-size:12px; color:var(--text-muted); }
 .pv-sold { font-size:12px; color:var(--green); font-weight:600; background:var(--green-pale); padding:3px 10px; border-radius:20px; }
-.pv-short-desc {
- font-size:14px; line-height:1.65; color:var(--text-muted);
- margin:0 0 14px; padding-top:2px;
- display:none;
+.pv-specs-inline {
+  margin: 4px 0 16px;
 }
-.pv-short-desc:not(:empty) { display:block; }
+.pv-specs-inline[hidden] {
+  display: none !important;
+}
+.pv-specs-inline .product-desc-spec {
+  margin: 0;
+  border: 1px solid #e5e7eb;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: #fff;
+}
+.pv-specs-inline .spec-table {
+  font-size: 13px;
+}
+.pv-specs-inline .spec-table th {
+  width: 36%;
+  min-width: 120px;
+  padding: 10px 14px;
+  background: #f9fafb;
+  color: var(--text);
+  font-weight: 600;
+  vertical-align: top;
+}
+.pv-specs-inline .spec-table td {
+  padding: 10px 14px;
+  color: var(--text);
+  line-height: 1.5;
+  word-break: break-word;
+}
+.pv-specs-inline .spec-table tr:nth-child(even) td {
+  background: #fff;
+}
+.pv-specs-inline .spec-table tr:nth-child(even) th {
+  background: #f3f4f6;
+}
 .pv-price-row {
  display:inline-flex; align-items:center; flex-wrap:wrap; gap:8px;
  margin-bottom:12px; padding:8px 14px; max-width:100%;
@@ -288,6 +344,9 @@
 .pv-stock i { font-size:14px; }
 
 .pv-action-row { display:flex; gap:10px; margin-bottom:20px; }
+.btn-add-cart[hidden],
+.btn-buy[hidden],
+.btn-preorder[hidden] { display:none !important; }
 .btn-add-cart {
  flex:1; background:var(--primary); color:#fff; border:none; padding:14px 20px;
  border-radius:var(--radius-md); font-size:15px; font-weight:600; cursor:pointer;
@@ -297,6 +356,8 @@
 .btn-add-cart:hover { background:var(--primary-light); transform:translateY(-1px); }
 .btn-buy { flex:1; background:var(--accent); color:#fff; border:none; padding:14px 20px; border-radius:var(--radius-md); font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; transition:background 0.15s, transform 0.1s; }
 .btn-buy:hover { background:var(--accent-dark); transform:translateY(-1px); }
+.btn-preorder { flex:1; background:#d97706; color:#fff; border:none; padding:14px 20px; border-radius:var(--radius-md); font-size:15px; font-weight:600; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; font-family:inherit; transition:background 0.15s, transform 0.1s; }
+.btn-preorder:hover { background:#b45309; transform:translateY(-1px); }
 .btn-wish-lg { width:50px; height:50px; border-radius:var(--radius-md); border:1.5px solid var(--border); background:var(--surface); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.15s; }
 .btn-wish-lg:hover { border-color:var(--accent); background:var(--accent-light); }
 .btn-wish-lg i { font-size:22px; color:var(--text-muted); }
@@ -317,28 +378,34 @@
 /* Tabs */
 .pv-tabs-wrap { max-width:1200px; margin:0 auto; padding:0 20px 32px; }
 .tabs-nav { display:flex; border-bottom:2px solid var(--border); margin-bottom:20px; overflow-x:auto; }
+.tab-btn[hidden] { display: none !important; }
 .tab-btn { padding:12px 20px; font-size:14px; font-family:inherit; background:none; border:none; cursor:pointer; color:var(--text-muted); border-bottom:2px solid transparent; margin-bottom:-2px; white-space:nowrap; transition:all 0.15s; }
 .tab-btn.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:600; }
 .tab-pane { animation:fadeIn 0.2s; }
 @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 
 /* Description tab */
-.spec-table { width:100%; border-collapse:collapse; font-size:13px; }
-.spec-table tr:nth-child(even) td { background:var(--surface2); }
-.spec-table td { padding:10px 14px; border:1px solid var(--border); }
-.spec-table td:first-child { font-weight:600; color:var(--text); width:160px; }
-.spec-table td:last-child { color:var(--text-muted); }
+.product-desc-prose { font-size:14px; color:var(--text-muted); line-height:1.8; margin-bottom:16px; }
+.product-desc-spec { border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; margin-top:4px; }
+.spec-table { width:100%; border-collapse:collapse; font-size:13px; margin:0; }
+.spec-table tr:nth-child(even) td { background:var(--surface); }
+.spec-table th,
+.spec-table td { padding:11px 16px; border-bottom:1px solid var(--border); text-align:left; vertical-align:top; }
+.spec-table tr:last-child th,
+.spec-table tr:last-child td { border-bottom:none; }
+.spec-table th { font-weight:600; color:var(--text); width:34%; min-width:140px; background:var(--surface2); border-right:1px solid var(--border); }
+.spec-table td { color:var(--text-muted); line-height:1.55; }
 
 /* Related Products */
 .related-section { max-width:1200px; margin:0 auto; padding:0 20px 40px; }
 </style>
 
 <!-- Product Main -->
-<div style="max-width:1200px; margin:0 auto; padding:14px 20px 0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted);">
+<div class="pv-breadcrumb">
  <span onclick="showPage('home')" style="cursor:pointer; color:var(--primary);"><i class="ti ti-home"></i> Home</span>
- <i class="ti ti-chevron-right" style="font-size:10px;"></i>
+ <i class="ti ti-chevron-right"></i>
  <span id="pv-breadcrumb-cat">Category</span>
- <i class="ti ti-chevron-right" style="font-size:10px;"></i>
+ <i class="ti ti-chevron-right"></i>
  <span id="pv-breadcrumb-name" style="color:var(--text);">Product</span>
 </div>
 <div class="pv-wrap">
@@ -348,12 +415,7 @@
  <div class="pv-badge-row" id="pv-badge-row"></div>
  <i class="ti ti-watch" style="color:#d48696;"></i>
  </div>
- <div class="thumb-row">
- <div class="thumb-img active" style="background:#fdf0f3;"><i class="ti ti-watch" style="color:#d48696;"></i></div>
- <div class="thumb-img" style="background:#e8f5e8;"><i class="ti ti-watch" style="color:#2d8a2d;"></i></div>
- <div class="thumb-img" style="background:#e8f5e8;"><i class="ti ti-watch" style="color:#2d8a2d;"></i></div>
- <div class="thumb-img" style="background:#faf3e0;"><i class="ti ti-watch" style="color:#8a6914;"></i></div>
- </div>
+ <div class="thumb-row" style="display:none;"></div>
  </div>
 
  <!-- Info -->
@@ -383,7 +445,7 @@
  <span class="pv-stock"><i class="ti ti-circle-check-filled"></i> In stock (47 left)</span>
  </div>
 
- <p class="pv-short-desc" id="pv-short-desc"></p>
+ <div class="pv-specs-inline" id="pv-specs-inline" hidden></div>
 
  <!-- Meta -->
  <div class="pv-meta">
@@ -405,6 +467,7 @@
  <div class="pv-action-row">
  <button class="btn-add-cart" id="btn-add-to-cart-main"><i class="ti ti-shopping-cart-plus"></i> Add to Cart</button>
  <button class="btn-buy" id="btn-buy-now"><i class="ti ti-bolt"></i> Shop Now</button>
+ <button class="btn-preorder" id="btn-pre-order" type="button" hidden><i class="ti ti-clock-hour-4"></i> Pre-order</button>
  <button class="btn-wish-lg"><i class="ti ti-heart"></i></button>
  </div>
  </div>
@@ -606,6 +669,13 @@
 <div id="page-contact" style="display:none;">
 <%- include('partials/spa-page-contact') %>
 </div><!-- /page-contact -->
+
+<!-- ===================================================
+ TRACK ORDER PAGE
+=================================================== -->
+<div id="page-track" style="display:none;">
+<%- include('partials/spa-page-track') %>
+</div><!-- /page-track -->
 
 <!-- ===================================================
  CART PAGE
@@ -1555,18 +1625,21 @@
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/maintenance-view.js?v=3" defer></script>
 <script src="/js/seo.js?v=3" defer></script>
-<script src="/js/app.js?v=17" defer></script>
-<script src="/js/header-scroll.js?v=2" defer></script>
-<script src="/js/api.js?v=27" defer></script>
+<script src="/js/app.js?v=20" defer></script>
+<script src="/js/header-scroll.js?v=5" defer></script>
+<script src="/js/api.js?v=39" defer></script>
+<script src="/js/home-recommendations.js?v=3" defer></script>
+<script src="/js/home-messenger-chats.js?v=2" defer></script>
 <script src="/js/home-customer-reviews.js?v=4" defer></script>
 <script src="/js/home-marketing.js?v=2" defer></script>
-<script src="/js/appointment.js?v=3" defer></script>
+<script src="/js/appointment.js?v=4" defer></script>
 <script src="/js/face-analyzer.js?v=10" defer></script>
 <script src="/js/footer-settings.js?v=4" defer></script>
-<script src="/js/storefront-dynamic.js?v=20" defer></script>
+<script src="/js/storefront-dynamic.js?v=27" defer></script>
 <script src="/js/search.js?v=5" defer></script>
 <script src="/js/account.js?v=9" defer></script>
-<script src="/js/faq.js?v=3" defer></script>
-<script src="/js/contact.js?v=2" defer></script>
+<script src="/js/faq.js?v=4" defer></script>
+<script src="/js/contact.js?v=3" defer></script>
+<script src="/js/track.js?v=2" defer></script>
 </body>
 </html>

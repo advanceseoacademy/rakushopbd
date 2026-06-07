@@ -20,9 +20,10 @@ document.addEventListener('DOMContentLoaded', function() {
     appointment: document.getElementById('page-appointment'),
     faq: document.getElementById('page-faq'),
     contact: document.getElementById('page-contact'),
+    track: document.getElementById('page-track'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact', 'track'];
 
   // Show target route immediately (content fills via bootstrap / API)
   const initialRoute = (function parseInitial() {
@@ -80,6 +81,7 @@ document.addEventListener('DOMContentLoaded', function() {
       appointment: '/appointment',
       faq: '/faq',
       contact: '/contact',
+      track: '/track',
     };
     const activeHref = hrefMap[pageName] || null;
     document.querySelectorAll('.navbar-main-link').forEach((link) => {
@@ -106,6 +108,12 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (name === 'contact' && window._rakuInitContactPage) {
       window._rakuInitContactPage();
+    }
+    if (name === 'track' && window._rakuInitTrackPage) {
+      window._rakuInitTrackPage();
+    }
+    if (name === 'home' && window._rakuRefreshHomeRecommendations) {
+      window._rakuRefreshHomeRecommendations();
     }
     updateHeaderNavActive(name);
     const skipUrl = opts.skipHash || opts.skipUrl;
@@ -153,6 +161,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window._rakuInitFaqPage();
       } else if (route.page === 'contact' && window._rakuInitContactPage) {
         window._rakuInitContactPage();
+      } else if (route.page === 'track' && window._rakuInitTrackPage) {
+        window._rakuInitTrackPage();
       }
     } catch (err) {
       console.warn('Route restore failed', err);
@@ -260,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Product card click → product page
   document.querySelectorAll('#page-home .product-card').forEach(card => {
     card.addEventListener('click', function(e) {
-      if (e.target.closest('.add-cart-btn') || e.target.closest('.prod-wish')) return;
+      if (e.target.closest('.add-cart-btn') || e.target.closest('.preorder-btn') || e.target.closest('.prod-wish')) return;
       showPage('product');
     });
   });
@@ -318,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Related product cards on product page → stay on product page (scroll top)
   document.querySelectorAll('#page-product .product-card').forEach(card => {
     card.addEventListener('click', function(e) {
-      if (e.target.closest('.add-cart-btn') || e.target.closest('.prod-wish')) return;
+      if (e.target.closest('.add-cart-btn') || e.target.closest('.preorder-btn') || e.target.closest('.prod-wish')) return;
       window.scrollTo(0, 0);
     });
   });
@@ -438,7 +448,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   document.addEventListener('click', (e) => {
     if (!catDropdown || catDropdown.hidden) return;
-    if (e.target.closest('.navbar-browse-wrap')) return;
+    if (e.target.closest('.navbar-browse-wrap') || e.target.closest('#header-cat-dropdown')) return;
     closeCatDropdown();
   });
 
@@ -466,6 +476,7 @@ document.addEventListener('DOMContentLoaded', function() {
         '/appointment': 'appointment',
         '/faq': 'faq',
         '/contact': 'contact',
+        '/track': 'track',
       };
       if (spaRoutes[href] && window.showPage && !window.RAKU_STANDALONE) {
         e.preventDefault();
@@ -483,6 +494,7 @@ document.addEventListener('DOMContentLoaded', function() {
         '/appointment': 'appointment',
         '/faq': 'faq',
         '/contact': 'contact',
+        '/track': 'track',
       };
       if (spaRoutes[href] && window.showPage && !window.RAKU_STANDALONE) {
         e.preventDefault();

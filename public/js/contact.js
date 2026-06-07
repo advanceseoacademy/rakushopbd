@@ -96,6 +96,17 @@
 
   window._rakuInitContactPage = loadSettings;
 
+  window._rakuPrefillContactPreOrder = function ({ name, sku }) {
+    const form = document.getElementById('contact-form');
+    if (!form) return;
+    const subject = form.querySelector('[name="subject"]');
+    const message = form.querySelector('[name="message"]');
+    if (subject) subject.value = 'preorder';
+    if (message) {
+      message.value = `I would like to pre-order the following product:\n\nProduct: ${name}\nSKU: ${sku}\n\nPlease contact me when it is available.`;
+    }
+  };
+
   document.addEventListener('DOMContentLoaded', () => {
     const page = document.getElementById('page-contact');
     if (page && page.style.display !== 'none') loadSettings();

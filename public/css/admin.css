@@ -223,6 +223,9 @@ table.tbl { width:100%; border-collapse:collapse; }
 .btn-danger:hover { background:var(--accent); color:#fff; }
 .btn-sm { padding:5px 12px; font-size:12px; }
 .btn-xs { padding:4px 10px; font-size:11px; border-radius:6px; }
+.tbl-actions { display:flex; flex-wrap:wrap; gap:6px; align-items:center; white-space:nowrap; }
+.tbl td.tbl-actions { white-space: nowrap; min-width: 148px; }
+.tbl-actions .btn { margin:0; }
 
 /* Thumb — fixed size; min-width prevents flex children from expanding to full image dimensions */
 .prod-thumb {

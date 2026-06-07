@@ -333,3 +333,66 @@
   border-color: var(--primary-light);
   color: var(--primary);
 }
+
+/* Track order */
+.track-wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 48px; }
+.track-grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; }
+@media (max-width: 900px) { .track-grid { grid-template-columns: 1fr; } }
+.trk-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08); overflow: hidden;
+}
+.trk-head {
+  padding: 18px 18px 14px; border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--primary-pale), rgba(59, 130, 246, 0.08));
+}
+.trk-title { margin: 0; font-size: 18px; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.trk-title i { color: var(--primary); font-size: 20px; }
+.trk-sub { margin: 6px 0 0; color: var(--text-muted); font-size: 13px; line-height: 1.6; }
+.trk-body { padding: 16px 18px 18px; }
+.trk-form { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.trk-input-wrap {
+  flex: 1; min-width: 220px; display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border-radius: 14px; background: var(--surface2); border: 1.5px solid var(--border);
+}
+.trk-input-wrap i { color: var(--primary); font-size: 18px; }
+.trk-input {
+  flex: 1; border: none; outline: none; background: transparent; font-family: inherit;
+  font-size: 14px; font-weight: 800; color: var(--text);
+}
+.trk-btn {
+  border: none; cursor: pointer; border-radius: 14px; padding: 11px 16px; font-weight: 800;
+  font-family: inherit; color: #fff; background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  display: inline-flex; align-items: center; gap: 8px; box-shadow: 0 10px 24px rgba(32, 96, 32, 0.22);
+}
+.trk-btn:disabled { opacity: 0.7; cursor: not-allowed; }
+.trk-hint { margin-top: 10px; font-size: 12px; color: #94a3b8; }
+.trk-result { margin-top: 14px; }
+.trk-box { border: 1px solid var(--border); border-radius: 16px; overflow: hidden; background: #fff; }
+.trk-r-head { padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border-bottom: 1px solid var(--border); }
+.trk-r-head b { font-weight: 1000; }
+.trk-status {
+  font-size: 11px; font-weight: 1000; padding: 6px 10px; border-radius: 999px; border: 1px solid var(--border);
+  background: var(--surface2); text-transform: uppercase; letter-spacing: 0.4px;
+}
+.trk-status.pending { background: #fef3c7; border-color: rgba(245, 158, 11, 0.25); color: #92400e; }
+.trk-status.confirmed, .trk-status.shipped { background: #dbeafe; border-color: rgba(59, 130, 246, 0.25); color: #1e40af; }
+.trk-status.delivered { background: #dcfce7; border-color: rgba(34, 197, 94, 0.25); color: #166534; }
+.trk-status.cancelled { background: #fee2e2; border-color: rgba(239, 68, 68, 0.25); color: #991b1b; }
+.trk-r-body { padding: 12px 14px; }
+.trk-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+@media (max-width: 520px) { .trk-meta { grid-template-columns: 1fr; } }
+.trk-m { font-size: 12px; color: var(--text-muted); }
+.trk-m b { color: var(--text); }
+.trk-items { border-top: 1px dashed var(--border); padding-top: 10px; }
+.trk-item { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--text-muted); padding: 6px 0; }
+.trk-item b { color: var(--text); font-weight: 900; }
+.trk-total { display: flex; justify-content: space-between; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--border); font-weight: 1000; }
+.trk-err {
+  padding: 12px 14px; color: #991b1b; font-weight: 900; background: #fff1f2;
+  border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 14px;
+}
+.trk-step { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 16px; border: 1px solid var(--border); background: rgba(255, 255, 255, 0.75); margin-bottom: 10px; }
+.trk-step i { color: var(--primary); font-size: 20px; margin-top: 2px; }
+.trk-step b { display: block; font-size: 13px; }
+.trk-step span { display: block; font-size: 12px; color: var(--text-muted); line-height: 1.6; margin-top: 2px; }

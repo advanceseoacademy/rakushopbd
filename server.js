@@ -27,6 +27,7 @@ const { ensureFooterSettings } = require('./lib/ensureFooterSettings');
 const { ensureContactMessagesTable } = require('./lib/ensureContactMessagesTable');
 const { ensurePhoneSubscribersTable } = require('./lib/ensurePhoneSubscribersTable');
 const { ensureMarketingSettings } = require('./lib/ensureMarketingSettings');
+const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
 const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
 const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
@@ -99,19 +100,6 @@ app.use(
 );
 
 // Public utility pages — registered before maintenance gate (always reachable)
-app.get('/track', (req, res) => renderStandalonePage(req, res, 'track'));
-
-async function renderStandalonePage(req, res, viewName) {
-  try {
-    const bootstrap = await getStoreBootstrap(req);
-    const seo = await buildPageSeo(req, { bootstrap });
-    const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
-    res.render(viewName, { bootstrapJson, seo });
-  } catch (err) {
-    console.error(`renderStandalonePage ${viewName}`, err);
-    res.render(viewName, { bootstrapJson: null, seo: null });
-  }
-}
 
 app.use(renderMaintenanceIfNeeded);
 
@@ -187,6 +175,7 @@ async function renderStorefront(req, res) {
 app.get('/', (req, res) => renderStorefront(req, res));
 
 app.get('/admin', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.render('admin');
 });
 
@@ -197,7 +186,7 @@ app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact', '/track'],
   (req, res) => renderStorefront(req, res)
 );
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));
@@ -232,6 +221,7 @@ app.listen(PORT, () => {
   ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
   ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
   ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
+  ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
   ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));

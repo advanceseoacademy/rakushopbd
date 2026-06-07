@@ -331,19 +331,25 @@
     document.querySelectorAll('.footer-links a[data-footer-page]').forEach((a) => {
       a.addEventListener('click', (e) => {
         const page = a.dataset.footerPage;
-        if (page === 'track' || page === 'faq' || page === 'contact') {
-          e.preventDefault();
-          window.location.href = page === 'track' ? '/track' : page === 'faq' ? '/faq' : '/contact';
+        e.preventDefault();
+        if (page === 'track' && window.showPage) {
+          window.showPage('track');
           return;
         }
-        e.preventDefault();
+        if (page === 'faq' && window.showPage) {
+          window.showPage('faq');
+          return;
+        }
+        if (page === 'contact' && window.showPage) {
+          window.showPage('contact');
+          return;
+        }
         if (page === 'home' && window.showPage) window.showPage('home');
         else if (page === 'account' && window.showPage) window.showPage('account');
         else if (page === 'cart' && window.showPage) {
           window.showPage('cart');
           if (window.renderCart) void window.renderCart();
-        }
-        else if (page === 'appointment' && window.showPage) window.showPage('appointment');
+        } else if (page === 'appointment' && window.showPage) window.showPage('appointment');
       });
     });
   }
@@ -366,19 +372,166 @@
     }
   };
 
+  function parseSpecLineWords(trimmed) {
+    const words = trimmed.split(/\s+/);
+    if (words.length < 2) return null;
+    for (let i = Math.min(4, words.length - 1); i >= 1; i -= 1) {
+      const label = words.slice(0, i).join(' ');
+      const value = words.slice(i).join(' ');
+      if (value.length < 1 || label.length < 2) continue;
+      if (/[,;]/.test(label)) continue;
+      return { label, value };
+    }
+    return null;
+  }
+
+  function parseSpecLine(line, loose) {
+    const trimmed = String(line || '').trim();
+    if (!trimmed) return null;
+
+    const tabIdx = trimmed.indexOf('\t');
+    if (tabIdx > 0) {
+      const label = trimmed.slice(0, tabIdx).trim();
+      const value = trimmed.slice(tabIdx + 1).trim();
+      if (label && value) return { label, value };
+    }
+
+    const pipeMatch = trimmed.match(/^([^|]{1,80})\|\s*(.+)$/);
+    if (pipeMatch) {
+      const label = pipeMatch[1].trim();
+      const value = pipeMatch[2].trim();
+      if (label && value) return { label, value };
+    }
+
+    const colonMatch = trimmed.match(/^([^:]{1,80}):\s*(.+)$/);
+    if (colonMatch) {
+      const label = colonMatch[1].trim();
+      const value = colonMatch[2].trim();
+      if (label && value) return { label, value };
+    }
+
+    const multiSpace = trimmed.match(/^(.{2,60}?)\s{2,}(.+)$/);
+    if (multiSpace) {
+      const label = multiSpace[1].trim();
+      const value = multiSpace[2].trim();
+      if (label && value) return { label, value };
+    }
+
+    return loose ? parseSpecLineWords(trimmed) : null;
+  }
+
+  function parseProductDescription(text, opts = {}) {
+    const loose = Boolean(opts.loose);
+    const lines = String(text || '').split(/\r?\n/);
+    const specs = [];
+    const prose = [];
+
+    lines.forEach((line) => {
+      if (!String(line).trim()) return;
+      const spec = parseSpecLine(line, loose);
+      if (spec) specs.push(spec);
+      else prose.push(String(line).trim());
+    });
+
+    return { specs, prose };
+  }
+
+  function getProductSpecs(p) {
+    const short = String(p.short_description || '').trim();
+    if (!short) return [];
+
+    const strict = parseProductDescription(short, { loose: false });
+    if (strict.specs.length && !strict.prose.length) return strict.specs;
+    if (strict.specs.length) return strict.specs;
+
+    const loose = parseProductDescription(short, { loose: true });
+    if (loose.prose.length) return [];
+
+    if (loose.specs.length >= 2) return loose.specs;
+
+    if (loose.specs.length === 1) {
+      const line = short.split(/\r?\n/).map((l) => l.trim()).find(Boolean) || '';
+      if (/\t/.test(line) || /:\s/.test(line) || /\|/.test(line) || /\s{2,}/.test(line)) {
+        return loose.specs;
+      }
+    }
+
+    return [];
+  }
+
   function productShortDescription(p) {
     const short = String(p.short_description || '').trim();
-    if (short) return short;
+    if (short) {
+      const { specs, prose } = parseProductDescription(short, { loose: true });
+      if (specs.length && !prose.length) return '';
+      if (prose.length) {
+        const line = prose[0];
+        return line.length > 240 ? `${line.slice(0, 237)}…` : line;
+      }
+      if (specs.length) return '';
+      return short.length > 240 ? `${short.slice(0, 237)}…` : short;
+    }
     const desc = String(p.description_bn || '').trim();
     if (!desc) return '';
+    const { prose, specs } = parseProductDescription(desc);
+    if (prose.length) {
+      const line = prose[0];
+      return line.length > 240 ? `${line.slice(0, 237)}…` : line;
+    }
+    if (specs.length) {
+      const preview = specs
+        .slice(0, 3)
+        .map((row) => `${row.label}: ${row.value}`)
+        .join(' · ');
+      return preview.length > 240 ? `${preview.slice(0, 237)}…` : preview;
+    }
     const first = desc.split(/\n+/).find((line) => line.trim()) || desc;
     const line = first.trim();
     return line.length > 240 ? `${line.slice(0, 237)}…` : line;
   }
 
+  function renderSpecTable(specs) {
+    if (!specs.length) return '';
+    const rows = specs
+      .map(
+        (row) =>
+          `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${escapeHtml(row.value)}</td></tr>`
+      )
+      .join('');
+    return `<div class="product-desc-spec"><table class="spec-table"><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function renderProductDescriptionHtml(p) {
+    const longText = String(p.description_bn || '').trim();
+    if (longText) {
+      const lines = longText.split(/\r?\n/).filter(Boolean);
+      if (lines.length > 1) {
+        return lines.map((line) => `<p class="product-desc-prose">${escapeHtml(line)}</p>`).join('');
+      }
+      return `<p class="product-desc-prose">${escapeHtml(longText)}</p>`;
+    }
+
+    return `<p class="product-desc-prose">${escapeHtml(p.name_bn)} — quality product from ${escapeHtml(p.category_name || 'RakuShopBD')}.</p>`;
+  }
+
+  function setProductSpecUiVisible(show) {
+    const specTabBtn = document.querySelector('.tab-btn[data-tab="tab-spec"]');
+    const specPane = document.getElementById('tab-spec');
+    if (specTabBtn) specTabBtn.hidden = !show;
+    if (specPane && !show) {
+      specPane.style.display = 'none';
+      const descBtn = document.querySelector('.tab-btn[data-tab="tab-desc"]');
+      const descPane = document.getElementById('tab-desc');
+      if (descBtn && descPane && specTabBtn?.classList.contains('active')) {
+        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+        descBtn.classList.add('active');
+        descPane.style.display = '';
+      }
+    }
+  }
+
   window._rakuEnhanceProductPageSync = function (p) {
     if (!p) return;
-    const fmt = window.formatPrice || ((n) => n);
 
     const bcCat = document.getElementById('pv-breadcrumb-cat');
     const bcName = document.getElementById('pv-breadcrumb-name');
@@ -398,17 +551,25 @@
     const sold = document.querySelector('#page-product .pv-sold');
     if (sold) sold.style.display = 'none';
 
-    const shortDesc = document.getElementById('pv-short-desc');
-    if (shortDesc) {
-      const text = productShortDescription(p);
-      shortDesc.textContent = text;
-      shortDesc.style.display = text ? '' : 'none';
+    const specsInline = document.getElementById('pv-specs-inline');
+    const specs = getProductSpecs(p);
+    if (specsInline) {
+      if (specs.length) {
+        specsInline.innerHTML = renderSpecTable(specs);
+        specsInline.hidden = false;
+      } else {
+        specsInline.innerHTML = '';
+        specsInline.hidden = true;
+      }
     }
 
+    setProductSpecUiVisible(specs.length > 0);
+
     const discBadge = document.querySelector('#page-product .pv-discount-badge');
+    const pct = window.discountPercent ? window.discountPercent(p) : Number(p.discount_percent) || null;
     if (discBadge) {
-      if (p.discount_percent) {
-        discBadge.textContent = `${p.discount_percent}% saved`;
+      if (pct) {
+        discBadge.textContent = `${pct}% OFF`;
         discBadge.style.display = '';
       } else discBadge.style.display = 'none';
     }
@@ -416,8 +577,10 @@
     const badgeRow = document.getElementById('pv-badge-row');
     if (badgeRow) {
       let bh = '';
-      if (p.discount_percent) bh += `<span class="pv-badge">-${p.discount_percent}%</span>`;
-      if (p.tag_text) bh += `<span class="pv-badge pv-badge-new"><i class="ti ti-bolt" style="font-size:10px;"></i> ${escapeHtml(p.tag_text)}</span>`;
+      if (pct) bh += `<span class="pv-badge">-${pct}%</span>`;
+      if (p.tag_text && (!pct || p.tag_type !== 'discount')) {
+        bh += `<span class="pv-badge pv-badge-new"><i class="ti ti-bolt" style="font-size:10px;"></i> ${escapeHtml(p.tag_text)}</span>`;
+      }
       badgeRow.innerHTML = bh;
       badgeRow.style.display = bh ? '' : 'none';
     }
@@ -432,6 +595,8 @@
       stock.style.color = s > 0 ? 'var(--green)' : 'var(--accent)';
     }
 
+    if (window.updateProductPurchaseButtons) window.updateProductPurchaseButtons(p);
+
     const sku = document.getElementById('pv-sku');
     if (sku) {
       const val = String(p.sku || '').trim();
@@ -440,27 +605,16 @@
 
     const desc = document.getElementById('tab-desc-content');
     if (desc) {
-      const text = (p.description_bn || '').trim();
-      if (text) {
-        const parts = text.split(/\n+/).filter(Boolean);
-        if (parts.length > 1) {
-          desc.innerHTML = `<p style="font-size:14px;color:var(--text-muted);line-height:1.8;margin-bottom:12px;"><strong style="color:var(--text);">${escapeHtml(p.name_bn)}</strong></p><ul style="font-size:13px;color:var(--text-muted);line-height:2;padding-left:20px;">${parts.map((line) => `<li>${escapeHtml(line)}</li>`).join('')}</ul>`;
-        } else {
-          desc.innerHTML = `<p style="font-size:14px;color:var(--text-muted);line-height:1.8;">${escapeHtml(text)}</p>`;
-        }
-      } else {
-        desc.innerHTML = `<p style="font-size:14px;color:var(--text-muted);line-height:1.8;">${escapeHtml(p.name_bn)} — quality product from ${escapeHtml(p.category_name || 'RakuShopBD')}.</p>`;
-      }
+      desc.innerHTML = renderProductDescriptionHtml(p);
     }
 
     const spec = document.getElementById('tab-spec-content');
     if (spec) {
-      spec.innerHTML = `<table class="spec-table">
-        <tr><td>Category</td><td>${escapeHtml(p.category_name || '—')}</td></tr>
-        <tr><td>Rating</td><td>${Number(p.rating).toFixed(1)} / 5 (${Number(p.review_count) || 0} reviews)</td></tr>
-        <tr><td>Stock</td><td>${Number(p.stock) || 0} units</td></tr>
-        <tr><td>Price</td><td>${fmt(p.price)}${p.old_price ? ` (was ${fmt(p.old_price)})` : ''}</td></tr>
-      </table>`;
+      if (specs.length) {
+        spec.innerHTML = renderSpecTable(specs);
+      } else {
+        spec.innerHTML = '';
+      }
     }
   };
 

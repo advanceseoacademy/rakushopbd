@@ -1,5 +1,6 @@
 (function () {
   const API = (window.RAKU_API_BASE || '') + '/api';
+  let faqCache = null;
 
   function escapeHtml(s) {
     return String(s)
@@ -11,6 +12,8 @@
 
   function bindFaqAccordion(root) {
     root.querySelectorAll('.faq-q').forEach((btn) => {
+      if (btn._rakuFaqBound) return;
+      btn._rakuFaqBound = true;
       btn.addEventListener('click', () => {
         const item = btn.closest('.faq-item');
         if (!item) return;
@@ -49,13 +52,30 @@
     bindFaqAccordion(list);
   }
 
+  function readBootstrapFaqs() {
+    const boot = window.__RAKU_BOOTSTRAP;
+    if (boot?.faqs?.length) {
+      faqCache = boot.faqs;
+      return faqCache;
+    }
+    return null;
+  }
+
   async function loadFaqs() {
     const list = document.getElementById('faq-list');
     if (!list) return;
+
+    const cached = faqCache || readBootstrapFaqs();
+    if (cached) {
+      renderFaqs(cached);
+      return;
+    }
+
     try {
       const res = await fetch(`${API}/faqs`, { credentials: 'same-origin' });
       const data = await res.json();
       if (data.ok && Array.isArray(data.faqs)) {
+        faqCache = data.faqs;
         renderFaqs(data.faqs);
         return;
       }
@@ -64,10 +84,16 @@
       '<p style="text-align:center;color:var(--text-muted);padding:24px;">Could not load FAQs. Please try again later or <a href="/contact">contact us</a>.</p>';
   }
 
+  window._rakuInitFaqPage = loadFaqs;
+  window._rakuPrefetchFaqs = loadFaqs;
+
+  document.addEventListener('raku:bootstrap', (e) => {
+    if (e.detail?.faqs?.length) faqCache = e.detail.faqs;
+  });
+
   document.addEventListener('DOMContentLoaded', () => {
+    readBootstrapFaqs();
     const page = document.getElementById('page-faq');
     if (page && page.style.display !== 'none') loadFaqs();
   });
-
-  window._rakuInitFaqPage = loadFaqs;
 })();

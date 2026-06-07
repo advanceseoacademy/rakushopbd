@@ -25,6 +25,31 @@ function statusBadge(status) {
   return map[status] || 'gray';
 }
 
+/** Sync per-product discount % with optional old price for storefront badges. */
+function normalizeProductDiscount(price, oldPrice, discountPercent) {
+  const p = Number(price);
+  const fieldProvided = discountPercent !== undefined && discountPercent !== null && discountPercent !== '';
+  let pct = fieldProvided ? Math.round(Number(discountPercent)) : null;
+
+  if (!fieldProvided || pct == null || !Number.isFinite(pct) || pct <= 0 || pct >= 100) {
+    return { oldPrice: null, discountPercent: null };
+  }
+
+  let old = oldPrice != null && oldPrice !== '' ? Number(oldPrice) : null;
+  if (old != null && (!Number.isFinite(old) || old <= 0)) old = null;
+
+  if (p > 0 && !old) {
+    old = Math.round(p / (1 - pct / 100));
+  } else if (old && p > 0 && old <= p) {
+    old = null;
+  }
+
+  return {
+    oldPrice: old || null,
+    discountPercent: pct,
+  };
+}
+
 /** Safe COUNT / scalar from first row (Postgres camelCase aliases). */
 async function scalarCount(sql, params = []) {
   const rows = await query(sql, params);
@@ -324,6 +349,21 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
   }
 });
 
+router.delete('/orders/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid order id' });
+    const rows = await query('SELECT id FROM orders WHERE id = ?', [id]);
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Order not found' });
+    await query('DELETE FROM order_items WHERE order_id = ?', [id]);
+    await query('DELETE FROM orders WHERE id = ?', [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not delete order' });
+  }
+});
+
 // ——— Products ———
 router.get('/products', requireAdmin, async (req, res) => {
   try {
@@ -411,6 +451,7 @@ router.post('/products', requireAdmin, async (req, res) => {
     if (!name || !categoryId || price == null) {
       return res.status(400).json({ ok: false, error: 'Name, category and price are required' });
     }
+    const pricing = normalizeProductDiscount(price, oldPrice, discountPercent);
     let slug = req.body.slug ? slugify(req.body.slug) : slugify(name);
     const existing = await query('SELECT id FROM products WHERE slug = ?', [slug]);
     if (existing.length) slug = `${slug}-${Date.now()}`;
@@ -428,7 +469,7 @@ router.post('/products', requireAdmin, async (req, res) => {
         description || null,
         shortDescription || null,
         price,
-        oldPrice || null,
+        pricing.oldPrice,
         stock ?? 100,
         icon || 'ti-package',
         iconColor || '#2d8a2d',
@@ -436,7 +477,7 @@ router.post('/products', requireAdmin, async (req, res) => {
         imageUrl || null,
         tagType || 'none',
         tagText || null,
-        discountPercent || null,
+        pricing.discountPercent,
         isFeatured ? 1 : 0,
         seoTitle || null,
         seoDescription || null,
@@ -488,6 +529,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       ogImage,
     } = req.body;
     const productId = req.params.id;
+    const pricing = normalizeProductDiscount(price, oldPrice, discountPercent);
     let slugClause = '';
     const params = [
       categoryId,
@@ -496,7 +538,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       description || null,
       shortDescription || null,
       price,
-      oldPrice || null,
+      pricing.oldPrice,
       stock ?? 0,
       icon || 'ti-package',
       iconColor || '#2d8a2d',
@@ -504,7 +546,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       imageUrl || null,
       tagType || 'none',
       tagText || null,
-      discountPercent || null,
+      pricing.discountPercent,
       isFeatured ? 1 : 0,
       seoTitle || null,
       seoDescription || null,

@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/admin.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=5">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
 </head>
 <body>
@@ -57,6 +57,7 @@
     <div class="nav-item" data-page="reviews"><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
     <div class="nav-item" data-page="banners"><i class="ti ti-photo"></i> Banners</div>
     <div class="nav-item" data-page="marketing"><i class="ti ti-speakerphone"></i> Marketing <span class="nav-badge nav-badge-amber" id="subscriber-badge">0</span></div>
+    <div class="nav-item" data-page="messenger"><i class="ti ti-brand-messenger"></i> Messenger Chats</div>
     <div class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Settings</div>
     <div class="sidebar-footer">
       <div class="sidebar-user">
@@ -215,16 +216,17 @@
               <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="pf-slug" placeholder="auto from name, e.g. smartwatch-pro"><small class="form-hint">Store link: /product/your-slug</small></div>
               <div class="form-group"><label class="form-label">Category *</label><select class="form-input form-select" id="pf-category" required></select></div>
               <div class="form-2col">
-                <div class="form-group"><label class="form-label">Price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" required></div>
-                <div class="form-group"><label class="form-label">Old price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0"></div>
+                <div class="form-group"><label class="form-label">MRP / Regular price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0" step="0.01"><small class="form-hint">পূর্বের দাম — store-এ কাটা দাম হিসেবে দেখাবে</small></div>
+                <div class="form-group"><label class="form-label">Discount (%)</label><input class="form-input" id="pf-discount-percent" type="number" min="0" max="99" placeholder="0"><small class="form-hint">ছাড়ের শতাংশ — ০ দিলে কোনো discount দেখাবে না</small></div>
               </div>
+              <div class="form-group"><label class="form-label">Sale price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" step="0.01" required><small class="form-hint">বিক্রয় মূল্য — customer যা দেবে (MRP + Discount দিলে auto হিসাব)</small></div>
               <div class="form-2col">
                 <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="pf-sku" placeholder="PROD-001"></div>
                 <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
               </div>
               <div class="form-section-title">Content</div>
-              <div class="form-group"><label class="form-label">Short description</label><textarea class="form-input form-textarea" id="pf-short-desc" rows="2" maxlength="320" placeholder="Brief summary above Add to Cart on product page"></textarea></div>
-              <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="pf-desc" rows="5"></textarea></div>
+              <div class="form-group"><label class="form-label">Product specifications</label><textarea class="form-input form-textarea" id="pf-short-desc" rows="8" placeholder="Brand&#9;Brand name&#10;Product weight&#9;100g&#10;Skin Type&#9;Dry&#10;Scent&#9;Citrus&#10;Item Form&#9;Gel&#10;&#10;One row per line — Label [Tab] Value (or Label: Value)"></textarea><small class="form-hint">Product page-এ specification table হিসেবে দেখাবে (Brand, Weight, Skin Type ইত্যাদি)।</small></div>
+              <div class="form-group"><label class="form-label">Description (optional)</label><textarea class="form-input form-textarea" id="pf-desc" rows="5" placeholder="Extra details — care instructions, warranty, shipping notes…"></textarea></div>
               <div class="form-section-title">Media</div>
               <div class="form-group">
                 <label class="form-label">Product images</label>
@@ -427,6 +429,29 @@
         </div>
       </div>
 
+      <div class="adm-section" id="sec-messenger">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">Homepage section</div>
+          <div class="form-group"><label class="form-label">Section title</label><input class="form-input" id="msg-sec-title" placeholder="Messenger Customer Reviews"></div>
+          <div class="form-group"><label class="form-label">Subtitle</label><input class="form-input" id="msg-sec-sub" placeholder="Real Facebook Messenger conversations..."></div>
+          <div class="settings-row" style="margin-bottom:14px;">
+            <div><div>Show section on homepage</div><div class="settings-row-info">Below Customer Reviews — upload chat screenshots below</div></div>
+            <label class="toggle"><input type="checkbox" id="msg-sec-enabled" checked><span class="toggle-slider"></span></label>
+          </div>
+          <button type="button" class="btn btn-primary" id="messenger-settings-save"><i class="ti ti-device-floppy"></i> Save section settings</button>
+        </div>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Chat screenshots</h3>
+            <div class="table-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="add-messenger-btn"><i class="ti ti-plus"></i> Add screenshot</button>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr><th>Preview</th><th>Customer</th><th>Caption</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="messenger-tbody"></tbody></table>
+        </div>
+      </div>
+
       <div class="adm-section" id="sec-settings">
         <div class="grid-2">
           <div>
@@ -598,6 +623,34 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="messenger-modal" aria-hidden="true">
+  <div class="modal-box modal-box--product" role="dialog" aria-labelledby="messenger-form-title">
+    <div class="modal-box-head">
+      <h3 id="messenger-form-title">Add Messenger Screenshot</h3>
+      <button type="button" class="modal-box-close" id="messenger-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="messenger-form">
+      <input type="hidden" id="msg-id" value="">
+      <div class="form-group"><label class="form-label">Customer name</label><input class="form-input" id="msg-name" placeholder="e.g. Rafi Ahmed"></div>
+      <div class="form-group"><label class="form-label">Short caption (optional)</label><input class="form-input" id="msg-caption" placeholder="e.g. Happy with fast delivery"></div>
+      <div class="form-group"><label class="form-label">Screenshot image *</label><input class="form-input" id="msg-image" placeholder="/uploads/... or https://..."></div>
+      <div class="form-group"><label class="form-label">Upload screenshot</label><input class="form-input" type="file" id="msg-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
+      <div id="msg-preview-wrap" hidden style="margin-bottom:12px;">
+        <img id="msg-preview" alt="Preview" style="max-width:180px;max-height:240px;border-radius:10px;border:1px solid var(--border);object-fit:cover;">
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Sort order</label><input class="form-input" id="msg-sort" type="number" min="0" value="0"></div>
+        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:8px;"><label class="form-label"><input type="checkbox" id="msg-active" checked> Show on homepage</label></div>
+      </div>
+      <div class="modal-form-actions">
+        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save</button>
+        <button type="button" class="btn btn-outline" id="msg-reset">Clear</button>
+        <button type="button" class="btn btn-outline" id="messenger-modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay" id="faq-modal" aria-hidden="true">
   <div class="modal-box modal-box--wide">
     <div class="modal-box-head">
@@ -631,6 +684,7 @@
         <option value="shipped">Shipped</option><option value="delivered">Delivered</option><option value="cancelled">Cancelled</option>
       </select>
       <button type="button" class="btn btn-primary" id="order-status-save">Update Status</button>
+      <button type="button" class="btn btn-danger" id="order-delete-btn"><i class="ti ti-trash"></i> Delete</button>
       <button type="button" class="btn btn-outline" id="order-modal-close">Close</button>
     </div>
   </div>
@@ -638,6 +692,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin.js?v=36"></script>
+<script src="/js/admin.js?v=44"></script>
 </body>
 </html>

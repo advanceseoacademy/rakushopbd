@@ -57,6 +57,7 @@
   let categories = [];
   let coupons = [];
   let banners = [];
+  let messengerChats = [];
   let faqs = [];
   let currentOrderId = null;
 
@@ -82,6 +83,7 @@
     reviews: 'Reviews',
     banners: 'Banners',
     marketing: 'Marketing',
+    messenger: 'Messenger Chats',
     settings: 'Settings',
   };
   const validPages = new Set(Object.keys(pageTitles));
@@ -215,6 +217,7 @@
     if (page === 'reviews') loadReviews();
     if (page === 'banners') loadBanners();
     if (page === 'marketing') loadMarketing();
+    if (page === 'messenger') loadMessengerChats();
   }
 
   window.adminSwitchPage = switchPage;
@@ -329,6 +332,18 @@
       document.getElementById('pf-category').value = product.category_id;
       document.getElementById('pf-price').value = product.price;
       document.getElementById('pf-old-price').value = product.old_price || '';
+      document.getElementById('pf-old-price').dataset.userEdited = product.old_price ? '1' : '';
+      delete document.getElementById('pf-price')?.dataset.userEdited;
+      const pfDisc = document.getElementById('pf-discount-percent');
+      if (pfDisc) {
+        const stored = Number(product.discount_percent);
+        pfDisc.value = Number.isFinite(stored) && stored > 0 ? stored : '';
+      }
+      if (!pfDisc?.value) {
+        document.getElementById('pf-old-price').value = '';
+        delete document.getElementById('pf-old-price')?.dataset.userEdited;
+      }
+      syncProductPricing('load');
       document.getElementById('pf-stock').value = product.stock;
       document.getElementById('pf-sku').value = product.sku || '';
       document.getElementById('pf-desc').value = product.description_bn || '';
@@ -411,6 +426,9 @@
     }
     if (e.key === 'Escape' && document.getElementById('banner-modal')?.classList.contains('open')) {
       closeBannerModal();
+    }
+    if (e.key === 'Escape' && document.getElementById('messenger-modal')?.classList.contains('open')) {
+      closeMessengerModal();
     }
   });
 
@@ -665,6 +683,22 @@
   }
 
   // ——— Orders ———
+  async function deleteOrder(id) {
+    if (!confirm('Delete this order permanently? This cannot be undone.')) return;
+    const data = await api('/orders/' + id, { method: 'DELETE' });
+    if (data.ok) {
+      toast('Order deleted');
+      if (String(currentOrderId) === String(id)) {
+        document.getElementById('order-modal')?.classList.remove('open');
+        currentOrderId = null;
+      }
+      loadOrders();
+      loadDashboard();
+    } else {
+      toast(data.error || 'Could not delete order', 'error');
+    }
+  }
+
   async function loadOrders(page) {
     if (page) ordersPage = page;
     const status = document.getElementById('orders-status-filter').value;
@@ -683,12 +717,12 @@
         <td><b>${o.orderNumber}</b></td><td>${o.customerName}<br><small style="color:#94a3b8">${o.customerPhone}</small></td>
         <td>${o.itemsPreview}</td><td>${o.paymentMethod}</td><td>${fmtDate(o.createdAt)}</td>
         <td>${o.totalFormatted}</td><td>${statusBadgeHtml(o.status)}</td>
-        <td><button type="button" class="btn btn-outline btn-xs" data-order-id="${o.id}">Details</button></td></tr>`
+        <td class="tbl-actions">
+          <button type="button" class="btn btn-outline btn-xs" data-order-details="${o.id}">Details</button>
+          <button type="button" class="btn btn-danger btn-xs" data-del-order="${o.id}" title="Delete order"><i class="ti ti-trash"></i> Delete</button>
+        </td></tr>`
       )
       .join('');
-    document.querySelectorAll('[data-order-id]').forEach((btn) => {
-      btn.onclick = () => openOrderModal(btn.dataset.orderId);
-    });
 
     const pag = data.pagination;
     const pagEl = document.getElementById('orders-pagination');
@@ -705,6 +739,21 @@
   document.getElementById('orders-status-filter').onchange = () => loadOrders(1);
   document.getElementById('orders-payment-filter')?.addEventListener('change', () => loadOrders(1));
   document.getElementById('orders-search').oninput = debounce(() => loadOrders(1), 400);
+
+  const ordersTbody = document.getElementById('orders-tbody');
+  if (ordersTbody && !ordersTbody._rakuOrderActionsBound) {
+    ordersTbody._rakuOrderActionsBound = true;
+    ordersTbody.addEventListener('click', (e) => {
+      const delBtn = e.target.closest('[data-del-order]');
+      if (delBtn) {
+        e.preventDefault();
+        void deleteOrder(delBtn.dataset.delOrder);
+        return;
+      }
+      const detailsBtn = e.target.closest('[data-order-details]');
+      if (detailsBtn) openOrderModal(detailsBtn.dataset.orderDetails);
+    });
+  }
 
   function setAppointmentBadge(n) {
     const el = document.getElementById('appointment-badge');
@@ -1187,6 +1236,10 @@
     }
   };
 
+  document.getElementById('order-delete-btn').onclick = () => {
+    if (currentOrderId) void deleteOrder(currentOrderId);
+  };
+
   // ——— Products ———
   /** @type {{ url: string, file?: File, preview?: string }[]} */
   let pfGalleryItems = [];
@@ -1342,7 +1395,8 @@
             <div><div style="font-weight:600;">${p.name_bn}</div><small style="color:#94a3b8">${p.slug}</small></div></div></td>
           <td>${p.category_name}</td><td>৳${Number(p.price).toLocaleString()}</td><td>${p.stock}</td>
           <td><span class="badge ${stockCls}">${stockLbl}</span></td>
-          <td>
+          <td class="tbl-actions">
+            <a href="/product/${encodeURIComponent(p.slug || p.id)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs">View</a>
             <button type="button" class="btn btn-outline btn-xs" data-edit-product="${p.id}">Edit</button>
             <button type="button" class="btn btn-danger btn-xs" data-del-product="${p.id}">Delete</button>
           </td></tr>`;
@@ -1393,12 +1447,66 @@
     document.getElementById('pf-bg').value = '#e8f5e8';
     document.getElementById('pf-stock').value = 100;
     document.getElementById('pf-featured').checked = true;
-    ['pf-short-desc', 'pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image'].forEach((id) => {
+    ['pf-short-desc', 'pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image', 'pf-discount-percent'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+    const oldEl = document.getElementById('pf-old-price');
+    if (oldEl) delete oldEl.dataset.userEdited;
+    const priceEl = document.getElementById('pf-price');
+    if (priceEl) delete priceEl.dataset.userEdited;
     resetPfGallery([]);
   }
+
+  function roundPrice(n) {
+    return Math.round(Number(n) * 100) / 100;
+  }
+
+  function syncProductPricing(source) {
+    const priceEl = document.getElementById('pf-price');
+    const oldEl = document.getElementById('pf-old-price');
+    const pctEl = document.getElementById('pf-discount-percent');
+    if (!priceEl || !oldEl || !pctEl) return;
+
+    const sale = Number(priceEl.value);
+    const mrp = Number(oldEl.value);
+    const pct = Number(pctEl.value);
+    const hasPct = Number.isFinite(pct) && pct > 0 && pct < 100;
+
+    if (!hasPct) {
+      if (source === 'discount' || source === 'load') {
+        oldEl.value = '';
+        delete oldEl.dataset.userEdited;
+      }
+      return;
+    }
+
+    if ((source === 'mrp' || source === 'discount') && mrp > 0 && oldEl.dataset.userEdited === '1') {
+      priceEl.value = roundPrice(mrp * (1 - pct / 100));
+      delete priceEl.dataset.userEdited;
+    } else if ((source === 'sale' || source === 'discount') && sale > 0 && priceEl.dataset.userEdited === '1') {
+      if (oldEl.dataset.userEdited !== '1') {
+        oldEl.value = roundPrice(sale / (1 - pct / 100));
+      }
+    } else if (source === 'mrp' && mrp > 0) {
+      priceEl.value = roundPrice(mrp * (1 - pct / 100));
+      delete priceEl.dataset.userEdited;
+    } else if (source === 'sale' && sale > 0 && oldEl.dataset.userEdited !== '1') {
+      oldEl.value = roundPrice(sale / (1 - pct / 100));
+    }
+  }
+
+  document.getElementById('pf-discount-percent')?.addEventListener('input', () => syncProductPricing('discount'));
+  document.getElementById('pf-price')?.addEventListener('input', (e) => {
+    if (e.target.value) e.target.dataset.userEdited = '1';
+    else delete e.target.dataset.userEdited;
+    syncProductPricing('sale');
+  });
+  document.getElementById('pf-old-price')?.addEventListener('input', (e) => {
+    if (e.target.value) e.target.dataset.userEdited = '1';
+    else delete e.target.dataset.userEdited;
+    syncProductPricing('mrp');
+  });
 
   document.getElementById('product-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -1419,12 +1527,15 @@
       }
     }
     const imageUrl = galleryUrls[0] || null;
+    const discRaw = document.getElementById('pf-discount-percent')?.value;
+    const discParsed = discRaw === '' || discRaw == null ? null : Number(discRaw);
     const body = {
       name: document.getElementById('pf-name').value.trim(),
       slug: document.getElementById('pf-slug')?.value?.trim() || undefined,
       categoryId: Number(document.getElementById('pf-category').value),
       price: Number(document.getElementById('pf-price').value),
       oldPrice: document.getElementById('pf-old-price').value || null,
+      discountPercent: discParsed === null ? null : discParsed,
       stock: Number(document.getElementById('pf-stock').value),
       sku: document.getElementById('pf-sku').value.trim(),
       description: document.getElementById('pf-desc').value.trim(),
@@ -1870,6 +1981,186 @@
       closeBannerModal();
       resetBannerForm();
       loadBanners();
+    } else toast(res.error || 'Failed', 'error');
+  });
+
+  // ——— Messenger chat screenshots ———
+  function openMessengerModal() {
+    const modal = document.getElementById('messenger-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('messenger-modal-open');
+  }
+
+  function closeMessengerModal() {
+    const modal = document.getElementById('messenger-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('messenger-modal-open');
+  }
+
+  function resetMessengerForm() {
+    document.getElementById('messenger-form-title').textContent = 'Add Messenger Screenshot';
+    document.getElementById('msg-id').value = '';
+    document.getElementById('msg-name').value = '';
+    document.getElementById('msg-caption').value = '';
+    document.getElementById('msg-image').value = '';
+    document.getElementById('msg-sort').value = '0';
+    document.getElementById('msg-active').checked = true;
+    const fileEl = document.getElementById('msg-file');
+    if (fileEl) fileEl.value = '';
+    setMktImagePreview('msg-preview-wrap', 'msg-preview', '');
+  }
+
+  async function loadMessengerSettings() {
+    const data = await api('/settings');
+    if (!data.ok || !data.settings) return;
+    const s = data.settings;
+    const en = document.getElementById('msg-sec-enabled');
+    if (en) en.checked = s.messenger_chats_enabled !== '0';
+    const title = document.getElementById('msg-sec-title');
+    const sub = document.getElementById('msg-sec-sub');
+    if (title) title.value = s.messenger_chats_title || '';
+    if (sub) sub.value = s.messenger_chats_subtitle || '';
+  }
+
+  async function loadMessengerChatsList() {
+    const data = await api('/messenger-chats');
+    if (!data.ok) return;
+    messengerChats = data.chats || [];
+    const tbody = document.getElementById('messenger-tbody');
+    if (!tbody) return;
+
+    if (!messengerChats.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">No chat screenshots yet. Add your first Messenger screenshot.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = messengerChats
+      .map((c) => {
+        const src = escHtml(c.image_url || c.imageUrl || '');
+        const active = c.is_active === true || c.is_active === 1 || c.is_active === '1';
+        return `<tr>
+          <td>${src ? `<img src="${src}" alt="" style="width:56px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">` : '—'}</td>
+          <td>${escHtml(c.customer_name || c.customerName || '—')}</td>
+          <td>${escHtml(c.caption || '—')}</td>
+          <td>${c.sort_order ?? c.sortOrder ?? 0}</td>
+          <td><span class="badge badge-${active ? 'green' : 'gray'}">${active ? 'Active' : 'Hidden'}</span></td>
+          <td>
+            <button type="button" class="btn btn-outline btn-xs" data-edit-msg="${c.id}">Edit</button>
+            <button type="button" class="btn btn-danger btn-xs" data-del-msg="${c.id}">Delete</button>
+          </td>
+        </tr>`;
+      })
+      .join('');
+
+    tbody.querySelectorAll('[data-edit-msg]').forEach((btn) => {
+      btn.onclick = () => {
+        const c = messengerChats.find((x) => x.id === Number(btn.dataset.editMsg));
+        if (!c) return;
+        document.getElementById('messenger-form-title').textContent = 'Edit Messenger Screenshot';
+        document.getElementById('msg-id').value = c.id;
+        document.getElementById('msg-name').value = c.customer_name || c.customerName || '';
+        document.getElementById('msg-caption').value = c.caption || '';
+        document.getElementById('msg-image').value = c.image_url || c.imageUrl || '';
+        document.getElementById('msg-sort').value = c.sort_order ?? c.sortOrder ?? 0;
+        document.getElementById('msg-active').checked =
+          c.is_active === true || c.is_active === 1 || c.is_active === '1';
+        const fileEl = document.getElementById('msg-file');
+        if (fileEl) fileEl.value = '';
+        setMktImagePreview('msg-preview-wrap', 'msg-preview', c.image_url || c.imageUrl);
+        openMessengerModal();
+      };
+    });
+
+    tbody.querySelectorAll('[data-del-msg]').forEach((btn) => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this chat screenshot?')) return;
+        const r = await api('/messenger-chats/' + btn.dataset.delMsg, { method: 'DELETE' });
+        if (r.ok) {
+          toast('Screenshot deleted');
+          loadMessengerChatsList();
+        } else toast(r.error || 'Failed', 'error');
+      };
+    });
+  }
+
+  async function loadMessengerChats() {
+    await loadMessengerSettings();
+    await loadMessengerChatsList();
+  }
+
+  document.getElementById('add-messenger-btn')?.addEventListener('click', () => {
+    resetMessengerForm();
+    openMessengerModal();
+  });
+  document.getElementById('messenger-modal-close')?.addEventListener('click', closeMessengerModal);
+  document.getElementById('messenger-modal-cancel')?.addEventListener('click', closeMessengerModal);
+  document.getElementById('messenger-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'messenger-modal') closeMessengerModal();
+  });
+  document.getElementById('msg-reset')?.addEventListener('click', resetMessengerForm);
+  document.getElementById('msg-file')?.addEventListener('change', (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    setMktImagePreview('msg-preview-wrap', 'msg-preview', URL.createObjectURL(f));
+  });
+  document.getElementById('msg-image')?.addEventListener('input', (e) => {
+    setMktImagePreview('msg-preview-wrap', 'msg-preview', e.target.value);
+  });
+
+  document.getElementById('messenger-settings-save')?.addEventListener('click', async () => {
+    const settings = {
+      messenger_chats_enabled: document.getElementById('msg-sec-enabled')?.checked ? '1' : '0',
+      messenger_chats_title: document.getElementById('msg-sec-title')?.value.trim() || '',
+      messenger_chats_subtitle: document.getElementById('msg-sec-sub')?.value.trim() || '',
+    };
+    const data = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
+    });
+    if (data.ok) toast('Messenger section settings saved');
+    else toast(data.error || 'Save failed', 'error');
+  });
+
+  document.getElementById('messenger-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    let imageUrl = document.getElementById('msg-image').value.trim();
+    const f = document.getElementById('msg-file')?.files?.[0];
+    if (f) {
+      const up = await uploadProductImage(f);
+      if (!up.ok) {
+        toast(up.error || 'Image upload failed', 'error');
+        return;
+      }
+      imageUrl = up.url;
+      document.getElementById('msg-image').value = imageUrl;
+      document.getElementById('msg-file').value = '';
+      setMktImagePreview('msg-preview-wrap', 'msg-preview', imageUrl);
+    }
+    if (!imageUrl) {
+      toast('Please upload or paste a screenshot URL', 'error');
+      return;
+    }
+    const id = document.getElementById('msg-id').value;
+    const body = {
+      customerName: document.getElementById('msg-name').value.trim(),
+      caption: document.getElementById('msg-caption').value.trim(),
+      imageUrl,
+      sortOrder: Number(document.getElementById('msg-sort').value) || 0,
+      isActive: document.getElementById('msg-active').checked,
+    };
+    const res = id
+      ? await api('/messenger-chats/' + id, { method: 'PUT', body: JSON.stringify(body) })
+      : await api('/messenger-chats', { method: 'POST', body: JSON.stringify(body) });
+    if (res.ok) {
+      toast(id ? 'Screenshot updated' : 'Screenshot added');
+      closeMessengerModal();
+      resetMessengerForm();
+      loadMessengerChatsList();
     } else toast(res.error || 'Failed', 'error');
   });
 

@@ -1,0 +1,33 @@
+<div class="track-wrap">
+  <div class="track-grid">
+    <div class="trk-card">
+      <div class="trk-head">
+        <h1 class="trk-title"><i class="ti ti-truck-delivery"></i> Track your order</h1>
+        <p class="trk-sub">Enter your Order ID (example: <b>RKS-2026-12345678</b>) to see status and details.</p>
+      </div>
+      <div class="trk-body">
+        <form class="trk-form" id="trk-form" onsubmit="return false;">
+          <div class="trk-input-wrap">
+            <i class="ti ti-receipt"></i>
+            <input class="trk-input" id="trk-order-id" type="text" placeholder="RKS-2026-........" autocomplete="off">
+          </div>
+          <button type="button" class="trk-btn" id="trk-submit"><i class="ti ti-search"></i> Track</button>
+        </form>
+        <div class="trk-hint">Tip: Order ID আপনার Success page‑এ “Order ID” এর পাশে থাকে।</div>
+        <div class="trk-result" id="trk-result" hidden></div>
+      </div>
+    </div>
+
+    <div class="trk-card">
+      <div class="trk-head">
+        <h2 class="trk-title"><i class="ti ti-info-circle"></i> How it works</h2>
+        <p class="trk-sub">Order ID দিয়ে track করলে আপনি status, items এবং total দেখতে পারবেন।</p>
+      </div>
+      <div class="trk-body">
+        <div class="trk-step"><i class="ti ti-receipt"></i><div><b>1) Copy Order ID</b><span>Success page থেকে Order ID কপি করুন (RKS‑2026‑...).</span></div></div>
+        <div class="trk-step"><i class="ti ti-search"></i><div><b>2) Paste & Track</b><span>এই পেজে paste করে “Track” চাপুন।</span></div></div>
+        <div class="trk-step"><i class="ti ti-package"></i><div><b>3) View status</b><span>Pending/Confirmed/Shipped/Delivered status দেখুন।</span></div></div>
+      </div>
+    </div>
+  </div>
+</div>

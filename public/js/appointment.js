@@ -20,23 +20,35 @@
   }
 
   async function loadMeta() {
+    const boot = window.__RAKU_BOOTSTRAP;
+    if (boot?.appointmentMeta) {
+      applyMeta(boot.appointmentMeta);
+      return;
+    }
     try {
       const res = await fetch(API + '/appointments/meta');
       const data = await res.json();
       if (!data.ok) return;
-      const types = (data.serviceTypes || []).filter((s) => s.value !== 'store_visit');
-      serviceSel.innerHTML = types
-        .map((s) => `<option value="${escapeAttr(s.value)}">${escapeHtml(s.label)}</option>`)
-        .join('');
-      timeSel.innerHTML =
-        '<option value="">Select time</option>' +
-        (data.timeSlots || [])
-          .map((t) => `<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`)
-          .join('');
+      applyMeta(data);
     } catch (_) {
-      serviceSel.innerHTML = '<option value="consultation">Product Consultation</option>';
-      timeSel.innerHTML = '<option value="10:00 AM – 11:00 AM">10:00 AM – 11:00 AM</option>';
+      applyMeta({
+        serviceTypes: [{ value: 'consultation', label: 'Product Consultation' }],
+        timeSlots: ['10:00 AM – 11:00 AM'],
+      });
     }
+  }
+
+  function applyMeta(data) {
+    if (!serviceSel || !timeSel || !dateInput) return;
+    const types = (data.serviceTypes || []).filter((s) => s.value !== 'store_visit');
+    serviceSel.innerHTML = types
+      .map((s) => `<option value="${escapeAttr(s.value)}">${escapeHtml(s.label)}</option>`)
+      .join('');
+    timeSel.innerHTML =
+      '<option value="">Select time</option>' +
+      (data.timeSlots || [])
+        .map((t) => `<option value="${escapeAttr(t)}">${escapeHtml(t)}</option>`)
+        .join('');
     setMinMaxDate();
   }
 
@@ -171,19 +183,36 @@
   });
 
   let metaLoaded = false;
+  let metaLoading = false;
 
-  async function initAppointmentPage() {
+  function initAppointmentPage() {
     if (!document.getElementById('appt-book-form')) return;
-    if (!metaLoaded) {
-      await loadMeta();
-      metaLoaded = true;
-    }
-    document.title = 'Book Appointment • RakuShopBD';
+    if (metaLoaded || metaLoading) return;
+    metaLoading = true;
+    loadMeta()
+      .then(() => {
+        metaLoaded = true;
+      })
+      .finally(() => {
+        metaLoading = false;
+      });
   }
 
   window._rakuInitAppointmentPage = initAppointmentPage;
+  window._rakuPrefetchAppointment = initAppointmentPage;
+
+  document.addEventListener('raku:bootstrap', () => {
+    if (window.__RAKU_BOOTSTRAP?.appointmentMeta && !metaLoaded) {
+      applyMeta(window.__RAKU_BOOTSTRAP.appointmentMeta);
+      metaLoaded = true;
+    }
+  });
 
   document.addEventListener('DOMContentLoaded', () => {
+    if (window.__RAKU_BOOTSTRAP?.appointmentMeta) {
+      applyMeta(window.__RAKU_BOOTSTRAP.appointmentMeta);
+      metaLoaded = true;
+    }
     if (document.getElementById('appt-book-form')) initAppointmentPage();
   });
 

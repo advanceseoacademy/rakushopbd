@@ -641,4 +641,85 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
+  // ——— Messenger chat screenshots ———
+  router.get('/messenger-chats', requireAdmin, async (req, res) => {
+    try {
+      const { ensureMessengerChats } = require('../lib/ensureMessengerChats');
+      await ensureMessengerChats();
+      const chats = await query(
+        'SELECT * FROM messenger_chats ORDER BY sort_order ASC, id DESC'
+      );
+      res.json({ ok: true, chats });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Messenger chats table missing' });
+    }
+  });
+
+  router.post('/messenger-chats', requireAdmin, async (req, res) => {
+    try {
+      const { ensureMessengerChats } = require('../lib/ensureMessengerChats');
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      await ensureMessengerChats();
+      const { customerName, caption, imageUrl, sortOrder, isActive } = req.body;
+      if (!imageUrl) {
+        return res.status(400).json({ ok: false, error: 'Screenshot image is required' });
+      }
+      await query(
+        `INSERT INTO messenger_chats (customer_name, caption, image_url, sort_order, is_active)
+         VALUES (?,?,?,?,?)`,
+        [
+          customerName || '',
+          caption || '',
+          imageUrl,
+          sortOrder || 0,
+          isActive !== false,
+        ]
+      );
+      clearStoreBootstrapCache();
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not create chat screenshot' });
+    }
+  });
+
+  router.put('/messenger-chats/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureMessengerChats } = require('../lib/ensureMessengerChats');
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      await ensureMessengerChats();
+      const { customerName, caption, imageUrl, sortOrder, isActive } = req.body;
+      if (!imageUrl) {
+        return res.status(400).json({ ok: false, error: 'Screenshot image is required' });
+      }
+      await query(
+        `UPDATE messenger_chats SET customer_name=?, caption=?, image_url=?, sort_order=?, is_active=? WHERE id=?`,
+        [
+          customerName || '',
+          caption || '',
+          imageUrl,
+          sortOrder || 0,
+          Boolean(isActive),
+          req.params.id,
+        ]
+      );
+      clearStoreBootstrapCache();
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not update chat screenshot' });
+    }
+  });
+
+  router.delete('/messenger-chats/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureMessengerChats } = require('../lib/ensureMessengerChats');
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      await ensureMessengerChats();
+      await query('DELETE FROM messenger_chats WHERE id = ?', [req.params.id]);
+      clearStoreBootstrapCache();
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not delete chat screenshot' });
+    }
+  });
+
 };

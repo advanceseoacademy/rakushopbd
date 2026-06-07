@@ -32,6 +32,7 @@ svg {
   .btn-outline,
   .btn-outline-white,
   .add-cart-btn,
+  .preorder-btn,
   .header-icon-btn,
   .navbar-hamburger,
   a.header-icon-btn {
@@ -313,6 +314,11 @@ svg {
 
 /* ——— Product page ——— */
 @media (max-width: 768px) {
+  #page-product .pv-breadcrumb {
+    padding-left: max(12px, var(--safe-left));
+    padding-right: max(12px, var(--safe-right));
+  }
+
   #page-product .pv-wrap,
   #page-product .pv-tabs-wrap,
   #page-product .related-section {
@@ -334,11 +340,38 @@ svg {
     line-height: 1.35;
   }
 
-  #page-product .pv-short-desc {
-    font-size: 13px;
-    line-height: 1.55;
+  #page-product .pv-specs-inline {
     margin: 0 0 12px;
+  }
+
+  #page-product .pv-specs-inline .spec-table {
+    font-size: 12px;
+  }
+
+  #page-product .pv-specs-inline .spec-table th,
+  #page-product .pv-specs-inline .spec-table td {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  #page-product .pv-specs-inline .spec-table tr {
+    display: block;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #page-product .pv-specs-inline .spec-table tr:last-child {
+    border-bottom: none;
+  }
+
+  #page-product .pv-specs-inline .spec-table th {
+    border-right: none;
+    padding-bottom: 4px;
+  }
+
+  #page-product .pv-specs-inline .spec-table td {
     padding-top: 0;
+    padding-bottom: 10px;
   }
 
   #page-product .pv-price {
@@ -356,7 +389,8 @@ svg {
   }
 
   #page-product .btn-add-cart,
-  #page-product .btn-buy {
+  #page-product .btn-buy,
+  #page-product .btn-preorder {
     flex: 1 1 calc(50% - 5px);
     min-width: 0;
   }
@@ -370,10 +404,30 @@ svg {
     min-width: 72px;
   }
 
-  #page-product .spec-table {
+  #page-product .spec-table th,
+  #page-product .spec-table td {
     display: block;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  #page-product .spec-table tr {
+    display: block;
+    border-bottom: 1px solid var(--border);
+  }
+
+  #page-product .spec-table tr:last-child {
+    border-bottom: none;
+  }
+
+  #page-product .spec-table th {
+    border-right: none;
+    padding-bottom: 4px;
+  }
+
+  #page-product .spec-table td {
+    padding-top: 0;
+    padding-bottom: 12px;
   }
 
   #page-product .pv-qty-row {
@@ -384,7 +438,8 @@ svg {
 
 @media (max-width: 420px) {
   #page-product .btn-add-cart,
-  #page-product .btn-buy {
+  #page-product .btn-buy,
+  #page-product .btn-preorder {
     flex: 1 1 100%;
   }
 
@@ -665,6 +720,11 @@ svg {
     padding-left: max(0px, var(--safe-left));
     padding-right: max(0px, var(--safe-right));
   }
+
+  .home-messenger-reviews {
+    padding-left: max(0px, var(--safe-left));
+    padding-right: max(0px, var(--safe-right));
+  }
 }
 
 /* ——— Face analyzer FAB ——— */
@@ -840,7 +900,21 @@ svg {
     white-space: nowrap;
   }
 
+  .home-scroll-track .preorder-btn {
+    width: 100%;
+    min-height: 34px;
+    padding: 7px 8px;
+    font-size: 10px;
+    gap: 4px;
+    border-radius: 8px;
+    white-space: nowrap;
+  }
+
   .home-scroll-track .add-cart-btn .ti {
+    font-size: 14px;
+  }
+
+  .home-scroll-track .preorder-btn .ti {
     font-size: 14px;
   }
 

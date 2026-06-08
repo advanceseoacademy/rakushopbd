@@ -86,6 +86,10 @@
       </div>`
         )
         .join('');
+      if (window._rakuStopHomeScrollAuto) window._rakuStopHomeScrollAuto('trust-bar');
+      if (window._rakuInitHomeScrollAuto) {
+        setTimeout(() => window._rakuInitHomeScrollAuto('trust-bar', 4000), 120);
+      }
     }
 
     const delBox = document.getElementById('pv-delivery-list');

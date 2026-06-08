@@ -24,7 +24,7 @@
   function tagHtml(p) {
     const pct = discountPercent(p);
     const discountBadge = pct
-      ? `<span class="prod-discount">-${fmtNum(pct)}%</span>`
+      ? `<span class="prod-discount">${fmtNum(pct)}%</span>`
       : '';
     if (discountBadge) return discountBadge;
     if (p.tag_type === 'bestseller' && p.tag_text) {
@@ -935,7 +935,7 @@
     const badgeRow = document.getElementById('pv-badge-row');
     if (badgeRow) {
       let bh = '';
-      if (pct) bh += `<span class="pv-badge">-${pct}%</span>`;
+      if (pct) bh += `<span class="pv-badge pv-badge--discount">${pct}%</span>`;
       if (p.tag_text && p.tag_type !== 'discount') {
         bh += `<span class="pv-badge pv-badge-new"><i class="ti ti-bolt" style="font-size:10px;"></i> ${escapeHtml(p.tag_text)}</span>`;
       } else if (p.tag_text && p.tag_type === 'discount' && !pct) {
@@ -2115,10 +2115,14 @@
     if (!track) return;
 
     const isCategoryTrack = trackId === 'home-category-track';
+    const isTrustBar = trackId === 'trust-bar';
     if (isCategoryTrack && !window.matchMedia('(max-width: 768px)').matches) return;
+    if (isTrustBar && !window.matchMedia('(max-width: 768px)').matches) return;
 
     const cards = () =>
-      track.querySelectorAll('.product-card, .home-review-card, .home-messenger-card, .cat-card');
+      track.querySelectorAll(
+        '.product-card, .home-review-card, .home-messenger-card, .cat-card, .trust-item'
+      );
     if (cards().length < 2) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
@@ -2177,6 +2181,7 @@
     initHomeScrollAuto('track-recommended-for-you', 3500);
     initHomeScrollAuto('track-customer-reviews', 3800);
     initHomeScrollAuto('track-messenger-reviews', 4000);
+    initHomeScrollAuto('trust-bar', 4000);
   }
 
   window._rakuInitHomeScrollAuto = initHomeScrollAuto;

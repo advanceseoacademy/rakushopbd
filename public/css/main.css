@@ -9,6 +9,8 @@
     --accent: #d48696;
     --accent-light: #fce8ec;
     --accent-dark: #9e5568;
+    --discount-badge-bg: #D85A77;
+    --discount-badge-color: #fff;
     --green: #2d8a2d;
     --green-pale: #e8f5e8;
     --amber: #8a6914;
@@ -1970,16 +1972,23 @@
     background: var(--primary);
     color: #fff;
   }
+  .prod-discount,
+  .pv-badge.pv-badge--discount {
+    background: var(--discount-badge-bg);
+    color: var(--discount-badge-color);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 5px;
+    line-height: 1.35;
+    letter-spacing: 0.01em;
+  }
+
   .prod-discount {
     position: absolute;
     top: 10px;
     left: 10px;
-    background: var(--accent);
-    color: #fff;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 20px;
+    z-index: 2;
   }
 
   /* ===== TRUST BADGES ===== */
@@ -1989,7 +1998,6 @@
     border: 1px solid var(--border);
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    margin-bottom: 28px;
   }
   .trust-item {
     display: flex;
@@ -2000,8 +2008,12 @@
   }
   .trust-item:last-child { border-right: none; }
   .trust-icon { font-size: 28px; }
-  .trust-title { font-size: 13px; font-weight: 600; color: var(--text); }
-  .trust-sub { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  .trust-title { font-size: 13px; font-weight: 700; color: var(--text); }
+  .trust-sub { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-top: 2px; }
+
+  .trust-bar-wrap {
+    margin-bottom: 28px;
+  }
 
   /* ===== FOOTER ===== */
   .footer {

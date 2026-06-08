@@ -2108,9 +2108,6 @@
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .category-grid:not(.category-scroll-track) { grid-template-columns: repeat(4, 1fr); }
     .product-grid { grid-template-columns: repeat(2, 1fr); }
-    .trust-bar { grid-template-columns: repeat(2, 1fr); }
-    .trust-item:nth-child(2) { border-right: none; }
-    .trust-item:nth-child(3) { border-top: 1px solid var(--border); }
     .promo-grid { grid-template-columns: 1fr; }
     .footer-grid { grid-template-columns: 1fr 1fr; }
     .hero-img-box { display: none; }
@@ -2278,13 +2275,6 @@
     .hero-main { padding: 28px 20px; }
     .hero-title { font-size: 26px; }
     .hero-btns { flex-direction: column; }
-    .trust-bar { grid-template-columns: repeat(2, 1fr); }
-    .trust-item {
-      border-right: 1px solid var(--border);
-      border-bottom: none;
-    }
-    .trust-item:nth-child(2n) { border-right: none; }
-    .trust-item:nth-child(n + 3) { border-top: 1px solid var(--border); }
   }
 
   @media (max-width: 420px) {

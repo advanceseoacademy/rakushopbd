@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/admin.css?v=5">
+<link rel="stylesheet" href="/css/admin.css?v=8">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
 </head>
 <body>
@@ -455,88 +455,275 @@
       </div>
 
       <div class="adm-section" id="sec-settings">
-        <div class="grid-2">
-          <div>
-            <div class="card" style="margin-bottom:16px;">
-              <div class="card-title">Store Settings</div>
-              <form id="settings-form">
-                <div class="form-group"><label class="form-label">Store name</label><input class="form-input" id="set-site-name"></div>
-                <div class="form-group"><label class="form-label">Tagline</label><input class="form-input" id="set-tagline"></div>
-                <div class="form-group"><label class="form-label">Announcement bar</label><input class="form-input" id="set-announcement"></div>
-                <div class="form-group"><label class="form-label">Contact email</label><input class="form-input" id="set-email" type="email"></div>
-                <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="set-phone"></div>
-                <div class="form-group"><label class="form-label">bKash number (checkout)</label><input class="form-input" id="set-payment-bkash" placeholder="01712-345678"></div>
-                <div class="form-group"><label class="form-label">Nagad number (checkout)</label><input class="form-input" id="set-payment-nagad" placeholder="01712-345678"></div>
-                <div class="form-group"><label class="form-label">Rocket number (checkout)</label><input class="form-input" id="set-payment-rocket" placeholder="01712-345678"></div>
-                <div class="form-group"><label class="form-label">Address</label><textarea class="form-input form-textarea" id="set-address"></textarea></div>
-                <div class="form-section-title" style="margin-top:20px;">Footer &amp; branding</div>
-                <div class="form-group"><label class="form-label">Footer description</label><textarea class="form-input form-textarea" id="set-footer-desc" rows="2" placeholder="Short about text under logo"></textarea></div>
-                <div class="form-group"><label class="form-label">Store hours</label><input class="form-input" id="set-store-hours" placeholder="9 AM — 10 PM"></div>
-                <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png"></div>
-                <div class="form-group"><label class="form-label">Upload logo</label><input class="form-input" type="file" id="set-logo-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
-                <div class="form-2col">
-                  <div class="form-group"><label class="form-label">Facebook URL</label><input class="form-input" id="set-social-facebook" type="url" placeholder="https://facebook.com/..."></div>
-                  <div class="form-group"><label class="form-label">Instagram URL</label><input class="form-input" id="set-social-instagram" type="url" placeholder="https://instagram.com/..."></div>
-                </div>
-                <div class="form-2col">
-                  <div class="form-group"><label class="form-label">YouTube URL</label><input class="form-input" id="set-social-youtube" type="url" placeholder="https://youtube.com/..."></div>
-                  <div class="form-group"><label class="form-label">WhatsApp URL</label><input class="form-input" id="set-social-whatsapp" type="url" placeholder="https://wa.me/880..."></div>
-                </div>
-                <div class="form-group"><label class="form-label">Quick Links</label><textarea class="form-input form-textarea" id="set-footer-quick" rows="6" placeholder="Home|page:home"></textarea><small class="form-hint">One link per line: <code>Label|page:home</code> or <code>Label|/track</code></small></div>
-                <div class="form-group"><label class="form-label">Help Links</label><textarea class="form-input form-textarea" id="set-footer-help" rows="6" placeholder="Return Policy|#"></textarea><small class="form-hint">Same format. Pages: home, cart, account, appointment</small></div>
-                <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Settings</button>
-              </form>
+        <div class="settings-page">
+          <div class="settings-page-head">
+            <div>
+              <h2 class="settings-page-title">Settings</h2>
+              <p class="settings-page-desc">Configure your store, payments, footer, delivery rules, SEO, and tracking codes.</p>
             </div>
           </div>
-          <div>
-            <div class="card" style="margin-bottom:16px;">
-              <div class="card-title">Delivery & Features</div>
-              <form id="delivery-form">
-                <div class="form-group"><label class="form-label">Free delivery over (৳)</label><input class="form-input" id="set-free-min" type="number"></div>
-                <div class="form-group"><label class="form-label">Delivery fee — Dhaka (৳)</label><input class="form-input" id="set-delivery-fee" type="number"></div>
-                <div class="form-group"><label class="form-label">Delivery fee — outside Dhaka (৳)</label><input class="form-input" id="set-delivery-outside" type="number"></div>
-                <div class="settings-row"><div><div>Maintenance mode</div><div class="settings-row-info">Hide store from visitors</div></div>
-                  <label class="toggle"><input type="checkbox" id="set-maintenance"><span class="toggle-slider"></span></label>
+
+          <nav class="settings-tabs" role="tablist" aria-label="Settings sections">
+            <button type="button" class="settings-tab active" data-settings-tab="store" role="tab"><i class="ti ti-building-store"></i><span>Store</span></button>
+            <button type="button" class="settings-tab" data-settings-tab="contact" role="tab"><i class="ti ti-address-book"></i><span>Contact &amp; Pay</span></button>
+            <button type="button" class="settings-tab" data-settings-tab="footer" role="tab"><i class="ti ti-layout-bottombar"></i><span>Footer</span></button>
+            <button type="button" class="settings-tab" data-settings-tab="delivery" role="tab"><i class="ti ti-truck-delivery"></i><span>Delivery</span></button>
+            <button type="button" class="settings-tab" data-settings-tab="seo" role="tab"><i class="ti ti-world"></i><span>SEO</span></button>
+            <button type="button" class="settings-tab" data-settings-tab="tracking" role="tab"><i class="ti ti-chart-dots-3"></i><span>Analytics</span></button>
+          </nav>
+
+          <form id="settings-form" class="settings-form-wrap">
+            <div class="settings-panel active" id="settings-panel-store" role="tabpanel">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--green"><i class="ti ti-building-store"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Store identity</h3>
+                    <p class="settings-card-desc">Name, tagline, and the announcement bar shown on your storefront.</p>
+                  </div>
                 </div>
-                <div class="settings-row"><div><div>Guest checkout</div></div>
-                  <label class="toggle"><input type="checkbox" id="set-guest" checked><span class="toggle-slider"></span></label>
+                <div class="settings-card-body">
+                  <div class="form-2col">
+                    <div class="form-group"><label class="form-label">Store name</label><input class="form-input" id="set-site-name" placeholder="RakuShopBD"></div>
+                    <div class="form-group"><label class="form-label">Tagline</label><input class="form-input" id="set-tagline" placeholder="Comfort your life"></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Announcement bar</label><input class="form-input" id="set-announcement" placeholder="Free delivery on orders over ৳500"></div>
                 </div>
-                <div class="settings-row"><div><div>Cash on delivery</div></div>
-                  <label class="toggle"><input type="checkbox" id="set-cod" checked><span class="toggle-slider"></span></label>
-                </div>
-                <div class="settings-row"><div><div>Free AI skin test</div><div class="settings-row-info">Floating skin scan button on storefront (left side)</div></div>
-                  <label class="toggle"><input type="checkbox" id="set-face-analyzer"><span class="toggle-slider"></span></label>
-                </div>
-                <div class="settings-row"><div><div>Flash sale banner</div></div>
-                  <label class="toggle"><input type="checkbox" id="set-flash"><span class="toggle-slider"></span></label>
-                </div>
-                <div class="settings-row"><div><div>Review approval required</div></div>
-                  <label class="toggle"><input type="checkbox" id="set-review-approval"><span class="toggle-slider"></span></label>
-                </div>
-                <div class="settings-row"><div><div>Email notifications</div></div>
-                  <label class="toggle"><input type="checkbox" id="set-email-notify"><span class="toggle-slider"></span></label>
-                </div>
-                <div class="settings-row"><div><div>SMS notifications</div></div>
-                  <label class="toggle"><input type="checkbox" id="set-sms"><span class="toggle-slider"></span></label>
-                </div>
-                <button type="submit" class="btn btn-primary" style="margin-top:12px;"><i class="ti ti-device-floppy"></i> Save</button>
-              </form>
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="card" style="margin-top:16px;">
-          <div class="card-title">SEO &amp; Search (Google)</div>
-          <form id="seo-form">
-            <div class="form-group"><label class="form-label">Public site URL</label><input class="form-input" id="set-site-url" type="url" placeholder="https://rakushopbd.com"></div>
-            <div class="form-group"><label class="form-label">Home page title</label><input class="form-input" id="set-seo-home-title" placeholder="RakuShopBD — Best Online Shopping in Bangladesh"></div>
-            <div class="form-group"><label class="form-label">Default meta description</label><textarea class="form-input form-textarea" id="set-seo-description" rows="3" placeholder="Short description for Google search results (150–160 characters)"></textarea></div>
-            <div class="form-group"><label class="form-label">Meta keywords</label><input class="form-input" id="set-seo-keywords" placeholder="online shopping, Bangladesh, ..."></div>
-            <div class="form-group"><label class="form-label">Default share image (OG) URL</label><input class="form-input" id="set-seo-og-image" type="url" placeholder="https://yoursite.com/images/og.jpg"></div>
-            <div class="form-group"><label class="form-label">Google Search Console verification</label><input class="form-input" id="set-seo-google" placeholder="content code only"></div>
-            <div class="form-group"><label class="form-label">Twitter @username</label><input class="form-input" id="set-seo-twitter" placeholder="@rakushopbd"></div>
-            <p class="settings-row-info" style="margin:0 0 12px;">Sitemap: <code>/sitemap.xml</code> · Robots: <code>/robots.txt</code></p>
-            <button type="submit" class="btn btn-primary"><i class="ti ti-world"></i> Save SEO Settings</button>
+
+            <div class="settings-panel" id="settings-panel-contact" role="tabpanel">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--blue"><i class="ti ti-phone"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Contact &amp; checkout payments</h3>
+                    <p class="settings-card-desc">Customer contact details and mobile wallet numbers for checkout.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-2col">
+                    <div class="form-group"><label class="form-label">Contact email</label><input class="form-input" id="set-email" type="email" placeholder="hello@rakushopbd.com"></div>
+                    <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="set-phone" placeholder="+880 1XXX-XXXXXX"></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Address</label><textarea class="form-input form-textarea" id="set-address" rows="2" placeholder="Store / office address"></textarea></div>
+                  <div class="settings-subsection">
+                    <div class="settings-subsection-label"><i class="ti ti-wallet"></i> Payment numbers (checkout)</div>
+                    <div class="form-3col">
+                      <div class="form-group"><label class="form-label">bKash</label><input class="form-input" id="set-payment-bkash" placeholder="01712-345678"></div>
+                      <div class="form-group"><label class="form-label">Nagad</label><input class="form-input" id="set-payment-nagad" placeholder="01712-345678"></div>
+                      <div class="form-group"><label class="form-label">Rocket</label><input class="form-input" id="set-payment-rocket" placeholder="01712-345678"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-panel" id="settings-panel-footer" role="tabpanel">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--pink"><i class="ti ti-layout-bottombar"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Footer &amp; branding</h3>
+                    <p class="settings-card-desc">Logo, social links, store hours, and footer navigation columns.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-group"><label class="form-label">Footer description</label><textarea class="form-input form-textarea" id="set-footer-desc" rows="2" placeholder="Short about text under logo"></textarea></div>
+                  <div class="form-2col">
+                    <div class="form-group"><label class="form-label">Store hours</label><input class="form-input" id="set-store-hours" placeholder="9 AM — 10 PM"></div>
+                    <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png"></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Upload logo</label><input class="form-input form-input-file" type="file" id="set-logo-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
+                  <div class="settings-subsection">
+                    <div class="settings-subsection-label"><i class="ti ti-brand-facebook"></i> Social media</div>
+                    <div class="form-2col">
+                      <div class="form-group"><label class="form-label">Facebook</label><input class="form-input" id="set-social-facebook" type="url" placeholder="https://facebook.com/..."></div>
+                      <div class="form-group"><label class="form-label">Instagram</label><input class="form-input" id="set-social-instagram" type="url" placeholder="https://instagram.com/..."></div>
+                      <div class="form-group"><label class="form-label">YouTube</label><input class="form-input" id="set-social-youtube" type="url" placeholder="https://youtube.com/..."></div>
+                      <div class="form-group"><label class="form-label">WhatsApp</label><input class="form-input" id="set-social-whatsapp" type="url" placeholder="https://wa.me/880..."></div>
+                    </div>
+                  </div>
+                  <div class="settings-subsection">
+                    <div class="settings-subsection-label"><i class="ti ti-link"></i> Quick Links</div>
+                    <div class="footer-links-editor" id="footer-quick-links-editor"></div>
+                    <button type="button" class="btn btn-outline btn-sm footer-links-add-btn" data-footer-links-target="footer-quick-links-editor"><i class="ti ti-plus"></i> Add link</button>
+                    <small class="form-hint">Footer column — label + store page or custom URL.</small>
+                  </div>
+                  <div class="settings-subsection">
+                    <div class="settings-subsection-label"><i class="ti ti-help"></i> Help Links</div>
+                    <div class="footer-links-editor" id="footer-help-links-editor"></div>
+                    <button type="button" class="btn btn-outline btn-sm footer-links-add-btn" data-footer-links-target="footer-help-links-editor"><i class="ti ti-plus"></i> Add link</button>
+                    <small class="form-hint">Help &amp; support links in the footer.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-save-bar" id="settings-save-bar">
+              <p class="settings-save-hint"><i class="ti ti-info-circle"></i> Saves store, contact, and footer settings together.</p>
+              <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Store Settings</button>
+            </div>
           </form>
+
+          <div class="settings-panel" id="settings-panel-delivery" role="tabpanel">
+            <form id="delivery-form">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--amber"><i class="ti ti-truck-delivery"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Delivery fees</h3>
+                    <p class="settings-card-desc">Set free-delivery threshold and charges for Dhaka vs outside Dhaka.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-3col">
+                    <div class="form-group"><label class="form-label">Free delivery over (৳)</label><input class="form-input" id="set-free-min" type="number" min="0"></div>
+                    <div class="form-group"><label class="form-label">Fee — Dhaka (৳)</label><input class="form-input" id="set-delivery-fee" type="number" min="0"></div>
+                    <div class="form-group"><label class="form-label">Fee — outside (৳)</label><input class="form-input" id="set-delivery-outside" type="number" min="0"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--slate"><i class="ti ti-toggle-left"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Store features</h3>
+                    <p class="settings-card-desc">Turn features on or off for your live storefront.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body settings-toggle-grid">
+                  <div class="settings-toggle-card">
+                    <div class="settings-toggle-card-text"><strong>Maintenance mode</strong><span>Hide store from visitors</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-maintenance"><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="settings-toggle-card">
+                    <div class="settings-toggle-card-text"><strong>Guest checkout</strong><span>Allow orders without account</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-guest" checked><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="settings-toggle-card">
+                    <div class="settings-toggle-card-text"><strong>Cash on delivery</strong><span>COD payment option</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-cod" checked><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="settings-toggle-card">
+                    <div class="settings-toggle-card-text"><strong>Free AI skin test</strong><span>Floating scan button on storefront</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-face-analyzer"><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="settings-toggle-card">
+                    <div class="settings-toggle-card-text"><strong>Flash sale banner</strong><span>Hero flash sale badge</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-flash"><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="settings-toggle-card">
+                    <div class="settings-toggle-card-text"><strong>Review approval</strong><span>Reviews need admin approval</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-review-approval"><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="settings-toggle-card">
+                    <div class="settings-toggle-card-text"><strong>Email notifications</strong><span>Order email alerts</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-email-notify"><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="settings-toggle-card">
+                    <div class="settings-toggle-card-text"><strong>SMS notifications</strong><span>Order SMS alerts</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-sms"><span class="toggle-slider"></span></label>
+                  </div>
+                </div>
+                <div class="settings-card-foot">
+                  <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Delivery &amp; Features</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div class="settings-panel" id="settings-panel-seo" role="tabpanel">
+            <form id="seo-form">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--blue"><i class="ti ti-world"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">SEO &amp; Google Search</h3>
+                    <p class="settings-card-desc">Titles, descriptions, and social share settings for search engines.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-group"><label class="form-label">Public site URL</label><input class="form-input" id="set-site-url" type="url" placeholder="https://rakushopbd.com"></div>
+                  <div class="form-group"><label class="form-label">Home page title</label><input class="form-input" id="set-seo-home-title" placeholder="RakuShopBD — Best Online Shopping in Bangladesh"></div>
+                  <div class="form-group"><label class="form-label">Default meta description</label><textarea class="form-input form-textarea" id="set-seo-description" rows="3" placeholder="150–160 characters for Google search results"></textarea></div>
+                  <div class="form-2col">
+                    <div class="form-group"><label class="form-label">Meta keywords</label><input class="form-input" id="set-seo-keywords" placeholder="online shopping, Bangladesh, ..."></div>
+                    <div class="form-group"><label class="form-label">Twitter @username</label><input class="form-input" id="set-seo-twitter" placeholder="@rakushopbd"></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Default share image (OG) URL</label><input class="form-input" id="set-seo-og-image" type="url" placeholder="https://yoursite.com/images/og.jpg"></div>
+                  <div class="settings-info-pill"><i class="ti ti-sitemap"></i> Sitemap: <code>/sitemap.xml</code> · Robots: <code>/robots.txt</code></div>
+                </div>
+                <div class="settings-card-foot">
+                  <button type="submit" class="btn btn-primary"><i class="ti ti-world"></i> Save SEO Settings</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div class="settings-panel" id="settings-panel-tracking" role="tabpanel">
+            <form id="tracking-form">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--purple"><i class="ti ti-chart-dots-3"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Tracking &amp; verification IDs</h3>
+                    <p class="settings-card-desc">Paste IDs — scripts are injected automatically on the live site.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-2col">
+                    <div class="form-group">
+                      <label class="form-label">Google Search Console</label>
+                      <input class="form-input" id="set-tracking-gsc" placeholder="Meta content code only">
+                      <small class="form-hint">From <code>google-site-verification</code> meta tag</small>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Google Analytics 4</label>
+                      <input class="form-input" id="set-tracking-ga4" placeholder="G-XXXXXXXXXX">
+                      <small class="form-hint">Injected in &lt;head&gt;</small>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Google Tag Manager</label>
+                      <input class="form-input" id="set-tracking-gtm" placeholder="GTM-XXXXXXX">
+                      <small class="form-hint">Head script + body noscript</small>
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Facebook Pixel</label>
+                      <input class="form-input" id="set-tracking-fb" placeholder="123456789012345">
+                      <small class="form-hint">Meta Pixel in &lt;head&gt;</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--slate"><i class="ti ti-code"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Custom code snippets</h3>
+                    <p class="settings-card-desc">Paste full HTML or scripts for header, body start, or footer.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-group">
+                    <label class="form-label"><i class="ti ti-file-code"></i> Header (&lt;head&gt;)</label>
+                    <textarea class="form-input form-textarea form-textarea-code" id="set-tracking-head" rows="4" placeholder="Meta tags, scripts, verification codes..."></textarea>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label"><i class="ti ti-body-scan"></i> Body start (after &lt;body&gt;)</label>
+                    <textarea class="form-input form-textarea form-textarea-code" id="set-tracking-body" rows="4" placeholder="GTM noscript, body scripts..."></textarea>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label"><i class="ti ti-layout-bottombar"></i> Footer (before &lt;/body&gt;)</label>
+                    <textarea class="form-input form-textarea form-textarea-code" id="set-tracking-footer" rows="4" placeholder="Chat widgets, extra pixels..."></textarea>
+                  </div>
+                </div>
+                <div class="settings-card-foot">
+                  <button type="submit" class="btn btn-primary"><i class="ti ti-code"></i> Save Analytics Settings</button>
+                </div>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -694,6 +881,6 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin.js?v=45"></script>
+<script src="/js/admin.js?v=48"></script>
 </body>
 </html>

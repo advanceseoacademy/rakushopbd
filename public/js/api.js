@@ -24,7 +24,7 @@
   function tagHtml(p) {
     const pct = discountPercent(p);
     const discountBadge = pct
-      ? `<span class="prod-discount">${fmtNum(pct)}%</span>`
+      ? `<span class="prod-discount">-${fmtNum(pct)}%</span>`
       : '';
     if (discountBadge) return discountBadge;
     if (p.tag_type === 'bestseller' && p.tag_text) {
@@ -935,7 +935,7 @@
     const badgeRow = document.getElementById('pv-badge-row');
     if (badgeRow) {
       let bh = '';
-      if (pct) bh += `<span class="pv-badge pv-badge--discount">${pct}%</span>`;
+      if (pct) bh += `<span class="pv-badge pv-badge--discount">-${pct}%</span>`;
       if (p.tag_text && p.tag_type !== 'discount') {
         bh += `<span class="pv-badge pv-badge-new"><i class="ti ti-bolt" style="font-size:10px;"></i> ${escapeHtml(p.tag_text)}</span>`;
       } else if (p.tag_text && p.tag_type === 'discount' && !pct) {
@@ -2100,6 +2100,7 @@
   }
 
   const homeAutoScrollTimers = new Map();
+  const homeAutoScrollIndexes = new Map();
 
   function stopHomeScrollAuto(trackId) {
     const t = homeAutoScrollTimers.get(trackId);
@@ -2107,6 +2108,7 @@
       clearInterval(t);
       homeAutoScrollTimers.delete(trackId);
     }
+    homeAutoScrollIndexes.delete(trackId);
   }
 
   function initHomeScrollAuto(trackId, intervalMs = 3200) {
@@ -2125,6 +2127,8 @@
       );
     if (cards().length < 2) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    homeAutoScrollIndexes.set(trackId, 0);
 
     let paused = false;
     if (!track._rakuAutoScrollBound) {
@@ -2157,6 +2161,14 @@
       if (paused) return;
       const list = cards();
       if (list.length < 2) return;
+
+      if (isTrustBar) {
+        let idx = homeAutoScrollIndexes.get(trackId) ?? 0;
+        idx = (idx + 1) % list.length;
+        homeAutoScrollIndexes.set(trackId, idx);
+        list[idx].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+        return;
+      }
 
       const gap = Number.parseFloat(getComputedStyle(track).gap) || 16;
       const stepPx = list[0].offsetWidth + gap;

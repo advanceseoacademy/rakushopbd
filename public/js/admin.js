@@ -1769,18 +1769,143 @@
       .filter(Boolean);
   }
 
-  function footerLinksToText(raw) {
-    const links = parseFooterLinksAdmin(raw);
-    if (!links.length) return '';
-    return links
-      .map((l) => (l.page ? `${l.label}|page:${l.page}` : `${l.label}|${l.href || '#'}`))
-      .join('\n');
+  const FOOTER_PAGE_OPTIONS = [
+    { value: 'home', label: 'Home' },
+    { value: 'cart', label: 'My Cart' },
+    { value: 'account', label: 'My Account' },
+    { value: 'appointment', label: 'Book Appointment' },
+    { value: 'track', label: 'Track Order' },
+    { value: 'faq', label: 'FAQ' },
+    { value: 'contact', label: 'Contact Us' },
+  ];
+
+  const FOOTER_HREF_TO_PAGE = {
+    '/': 'home',
+    '/cart': 'cart',
+    '/account': 'account',
+    '/appointment': 'appointment',
+    '/track': 'track',
+    '/faq': 'faq',
+    '/contact': 'contact',
+  };
+
+  function normalizeFooterLinkForEditor(link) {
+    const label = String(link?.label || '').trim();
+    if (link?.page) {
+      return { label, targetType: 'page', page: link.page, href: '' };
+    }
+    const href = String(link?.href || '#').trim();
+    const mappedPage = FOOTER_HREF_TO_PAGE[href];
+    if (mappedPage) {
+      return { label, targetType: 'page', page: mappedPage, href: '' };
+    }
+    return { label, targetType: 'url', page: 'home', href: href || '#' };
   }
 
-  function footerLinksFromText(text) {
-    const links = parseFooterLinksAdmin(text);
+  function footerPageOptionsHtml(selected) {
+    return FOOTER_PAGE_OPTIONS.map(
+      (opt) =>
+        `<option value="${escHtml(opt.value)}"${opt.value === selected ? ' selected' : ''}>${escHtml(opt.label)}</option>`
+    ).join('');
+  }
+
+  function footerLinkRowHtml(link) {
+    const norm = normalizeFooterLinkForEditor(link);
+    return `<div class="footer-link-row">
+      <div class="form-group">
+        <label class="form-label">Link label</label>
+        <input class="form-input" type="text" data-fl-label value="${escHtml(norm.label)}" placeholder="e.g. Home">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Link type</label>
+        <select class="form-input form-select" data-fl-type>
+          <option value="page"${norm.targetType === 'page' ? ' selected' : ''}>Store page</option>
+          <option value="url"${norm.targetType === 'url' ? ' selected' : ''}>Custom URL</option>
+        </select>
+      </div>
+      <div class="footer-link-target">
+        <div class="form-group footer-link-target-page" data-fl-page-wrap style="display:${norm.targetType === 'page' ? '' : 'none'};">
+          <label class="form-label">Page</label>
+          <select class="form-input form-select" data-fl-page>${footerPageOptionsHtml(norm.page)}</select>
+        </div>
+        <div class="form-group footer-link-target-url" data-fl-href-wrap style="display:${norm.targetType === 'url' ? '' : 'none'};">
+          <label class="form-label">URL</label>
+          <input class="form-input" type="text" data-fl-href value="${escHtml(norm.href)}" placeholder="/track or https://...">
+        </div>
+      </div>
+      <button type="button" class="btn btn-danger btn-sm footer-link-remove" data-fl-remove title="Remove link"><i class="ti ti-trash"></i></button>
+    </div>`;
+  }
+
+  function toggleFooterLinkTargetRow(row) {
+    if (!row) return;
+    const type = row.querySelector('[data-fl-type]')?.value || 'url';
+    const pageWrap = row.querySelector('[data-fl-page-wrap]');
+    const hrefWrap = row.querySelector('[data-fl-href-wrap]');
+    if (pageWrap) pageWrap.style.display = type === 'page' ? '' : 'none';
+    if (hrefWrap) hrefWrap.style.display = type === 'url' ? '' : 'none';
+  }
+
+  function bindFooterLinksEditor(container) {
+    if (!container || container._footerLinksBound) return;
+    container._footerLinksBound = true;
+    container.addEventListener('click', (e) => {
+      const removeBtn = e.target.closest('[data-fl-remove]');
+      if (removeBtn) {
+        removeBtn.closest('.footer-link-row')?.remove();
+      }
+    });
+    container.addEventListener('change', (e) => {
+      if (e.target.matches('[data-fl-type]')) {
+        toggleFooterLinkTargetRow(e.target.closest('.footer-link-row'));
+      }
+    });
+  }
+
+  function renderFooterLinksEditor(containerId, links) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const list = Array.isArray(links) && links.length ? links : [];
+    el.innerHTML = list.map((link) => footerLinkRowHtml(link)).join('');
+    bindFooterLinksEditor(el);
+    el.querySelectorAll('.footer-link-row').forEach(toggleFooterLinkTargetRow);
+  }
+
+  function addFooterLinkRow(containerId, link) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    el.insertAdjacentHTML('beforeend', footerLinkRowHtml(link || { label: '', page: 'home' }));
+    bindFooterLinksEditor(el);
+    const row = el.querySelector('.footer-link-row:last-child');
+    toggleFooterLinkTargetRow(row);
+    row?.querySelector('[data-fl-label]')?.focus();
+  }
+
+  function collectFooterLinksFromEditor(containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return JSON.stringify([]);
+    const links = [];
+    el.querySelectorAll('.footer-link-row').forEach((row) => {
+      const label = row.querySelector('[data-fl-label]')?.value?.trim();
+      if (!label) return;
+      const type = row.querySelector('[data-fl-type]')?.value || 'url';
+      if (type === 'page') {
+        const page = row.querySelector('[data-fl-page]')?.value || 'home';
+        links.push({ label, page });
+      } else {
+        const href = row.querySelector('[data-fl-href]')?.value?.trim() || '#';
+        links.push({ label, href });
+      }
+    });
     return JSON.stringify(links);
   }
+
+  document.querySelectorAll('.footer-links-add-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const target = btn.dataset.footerLinksTarget;
+      if (target) addFooterLinkRow(target);
+    });
+  });
 
   async function loadSettings() {
     const data = await api('/settings');
@@ -1812,10 +1937,8 @@
     if (sy) sy.value = s.social_youtube || '';
     const sw = document.getElementById('set-social-whatsapp');
     if (sw) sw.value = s.social_whatsapp || '';
-    const fq = document.getElementById('set-footer-quick');
-    if (fq) fq.value = footerLinksToText(s.footer_quick_links);
-    const fh = document.getElementById('set-footer-help');
-    if (fh) fh.value = footerLinksToText(s.footer_help_links);
+    renderFooterLinksEditor('footer-quick-links-editor', parseFooterLinksAdmin(s.footer_quick_links));
+    renderFooterLinksEditor('footer-help-links-editor', parseFooterLinksAdmin(s.footer_help_links));
     document.getElementById('set-free-min').value = s.free_delivery_min || '500';
     document.getElementById('set-delivery-fee').value = s.delivery_fee || '60';
     const outFee = document.getElementById('set-delivery-outside');
@@ -1841,12 +1964,24 @@
     if (seoKw) seoKw.value = s.seo_meta_keywords || '';
     const seoOg = document.getElementById('set-seo-og-image');
     if (seoOg) seoOg.value = s.seo_og_image || '';
-    const seoGoogle = document.getElementById('set-seo-google');
-    if (seoGoogle) seoGoogle.value = s.seo_google_verification || '';
     const seoTwitter = document.getElementById('set-seo-twitter');
     if (seoTwitter) seoTwitter.value = s.seo_twitter_handle || '';
     const seoHome = document.getElementById('set-seo-home-title');
     if (seoHome) seoHome.value = s.seo_home_title || '';
+    const trGsc = document.getElementById('set-tracking-gsc');
+    if (trGsc) trGsc.value = s.seo_google_verification || '';
+    const trGa4 = document.getElementById('set-tracking-ga4');
+    if (trGa4) trGa4.value = s.tracking_ga4_id || '';
+    const trGtm = document.getElementById('set-tracking-gtm');
+    if (trGtm) trGtm.value = s.tracking_gtm_id || '';
+    const trFb = document.getElementById('set-tracking-fb');
+    if (trFb) trFb.value = s.tracking_facebook_pixel_id || '';
+    const trHead = document.getElementById('set-tracking-head');
+    if (trHead) trHead.value = s.tracking_scripts_head || '';
+    const trBody = document.getElementById('set-tracking-body');
+    if (trBody) trBody.value = s.tracking_scripts_body || '';
+    const trFooter = document.getElementById('set-tracking-footer');
+    if (trFooter) trFooter.value = s.tracking_scripts_footer || '';
   }
 
   async function loadAnalytics() {
@@ -2176,8 +2311,19 @@
       seo_meta_description: document.getElementById('set-seo-description')?.value?.trim() || '',
       seo_meta_keywords: document.getElementById('set-seo-keywords')?.value?.trim() || '',
       seo_og_image: document.getElementById('set-seo-og-image')?.value?.trim() || '',
-      seo_google_verification: document.getElementById('set-seo-google')?.value?.trim() || '',
       seo_twitter_handle: document.getElementById('set-seo-twitter')?.value?.trim() || '',
+    };
+  }
+
+  function collectTrackingSettings() {
+    return {
+      seo_google_verification: document.getElementById('set-tracking-gsc')?.value?.trim() || '',
+      tracking_ga4_id: document.getElementById('set-tracking-ga4')?.value?.trim() || '',
+      tracking_gtm_id: document.getElementById('set-tracking-gtm')?.value?.trim() || '',
+      tracking_facebook_pixel_id: document.getElementById('set-tracking-fb')?.value?.trim() || '',
+      tracking_scripts_head: document.getElementById('set-tracking-head')?.value || '',
+      tracking_scripts_body: document.getElementById('set-tracking-body')?.value || '',
+      tracking_scripts_footer: document.getElementById('set-tracking-footer')?.value || '',
     };
   }
 
@@ -2199,8 +2345,8 @@
       social_instagram: document.getElementById('set-social-instagram')?.value?.trim() || '',
       social_youtube: document.getElementById('set-social-youtube')?.value?.trim() || '',
       social_whatsapp: document.getElementById('set-social-whatsapp')?.value?.trim() || '',
-      footer_quick_links: footerLinksFromText(document.getElementById('set-footer-quick')?.value || ''),
-      footer_help_links: footerLinksFromText(document.getElementById('set-footer-help')?.value || ''),
+      footer_quick_links: collectFooterLinksFromEditor('footer-quick-links-editor'),
+      footer_help_links: collectFooterLinksFromEditor('footer-help-links-editor'),
       free_delivery_min: document.getElementById('set-free-min').value,
       delivery_fee: document.getElementById('set-delivery-fee').value,
       delivery_fee_outside: document.getElementById('set-delivery-outside')?.value || '120',
@@ -2215,6 +2361,32 @@
       ...collectSeoSettings(),
     };
   }
+
+  const SETTINGS_STORE_TABS = new Set(['store', 'contact', 'footer']);
+
+  function switchSettingsTab(tabId) {
+    const root = document.getElementById('sec-settings');
+    if (!root || !tabId) return;
+    root.querySelectorAll('.settings-tab').forEach((t) => {
+      t.classList.toggle('active', t.dataset.settingsTab === tabId);
+    });
+    root.querySelectorAll('.settings-panel').forEach((p) => {
+      p.classList.toggle('active', p.id === `settings-panel-${tabId}`);
+    });
+    const saveBar = document.getElementById('settings-save-bar');
+    if (saveBar) saveBar.style.display = SETTINGS_STORE_TABS.has(tabId) ? '' : 'none';
+  }
+
+  function initSettingsTabs() {
+    const root = document.getElementById('sec-settings');
+    if (!root || root._settingsTabsBound) return;
+    root._settingsTabsBound = true;
+    root.querySelectorAll('.settings-tab').forEach((tab) => {
+      tab.addEventListener('click', () => switchSettingsTab(tab.dataset.settingsTab));
+    });
+  }
+
+  initSettingsTabs();
 
   document.getElementById('settings-form').onsubmit = async (e) => {
     e.preventDefault();
@@ -2255,6 +2427,16 @@
     });
     if (data.ok) toast('SEO settings saved');
     else toast(data.error || 'Failed to save SEO settings', 'error');
+  });
+
+  document.getElementById('tracking-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings: collectTrackingSettings() }),
+    });
+    if (data.ok) toast('Tracking settings saved');
+    else toast(data.error || 'Failed to save tracking settings', 'error');
   });
 
   function debounce(fn, ms) {

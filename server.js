@@ -32,6 +32,8 @@ const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
 const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
 const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
+const { ensureTrackingSettings } = require('./lib/ensureTrackingSettings');
+const { buildTrackingScripts } = require('./lib/trackingScripts');
 const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug } = require('./lib/seo');
 const { getSiteSettings } = require('./lib/siteSettings');
 const faceAnalyzerRoutes = require('./routes/faceAnalyzer');
@@ -161,15 +163,16 @@ async function renderStorefront(req, res) {
       return res.redirect(301, `/product/${encodeURIComponent(product.slug)}`);
     }
     const seo = await buildPageSeo(req, { bootstrap, product, category });
+    const trackingScripts = buildTrackingScripts(bootstrap.settings || {});
     const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
     const productJson = product
       ? JSON.stringify({ ok: true, product }).replace(/</g, '\\u003c')
       : null;
     const seoJson = JSON.stringify(seo).replace(/</g, '\\u003c');
-    res.render('index', { bootstrapJson, productJson, seoJson, seo });
+    res.render('index', { bootstrapJson, productJson, seoJson, seo, trackingScripts });
   } catch (err) {
     console.error('renderStorefront', err);
-    res.render('index', { bootstrapJson: null, productJson: null, seoJson: null, seo: null });
+    res.render('index', { bootstrapJson: null, productJson: null, seoJson: null, seo: null, trackingScripts: null });
   }
 }
 
@@ -207,7 +210,15 @@ app.use((req, res) => {
   // Website 404 (cute page)
   if (req.method === 'GET') {
     // For clean URLs we do NOT render the SPA shell anymore—unknown paths should be 404
-    return res.status(404).render('404', { pathName: req.originalUrl || req.path });
+    getSiteSettings(query)
+      .then((settings) => {
+        const trackingScripts = buildTrackingScripts(settings);
+        res.status(404).render('404', { pathName: req.originalUrl || req.path, trackingScripts });
+      })
+      .catch(() => {
+        res.status(404).render('404', { pathName: req.originalUrl || req.path, trackingScripts: null });
+      });
+    return;
   }
 
   res.status(404).send('Page not found');
@@ -227,4 +238,5 @@ app.listen(PORT, () => {
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
   ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
+  ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
 });

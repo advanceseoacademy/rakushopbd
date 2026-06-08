@@ -10,7 +10,10 @@ echo "Deploying to $HOST ..."
 ssh "${SSH_OPTS[@]}" "$HOST" bash -s <<'REMOTE'
 set -euo pipefail
 cd /home/rakushopbd.com/rakushopbd
-git pull origin main
+git fetch origin main
+# Admin uploads on VPS are often untracked and block git pull (same paths as in repo)
+git clean -fd public/uploads/ 2>/dev/null || true
+git reset --hard origin/main
 npm install
 node scripts/seed-messenger-chats.js 2>/dev/null || true
 pm2 restart rakushopbd

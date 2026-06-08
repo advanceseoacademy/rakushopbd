@@ -75,7 +75,7 @@
     if (item.imageUrl) {
       const alt = String(item.name || '').replace(/"/g, '&quot;');
       const src = String(item.imageUrl).replace(/"/g, '&quot;');
-      return `<img src="${src}" alt="${alt}" width="44" height="44" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon} ${cls || ''}" style="color:${color};" hidden></i>`;
+      return `<img class="cart-thumb-img" src="${src}" alt="${alt}" width="88" height="88" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon} ${cls || ''}" style="color:${color};" hidden></i>`;
     }
     return `<i class="${icon} ${cls || ''}" style="color:${color};"></i>`;
   }
@@ -1415,8 +1415,7 @@
       document.querySelectorAll('.summary-total, .c-total-val').forEach((el) => {
         el.textContent = data.totals.totalFormatted;
       });
-      const couponInput = document.querySelector('.c-coupon-input');
-      if (couponInput && data.totals.couponCode) couponInput.value = data.totals.couponCode;
+      syncCouponInputs(data.totals.couponCode);
     }
 
     const checkoutBtn = document.getElementById('btn-cart-checkout');
@@ -1479,7 +1478,18 @@
 
     if (data.totals) {
       applyTotalsToSummary(data.totals, '#page-checkout');
+      syncCouponInputs(data.totals.couponCode);
     }
+  }
+
+  function discountRowHtml(delRow) {
+    if (delRow.classList.contains('summary-row')) {
+      return '<span class="summary-row-label">Discount</span><span class="summary-discount" style="color:var(--green);"></span>';
+    }
+    if (delRow.classList.contains('cm-summary-row')) {
+      return '<span>Discount</span><span class="summary-discount" style="color:var(--green);"></span>';
+    }
+    return '<span class="c-summary-label">Discount</span><span class="c-summary-val summary-discount" style="color:var(--green);"></span>';
   }
 
   function applyTotalsToSummary(totals, scope) {
@@ -1492,22 +1502,23 @@
       el.textContent = totals.deliveryFormatted;
       el.style.color = totals.delivery === 0 ? 'var(--green)' : 'var(--text)';
     });
-    let discRow = root.querySelector('#checkout-discount-row');
+    let discRow = root.querySelector('.summary-discount-row');
     if (totals.discount > 0) {
       if (!discRow) {
-        const delRow = root.querySelector('.summary-delivery')?.closest('.c-summary-row, .checkout-summary-row');
+        const delRow = root.querySelector('.summary-delivery')?.closest(
+          '.c-summary-row, .summary-row, .cm-summary-row'
+        );
         if (delRow) {
           discRow = document.createElement('div');
-          discRow.id = 'checkout-discount-row';
-          discRow.className = delRow.className || 'c-summary-row';
-          discRow.innerHTML =
-            '<span class="c-summary-label">Discount</span><span class="c-summary-val summary-discount" style="color:var(--green);"></span>';
+          discRow.className = `${delRow.className} summary-discount-row`.trim();
+          discRow.innerHTML = discountRowHtml(delRow);
           delRow.insertAdjacentElement('afterend', discRow);
         }
       }
       if (discRow) {
         discRow.hidden = false;
-        discRow.querySelector('.summary-discount').textContent = '-' + totals.discountFormatted;
+        const discEl = discRow.querySelector('.summary-discount');
+        if (discEl) discEl.textContent = '-' + totals.discountFormatted;
       }
     } else if (discRow) {
       discRow.hidden = true;
@@ -1515,6 +1526,49 @@
     root.querySelectorAll('.summary-total, .c-total-val').forEach((el) => {
       el.textContent = totals.totalFormatted;
     });
+  }
+
+  function syncCouponInputs(code) {
+    const applied = Boolean(code);
+    document.querySelectorAll('.js-coupon-input').forEach((input) => {
+      input.value = code || '';
+      input.readOnly = applied;
+    });
+    document.querySelectorAll('.js-coupon-apply').forEach((btn) => {
+      btn.hidden = applied;
+    });
+    document.querySelectorAll('.js-coupon-remove').forEach((btn) => {
+      btn.hidden = !applied;
+    });
+  }
+
+  async function refreshSummariesAfterCoupon() {
+    const data = await apiFetch('/cart');
+    if (!data.ok || !data.totals) return;
+    const totals = data.totals;
+    syncCouponInputs(totals.couponCode);
+
+    const cartPage = document.getElementById('page-cart');
+    const checkoutPage = document.getElementById('page-checkout');
+    const modal = document.getElementById('checkout-modal');
+
+    if (cartPage && cartPage.style.display !== 'none') {
+      await renderCart();
+    } else {
+      applyTotalsToSummary(totals, '#page-cart');
+    }
+
+    if (checkoutPage && checkoutPage.style.display !== 'none') {
+      await renderCheckout();
+    } else {
+      applyTotalsToSummary(totals, '#page-checkout');
+    }
+
+    if (modal?.classList.contains('open')) {
+      await renderCheckoutModalSummary();
+    } else {
+      applyTotalsToSummary(totals, '#checkout-modal');
+    }
   }
 
   async function updateCheckoutDistrict(district) {
@@ -1696,7 +1750,10 @@
         )
         .join('');
     }
-    if (data.totals) applyTotalsToSummary(data.totals, '#checkout-modal');
+    if (data.totals) {
+      applyTotalsToSummary(data.totals, '#checkout-modal');
+      syncCouponInputs(data.totals.couponCode);
+    }
   }
 
   function closeCheckoutModal() {
@@ -1705,6 +1762,7 @@
     modal.classList.remove('open');
     modal.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('checkout-modal-open');
+    document.dispatchEvent(new CustomEvent('raku:navigate'));
   }
 
   async function openCheckoutModal() {
@@ -2219,21 +2277,31 @@
   }
 
   function bindCouponApply() {
-    const btn = document.querySelector('.c-coupon-btn');
-    const input = document.querySelector('.c-coupon-input');
-    if (!btn || btn._rakuBound) return;
-    btn._rakuBound = true;
-    btn.onclick = async () => {
-      const code = input?.value?.trim();
-      if (!code) return alert('Enter a coupon code');
-      const data = await apiFetch('/cart/coupon', { method: 'POST', body: JSON.stringify({ code }) });
-      if (data.ok) {
-        await renderCart();
-        alert(`Coupon ${data.code} applied!`);
-      } else {
-        alert(data.error || 'Invalid coupon');
-      }
-    };
+    document.querySelectorAll('.js-coupon-apply').forEach((btn) => {
+      if (btn._rakuBound) return;
+      btn._rakuBound = true;
+      btn.onclick = async () => {
+        const row = btn.closest('.c-coupon-row');
+        const input = row?.querySelector('.js-coupon-input');
+        const code = input?.value?.trim();
+        if (!code) return alert('Enter a coupon code');
+        const data = await apiFetch('/cart/coupon', { method: 'POST', body: JSON.stringify({ code }) });
+        if (data.ok) {
+          await refreshSummariesAfterCoupon();
+          alert(`Coupon ${data.code} applied!`);
+        } else {
+          alert(data.error || 'Invalid coupon');
+        }
+      };
+    });
+    document.querySelectorAll('.js-coupon-remove').forEach((btn) => {
+      if (btn._rakuBound) return;
+      btn._rakuBound = true;
+      btn.onclick = async () => {
+        const data = await apiFetch('/cart/coupon', { method: 'DELETE' });
+        if (data.ok) await refreshSummariesAfterCoupon();
+      };
+    });
   }
 
   document.addEventListener('raku:ready', async () => {

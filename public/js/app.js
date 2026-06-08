@@ -133,6 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (name === 'checkout' && window.renderCheckout) {
       void window.renderCheckout();
     }
+    document.dispatchEvent(new CustomEvent('raku:navigate', { detail: { page: name } }));
   }
 
   async function restoreFromUrl() {

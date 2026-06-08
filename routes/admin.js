@@ -26,6 +26,12 @@ function statusBadge(status) {
 }
 
 /** Sync per-product discount % with optional old price for storefront badges. */
+function parseBuyPrice(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : null;
+}
+
 function normalizeProductDiscount(price, oldPrice, discountPercent) {
   const p = Number(price);
   const fieldProvided = discountPercent !== undefined && discountPercent !== null && discountPercent !== '';
@@ -447,20 +453,22 @@ router.post('/products', requireAdmin, async (req, res) => {
       seoKeywords,
       imageAlt,
       ogImage,
+      buyPrice,
     } = req.body;
     if (!name || !categoryId || price == null) {
       return res.status(400).json({ ok: false, error: 'Name, category and price are required' });
     }
     const pricing = normalizeProductDiscount(price, oldPrice, discountPercent);
+    const buy_price = parseBuyPrice(buyPrice);
     let slug = req.body.slug ? slugify(req.body.slug) : slugify(name);
     const existing = await query('SELECT id FROM products WHERE slug = ?', [slug]);
     if (existing.length) slug = `${slug}-${Date.now()}`;
 
     const result = await query(
-      `INSERT INTO products (category_id, slug, sku, name_bn, description_bn, short_description, price, old_price, stock,
+      `INSERT INTO products (category_id, slug, sku, name_bn, description_bn, short_description, price, old_price, buy_price, stock,
         icon, icon_color, bg_color, image_url, tag_type, tag_text, discount_percent, is_featured,
         seo_title, seo_description, seo_keywords, image_alt, og_image)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
       [
         categoryId,
         slug,
@@ -470,6 +478,7 @@ router.post('/products', requireAdmin, async (req, res) => {
         shortDescription || null,
         price,
         pricing.oldPrice,
+        buy_price,
         stock ?? 100,
         icon || 'ti-package',
         iconColor || '#2d8a2d',
@@ -527,9 +536,11 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       seoKeywords,
       imageAlt,
       ogImage,
+      buyPrice,
     } = req.body;
     const productId = req.params.id;
     const pricing = normalizeProductDiscount(price, oldPrice, discountPercent);
+    const buy_price = parseBuyPrice(buyPrice);
     let slugClause = '';
     const params = [
       categoryId,
@@ -539,6 +550,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       shortDescription || null,
       price,
       pricing.oldPrice,
+      buy_price,
       stock ?? 0,
       icon || 'ti-package',
       iconColor || '#2d8a2d',
@@ -563,7 +575,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
     }
     params.push(productId);
     await query(
-      `UPDATE products SET category_id=?, sku=?, name_bn=?, description_bn=?, short_description=?, price=?, old_price=?, stock=?,
+      `UPDATE products SET category_id=?, sku=?, name_bn=?, description_bn=?, short_description=?, price=?, old_price=?, buy_price=?, stock=?,
         icon=?, icon_color=?, bg_color=?, image_url=?, tag_type=?, tag_text=?, discount_percent=?, is_featured=?,
         seo_title=?, seo_description=?, seo_keywords=?, image_alt=?, og_image=?${slugClause}
        WHERE id=?`,

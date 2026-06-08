@@ -1,0 +1,8 @@
+/* tawk.to — stay above storefront modals and floating widgets */
+#tawkchat-minified-container,
+#tawkchat-container,
+.tawk-min-container,
+.tawk-max-container {
+  z-index: 2147483000 !important;
+  pointer-events: auto !important;
+}

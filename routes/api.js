@@ -5,6 +5,7 @@ const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
 const { getBestSellingProducts, getNewArrivalProducts } = require('../lib/homeProducts');
 const { getRecommendedProducts } = require('../lib/productRecommendations');
+const { stripInternalProductFields, stripInternalProductList } = require('../lib/productPublic');
 const { getAdminIdFromRequest } = require('../lib/adminToken');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
@@ -289,7 +290,11 @@ router.get('/products/home-sections', async (req, res) => {
       getNewArrivalProducts(query, limit),
     ]);
     cachePublic(res, 60);
-    res.json({ ok: true, bestSelling, newArrivals });
+    res.json({
+      ok: true,
+      bestSelling: stripInternalProductList(bestSelling),
+      newArrivals: stripInternalProductList(newArrivals),
+    });
   } catch (err) {
     console.error('home-sections', err);
     res.status(500).json({ ok: false, error: 'Could not load products' });
@@ -334,12 +339,12 @@ router.get('/products', async (req, res) => {
     const listLimit = Math.min(200, Math.max(8, Number(limit) || 100));
 
     if (sortMode === 'best-selling') {
-      const products = await getBestSellingProducts(query, listLimit);
+      const products = stripInternalProductList(await getBestSellingProducts(query, listLimit));
       cachePublic(res, 60);
       return res.json({ ok: true, products });
     }
     if (sortMode === 'new-arrivals') {
-      const products = await getNewArrivalProducts(query, listLimit);
+      const products = stripInternalProductList(await getNewArrivalProducts(query, listLimit));
       cachePublic(res, 60);
       return res.json({ ok: true, products });
     }
@@ -401,7 +406,7 @@ router.get('/products', async (req, res) => {
     );
     if (lim) sql += ` LIMIT ${lim}`;
 
-    const products = await query(sql, params);
+    const products = stripInternalProductList(await query(sql, params));
     cachePublic(res, 60);
     res.json({ ok: true, products });
   } catch (err) {
@@ -427,7 +432,7 @@ router.get('/products/recommended', async (req, res) => {
       limit,
     });
     res.set('Cache-Control', 'private, no-store');
-    res.json({ ok: true, ...data });
+    res.json({ ok: true, ...data, products: stripInternalProductList(data.products) });
   } catch (err) {
     console.error('products/recommended', err);
     res.status(500).json({ ok: false, error: 'Could not load recommendations' });
@@ -450,7 +455,7 @@ router.get('/products/:ref', async (req, res) => {
     );
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Product not found' });
     const { attachGalleryToProduct } = require('../lib/productImages');
-    const product = await attachGalleryToProduct(rows[0]);
+    const product = stripInternalProductFields(await attachGalleryToProduct(rows[0]));
     cachePublic(res, 120);
     res.json({ ok: true, product });
   } catch (err) {

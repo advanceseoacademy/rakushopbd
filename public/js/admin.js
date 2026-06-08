@@ -331,6 +331,8 @@
       if (pfSlug) pfSlug.value = product.slug || '';
       document.getElementById('pf-category').value = product.category_id;
       document.getElementById('pf-price').value = product.price;
+      const pfBuy = document.getElementById('pf-buy-price');
+      if (pfBuy) pfBuy.value = product.buy_price != null && product.buy_price !== '' ? product.buy_price : '';
       document.getElementById('pf-old-price').value = product.old_price || '';
       document.getElementById('pf-old-price').dataset.userEdited = product.old_price ? '1' : '';
       delete document.getElementById('pf-price')?.dataset.userEdited;
@@ -1393,7 +1395,9 @@
           <td><div style="display:flex;align-items:center;gap:10px;">
             ${productThumbHtml(p)}
             <div><div style="font-weight:600;">${p.name_bn}</div><small style="color:#94a3b8">${p.slug}</small></div></div></td>
-          <td>${p.category_name}</td><td>৳${Number(p.price).toLocaleString()}</td><td>${p.stock}</td>
+          <td>${p.category_name}</td><td>৳${Number(p.price).toLocaleString()}</td>
+          <td>${p.buy_price != null && p.buy_price !== '' ? '৳' + Number(p.buy_price).toLocaleString() : '<span style="color:#94a3b8">—</span>'}</td>
+          <td>${p.stock}</td>
           <td><span class="badge ${stockCls}">${stockLbl}</span></td>
           <td class="tbl-actions">
             <a href="/product/${encodeURIComponent(p.slug || p.id)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs">View</a>
@@ -1447,7 +1451,7 @@
     document.getElementById('pf-bg').value = '#e8f5e8';
     document.getElementById('pf-stock').value = 100;
     document.getElementById('pf-featured').checked = true;
-    ['pf-short-desc', 'pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image', 'pf-discount-percent'].forEach((id) => {
+    ['pf-short-desc', 'pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image', 'pf-discount-percent', 'pf-buy-price'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -1534,6 +1538,7 @@
       slug: document.getElementById('pf-slug')?.value?.trim() || undefined,
       categoryId: Number(document.getElementById('pf-category').value),
       price: Number(document.getElementById('pf-price').value),
+      buyPrice: document.getElementById('pf-buy-price')?.value?.trim() || null,
       oldPrice: document.getElementById('pf-old-price').value || null,
       discountPercent: discParsed === null ? null : discParsed,
       stock: Number(document.getElementById('pf-stock').value),

@@ -22,6 +22,7 @@ const { registerAdminAuth } = require('./lib/registerAdminAuth');
 const { usePostgres, query } = require('./config/db');
 const { ensureAppointmentsTable } = require('./lib/ensureAppointmentsTable');
 const { ensureProductSeoColumns } = require('./lib/ensureProductSeoColumns');
+const { ensureProductBuyPrice } = require('./lib/ensureProductBuyPrice');
 const { ensureProductImagesTable } = require('./lib/ensureProductImagesTable');
 const { ensureFooterSettings } = require('./lib/ensureFooterSettings');
 const { ensureContactMessagesTable } = require('./lib/ensureContactMessagesTable');
@@ -217,6 +218,7 @@ app.listen(PORT, () => {
   console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
   ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
   ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
+  ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
   ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
   ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
   ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));

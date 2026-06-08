@@ -28,7 +28,9 @@ if [ ! -d "$APP_DIR/.git" ]; then
   git clone "$REPO" "$APP_DIR"
 fi
 cd "$APP_DIR"
-git pull origin main || true
+git fetch origin main || true
+git clean -fd public/uploads/ 2>/dev/null || true
+git reset --hard origin/main || git pull origin main || true
 npm install
 
 cat > "$APP_DIR/.env" << 'ENVFILE'

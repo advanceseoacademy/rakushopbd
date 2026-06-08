@@ -416,6 +416,15 @@
   color: var(--accent);
 }
 
+.cm-coupon-row {
+  margin: 10px 0 12px;
+  flex-wrap: wrap;
+}
+
+.cm-coupon-row .c-coupon-input {
+  min-width: 0;
+}
+
 .cm-summary-rows {
   margin-top: 12px;
   padding-top: 12px;

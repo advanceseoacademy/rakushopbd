@@ -15,11 +15,11 @@
 <link rel="stylesheet" href="/css/main.css?v=51">
 <link rel="stylesheet" href="/css/category.css?v=3">
 <link rel="stylesheet" href="/css/account.css?v=6">
-<link rel="stylesheet" href="/css/cart.css?v=3">
-<link rel="stylesheet" href="/css/checkout-modal.css?v=9">
+<link rel="stylesheet" href="/css/cart.css?v=5">
+<link rel="stylesheet" href="/css/checkout-modal.css?v=10">
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
-<link rel="stylesheet" href="/css/responsive.css?v=22">
+<link rel="stylesheet" href="/css/responsive.css?v=24">
 <link rel="stylesheet" href="/css/home-marketing.css?v=4">
 <link rel="stylesheet" href="/css/appointment.css?v=2">
 <link rel="stylesheet" href="/css/face-analyzer.css?v=9">
@@ -739,8 +739,9 @@
  </div>
 
  <div class="c-coupon-row">
- <input class="c-coupon-input" type="text" placeholder="e.g. RakuShopBD10">
- <button type="button" class="c-coupon-btn">Apply</button>
+ <input class="c-coupon-input js-coupon-input" type="text" placeholder="e.g. RakuShopBD10" autocomplete="off">
+ <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
+ <button type="button" class="c-coupon-remove js-coupon-remove" hidden>Remove</button>
  </div>
 
  <div class="c-total-row">
@@ -829,6 +830,11 @@
           <div class="cm-summary-rows">
             <div class="cm-summary-row"><span>Subtotal</span><span class="summary-subtotal">৳0</span></div>
             <div class="cm-summary-row"><span>Delivery</span><span class="summary-delivery">Free</span></div>
+            <div class="c-coupon-row cm-coupon-row">
+              <input class="c-coupon-input js-coupon-input" type="text" placeholder="Coupon code" autocomplete="off">
+              <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
+              <button type="button" class="c-coupon-remove js-coupon-remove" hidden>Remove</button>
+            </div>
             <div class="cm-summary-row cm-total"><span>Total</span><span class="summary-total">৳0</span></div>
           </div>
           <button type="button" class="btn-place-order-modal" id="btn-place-order-modal">
@@ -1103,6 +1109,11 @@
  <div style="border-top:1.5px solid var(--border); margin:12px 0;"></div>
  <div class="summary-row"><span class="summary-row-label">Subtotal</span><span class="summary-subtotal">৳7,797</span></div>
  <div class="summary-row"><span class="summary-row-label">Delivery</span><span class="summary-delivery" style="color:var(--green);">Free</span></div>
+ <div class="c-coupon-row checkout-coupon-row">
+ <input class="c-coupon-input js-coupon-input" type="text" placeholder="Coupon code e.g. RakuShopBD10" autocomplete="off">
+ <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
+ <button type="button" class="c-coupon-remove js-coupon-remove" hidden>Remove</button>
+ </div>
  <div class="summary-total-row"><span>Total </span><span class="summary-total" style="color:var(--accent);">৳7,797</span></div>
  <button class="btn-place-order" id="btn-place-order"><i class="ti ti-lock"></i> Place Order</button>
  <div class="secure-badges" style="margin-top:12px;">
@@ -1625,9 +1636,9 @@
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/maintenance-view.js?v=3" defer></script>
 <script src="/js/seo.js?v=3" defer></script>
-<script src="/js/app.js?v=20" defer></script>
+<script src="/js/app.js?v=21" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
-<script src="/js/api.js?v=39" defer></script>
+<script src="/js/api.js?v=42" defer></script>
 <script src="/js/home-recommendations.js?v=3" defer></script>
 <script src="/js/home-messenger-chats.js?v=2" defer></script>
 <script src="/js/home-customer-reviews.js?v=4" defer></script>
@@ -1641,5 +1652,6 @@
 <script src="/js/faq.js?v=4" defer></script>
 <script src="/js/contact.js?v=3" defer></script>
 <script src="/js/track.js?v=2" defer></script>
+<%- include('partials/tawk-widget') %>
 </body>
 </html>

@@ -44,12 +44,39 @@
 }
 
 .checkout-modal-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  justify-content: space-between;
+  gap: 10px;
   padding: 18px 22px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+}
+
+.checkout-modal-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 4px 6px 0;
+  border-radius: var(--radius-sm);
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.checkout-modal-back i {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.checkout-modal-back:hover {
+  color: var(--primary);
 }
 
 .checkout-modal-head h2 {
@@ -57,8 +84,11 @@
   font-weight: 700;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   margin: 0;
+  min-width: 0;
+  text-align: center;
 }
 
 .checkout-modal-head h2 i {
@@ -296,6 +326,51 @@
   border-color: var(--primary);
   background: var(--primary-pale);
   color: var(--primary);
+}
+
+.cm-zone-grid,
+.checkout-zone-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.cm-zone-tile,
+.checkout-zone-tile {
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  text-align: center;
+}
+
+.cm-zone-tile:hover,
+.checkout-zone-tile:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.cm-zone-tile.selected,
+.checkout-zone-tile.selected {
+  border-color: var(--primary);
+  background: var(--primary-pale);
+  color: var(--primary);
+}
+
+.cm-zone-hint,
+.checkout-zone-hint {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
 }
 
 .cm-pay-instruct-box {

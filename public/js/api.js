@@ -567,6 +567,47 @@
     });
   };
 
+  function categorySlugsForFilter(slug) {
+    const cats = window._rakuCategories || [];
+    const cat = cats.find((c) => c.slug === slug);
+    if (!cat) return new Set([slug]);
+    const catId = Number(cat.id);
+    const childSlugs = cats.filter((c) => Number(c.parent_id) === catId).map((c) => c.slug);
+    return new Set([slug, ...childSlugs]);
+  }
+
+  function updateCategoryBreadcrumb(slug, label) {
+    const nav = document.getElementById('cat-breadcrumb');
+    if (!nav) return;
+    const cats = window._rakuCategories || [];
+    const cat = cats.find((c) => c.slug === slug);
+    const parent = cat?.parent_slug ? cats.find((c) => c.slug === cat.parent_slug) : null;
+    let html = `<span class="link" data-page="home"><i class="ti ti-home"></i> Home</span>`;
+    if (parent) {
+      html += `<i class="ti ti-chevron-right" style="font-size:11px;"></i>`;
+      html += `<span class="link cat-bc-parent" data-cat-slug="${escapeHtmlCat(parent.slug)}">${escapeHtmlCat(parent.name_bn)}</span>`;
+    }
+    html += `<i class="ti ti-chevron-right" style="font-size:11px;"></i>`;
+    html += `<span class="current">${escapeHtmlCat(label)}</span>`;
+    nav.innerHTML = html;
+    nav.querySelector('[data-page="home"]')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.showPage) window.showPage('home');
+    });
+    nav.querySelector('.cat-bc-parent')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (window.openCategory) window.openCategory(parent.slug);
+    });
+  }
+
+  function escapeHtmlCat(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   const categoryState = {
     slug: 'electronics',
     items: [],
@@ -739,8 +780,7 @@
 
     if (window._rakuTrackCategoryBrowse) window._rakuTrackCategoryBrowse(categoryState.slug);
 
-    const crumb = document.getElementById('cat-breadcrumb-current');
-    if (crumb) crumb.textContent = label;
+    updateCategoryBreadcrumb(categoryState.slug, label);
 
     document.querySelectorAll('#header-cat-dropdown-list .cat-link, #global-cat-nav .cat-link').forEach((link) => {
       const navSlug = link.dataset.navSlug;
@@ -773,12 +813,12 @@
       } else {
         categoryState.items = collection
           ? []
-          : products.filter((p) => p.category_slug === categoryState.slug);
+          : products.filter((p) => categorySlugsForFilter(categoryState.slug).has(p.category_slug));
       }
     } catch {
       categoryState.items = collection
         ? []
-        : products.filter((p) => p.category_slug === categoryState.slug);
+        : products.filter((p) => categorySlugsForFilter(categoryState.slug).has(p.category_slug));
     }
 
     renderBrandFilters();
@@ -1480,6 +1520,12 @@
       applyTotalsToSummary(data.totals, '#page-checkout');
       syncCouponInputs(data.totals.couponCode);
     }
+    bindDeliveryZone('#page-checkout');
+    const district = data.checkoutDistrict || getSelectedDeliveryDistrict('#page-checkout') || 'Dhaka';
+    setDeliveryZoneUI(district, '#page-checkout');
+    if (!data.checkoutDistrict) {
+      await selectDeliveryZone(district, '#page-checkout');
+    }
   }
 
   function discountRowHtml(delRow) {
@@ -1572,12 +1618,68 @@
   }
 
   async function updateCheckoutDistrict(district) {
-    if (!district || district.includes('Select')) return;
+    if (!district) return;
     const data = await apiFetch('/cart/district', { method: 'POST', body: JSON.stringify({ district }) });
     if (data.ok && data.totals) {
+      applyTotalsToSummary(data.totals, '#page-cart');
       applyTotalsToSummary(data.totals, '#page-checkout');
       applyTotalsToSummary(data.totals, '#checkout-modal');
     }
+  }
+
+  function deliveryZoneHint(district) {
+    const s = window._rakuStoreSettings || {};
+    const freeMin = Number(s.free_delivery_min) || 500;
+    const dhakaFee = Number(s.delivery_fee) || 60;
+    const outsideFee = Number(s.delivery_fee_outside) || 120;
+    const fee = String(district).toLowerCase() === 'dhaka' ? dhakaFee : outsideFee;
+    return `Free delivery on orders over ৳${freeMin.toLocaleString('en-BD')}. Otherwise ৳${fee} delivery charge applies.`;
+  }
+
+  function getSelectedDeliveryDistrict(scope) {
+    if (scope === '#checkout-modal') {
+      return document.getElementById('cm-district')?.value || '';
+    }
+    if (scope === '#page-checkout') {
+      return document.getElementById('checkout-page-district')?.value || '';
+    }
+    return document.getElementById('cm-district')?.value || document.getElementById('checkout-page-district')?.value || '';
+  }
+
+  function setDeliveryZoneUI(district, scope) {
+    const value = district || 'Dhaka';
+    const isModal = scope === '#checkout-modal';
+    const hidden = document.getElementById(isModal ? 'cm-district' : 'checkout-page-district');
+    const grid = document.getElementById(isModal ? 'cm-zone-grid' : 'checkout-page-zone-grid');
+    const hint = document.getElementById(isModal ? 'cm-zone-hint' : 'checkout-page-zone-hint');
+    if (hidden) hidden.value = value;
+    if (grid) {
+      grid.querySelectorAll(isModal ? '.cm-zone-tile' : '.checkout-zone-tile').forEach((tile) => {
+        tile.classList.toggle('selected', tile.dataset.district === value);
+      });
+    }
+    if (hint) hint.textContent = deliveryZoneHint(value);
+  }
+
+  async function selectDeliveryZone(district, scope) {
+    if (!district) return;
+    setDeliveryZoneUI(district, scope);
+    await updateCheckoutDistrict(district);
+  }
+
+  function bindDeliveryZone(scope) {
+    const isModal = scope === '#checkout-modal';
+    const gridId = isModal ? 'cm-zone-grid' : 'checkout-page-zone-grid';
+    const grid = document.getElementById(gridId);
+    if (!grid || grid._rakuBound) return;
+    grid._rakuBound = true;
+    const selector = isModal ? '.cm-zone-tile' : '.checkout-zone-tile';
+    grid.querySelectorAll(selector).forEach((tile) => {
+      tile.addEventListener('click', () => {
+        void selectDeliveryZone(tile.dataset.district, scope);
+      });
+    });
+    setDeliveryZoneUI(getSelectedDeliveryDistrict(scope) || 'Dhaka', scope);
   }
 
   const PAYMENT_UI = {
@@ -1674,6 +1776,7 @@
       name: root.querySelector('[name="name"]')?.value?.trim(),
       phone: root.querySelector('[name="phone"]')?.value?.trim(),
       address: root.querySelector('[name="address"]')?.value?.trim(),
+      district: getSelectedDeliveryDistrict(scope),
       paymentMethod: method,
       trxId,
       notes,
@@ -1688,6 +1791,10 @@
     }
     if (!form.name || !form.phone || !form.address) {
       alert('Please enter name, mobile number and address!');
+      return;
+    }
+    if (!form.district) {
+      alert('Please select delivery area (Inside Dhaka or Outside Dhaka)!');
       return;
     }
     if (scope === '#checkout-modal') {
@@ -1735,8 +1842,8 @@
     } catch (_) {}
   }
 
-  async function renderCheckoutModalSummary() {
-    const data = await apiFetch('/cart');
+  async function renderCheckoutModalSummary(cartData) {
+    const data = cartData || (await apiFetch('/cart'));
     if (!data.ok) return;
     const itemsEl = document.getElementById('checkout-modal-items');
     if (itemsEl) {
@@ -1754,6 +1861,8 @@
       applyTotalsToSummary(data.totals, '#checkout-modal');
       syncCouponInputs(data.totals.couponCode);
     }
+    const savedDistrict = data.checkoutDistrict || 'Dhaka';
+    setDeliveryZoneUI(savedDistrict, '#checkout-modal');
   }
 
   function closeCheckoutModal() {
@@ -1765,13 +1874,18 @@
     document.dispatchEvent(new CustomEvent('raku:navigate'));
   }
 
+  function goBackFromCheckoutModal() {
+    closeCheckoutModal();
+    if (window.showPage) window.showPage('cart');
+  }
+
   async function openCheckoutModal() {
     const data = await apiFetch('/cart');
     if (!data.ok || !data.cart.length) {
       alert('Your cart is empty!');
       return false;
     }
-    await renderCheckoutModalSummary();
+    await renderCheckoutModalSummary(data);
     await prefillCheckoutModal();
     const modal = document.getElementById('checkout-modal');
     if (!modal) return false;
@@ -1779,6 +1893,9 @@
     modal.setAttribute('aria-hidden', 'false');
     document.body.classList.add('checkout-modal-open');
     updatePaymentMethodUI(getSelectedPaymentMethod());
+    bindDeliveryZone('#checkout-modal');
+    const district = data.checkoutDistrict || 'Dhaka';
+    await selectDeliveryZone(district, '#checkout-modal');
     document.getElementById('cm-name')?.focus();
     return true;
   }
@@ -1799,11 +1916,18 @@
   window.openCheckoutModal = openCheckoutModal;
   window.proceedToCheckoutFromCart = proceedToCheckoutFromCart;
   window.closeCheckoutModal = closeCheckoutModal;
+  window.goBackFromCheckoutModal = goBackFromCheckoutModal;
 
   function bindCheckoutModal() {
     bindCheckoutModalPayments();
+    bindDeliveryZone('#checkout-modal');
+    const backBtn = document.getElementById('checkout-modal-back');
     const closeBtn = document.getElementById('checkout-modal-close');
     const overlay = document.getElementById('checkout-modal');
+    if (backBtn && !backBtn._rakuBound) {
+      backBtn._rakuBound = true;
+      backBtn.onclick = goBackFromCheckoutModal;
+    }
     if (closeBtn && !closeBtn._rakuBound) {
       closeBtn._rakuBound = true;
       closeBtn.onclick = closeCheckoutModal;
@@ -1826,6 +1950,7 @@
 
   function bindCheckout() {
     bindCheckoutModal();
+    bindDeliveryZone('#page-checkout');
     const btn = document.getElementById('btn-place-order');
     if (btn && !btn._rakuBound) {
       btn._rakuBound = true;
@@ -2109,6 +2234,11 @@
       homeAutoScrollTimers.delete(trackId);
     }
     homeAutoScrollIndexes.delete(trackId);
+    const track = document.getElementById(trackId);
+    if (track?._rakuAutoScrollViewportObs) {
+      track._rakuAutoScrollViewportObs.disconnect();
+      track._rakuAutoScrollViewportObs = null;
+    }
   }
 
   function initHomeScrollAuto(trackId, intervalMs = 3200) {
@@ -2118,8 +2248,13 @@
 
     const isCategoryTrack = trackId === 'home-category-track';
     const isTrustBar = trackId === 'trust-bar';
-    if (isCategoryTrack && !window.matchMedia('(max-width: 768px)').matches) return;
-    if (isTrustBar && !window.matchMedia('(max-width: 768px)').matches) return;
+    const isReviewTrack =
+      trackId === 'track-customer-reviews' || trackId === 'track-messenger-reviews';
+    const isMobile = window.matchMedia('(max-width: 768px)').matches;
+    if (isCategoryTrack && !isMobile) return;
+    if (isTrustBar && !isMobile) return;
+    // Horizontal auto-scroll on review carousels jumps the page on mobile browsers.
+    if (isReviewTrack && isMobile) return;
 
     const cards = () =>
       track.querySelectorAll(
@@ -2131,6 +2266,16 @@
     homeAutoScrollIndexes.set(trackId, 0);
 
     let paused = false;
+    let inViewport = false;
+    const viewportObserver = new IntersectionObserver(
+      (entries) => {
+        inViewport = Boolean(entries[0]?.isIntersecting);
+      },
+      { root: null, threshold: 0.25 }
+    );
+    viewportObserver.observe(track);
+    track._rakuAutoScrollViewportObs = viewportObserver;
+
     if (!track._rakuAutoScrollBound) {
       track._rakuAutoScrollBound = true;
       track.addEventListener('mouseenter', () => {
@@ -2158,7 +2303,7 @@
     }
 
     function scrollStep() {
-      if (paused) return;
+      if (paused || !inViewport) return;
       const list = cards();
       if (list.length < 2) return;
 

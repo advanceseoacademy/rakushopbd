@@ -55,6 +55,7 @@
 
   let currentAdmin = null;
   let categories = [];
+  let cfSubParentId = null;
   let coupons = [];
   let banners = [];
   let messengerChats = [];
@@ -79,6 +80,7 @@
     analytics: 'Analytics',
     categories: 'Categories',
     faq: 'FAQ',
+    legal: 'Legal Pages',
     coupons: 'Coupons',
     reviews: 'Reviews',
     banners: 'Banners',
@@ -188,7 +190,7 @@
     if (email) email.textContent = admin.email;
   }
 
-  function switchPage(page) {
+  function switchPage(page, opts = {}) {
     if (!validPages.has(page)) page = 'dashboard';
     document.querySelectorAll('.adm-section').forEach((s) => s.classList.remove('active'));
     const sec = document.getElementById('sec-' + page);
@@ -197,6 +199,7 @@
       const navPage = n.dataset.page;
       n.classList.toggle('active', navPage === page || (page === 'product-form' && navPage === 'products'));
     });
+    updatePagesNavActive(page, opts.legalTab);
     const title = pageTitles[page] || page;
     document.getElementById('page-title').textContent = title;
     document.getElementById('breadcrumb-current').textContent = title;
@@ -213,6 +216,10 @@
     if (page === 'faq') loadFaqs();
     if (page === 'coupons') loadCoupons();
     if (page === 'settings') loadSettings();
+    if (page === 'legal') {
+      loadLegalPages();
+      if (opts.legalTab) switchLegalTab(opts.legalTab);
+    }
     if (page === 'analytics') loadAnalytics();
     if (page === 'reviews') loadReviews();
     if (page === 'banners') loadBanners();
@@ -329,7 +336,7 @@
       document.getElementById('pf-name').value = product.name_bn;
       const pfSlug = document.getElementById('pf-slug');
       if (pfSlug) pfSlug.value = product.slug || '';
-      document.getElementById('pf-category').value = product.category_id;
+      setProductCategoryPickers(categories, product.category_id);
       document.getElementById('pf-price').value = product.price;
       const pfBuy = document.getElementById('pf-buy-price');
       if (pfBuy) pfBuy.value = product.buy_price != null && product.buy_price !== '' ? product.buy_price : '';
@@ -409,6 +416,7 @@
     addCategoryBtn.onclick = () => {
       switchPage('categories');
       resetCategoryForm();
+      document.getElementById('category-form-title').textContent = 'Main Category add korun';
       openCategoryModal();
     };
   }
@@ -533,6 +541,39 @@
       if (window.innerWidth <= 900) closeAdminSidebar();
     };
   });
+
+  document.querySelectorAll('.nav-sub-item[data-page]').forEach((el) => {
+    el.onclick = () => {
+      const page = el.dataset.page;
+      const legalTab = el.dataset.legalTab || null;
+      switchPage(page, legalTab ? { legalTab } : {});
+      if (window.innerWidth <= 900) closeAdminSidebar();
+    };
+  });
+
+  const pagesNavToggle = document.getElementById('nav-pages-toggle');
+  const pagesNavGroup = document.getElementById('nav-group-pages');
+  if (pagesNavToggle && pagesNavGroup) {
+    pagesNavToggle.onclick = () => {
+      const open = pagesNavGroup.classList.toggle('open');
+      pagesNavToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+  }
+
+  function updatePagesNavActive(page, legalTab) {
+    document.querySelectorAll('.nav-sub-item').forEach((el) => {
+      const subPage = el.dataset.page;
+      const subTab = el.dataset.legalTab || '';
+      let active = false;
+      if (page === 'faq' && subPage === 'faq') active = true;
+      if (page === 'legal' && subPage === 'legal' && subTab === (legalTab || 'privacy')) active = true;
+      el.classList.toggle('active', active);
+    });
+    if ((page === 'faq' || page === 'legal') && pagesNavGroup) {
+      pagesNavGroup.classList.add('open');
+      pagesNavToggle?.setAttribute('aria-expanded', 'true');
+    }
+  }
 
   document.querySelectorAll('[data-goto]').forEach((el) => {
     el.onclick = () => switchPage(el.dataset.goto);
@@ -1122,7 +1163,7 @@
     document.getElementById('faq-form-title').textContent = 'Add FAQ';
     document.getElementById('faq-id').value = '';
     document.getElementById('faq-question').value = '';
-    document.getElementById('faq-answer').value = '';
+    window.RakuRichEditor?.setContent('faq-answer', '');
     document.getElementById('faq-sort').value = '0';
     document.getElementById('faq-active').checked = true;
   }
@@ -1160,7 +1201,7 @@
         document.getElementById('faq-form-title').textContent = 'Edit FAQ';
         document.getElementById('faq-id').value = f.id;
         document.getElementById('faq-question').value = f.question || '';
-        document.getElementById('faq-answer').value = f.answer || '';
+        window.RakuRichEditor?.setContent('faq-answer', f.answer || '');
         document.getElementById('faq-sort').value = f.sortOrder ?? 0;
         document.getElementById('faq-active').checked = !!f.isActive;
         openFaqModal();
@@ -1189,10 +1230,16 @@
 
   document.getElementById('faq-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
+    window.RakuRichEditor?.sync('faq-answer');
     const id = document.getElementById('faq-id').value;
+    const answer = document.getElementById('faq-answer').value.trim();
+    if (!answer || answer === '<p><br></p>') {
+      toast('Please enter an FAQ answer', 'error');
+      return;
+    }
     const body = {
       question: document.getElementById('faq-question').value.trim(),
-      answer: document.getElementById('faq-answer').value.trim(),
+      answer,
       sortOrder: Number(document.getElementById('faq-sort').value) || 0,
       isActive: document.getElementById('faq-active').checked,
     };
@@ -1371,11 +1418,237 @@
     const data = await api('/categories');
     if (!data.ok) return;
     categories = data.categories;
-    const opts = categories.map((c) => `<option value="${c.id}">${c.name_bn}</option>`).join('');
-    document.getElementById('pf-category').innerHTML = opts;
-    document.getElementById('products-cat-filter').innerHTML =
-      '<option value="all">All categories</option>' + categories.map((c) => `<option value="${c.slug}">${c.name_bn}</option>`).join('');
+    populateMainCategorySelect(categories);
+    const mainVal = document.getElementById('pf-main-cat')?.value || '';
+    const subVal = document.getElementById('pf-sub-cat')?.value || '';
+    updateSubCategorySelect(categories, mainVal, subVal);
+    syncPfCategoryHidden();
+    document.getElementById('products-cat-filter').innerHTML = buildCategoryFilterOptions(categories);
   }
+
+  function populateMainCategorySelect(list) {
+    const sel = document.getElementById('pf-main-cat');
+    if (!sel) return;
+    const tops = list.filter((c) => catParentId(c) == null);
+    sel.innerHTML =
+      '<option value="">Select main category</option>' +
+      tops
+        .map((c) => {
+          const subCount = list.filter((x) => catParentId(x) === catId(c)).length;
+          const suffix = subCount ? ` (${subCount} sub)` : '';
+          return `<option value="${c.id}">${escHtml(c.name_bn)}${suffix}</option>`;
+        })
+        .join('');
+  }
+
+  function updateSubCategorySelect(list, mainId, selectedSubId) {
+    const wrap = document.getElementById('pf-sub-cat-wrap');
+    const subSel = document.getElementById('pf-sub-cat');
+    const hint = document.getElementById('pf-sub-cat-hint');
+    if (!wrap || !subSel) return;
+    const mid = Number(mainId);
+    if (!mid) {
+      wrap.hidden = true;
+      subSel.innerHTML = '<option value="">Use main category only (no subcategory)</option>';
+      return;
+    }
+    const main = list.find((c) => catId(c) === mid);
+    if (hint && main) {
+      hint.textContent = `Choose a subcategory under "${main.name_bn}", or leave as main category only.`;
+    }
+    const subs = list.filter((c) => catParentId(c) === mid);
+    if (!subs.length) {
+      wrap.hidden = true;
+      subSel.innerHTML = '<option value="">Use main category only (no subcategory)</option>';
+      return;
+    }
+    wrap.hidden = false;
+    subSel.innerHTML =
+      '<option value="">Use main category only (no subcategory)</option>' +
+      subs.map((s) => `<option value="${s.id}">${escHtml(s.name_bn)}</option>`).join('');
+    subSel.value = selectedSubId ? String(selectedSubId) : '';
+  }
+
+  function getProductCategoryId() {
+    const mainId = Number(document.getElementById('pf-main-cat')?.value);
+    if (!mainId) return null;
+    const wrap = document.getElementById('pf-sub-cat-wrap');
+    const subVal = document.getElementById('pf-sub-cat')?.value;
+    if (wrap && !wrap.hidden && subVal) return Number(subVal);
+    return mainId;
+  }
+
+  function syncPfCategoryHidden() {
+    const id = getProductCategoryId();
+    const hidden = document.getElementById('pf-category');
+    if (hidden) hidden.value = id ? String(id) : '';
+    const box = document.getElementById('pf-cat-selected');
+    const pathFlow = document.getElementById('pf-cat-path-flow');
+    if (!box || !pathFlow) return;
+    if (!id) {
+      box.hidden = true;
+      pathFlow.innerHTML = '';
+      return;
+    }
+    const mainId = Number(document.getElementById('pf-main-cat')?.value);
+    const main = categories.find((c) => catId(c) === mainId);
+    const cat = categories.find((c) => catId(c) === id);
+    const subVal = document.getElementById('pf-sub-cat')?.value;
+    const subWrap = document.getElementById('pf-sub-cat-wrap');
+    const usingSub = subWrap && !subWrap.hidden && subVal && cat && catParentId(cat) === mainId;
+
+    box.hidden = false;
+    if (usingSub && main && cat) {
+      pathFlow.innerHTML = `<span class="path-box path-box--main"><i class="ti ti-folder"></i> ${escHtml(main.name_bn)}</span><i class="ti ti-arrow-right path-arrow"></i><span class="path-box path-box--sub"><i class="ti ti-subtask"></i> ${escHtml(cat.name_bn)}</span>`;
+    } else if (main) {
+      pathFlow.innerHTML = `<span class="path-box path-box--main"><i class="ti ti-folder"></i> ${escHtml(main.name_bn)}</span>`;
+    } else if (cat) {
+      pathFlow.innerHTML = `<span class="path-box path-box--main"><i class="ti ti-folder"></i> ${escHtml(cat.name_bn)}</span>`;
+    }
+  }
+
+  function setProductCategoryPickers(list, categoryId) {
+    populateMainCategorySelect(list);
+    const cid = Number(categoryId);
+    const mainSel = document.getElementById('pf-main-cat');
+    if (!mainSel) return;
+    if (!cid) {
+      mainSel.value = '';
+      updateSubCategorySelect(list, '', '');
+      syncPfCategoryHidden();
+      return;
+    }
+    const cat = list.find((c) => catId(c) === cid);
+    if (!cat) {
+      syncPfCategoryHidden();
+      return;
+    }
+    const pid = catParentId(cat);
+    if (pid) {
+      mainSel.value = String(pid);
+      updateSubCategorySelect(list, pid, cid);
+    } else {
+      mainSel.value = String(cid);
+      updateSubCategorySelect(list, cid, '');
+    }
+    syncPfCategoryHidden();
+  }
+
+  document.getElementById('pf-main-cat')?.addEventListener('change', () => {
+    updateSubCategorySelect(categories, document.getElementById('pf-main-cat').value, '');
+    syncPfCategoryHidden();
+  });
+  document.getElementById('pf-sub-cat')?.addEventListener('change', syncPfCategoryHidden);
+
+  function catParentId(c) {
+    const p = c?.parent_id;
+    return p == null || p === '' ? null : Number(p);
+  }
+
+  function catId(c) {
+    return Number(c?.id);
+  }
+
+  function buildCategoryFilterOptions(list) {
+    const tops = list.filter((c) => catParentId(c) == null);
+    let html = '<option value="all">All categories</option>';
+    tops.forEach((parent) => {
+      const subs = list.filter((c) => catParentId(c) === catId(parent));
+      html += `<option value="${parent.slug}">${parent.name_bn}${subs.length ? ' (all)' : ''}</option>`;
+      subs.forEach((sub) => {
+        html += `<option value="${sub.slug}">↳ ${sub.name_bn}</option>`;
+      });
+    });
+    return html;
+  }
+
+  function formatProductCategoryLabel(p) {
+    if (p.parent_category_name) {
+      return `${p.parent_category_name} → ${p.category_name}`;
+    }
+    return p.category_name || '—';
+  }
+
+  function hideCategorySubContext() {
+    cfSubParentId = null;
+    const box = document.getElementById('cf-sub-context');
+    const locked = document.getElementById('cf-locked-parent-id');
+    const picker = document.getElementById('cat-type-picker');
+    const parentSel = document.getElementById('cf-parent');
+    if (locked) locked.value = '';
+    if (box) box.hidden = true;
+    if (picker) picker.hidden = false;
+    if (parentSel) parentSel.disabled = false;
+  }
+
+  function showCategorySubContext(parent) {
+    const box = document.getElementById('cf-sub-context');
+    const nameEl = document.getElementById('cf-sub-context-name');
+    const locked = document.getElementById('cf-locked-parent-id');
+    const picker = document.getElementById('cat-type-picker');
+    const parentWrap = document.getElementById('cf-parent-wrap');
+    if (!box || !nameEl || !parent) return;
+    cfSubParentId = catId(parent);
+    if (locked) locked.value = String(cfSubParentId);
+    nameEl.textContent = parent.name_bn;
+    box.hidden = false;
+    if (picker) picker.hidden = true;
+    if (parentWrap) parentWrap.hidden = true;
+  }
+
+  function getCategoryFormType() {
+    return document.querySelector('.cat-type-btn.active')?.dataset.cfType === 'sub' ? 'sub' : 'main';
+  }
+
+  function getCategorySubmitParentId() {
+    if (cfSubParentId) return cfSubParentId;
+    const locked = document.getElementById('cf-locked-parent-id')?.value;
+    if (locked) return Number(locked);
+    if (getCategoryFormType() === 'sub') {
+      const parentVal = document.getElementById('cf-parent')?.value;
+      return parentVal ? Number(parentVal) : null;
+    }
+    return null;
+  }
+
+  function populateCategoryParentSelect(list, { excludeId, selectedId, lockParent } = {}) {
+    const sel = document.getElementById('cf-parent');
+    if (!sel) return;
+    if (lockParent && selectedId) {
+      const parent = list.find((c) => catId(c) === Number(selectedId));
+      sel.disabled = true;
+      sel.innerHTML = `<option value="${selectedId}">${escHtml(parent?.name_bn || 'Main category')}</option>`;
+      sel.value = String(selectedId);
+      return;
+    }
+    sel.disabled = false;
+    const tops = list.filter((c) => catParentId(c) == null && catId(c) !== Number(excludeId));
+    sel.innerHTML =
+      '<option value="">Select main category</option>' +
+      tops.map((c) => `<option value="${c.id}">${escHtml(c.name_bn)}</option>`).join('');
+    sel.value = selectedId ? String(selectedId) : '';
+    updateCategoryParentPreview();
+  }
+
+  function setCategoryFormType(type) {
+    if (document.getElementById('cf-locked-parent-id')?.value) return;
+    document.querySelectorAll('.cat-type-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.cfType === type);
+    });
+    const wrap = document.getElementById('cf-parent-wrap');
+    const parentSel = document.getElementById('cf-parent');
+    if (wrap) wrap.hidden = type !== 'sub';
+    if (type === 'main' && parentSel && !parentSel.disabled) {
+      parentSel.value = '';
+      updateCategoryParentPreview();
+    }
+  }
+
+  document.querySelectorAll('.cat-type-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setCategoryFormType(btn.dataset.cfType || 'main');
+    });
+  });
 
   async function loadProducts(page) {
     if (page) productsPage = page;
@@ -1395,7 +1668,7 @@
           <td><div style="display:flex;align-items:center;gap:10px;">
             ${productThumbHtml(p)}
             <div><div style="font-weight:600;">${p.name_bn}</div><small style="color:#94a3b8">${p.slug}</small></div></div></td>
-          <td>${p.category_name}</td><td>৳${Number(p.price).toLocaleString()}</td>
+          <td>${formatProductCategoryLabel(p)}</td><td>৳${Number(p.price).toLocaleString()}</td>
           <td>${p.buy_price != null && p.buy_price !== '' ? '৳' + Number(p.buy_price).toLocaleString() : '<span style="color:#94a3b8">—</span>'}</td>
           <td>${p.stock}</td>
           <td><span class="badge ${stockCls}">${stockLbl}</span></td>
@@ -1460,6 +1733,12 @@
     const priceEl = document.getElementById('pf-price');
     if (priceEl) delete priceEl.dataset.userEdited;
     resetPfGallery([]);
+    const mainSel = document.getElementById('pf-main-cat');
+    const subSel = document.getElementById('pf-sub-cat');
+    if (mainSel) mainSel.value = '';
+    if (subSel) subSel.value = '';
+    updateSubCategorySelect(categories || [], '', '');
+    syncPfCategoryHidden();
   }
 
   function roundPrice(n) {
@@ -1533,10 +1812,16 @@
     const imageUrl = galleryUrls[0] || null;
     const discRaw = document.getElementById('pf-discount-percent')?.value;
     const discParsed = discRaw === '' || discRaw == null ? null : Number(discRaw);
+    const categoryId = getProductCategoryId();
+    if (!categoryId) {
+      toast('Please select a main category', 'error');
+      document.getElementById('pf-main-cat')?.focus();
+      return;
+    }
     const body = {
       name: document.getElementById('pf-name').value.trim(),
       slug: document.getElementById('pf-slug')?.value?.trim() || undefined,
-      categoryId: Number(document.getElementById('pf-category').value),
+      categoryId,
       price: Number(document.getElementById('pf-price').value),
       buyPrice: document.getElementById('pf-buy-price')?.value?.trim() || null,
       oldPrice: document.getElementById('pf-old-price').value || null,
@@ -1595,53 +1880,201 @@
 
   // ——— Categories ———
   function resetCategoryForm() {
+    hideCategorySubContext();
     document.getElementById('category-form-title').textContent = 'Add Category';
     const submitBtn = document.getElementById('cf-submit-btn');
     if (submitBtn) submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save Category';
     document.getElementById('cf-id').value = '';
-    document.getElementById('category-form').reset();
+    document.getElementById('cf-name').value = '';
+    document.getElementById('cf-slug').value = '';
     document.getElementById('cf-icon').value = 'ti-category';
     document.getElementById('cf-sort').value = '0';
+    setCategoryFormType('main');
+    populateCategoryParentSelect(categories || [], {});
+    updateCategoryParentPreview();
   }
+
+  function openAddSubcategoryForm(parentId) {
+    const pid = Number(parentId);
+    const parent = (categories || []).find((c) => catId(c) === pid);
+    if (!parent) {
+      toast('Main category pawa jay ni — page refresh korun', 'error');
+      return;
+    }
+    document.getElementById('cf-id').value = '';
+    document.getElementById('cf-name').value = '';
+    document.getElementById('cf-slug').value = '';
+    document.getElementById('cf-icon').value = 'ti-category';
+    document.getElementById('cf-sort').value = '0';
+    cfSubParentId = pid;
+    showCategorySubContext(parent);
+    populateCategoryParentSelect(categories || [], { selectedId: pid, lockParent: true });
+    document.querySelectorAll('.cat-type-btn').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.cfType === 'sub');
+    });
+    document.getElementById('category-form-title').textContent = `"${parent.name_bn}" er under subcategory`;
+    const submitBtn = document.getElementById('cf-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save Subcategory';
+    openCategoryModal();
+    setTimeout(() => document.getElementById('cf-name')?.focus(), 50);
+  }
+
+  function resolveCategoryParentCat(c, list) {
+    const pid = catParentId(c);
+    if (!pid) return null;
+    return list.find((p) => catId(p) === pid) || null;
+  }
+
+  function renderCategoriesOverview(list) {
+    const box = document.getElementById('categories-overview');
+    if (!box) return;
+    const tops = list.filter((c) => catParentId(c) == null);
+    const subs = list.filter((c) => catParentId(c) != null);
+    const orphanSubs = subs.filter((c) => !resolveCategoryParentCat(c, list));
+    box.hidden = false;
+    box.innerHTML = `
+      <div class="categories-overview-card"><strong>${tops.length}</strong><span>Main category</span></div>
+      <div class="categories-overview-card"><strong>${subs.length}</strong><span>Subcategory</span></div>
+      <div class="categories-overview-card"><strong>${orphanSubs.length}</strong><span>Link missing (fix in Edit)</span></div>`;
+  }
+
+  function renderCategoriesTree(list) {
+    const tops = list.filter((c) => catParentId(c) == null);
+    if (!tops.length) {
+      return `<div class="cat-tree-empty-sub">Kono category nai. <strong>Add Category</strong> button e click kore prothome main category banan.</div>`;
+    }
+    return tops
+      .map((parent) => {
+        const subs = list.filter((c) => catParentId(c) === catId(parent));
+        const subsHtml = subs.length
+          ? subs
+              .map(
+                (sub) => `<div class="cat-tree-sub">
+            <div class="cat-tree-sub-line" aria-hidden="true"></div>
+            <div class="cat-tree-sub-body">
+              <span class="cat-badge cat-badge--sub">Sub</span>
+              <strong>${escHtml(sub.name_bn)}</strong>
+              <span class="cat-tree-sub-tag">${escHtml(parent.name_bn)} er under</span>
+              <span class="cat-tree-meta">${sub.product_count} product</span>
+              <div class="cat-tree-actions">
+                <button type="button" class="btn btn-outline btn-xs" data-edit-cat="${sub.id}">Edit</button>
+                <button type="button" class="btn btn-danger btn-xs" data-del-cat="${sub.id}">Delete</button>
+              </div>
+            </div>
+          </div>`
+              )
+              .join('')
+          : `<div class="cat-tree-empty-sub">Ei main category te kono sub nai. <button type="button" class="btn btn-outline btn-xs" data-add-subcat="${parent.id}"><i class="ti ti-plus"></i> Subcategory add korun</button></div>`;
+        return `<div class="cat-tree-group">
+        <div class="cat-tree-main">
+          <span class="cat-badge cat-badge--main">Main</span>
+          <div class="cat-tree-main-name"><i class="ti ${escHtml(parent.icon || 'ti-category')}"></i> ${escHtml(parent.name_bn)}</div>
+          <span class="cat-tree-meta">${subs.length} ta sub · ${parent.product_count} product</span>
+          <div class="cat-tree-actions">
+            <button type="button" class="btn btn-outline btn-xs" data-add-subcat="${parent.id}"><i class="ti ti-plus"></i> Sub add</button>
+            <button type="button" class="btn btn-outline btn-xs" data-edit-cat="${parent.id}">Edit</button>
+            <button type="button" class="btn btn-danger btn-xs" data-del-cat="${parent.id}">Delete</button>
+          </div>
+        </div>
+        <div class="cat-tree-subs">${subsHtml}</div>
+      </div>`;
+      })
+      .join('');
+  }
+
+  function bindCategoryTreeActions() {
+    const tree = document.getElementById('categories-tree');
+    if (!tree || tree._rakuBound) return;
+    tree._rakuBound = true;
+    tree.addEventListener('click', (e) => {
+      const addBtn = e.target.closest('[data-add-subcat]');
+      if (addBtn) {
+        openAddSubcategoryForm(Number(addBtn.dataset.addSubcat));
+        return;
+      }
+      const editBtn = e.target.closest('[data-edit-cat]');
+      if (editBtn) {
+        openEditCategoryForm(Number(editBtn.dataset.editCat));
+        return;
+      }
+      const delBtn = e.target.closest('[data-del-cat]');
+      if (delBtn) {
+        deleteCategory(Number(delBtn.dataset.delCat));
+      }
+    });
+  }
+
+  function openEditCategoryForm(categoryId) {
+    const c = categories.find((x) => catId(x) === Number(categoryId));
+    if (!c) return;
+    hideCategorySubContext();
+    document.getElementById('category-form-title').textContent = catParentId(c) ? 'Edit Subcategory' : 'Edit Main Category';
+    const submitBtn = document.getElementById('cf-submit-btn');
+    if (submitBtn) submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save Category';
+    document.getElementById('cf-id').value = c.id;
+    document.getElementById('cf-name').value = c.name_bn;
+    document.getElementById('cf-slug').value = c.slug;
+    document.getElementById('cf-icon').value = c.icon || 'ti-category';
+    document.getElementById('cf-sort').value = c.sort_order ?? 0;
+    setCategoryFormType(catParentId(c) ? 'sub' : 'main');
+    populateCategoryParentSelect(categories, { excludeId: c.id, selectedId: catParentId(c) || '' });
+    updateCategoryParentPreview();
+    openCategoryModal();
+  }
+
+  async function deleteCategory(catId) {
+    if (!confirm('Delete category?')) return;
+    const r = await api('/categories/' + catId, { method: 'DELETE' });
+    if (r.ok) {
+      toast('Deleted');
+      loadCategories();
+      loadCategoriesList();
+    } else toast(r.error || 'Failed', 'error');
+  }
+
+  function updateCategoryParentPreview() {
+    const preview = document.getElementById('cf-parent-preview');
+    const sel = document.getElementById('cf-parent');
+    if (!preview || !sel || getCategoryFormType() !== 'sub') {
+      if (preview) {
+        preview.hidden = true;
+        preview.innerHTML = '';
+      }
+      return;
+    }
+    const val = sel.value;
+    if (!val) {
+      preview.hidden = true;
+      preview.innerHTML = '';
+      return;
+    }
+    const parent = (categories || []).find((c) => catId(c) === Number(val));
+    preview.hidden = false;
+    preview.innerHTML = `<i class="ti ti-arrow-down"></i> <span class="path-box path-box--main" style="display:inline-flex;margin:0 6px;"><i class="ti ti-folder"></i> ${escHtml(parent?.name_bn || 'Main')}</span> <i class="ti ti-arrow-right path-arrow"></i> <span class="path-box path-box--sub" style="display:inline-flex;"><i class="ti ti-subtask"></i> Apnar notun sub</span>`;
+  }
+
+  document.getElementById('cf-parent')?.addEventListener('change', updateCategoryParentPreview);
 
   async function loadCategories() {
     const data = await api('/categories');
     if (!data.ok) return;
     categories = data.categories;
-    document.getElementById('categories-tbody').innerHTML = categories
-      .map(
-        (c) => `<tr>
-        <td>${c.name_bn}</td><td><code>${c.slug}</code></td><td>${c.product_count}</td>
-        <td><button type="button" class="btn btn-outline btn-xs" data-edit-cat="${c.id}">Edit</button>
-        <button type="button" class="btn btn-danger btn-xs" data-del-cat="${c.id}">Delete</button></td></tr>`
-      )
-      .join('');
-    document.querySelectorAll('[data-edit-cat]').forEach((btn) => {
-      btn.onclick = () => {
-        const c = categories.find((x) => x.id === Number(btn.dataset.editCat));
-        if (!c) return;
-        document.getElementById('category-form-title').textContent = 'Edit Category';
-        const submitBtn = document.getElementById('cf-submit-btn');
-        if (submitBtn) submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save Category';
-        document.getElementById('cf-id').value = c.id;
-        document.getElementById('cf-name').value = c.name_bn;
-        document.getElementById('cf-slug').value = c.slug;
-        document.getElementById('cf-icon').value = c.icon || 'ti-category';
-        document.getElementById('cf-sort').value = c.sort_order ?? 0;
-        openCategoryModal();
-      };
-    });
-    document.querySelectorAll('[data-del-cat]').forEach((btn) => {
-      btn.onclick = async () => {
-        if (!confirm('Delete category?')) return;
-        const r = await api('/categories/' + btn.dataset.delCat, { method: 'DELETE' });
-        if (r.ok) {
-          toast('Deleted');
-          loadCategories();
-          loadCategoriesList();
-        } else toast(r.error || 'Failed', 'error');
-      };
-    });
+    const alertEl = document.getElementById('categories-schema-alert');
+    if (alertEl) {
+      if (data.subcategoryReady === false) {
+        alertEl.hidden = false;
+        alertEl.innerHTML =
+          '<i class="ti ti-alert-triangle"></i> Subcategory save hobe na — server restart ba deploy korun (database update lagbe).';
+      } else {
+        alertEl.hidden = true;
+        alertEl.innerHTML = '';
+      }
+    }
+    renderCategoriesOverview(categories);
+    bindCategoryTreeActions();
+    const tree = document.getElementById('categories-tree');
+    if (tree) tree.innerHTML = renderCategoriesTree(categories);
+    populateCategoryParentSelect(categories);
   }
 
   document.getElementById('cf-reset')?.addEventListener('click', resetCategoryForm);
@@ -1649,17 +2082,36 @@
   document.getElementById('category-form').onsubmit = async (e) => {
     e.preventDefault();
     const id = document.getElementById('cf-id').value;
+    const name = document.getElementById('cf-name').value.trim();
+    if (!name) {
+      toast('Name likhun', 'error');
+      return;
+    }
+    const isSub = Boolean(cfSubParentId) || getCategoryFormType() === 'sub';
+    const parentId = cfSubParentId || getCategorySubmitParentId();
+    if (isSub && !parentId) {
+      toast('Subcategory er jonno main category select korun', 'error');
+      document.getElementById('cf-parent')?.focus();
+      return;
+    }
     const body = {
-      name: document.getElementById('cf-name').value.trim(),
+      name,
       slug: document.getElementById('cf-slug').value.trim() || undefined,
       icon: document.getElementById('cf-icon').value.trim() || 'ti-category',
       sortOrder: Number(document.getElementById('cf-sort').value) || 0,
+      parentId: isSub ? parentId : null,
     };
     const data = id
       ? await api('/categories/' + id, { method: 'PUT', body: JSON.stringify(body) })
       : await api('/categories', { method: 'POST', body: JSON.stringify(body) });
     if (data.ok) {
-      toast(id ? 'Category updated' : 'Category added');
+      const parent =
+        isSub && parentId ? categories.find((c) => catId(c) === Number(parentId)) : null;
+      if (isSub && parent) {
+        toast(`Subcategory "${name}" save hoyeche — ${parent.name_bn} er under`);
+      } else {
+        toast(id ? 'Category updated' : 'Category added');
+      }
       closeCategoryModal();
       resetCategoryForm();
       loadCategories();
@@ -1777,6 +2229,9 @@
     { value: 'track', label: 'Track Order' },
     { value: 'faq', label: 'FAQ' },
     { value: 'contact', label: 'Contact Us' },
+    { value: 'privacy', label: 'Privacy Policy' },
+    { value: 'terms', label: 'Terms & Conditions' },
+    { value: 'return', label: 'Return Policy' },
   ];
 
   const FOOTER_HREF_TO_PAGE = {
@@ -1787,6 +2242,9 @@
     '/track': 'track',
     '/faq': 'faq',
     '/contact': 'contact',
+    '/privacy-policy': 'privacy',
+    '/terms-and-conditions': 'terms',
+    '/return-policy': 'return',
   };
 
   function normalizeFooterLinkForEditor(link) {
@@ -1911,6 +2369,7 @@
     const data = await api('/settings');
     if (!data.ok) return;
     const s = data.settings;
+    window._lastSettingsCache = s;
     document.getElementById('set-site-name').value = s.site_name || '';
     document.getElementById('set-tagline').value = s.site_tagline || '';
     document.getElementById('set-announcement').value = s.announcement_text || '';
@@ -1982,7 +2441,82 @@
     if (trBody) trBody.value = s.tracking_scripts_body || '';
     const trFooter = document.getElementById('set-tracking-footer');
     if (trFooter) trFooter.value = s.tracking_scripts_footer || '';
+    fillLegalForm(s);
   }
+
+  function loadLegalPages() {
+    const data = window._lastSettingsCache;
+    if (data) {
+      fillLegalForm(data);
+      return;
+    }
+    api('/settings').then((res) => {
+      if (res.ok) {
+        window._lastSettingsCache = res.settings;
+        fillLegalForm(res.settings);
+      }
+    });
+  }
+
+  function fillLegalForm(s) {
+    if (!s) return;
+    const heading = document.getElementById('set-footer-legal-heading');
+    if (heading) heading.value = s.footer_legal_heading || 'Legal';
+    const map = [
+      ['legal-privacy-title', 'legal_privacy_title'],
+      ['legal-privacy-content', 'legal_privacy_content'],
+      ['legal-terms-title', 'legal_terms_title'],
+      ['legal-terms-content', 'legal_terms_content'],
+      ['legal-return-title', 'legal_return_title'],
+      ['legal-return-content', 'legal_return_content'],
+    ];
+    map.forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const value = s[key] || '';
+      if (id.endsWith('-content') && window.RakuRichEditor) {
+        window.RakuRichEditor.setContent(id, value);
+      } else {
+        el.value = value;
+      }
+    });
+    window.RakuRichEditor?.initPageEditors();
+  }
+
+  function collectLegalSettings() {
+    window.RakuRichEditor?.syncAll();
+    return {
+      footer_legal_heading: document.getElementById('set-footer-legal-heading')?.value?.trim() || 'Legal',
+      legal_privacy_title: document.getElementById('legal-privacy-title')?.value?.trim() || 'Privacy Policy',
+      legal_privacy_content: document.getElementById('legal-privacy-content')?.value || '',
+      legal_terms_title: document.getElementById('legal-terms-title')?.value?.trim() || 'Terms & Conditions',
+      legal_terms_content: document.getElementById('legal-terms-content')?.value || '',
+      legal_return_title: document.getElementById('legal-return-title')?.value?.trim() || 'Return Policy',
+      legal_return_content: document.getElementById('legal-return-content')?.value || '',
+    };
+  }
+
+  function switchLegalTab(tabId) {
+    const root = document.getElementById('sec-legal');
+    if (!root || !tabId) return;
+    root.querySelectorAll('[data-legal-tab]').forEach((t) => {
+      t.classList.toggle('active', t.dataset.legalTab === tabId);
+    });
+    root.querySelectorAll('#legal-form .settings-panel').forEach((p) => {
+      p.classList.toggle('active', p.id === `legal-panel-${tabId}`);
+    });
+  }
+
+  function initLegalTabs() {
+    const root = document.getElementById('sec-legal');
+    if (!root || root._legalTabsBound) return;
+    root._legalTabsBound = true;
+    root.querySelectorAll('[data-legal-tab]').forEach((tab) => {
+      tab.addEventListener('click', () => switchLegalTab(tab.dataset.legalTab));
+    });
+  }
+
+  initLegalTabs();
 
   async function loadAnalytics() {
     const data = await api('/analytics');
@@ -2437,6 +2971,19 @@
     });
     if (data.ok) toast('Tracking settings saved');
     else toast(data.error || 'Failed to save tracking settings', 'error');
+  });
+
+  document.getElementById('legal-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    window.RakuRichEditor?.syncAll();
+    const data = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings: collectLegalSettings() }),
+    });
+    if (data.ok) {
+      toast('Legal pages saved');
+      if (window._lastSettingsCache) Object.assign(window._lastSettingsCache, collectLegalSettings());
+    } else toast(data.error || 'Failed to save legal pages', 'error');
   });
 
   function debounce(fn, ms) {

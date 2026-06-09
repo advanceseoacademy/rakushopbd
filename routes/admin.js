@@ -11,6 +11,12 @@ const { firstInsertId } = require('../config/db');
 const { saveSession } = require('../lib/sessionSave');
 const { signAdminToken, getAdminIdFromRequest, setAdminAuthCookie, clearAdminAuthCookie } = require('../lib/adminToken');
 const { attachGalleryToProduct, syncProductGallery } = require('../lib/productImages');
+const {
+  listCategoriesWithCounts,
+  resolveCategoryIdsBySlug,
+  categoryInClause,
+  normalizeCategoryId,
+} = require('../lib/categoryHelpers');
 
 const router = express.Router();
 
@@ -378,16 +384,27 @@ router.get('/products', requireAdmin, async (req, res) => {
     const l = Math.min(48, Math.max(1, parseInt(limit, 10) || 6));
     const offset = (p - 1) * l;
     let sql = `
-      SELECT p.*, c.name_bn AS category_name, c.slug AS category_slug
-      FROM products p JOIN categories c ON c.id = p.category_id WHERE 1=1`;
+      SELECT p.*, c.name_bn AS category_name, c.slug AS category_slug, c.parent_id AS category_parent_id,
+             pc.name_bn AS parent_category_name
+      FROM products p
+      JOIN categories c ON c.id = p.category_id
+      LEFT JOIN categories pc ON pc.id = c.parent_id
+      WHERE 1=1`;
     let countSql = `
       SELECT COUNT(*) AS total
       FROM products p JOIN categories c ON c.id = p.category_id WHERE 1=1`;
     const params = [];
     if (category && category !== 'all') {
-      sql += ' AND c.slug = ?';
-      countSql += ' AND c.slug = ?';
-      params.push(category);
+      const catIds = await resolveCategoryIdsBySlug(query, category);
+      if (catIds.length) {
+        const { clause, params: catParams } = categoryInClause(catIds);
+        sql += ` AND ${clause}`;
+        countSql += ` AND ${clause}`;
+        params.push(...catParams);
+      } else {
+        sql += ' AND 1=0';
+        countSql += ' AND 1=0';
+      }
     }
     if (search) {
       sql += ' AND (p.name_bn LIKE ? OR p.slug LIKE ?)';
@@ -415,8 +432,12 @@ router.get('/products/:id', requireAdmin, async (req, res) => {
     const productId = Number(req.params.id);
     if (!productId) return res.status(400).json({ ok: false, error: 'Invalid product' });
     const rows = await query(
-      `SELECT p.*, c.name_bn AS category_name, c.slug AS category_slug
-       FROM products p JOIN categories c ON c.id = p.category_id WHERE p.id = ? LIMIT 1`,
+      `SELECT p.*, c.name_bn AS category_name, c.slug AS category_slug, c.parent_id AS category_parent_id,
+              pc.name_bn AS parent_category_name
+       FROM products p
+       JOIN categories c ON c.id = p.category_id
+       LEFT JOIN categories pc ON pc.id = c.parent_id
+       WHERE p.id = ? LIMIT 1`,
       [productId]
     );
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Product not found' });
@@ -612,29 +633,86 @@ router.delete('/products/:id', requireAdmin, async (req, res) => {
 });
 
 // ——— Categories ———
+async function validateCategoryParent(parentId, selfId) {
+  if (parentId == null || parentId === '' || parentId === 0) return null;
+  const pid = Number(parentId);
+  if (!pid) return null;
+  if (selfId && pid === Number(selfId)) {
+    return { error: 'Category cannot be its own parent' };
+  }
+  const rows = await query('SELECT id, parent_id FROM categories WHERE id = ? LIMIT 1', [pid]);
+  if (!rows.length) return { error: 'Parent category not found' };
+  if (normalizeCategoryId(rows[0].parent_id)) {
+    return { error: 'Subcategories can only be placed under a top-level category' };
+  }
+  if (selfId) {
+    const children = await query('SELECT id FROM categories WHERE parent_id = ? LIMIT 1', [selfId]);
+    if (children.length && pid !== Number(selfId)) {
+      return { error: 'Remove subcategories before changing this to a subcategory' };
+    }
+  }
+  return pid;
+}
+
 router.get('/categories', requireAdmin, async (req, res) => {
   try {
-    const categories = await query(
-      `SELECT c.*, COUNT(p.id) AS product_count
-       FROM categories c LEFT JOIN products p ON p.category_id = c.id
-       GROUP BY c.id ORDER BY c.sort_order, c.id`
-    );
-    res.json({ ok: true, categories });
+    const categories = await listCategoriesWithCounts(query);
+    let subcategoryReady = true;
+    try {
+      await query('SELECT parent_id FROM categories LIMIT 1');
+    } catch (err) {
+      subcategoryReady = false;
+    }
+    res.json({ ok: true, categories, subcategoryReady });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not load categories' });
   }
 });
 
-router.post('/categories', requireAdmin, async (req, res) => {
+router.post('/categories/:parentId/subcategories', requireAdmin, async (req, res) => {
   try {
+    const parentCheck = await validateCategoryParent(req.params.parentId);
+    if (parentCheck?.error) return res.status(400).json({ ok: false, error: parentCheck.error });
+    if (!parentCheck) {
+      return res.status(400).json({ ok: false, error: 'Valid main category required' });
+    }
     const { name, slug, icon, sortOrder } = req.body;
     if (!name) return res.status(400).json({ ok: false, error: 'Name required' });
     const s = slug || slugify(name);
     await query(
-      'INSERT INTO categories (slug, name_bn, icon, sort_order) VALUES (?, ?, ?, ?)',
-      [s, name, icon || 'ti-category', sortOrder || 0]
+      'INSERT INTO categories (slug, name_bn, icon, sort_order, parent_id) VALUES (?, ?, ?, ?, ?)',
+      [s, name, icon || 'ti-category', sortOrder || 0, parentCheck]
     );
+    clearStoreBootstrapCache();
+    res.json({ ok: true, parentId: parentCheck });
+  } catch (err) {
+    console.error(err);
+    const msg = String(err?.message || err);
+    if (/Unknown column.*parent_id/i.test(msg)) {
+      return res.status(500).json({
+        ok: false,
+        error: 'Database e parent_id column nai — server restart/deploy korun',
+      });
+    }
+    res.status(500).json({ ok: false, error: 'Could not create subcategory' });
+  }
+});
+
+router.post('/categories', requireAdmin, async (req, res) => {
+  try {
+    const { name, slug, icon, sortOrder } = req.body;
+    const parentIdRaw = req.body.parentId ?? req.body.parent_id;
+    if (!name) return res.status(400).json({ ok: false, error: 'Name required' });
+    const parentCheck = await validateCategoryParent(parentIdRaw);
+    if (parentCheck?.error) return res.status(400).json({ ok: false, error: parentCheck.error });
+    const parent_id = parentCheck === null ? null : parentCheck;
+    const s = slug || slugify(name);
+    await query(
+      'INSERT INTO categories (slug, name_bn, icon, sort_order, parent_id) VALUES (?, ?, ?, ?, ?)',
+      [s, name, icon || 'ti-category', sortOrder || 0, parent_id]
+    );
+    clearStoreBootstrapCache();
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -645,10 +723,15 @@ router.post('/categories', requireAdmin, async (req, res) => {
 router.put('/categories/:id', requireAdmin, async (req, res) => {
   try {
     const { name, slug, icon, sortOrder } = req.body;
+    const parentIdRaw = req.body.parentId ?? req.body.parent_id;
+    const parentCheck = await validateCategoryParent(parentIdRaw, req.params.id);
+    if (parentCheck?.error) return res.status(400).json({ ok: false, error: parentCheck.error });
+    const parent_id = parentCheck === null ? null : parentCheck;
     await query(
-      'UPDATE categories SET slug=?, name_bn=?, icon=?, sort_order=? WHERE id=?',
-      [slug, name, icon || 'ti-category', sortOrder || 0, req.params.id]
+      'UPDATE categories SET slug=?, name_bn=?, icon=?, sort_order=?, parent_id=? WHERE id=?',
+      [slug, name, icon || 'ti-category', sortOrder || 0, parent_id, req.params.id]
     );
+    clearStoreBootstrapCache();
     res.json({ ok: true });
   } catch (err) {
     console.error(err);
@@ -658,11 +741,16 @@ router.put('/categories/:id', requireAdmin, async (req, res) => {
 
 router.delete('/categories/:id', requireAdmin, async (req, res) => {
   try {
+    const children = await query('SELECT id FROM categories WHERE parent_id = ? LIMIT 1', [req.params.id]);
+    if (children.length) {
+      return res.status(400).json({ ok: false, error: 'Category has subcategories — delete them first' });
+    }
     const prods = await query('SELECT id FROM products WHERE category_id = ? LIMIT 1', [req.params.id]);
     if (prods.length) {
       return res.status(400).json({ ok: false, error: 'Category has products' });
     }
     await query('DELETE FROM categories WHERE id = ?', [req.params.id]);
+    clearStoreBootstrapCache();
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

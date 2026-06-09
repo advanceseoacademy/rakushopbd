@@ -16,6 +16,11 @@ const { ensurePhoneSubscribersTable } = require('../lib/ensurePhoneSubscribersTa
 const { listActiveMessengerChats } = require('../lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('../lib/ensureFaqsTable');
 const {
+  listCategoriesWithCounts,
+  resolveCategoryIdsBySlug,
+  categoryInClause,
+} = require('../lib/categoryHelpers');
+const {
   SERVICE_TYPES,
   TIME_SLOTS,
   normalizePhone,
@@ -130,14 +135,7 @@ async function cartTotalsResponse(cart, req) {
 router.get('/categories', async (req, res) => {
   try {
     cachePublic(res, 120);
-    const categories = await query(
-      `SELECT c.id, c.slug, c.name_bn, c.icon, c.sort_order,
-              COUNT(p.id) AS product_count
-       FROM categories c
-       LEFT JOIN products p ON p.category_id = c.id
-       GROUP BY c.id
-       ORDER BY c.sort_order ASC, c.name_bn ASC`
-    );
+    const categories = await listCategoriesWithCounts(query);
     res.json({ ok: true, categories });
   } catch (err) {
     console.error(err);
@@ -362,8 +360,14 @@ router.get('/products', async (req, res) => {
       where.push('p.is_featured = 1');
     }
     if (category && category !== 'all') {
-      where.push('c.slug = ?');
-      params.push(category);
+      const catIds = await resolveCategoryIdsBySlug(query, category);
+      if (catIds.length) {
+        const { clause, params: catParams } = categoryInClause(catIds);
+        where.push(clause);
+        params.push(...catParams);
+      } else {
+        where.push('1=0');
+      }
     }
     const excludeId = Number(req.query.exclude);
     if (excludeId) {
@@ -506,6 +510,7 @@ router.get('/cart', async (req, res) => {
     ok: true,
     cart,
     count: cart.reduce((s, i) => s + i.qty, 0),
+    checkoutDistrict: req.session.checkoutDistrict || null,
     totals: await cartTotalsResponse(cart, req),
   });
 });
@@ -892,8 +897,6 @@ router.get('/appointments/lookup', async (req, res) => {
   }
 });
 
-router.use('/face-analyzer', require('./faceAnalyzer'));
-
 router.get('/faqs', async (req, res) => {
   try {
     await ensureFaqsTable();
@@ -906,6 +909,24 @@ router.get('/faqs', async (req, res) => {
   } catch (err) {
     console.error('faqs GET', err);
     res.status(500).json({ ok: false, error: 'Could not load FAQs' });
+  }
+});
+
+router.get('/legal-pages/:slug', async (req, res) => {
+  try {
+    const { getLegalPageFromSettings, LEGAL_SLUGS } = require('../lib/legalPages');
+    const slug = String(req.params.slug || '').trim();
+    if (!LEGAL_SLUGS.includes(slug)) {
+      return res.status(404).json({ ok: false, error: 'Page not found' });
+    }
+    const { getSiteSettings } = require('../lib/siteSettings');
+    const settings = await getSiteSettings(query);
+    const page = getLegalPageFromSettings(slug, settings);
+    cachePublic(res, 300);
+    res.json({ ok: true, page });
+  } catch (err) {
+    console.error('legal-pages GET', err);
+    res.status(500).json({ ok: false, error: 'Could not load page' });
   }
 });
 

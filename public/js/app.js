@@ -20,10 +20,25 @@ document.addEventListener('DOMContentLoaded', function() {
     appointment: document.getElementById('page-appointment'),
     faq: document.getElementById('page-faq'),
     contact: document.getElementById('page-contact'),
+    privacy: document.getElementById('page-privacy'),
+    terms: document.getElementById('page-terms'),
+    return: document.getElementById('page-return'),
     track: document.getElementById('page-track'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact', 'track'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact', 'privacy', 'terms', 'return', 'track'];
+
+  const PATH_ALIASES = {
+    'privacy-policy': 'privacy',
+    'terms-and-conditions': 'terms',
+    'return-policy': 'return',
+  };
+
+  const PAGE_PATHS = {
+    privacy: '/privacy-policy',
+    terms: '/terms-and-conditions',
+    return: '/return-policy',
+  };
 
   // Show target route immediately (content fills via bootstrap / API)
   const initialRoute = (function parseInitial() {
@@ -36,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
       return { page: 'product', productSlug: decoded };
     }
     if (page === 'category' && param) return { page: 'category', categorySlug: decodeURIComponent(param) };
+    if (PATH_ALIASES[page]) return { page: PATH_ALIASES[page] };
     if (PAGE_NAMES.includes(page)) return { page };
     return { page: 'home' };
   })();
@@ -56,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (name === 'category' && opts.categorySlug) {
       return `/category/${encodeURIComponent(opts.categorySlug)}`;
     }
+    if (PAGE_PATHS[name]) return PAGE_PATHS[name];
     return `/${name}`;
   }
 
@@ -71,6 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
     if (page === 'category' && param) {
       return { page: 'category', categorySlug: decodeURIComponent(param) };
     }
+    if (PATH_ALIASES[page]) return { page: PATH_ALIASES[page] };
     if (PAGE_NAMES.includes(page)) return { page };
     return { page: 'home' };
   }
@@ -108,6 +126,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (name === 'contact' && window._rakuInitContactPage) {
       window._rakuInitContactPage();
+    }
+    if (name === 'privacy' && window._rakuInitLegalPrivacy) {
+      window._rakuInitLegalPrivacy();
+    }
+    if (name === 'terms' && window._rakuInitLegalTerms) {
+      window._rakuInitLegalTerms();
+    }
+    if (name === 'return' && window._rakuInitLegalReturn) {
+      window._rakuInitLegalReturn();
     }
     if (name === 'track' && window._rakuInitTrackPage) {
       window._rakuInitTrackPage();
@@ -162,6 +189,12 @@ document.addEventListener('DOMContentLoaded', function() {
         window._rakuInitFaqPage();
       } else if (route.page === 'contact' && window._rakuInitContactPage) {
         window._rakuInitContactPage();
+      } else if (route.page === 'privacy' && window._rakuInitLegalPrivacy) {
+        window._rakuInitLegalPrivacy();
+      } else if (route.page === 'terms' && window._rakuInitLegalTerms) {
+        window._rakuInitLegalTerms();
+      } else if (route.page === 'return' && window._rakuInitLegalReturn) {
+        window._rakuInitLegalReturn();
       } else if (route.page === 'track' && window._rakuInitTrackPage) {
         window._rakuInitTrackPage();
       }
@@ -496,12 +529,25 @@ document.addEventListener('DOMContentLoaded', function() {
         '/faq': 'faq',
         '/contact': 'contact',
         '/track': 'track',
+        '/privacy-policy': 'privacy',
+        '/terms-and-conditions': 'terms',
+        '/return-policy': 'return',
       };
       if (spaRoutes[href] && window.showPage && !window.RAKU_STANDALONE) {
         e.preventDefault();
         closeMobileCatMenu();
         showPage(spaRoutes[href]);
       }
+    });
+  });
+
+  document.querySelectorAll('.mobile-menu-group-toggle').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const group = btn.closest('.mobile-menu-group');
+      if (!group) return;
+      const open = group.classList.toggle('open');
+      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     });
   });
 

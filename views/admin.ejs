@@ -9,7 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/admin.css?v=8">
+<link rel="stylesheet" href="/css/admin.css?v=14">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
 </head>
 <body>
@@ -52,7 +53,18 @@
     <div class="nav-item" data-page="analytics"><i class="ti ti-chart-bar"></i> Analytics</div>
     <div class="sidebar-section">Manage</div>
     <div class="nav-item" data-page="categories"><i class="ti ti-category"></i> Categories</div>
-    <div class="nav-item" data-page="faq"><i class="ti ti-help-circle"></i> FAQ</div>
+    <div class="nav-group open" id="nav-group-pages">
+      <button type="button" class="nav-group-toggle" id="nav-pages-toggle" aria-expanded="true">
+        <span class="nav-group-label"><i class="ti ti-files"></i> Pages</span>
+        <i class="ti ti-chevron-down nav-group-chevron"></i>
+      </button>
+      <div class="nav-sub">
+        <button type="button" class="nav-sub-item" data-page="faq"><i class="ti ti-help-circle"></i> FAQ</button>
+        <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="privacy"><i class="ti ti-shield-lock"></i> Privacy Policy</button>
+        <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="terms"><i class="ti ti-file-text"></i> Terms &amp; Conditions</button>
+        <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="return"><i class="ti ti-refresh"></i> Return Policy</button>
+      </div>
+    </div>
     <div class="nav-item" data-page="coupons"><i class="ti ti-discount"></i> Coupons</div>
     <div class="nav-item" data-page="reviews"><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
     <div class="nav-item" data-page="banners"><i class="ti ti-photo"></i> Banners</div>
@@ -214,14 +226,45 @@
               <div class="form-section-title">Basic info</div>
               <div class="form-group"><label class="form-label">Product name *</label><input class="form-input" id="pf-name" required></div>
               <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="pf-slug" placeholder="auto from name, e.g. smartwatch-pro"><small class="form-hint">Store link: /product/your-slug</small></div>
-              <div class="form-group"><label class="form-label">Category *</label><select class="form-input form-select" id="pf-category" required></select></div>
-              <div class="form-2col">
-                <div class="form-group"><label class="form-label">MRP / Regular price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0" step="0.01"><small class="form-hint">পূর্বের দাম — store-এ কাটা দাম হিসেবে দেখাবে</small></div>
-                <div class="form-group"><label class="form-label">Discount (%)</label><input class="form-input" id="pf-discount-percent" type="number" min="0" max="99" placeholder="0"><small class="form-hint">ছাড়ের শতাংশ — ০ দিলে কোনো discount দেখাবে না</small></div>
+              <div class="form-section-title">Product category</div>
+              <div class="product-cat-pickers">
+                <div class="product-cat-step">
+                  <div class="product-cat-step-head">
+                    <span class="product-cat-step-num">1</span>
+                    <div>
+                      <label class="form-label" for="pf-main-cat">Main category *</label>
+                      <small class="form-hint">Select the top-level category (e.g. Electronics, Fashion)</small>
+                    </div>
+                  </div>
+                  <select class="form-input form-select" id="pf-main-cat" required>
+                    <option value="">Select main category</option>
+                  </select>
+                </div>
+                <div class="product-cat-step" id="pf-sub-cat-wrap" hidden>
+                  <div class="product-cat-step-head">
+                    <span class="product-cat-step-num">2</span>
+                    <div>
+                      <label class="form-label" for="pf-sub-cat">Subcategory</label>
+                      <small class="form-hint" id="pf-sub-cat-hint">Optional — choose a subcategory under the main category</small>
+                    </div>
+                  </div>
+                  <select class="form-input form-select" id="pf-sub-cat">
+                    <option value="">Use main category only (no subcategory)</option>
+                  </select>
+                </div>
+                <div class="product-cat-path" id="pf-cat-selected" hidden>
+                  <span class="product-cat-path-label">Product will be listed under:</span>
+                  <div class="product-cat-path-flow" id="pf-cat-path-flow"></div>
+                </div>
               </div>
-              <div class="form-group"><label class="form-label">Sale price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" step="0.01" required><small class="form-hint">বিক্রয় মূল্য — customer যা দেবে (MRP + Discount দিলে auto হিসাব)</small></div>
+              <input type="hidden" id="pf-category" value="">
+              <div class="form-2col">
+                <div class="form-group"><label class="form-label">MRP / Regular price (৳)</label><input class="form-input" id="pf-old-price" type="number" min="0" step="0.01"><small class="form-hint">Original list price — shown as strikethrough on the storefront</small></div>
+                <div class="form-group"><label class="form-label">Discount (%)</label><input class="form-input" id="pf-discount-percent" type="number" min="0" max="99" placeholder="0"><small class="form-hint">Discount percentage — set to 0 to hide the discount badge</small></div>
+              </div>
+              <div class="form-group"><label class="form-label">Sale price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" step="0.01" required><small class="form-hint">Customer-facing price — auto-calculated from MRP and discount when both are set</small></div>
               <div class="form-section-title">Internal — admin only</div>
-              <div class="form-group"><label class="form-label">Purchase / buy price (৳)</label><input class="form-input" id="pf-buy-price" type="number" min="0" step="0.01" placeholder="যে দামে আপনি product কিনেছেন"><small class="form-hint">শুধু admin dashboard-এ থাকবে। Website-এ customer দেখবে না।</small></div>
+              <div class="form-group"><label class="form-label">Purchase / buy price (৳)</label><input class="form-input" id="pf-buy-price" type="number" min="0" step="0.01" placeholder="Your cost price per unit"><small class="form-hint">Internal use only — not visible to customers on the website</small></div>
               <div class="form-2col">
                 <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="pf-sku" placeholder="PROD-001"></div>
                 <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
@@ -291,15 +334,18 @@
       </div>
 
       <div class="adm-section" id="sec-categories">
+        <div class="categories-overview" id="categories-overview" hidden></div>
+        <div class="categories-schema-alert" id="categories-schema-alert" hidden></div>
         <div class="table-wrap" style="margin:0;">
           <div class="table-header">
             <h3>Categories</h3>
             <div class="table-actions">
-              <button type="button" class="btn btn-primary btn-sm" id="add-category-btn"><i class="ti ti-plus"></i> Add Category</button>
+              <button type="button" class="btn btn-primary btn-sm" id="add-category-btn"><i class="ti ti-plus"></i> Add Main Category</button>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Name</th><th>Slug</th><th>Products</th><th>Actions</th></tr></thead>
-          <tbody id="categories-tbody"></tbody></table>
+          <p class="categories-help">নিচে প্রতিটি <strong>Main</strong> category একটা box। Box er vitore je gulo ache shegulo tar <strong>Subcategory</strong>.</p>
+          <div class="categories-tree" id="categories-tree"></div>
+          <table class="tbl tbl-categories" hidden aria-hidden="true"><tbody id="categories-tbody"></tbody></table>
         </div>
       </div>
 
@@ -451,6 +497,100 @@
           </div>
           <table class="tbl"><thead><tr><th>Preview</th><th>Customer</th><th>Caption</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="messenger-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-legal">
+        <div class="settings-page">
+          <div class="settings-page-head">
+            <div>
+              <h2 class="settings-page-title">Legal Pages</h2>
+              <p class="settings-page-desc">Edit Privacy Policy, Terms &amp; Conditions, and Return Policy — grouped under the <strong>Legal</strong> menu on your storefront footer.</p>
+            </div>
+          </div>
+
+          <div class="settings-card" style="margin-bottom:16px;">
+            <div class="settings-card-body" style="padding-top:18px;">
+              <div class="form-group" style="margin-bottom:0;">
+                <label class="form-label">Footer menu title</label>
+                <input class="form-input" id="set-footer-legal-heading" placeholder="Legal" maxlength="40">
+                <small class="form-hint">Shown as the footer column heading above Privacy, Terms, and Return links.</small>
+              </div>
+            </div>
+          </div>
+
+          <nav class="settings-tabs" role="tablist" aria-label="Legal page sections">
+            <button type="button" class="settings-tab active" data-legal-tab="privacy" role="tab"><i class="ti ti-shield-lock"></i><span>Privacy</span></button>
+            <button type="button" class="settings-tab" data-legal-tab="terms" role="tab"><i class="ti ti-file-text"></i><span>Terms</span></button>
+            <button type="button" class="settings-tab" data-legal-tab="return" role="tab"><i class="ti ti-refresh"></i><span>Returns</span></button>
+          </nav>
+
+          <form id="legal-form">
+            <div class="settings-panel active" id="legal-panel-privacy" role="tabpanel">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--green"><i class="ti ti-shield-lock"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Privacy Policy</h3>
+                    <p class="settings-card-desc">Live at <code>/privacy-policy</code> — use headings and lists for easy reading.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-group"><label class="form-label">Page title</label><input class="form-input" id="legal-privacy-title" placeholder="Privacy Policy"></div>
+                  <div class="form-group">
+                    <label class="form-label">Page content</label>
+                    <textarea class="form-input form-textarea" id="legal-privacy-content" rows="16" placeholder="Write your privacy policy…"></textarea>
+                    <small class="form-hint">Use the toolbar for headings, bold text, lists, and links — no HTML coding needed.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-panel" id="legal-panel-terms" role="tabpanel">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--blue"><i class="ti ti-file-text"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Terms &amp; Conditions</h3>
+                    <p class="settings-card-desc">Live at <code>/terms-and-conditions</code></p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-group"><label class="form-label">Page title</label><input class="form-input" id="legal-terms-title" placeholder="Terms & Conditions"></div>
+                  <div class="form-group">
+                    <label class="form-label">Page content</label>
+                    <textarea class="form-input form-textarea" id="legal-terms-content" rows="16" placeholder="Write your terms and conditions…"></textarea>
+                    <small class="form-hint">Use the toolbar for headings, bold text, lists, and links — no HTML coding needed.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-panel" id="legal-panel-return" role="tabpanel">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--amber"><i class="ti ti-refresh"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Return Policy</h3>
+                    <p class="settings-card-desc">Live at <code>/return-policy</code></p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-group"><label class="form-label">Page title</label><input class="form-input" id="legal-return-title" placeholder="Return Policy"></div>
+                  <div class="form-group">
+                    <label class="form-label">Page content</label>
+                    <textarea class="form-input form-textarea" id="legal-return-content" rows="16" placeholder="Write your return policy…"></textarea>
+                    <small class="form-hint">Use the toolbar for headings, bold text, lists, and links — no HTML coding needed.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-save-bar">
+              <p class="settings-save-hint"><i class="ti ti-info-circle"></i> Saves all three legal pages together.</p>
+              <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Legal Pages</button>
+            </div>
+          </form>
         </div>
       </div>
 
@@ -740,6 +880,33 @@
     </div>
     <form id="category-form">
       <input type="hidden" id="cf-id" value="">
+      <input type="hidden" id="cf-locked-parent-id" value="">
+      <div class="cf-sub-context" id="cf-sub-context" hidden>
+        <i class="ti ti-folder"></i>
+        <div>
+          <div class="cf-sub-context-label">Ei main category er under e subcategory banano hobe:</div>
+          <div class="cf-sub-context-name" id="cf-sub-context-name"></div>
+        </div>
+      </div>
+      <div class="cat-type-picker" id="cat-type-picker" role="group" aria-label="Category type">
+        <button type="button" class="cat-type-btn active" data-cf-type="main">
+          <i class="ti ti-folder"></i>
+          <strong>Main Category</strong>
+          <span>Boro category — Electronics, Fashion</span>
+        </button>
+        <button type="button" class="cat-type-btn" data-cf-type="sub">
+          <i class="ti ti-subtask"></i>
+          <strong>Subcategory</strong>
+          <span>Main er vitore choto category</span>
+        </button>
+      </div>
+      <div class="form-group" id="cf-parent-wrap" hidden>
+        <label class="form-label">Kon main category er under? *</label>
+        <select class="form-input" id="cf-parent">
+          <option value="">Main category select korun</option>
+        </select>
+        <div class="category-parent-preview" id="cf-parent-preview" hidden></div>
+      </div>
       <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="cf-name" required></div>
       <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="cf-slug" placeholder="auto from name, e.g. electronics"><small class="form-hint">Store link: /category/your-slug</small></div>
       <div class="form-group"><label class="form-label">Icon (Tabler class)</label><input class="form-input" id="cf-icon" value="ti-category" placeholder="ti-category"></div>
@@ -849,7 +1016,7 @@
     <form id="faq-form">
       <input type="hidden" id="faq-id" value="">
       <div class="form-group"><label class="form-label">Question *</label><input class="form-input" id="faq-question" required maxlength="500" placeholder="How do I place an order?"></div>
-      <div class="form-group"><label class="form-label">Answer *</label><textarea class="form-input form-textarea" id="faq-answer" rows="6" required placeholder="Write the answer here…"></textarea><small class="form-hint">You can use basic HTML for links, e.g. <code>&lt;a href="/track"&gt;Track Order&lt;/a&gt;</code></small></div>
+      <div class="form-group"><label class="form-label">Answer *</label><textarea class="form-input form-textarea" id="faq-answer" rows="6" placeholder="Write the answer here…"></textarea><small class="form-hint">Format with the toolbar — add links, lists, and bold text easily.</small></div>
       <div class="form-2col">
         <div class="form-group"><label class="form-label">Sort order</label><input class="form-input" id="faq-sort" type="number" min="0" value="0"></div>
         <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:4px;"><label class="form-label"><input type="checkbox" id="faq-active" checked> Show on FAQ page</label></div>
@@ -881,6 +1048,8 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="/js/admin.js?v=48"></script>
+<script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+<script src="/js/admin-rich-editor.js?v=1"></script>
+<script src="/js/admin.js?v=60"></script>
 </body>
 </html>

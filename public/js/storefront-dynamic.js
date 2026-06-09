@@ -24,6 +24,24 @@
       .replace(/"/g, '&quot;');
   }
 
+  function partitionCategories(categories) {
+    const all = categories || [];
+    const catParentId = (c) => {
+      const p = c?.parent_id;
+      return p == null || p === '' ? null : Number(p);
+    };
+    const catId = (c) => Number(c?.id);
+    const topLevel = all.filter((c) => catParentId(c) == null);
+    const childrenOf = (parentId) => all.filter((c) => catParentId(c) === Number(parentId));
+    const withTotals = topLevel.map((c) => {
+      const subs = childrenOf(c.id);
+      const direct = Number(c.product_count) || 0;
+      const subTotal = subs.reduce((sum, ch) => sum + (Number(ch.product_count) || 0), 0);
+      return { ...c, product_count: direct + subTotal };
+    });
+    return { all, topLevel: withTotals, childrenOf };
+  }
+
   function starsHtml(rating) {
     const r = Math.round(Number(rating) || 0);
     let h = '';
@@ -157,7 +175,8 @@
     const track = document.getElementById('home-category-track');
     const wrap = document.querySelector('#categories .category-scroll-wrap');
     if (!track) return;
-    const list = categories || window._rakuCategories || [];
+    const { topLevel } = partitionCategories(categories || window._rakuCategories || []);
+    const list = topLevel;
     if (opts.showAll != null) categoriesShowAll = Boolean(opts.showAll);
     const mobileScroll = window.matchMedia('(max-width: 768px)').matches;
     const show = categoriesShowAll ? list : mobileScroll ? list : list.slice(0, 6);
@@ -251,9 +270,13 @@
     const legacyNav = document.getElementById('global-cat-nav');
     const inner = dropdown || legacyNav?.querySelector('.cat-nav-inner') || legacyNav;
     if (!inner) return;
+    const { topLevel, childrenOf } = partitionCategories(categories);
     let html = `<a href="/" class="cat-link" data-nav="home"><i class="ti ti-home"></i> Home</a>`;
-    categories.forEach((c) => {
+    topLevel.forEach((c) => {
       html += `<a href="/category/${encodeURIComponent(c.slug)}" class="cat-link" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
+      childrenOf(c.id).forEach((sub) => {
+        html += `<a href="/category/${encodeURIComponent(sub.slug)}" class="cat-link cat-link--sub" data-nav-slug="${escapeHtml(sub.slug)}"><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
+      });
     });
     html += `<a href="/" class="cat-link" data-nav="sale"><i class="ti ti-discount"></i> Sale & Offers</a>`;
     inner.innerHTML = html;
@@ -278,9 +301,25 @@
   function renderMobileCatNav(categories) {
     const list = document.getElementById('mobile-cat-menu-list');
     if (!list) return;
+    const { topLevel, childrenOf } = partitionCategories(categories);
     let html = `<a href="/" class="mobile-cat-link" data-nav="home"><i class="ti ti-home"></i> Home</a>`;
-    categories.forEach((c) => {
-      html += `<a href="/category/${encodeURIComponent(c.slug)}" class="mobile-cat-link" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
+    topLevel.forEach((c) => {
+      const subs = childrenOf(c.id);
+      if (subs.length) {
+        html += `<div class="mobile-menu-group">
+          <button type="button" class="mobile-menu-group-toggle" aria-expanded="false">
+            <span><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</span>
+            <i class="ti ti-chevron-down"></i>
+          </button>
+          <div class="mobile-menu-sub">
+            <a href="/category/${encodeURIComponent(c.slug)}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> All ${escapeHtml(c.name_bn)}</a>`;
+        subs.forEach((sub) => {
+          html += `<a href="/category/${encodeURIComponent(sub.slug)}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${escapeHtml(sub.slug)}"><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
+        });
+        html += `</div></div>`;
+      } else {
+        html += `<a href="/category/${encodeURIComponent(c.slug)}" class="mobile-cat-link" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
+      }
     });
     html += `<a href="/" class="mobile-cat-link" data-nav="sale"><i class="ti ti-discount"></i> Sale & Offers</a>`;
     list.innerHTML = html;
@@ -289,14 +328,26 @@
         if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
       });
     });
+    list.querySelectorAll('.mobile-menu-group-toggle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const group = btn.closest('.mobile-menu-group');
+        if (!group) return;
+        group.classList.toggle('open');
+        btn.setAttribute('aria-expanded', group.classList.contains('open') ? 'true' : 'false');
+      });
+    });
   }
 
   function renderHomeFilterTabs(categories) {
     const tabs = document.getElementById('cat-filter-tabs');
     if (!tabs) return;
+    const { topLevel, childrenOf } = partitionCategories(categories);
     let html = `<button class="cat-filter-btn active" data-cat="all" type="button">All Products</button>`;
-    categories.forEach((c) => {
+    topLevel.forEach((c) => {
       html += `<button class="cat-filter-btn" data-cat="${escapeHtml(c.slug)}" type="button">${escapeHtml(c.name_bn)}</button>`;
+      childrenOf(c.id).forEach((sub) => {
+        html += `<button class="cat-filter-btn cat-filter-btn--sub" data-cat="${escapeHtml(sub.slug)}" type="button">${escapeHtml(sub.name_bn)}</button>`;
+      });
     });
     tabs.innerHTML = html;
     tabs.querySelectorAll('.cat-filter-btn').forEach((btn) => {
@@ -322,12 +373,19 @@
   function renderSearchCategories(categories) {
     const sel = document.getElementById('search-category');
     if (!sel) return;
+    const { topLevel, childrenOf } = partitionCategories(categories);
     sel.innerHTML = '<option value="all">All Products</option>';
-    categories.forEach((c) => {
+    topLevel.forEach((c) => {
       const opt = document.createElement('option');
       opt.value = c.slug;
       opt.textContent = c.name_bn;
       sel.appendChild(opt);
+      childrenOf(c.id).forEach((sub) => {
+        const subOpt = document.createElement('option');
+        subOpt.value = sub.slug;
+        subOpt.textContent = `↳ ${sub.name_bn}`;
+        sel.appendChild(subOpt);
+      });
     });
   }
 
@@ -661,6 +719,8 @@
     renderHomeFilterTabs(categories);
     renderSearchCategories(categories);
   }
+
+  window._rakuPartitionCategories = partitionCategories;
 
   function initFromBootstrap(boot) {
     if (!boot?.ok) return;

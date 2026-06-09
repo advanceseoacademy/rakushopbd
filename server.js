@@ -33,6 +33,8 @@ const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
 const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
 const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
 const { ensureTrackingSettings } = require('./lib/ensureTrackingSettings');
+const { ensureLegalPages } = require('./lib/ensureLegalPages');
+const { ensureCategoryParent } = require('./lib/ensureCategoryParent');
 const { buildTrackingScripts } = require('./lib/trackingScripts');
 const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug } = require('./lib/seo');
 const { getSiteSettings } = require('./lib/siteSettings');
@@ -190,7 +192,7 @@ app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact', '/track'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy'],
   (req, res) => renderStorefront(req, res)
 );
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));
@@ -227,6 +229,9 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
   console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
+  ensureCategoryParent()
+    .then(() => console.log('categories.parent_id ready'))
+    .catch((err) => console.warn('category parent_id:', err.message));
   ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
   ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
   ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
@@ -239,4 +244,5 @@ app.listen(PORT, () => {
   ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
   ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
+  ensureLegalPages().catch((err) => console.warn('Legal pages:', err.message));
 });

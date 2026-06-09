@@ -24,6 +24,9 @@
     }
     if (link.page === 'faq') return { label: label || 'FAQ', href: '/faq' };
     if (link.page === 'contact') return { label: label || 'Contact Us', href: '/contact' };
+    if (link.page === 'privacy') return { label: label || 'Privacy Policy', href: '/privacy-policy' };
+    if (link.page === 'terms') return { label: label || 'Terms & Conditions', href: '/terms-and-conditions' };
+    if (link.page === 'return') return { label: label || 'Return Policy', href: '/return-policy' };
     return link;
   }
 
@@ -64,6 +67,9 @@
     track: '/track',
     faq: '/faq',
     contact: '/contact',
+    privacy: '/privacy-policy',
+    terms: '/terms-and-conditions',
+    return: '/return-policy',
   };
 
   function linkHtml(link, usePageRoutes) {
@@ -148,6 +154,36 @@
     const helpUl = document.getElementById('footer-help-links');
     if (helpUl && help?.length) {
       helpUl.innerHTML = help.map((link) => linkHtml(link, standalone)).join('');
+    }
+
+    const legalHeading = document.getElementById('footer-legal-heading');
+    if (legalHeading) {
+      legalHeading.textContent = (settings.footer_legal_heading || '').trim() || 'Legal';
+    }
+    const mobileLegalLabel = document.getElementById('mobile-legal-menu-label');
+    if (mobileLegalLabel) {
+      mobileLegalLabel.textContent = (settings.footer_legal_heading || '').trim() || 'Legal';
+    }
+
+    const legalLinks = [
+      {
+        label: (settings.legal_privacy_title || '').trim() || 'Privacy Policy',
+        href: '/privacy-policy',
+      },
+      {
+        label: (settings.legal_terms_title || '').trim() || 'Terms & Conditions',
+        href: '/terms-and-conditions',
+      },
+      {
+        label: (settings.legal_return_title || '').trim() || 'Return Policy',
+        href: '/return-policy',
+      },
+    ];
+    const legalUl = document.getElementById('footer-legal-links');
+    if (legalUl) {
+      legalUl.innerHTML = legalLinks
+        .map((link) => linkHtml(link, standalone))
+        .join('');
     }
 
     if (window._rakuBindFooterLinks) window._rakuBindFooterLinks();

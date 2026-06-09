@@ -393,6 +393,59 @@
     };
   }
 
+  function forLegalPage(page) {
+    const s = settings();
+    const sn = siteName();
+    const paths = {
+      privacy: '/privacy-policy',
+      terms: '/terms-and-conditions',
+      return: '/return-policy',
+    };
+    const titles = {
+      privacy: s.legal_privacy_title || 'Privacy Policy',
+      terms: s.legal_terms_title || 'Terms & Conditions',
+      return: s.legal_return_title || 'Return Policy',
+    };
+    const path = paths[page] || '/';
+    const label = titles[page] || page;
+    const title = `${label} • ${sn}`;
+    const raw =
+      page === 'privacy'
+        ? s.legal_privacy_content
+        : page === 'terms'
+          ? s.legal_terms_content
+          : s.legal_return_content;
+    const description = raw
+      ? truncate(String(raw).replace(/<[^>]+>/g, ' '))
+      : defaultDesc();
+    const canonical = abs(path);
+    const ogImage = defaultOgImage();
+    return {
+      title,
+      description,
+      canonical,
+      robots: 'index, follow',
+      ogTitle: title,
+      ogDescription: description,
+      ogUrl: canonical,
+      ogImage,
+      ogType: 'website',
+      ogSiteName: sn,
+      ogImageAlt: label,
+      ogMeta: buildOgMetaList({
+        ogType: 'website',
+        ogSiteName: sn,
+        ogTitle: title,
+        ogDescription: description,
+        ogUrl: canonical,
+        ogImage,
+        ogImageAlt: label,
+        twitterSite: twitterHandle(),
+        includeImageDimensions: false,
+      }),
+    };
+  }
+
   function onNavigate(page, opts) {
     if (window.__RAKU_SEO && !window.__RAKU_SEO_CLIENT_READY) {
       return;
@@ -400,6 +453,8 @@
     if (page === 'home') return apply(forHome());
     if (NOINDEX.has(page)) return apply(forPrivatePage(page));
     if (page === 'appointment' || page === 'track') return apply(forPrivatePage(page));
+    if (page === 'faq' || page === 'contact') return apply(forPrivatePage(page));
+    if (page === 'privacy' || page === 'terms' || page === 'return') return apply(forLegalPage(page));
     if (page === 'product' && opts?.product) return apply(forProduct(opts.product));
     if (page === 'category' && opts?.category) return apply(forCategory(opts.category));
   }
@@ -412,6 +467,7 @@
     forProduct,
     forCategory,
     forPrivatePage,
+    forLegalPage,
     onNavigate,
   };
 

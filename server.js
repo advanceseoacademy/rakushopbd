@@ -45,6 +45,23 @@ const PORT = process.env.PORT || 3000;
 const { legacyUploadWebpFallback } = require('./lib/legacyUploadWebp');
 const isProduction = process.env.NODE_ENV === 'production';
 
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException:', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandledRejection:', reason);
+});
+
+function warmBootstrapCache() {
+  const timeoutMs = 45000;
+  const timeout = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error(`bootstrap warm timeout (${timeoutMs}ms)`)), timeoutMs);
+  });
+  return Promise.race([getStoreBootstrap(null), timeout])
+    .then(() => console.log('store bootstrap cache warmed'))
+    .catch((err) => console.warn('bootstrap warm:', err.message));
+}
+
 // cPanel / reverse proxy: HTTPS terminates in front of Node
 app.set('trust proxy', 1);
 
@@ -112,6 +129,12 @@ app.use(renderMaintenanceIfNeeded);
 
 // Admin auth on app (live cPanel: always reachable after restart)
 registerAdminAuth(app);
+
+/** Always fast — used by reverse proxy / uptime checks (prevents 503 during warm-up). */
+app.get('/api/health', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ ok: true, uptime: Math.round(process.uptime()) });
+});
 
 /** Live diagnostic (works after git pull + restart) */
 app.get('/api/db-check', async (req, res) => {
@@ -228,32 +251,24 @@ app.use((req, res) => {
   res.status(404).send('Page not found');
 });
 
-(async () => {
-  try {
-    await getStoreBootstrap(null);
-    console.log('store bootstrap cache warmed');
-  } catch (err) {
-    console.warn('bootstrap warm:', err.message);
-  }
-
-  app.listen(PORT, () => {
-    const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
-    console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
-    ensureCategoryParent()
-      .then(() => console.log('categories.parent_id ready'))
-      .catch((err) => console.warn('category parent_id:', err.message));
-    ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
-    ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
-    ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
-    ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
-    ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
-    ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
-    ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
-    ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
-    ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
-    ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
-    ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
-    ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
-    ensureLegalPages().catch((err) => console.warn('Legal pages:', err.message));
-  });
-})();
+app.listen(PORT, () => {
+  const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
+  console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
+  void warmBootstrapCache();
+  ensureCategoryParent()
+    .then(() => console.log('categories.parent_id ready'))
+    .catch((err) => console.warn('category parent_id:', err.message));
+  ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
+  ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
+  ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
+  ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
+  ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
+  ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
+  ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
+  ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
+  ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
+  ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
+  ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
+  ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
+  ensureLegalPages().catch((err) => console.warn('Legal pages:', err.message));
+});

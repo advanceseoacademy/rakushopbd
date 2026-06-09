@@ -158,7 +158,7 @@ async function renderStorefront(req, res) {
     const categoryMatch = req.path.match(/^\/category\/([^/]+)$/);
     const categorySlug = categoryMatch ? decodeURIComponent(categoryMatch[1]) : null;
     const [bootstrap, product, category] = await Promise.all([
-      getStoreBootstrap(req),
+      getStoreBootstrap(req, { lite: true }),
       productRef ? getProductByRef(productRef) : null,
       categorySlug ? getCategoryBySlug(categorySlug) : null,
     ]);

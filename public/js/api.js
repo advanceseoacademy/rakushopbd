@@ -2504,6 +2504,11 @@
     const pathParts = (location.pathname || '/').split('/').filter(Boolean);
     const isHome = pathParts.length === 0;
 
+    // Start loading homepage products immediately (do not wait for bootstrap).
+    const homeProductsPromise = isHome
+      ? refreshHomeProductSections(window.__RAKU_BOOTSTRAP)
+      : Promise.resolve();
+
     // Reload-safe: paint /product, /category, etc. before bootstrap (uses __RAKU_PRELOAD_PRODUCT)
     if (!isHome && window._rakuRestoreRoute) {
       try {
@@ -2526,9 +2531,7 @@
     }
     if (blocked) return;
 
-    if (isHome) {
-      await refreshHomeProductSections(boot || window.__RAKU_BOOTSTRAP);
-    }
+    await homeProductsPromise;
 
     if (isHome && window.showPage) window.showPage('home', { skipUrl: true });
 

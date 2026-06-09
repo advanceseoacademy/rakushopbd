@@ -42,6 +42,7 @@ const faceAnalyzerRoutes = require('./routes/faceAnalyzer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const { legacyUploadWebpFallback } = require('./lib/legacyUploadWebp');
 const isProduction = process.env.NODE_ENV === 'production';
 
 // cPanel / reverse proxy: HTTPS terminates in front of Node
@@ -85,6 +86,7 @@ const staticCache = (maxAge) => ({
 app.use('/js', express.static(path.join(publicDir, 'js'), staticCache('365d')));
 app.use('/css', express.static(path.join(publicDir, 'css'), staticCache('365d')));
 app.use('/images', express.static(path.join(publicDir, 'images'), staticCache('30d')));
+app.use('/uploads', legacyUploadWebpFallback);
 app.use('/uploads', express.static(path.join(publicDir, 'uploads'), staticCache('7d')));
 app.use(express.static(publicDir, staticCache(0)));
 
@@ -226,23 +228,32 @@ app.use((req, res) => {
   res.status(404).send('Page not found');
 });
 
-app.listen(PORT, () => {
-  const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
-  console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
-  ensureCategoryParent()
-    .then(() => console.log('categories.parent_id ready'))
-    .catch((err) => console.warn('category parent_id:', err.message));
-  ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
-  ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
-  ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
-  ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
-  ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
-  ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
-  ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
-  ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
-  ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
-  ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
-  ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
-  ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
-  ensureLegalPages().catch((err) => console.warn('Legal pages:', err.message));
-});
+(async () => {
+  try {
+    await getStoreBootstrap(null);
+    console.log('store bootstrap cache warmed');
+  } catch (err) {
+    console.warn('bootstrap warm:', err.message);
+  }
+
+  app.listen(PORT, () => {
+    const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
+    console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
+    ensureCategoryParent()
+      .then(() => console.log('categories.parent_id ready'))
+      .catch((err) => console.warn('category parent_id:', err.message));
+    ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
+    ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
+    ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
+    ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
+    ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
+    ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
+    ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
+    ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
+    ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
+    ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
+    ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
+    ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
+    ensureLegalPages().catch((err) => console.warn('Legal pages:', err.message));
+  });
+})();

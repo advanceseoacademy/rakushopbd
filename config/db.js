@@ -35,6 +35,11 @@ function getPool() {
       connectionString: url,
       ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
       max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 15000,
+    });
+    pool.on('error', (err) => {
+      console.error('PostgreSQL pool error (idle client):', err.message);
     });
     return pool;
   }

@@ -217,6 +217,10 @@
 
   async function refreshHomeProductSections(boot) {
     if (!document.getElementById('track-new-arrivals')) return;
+    if (boot?.ok && (boot.bestSelling?.length || boot.newArrivals?.length)) {
+      paintHomeProductSections(bootHomeSections(boot));
+      return;
+    }
     try {
       const data = await apiFetch('/products/home-sections?limit=24');
       if (data?.ok) {

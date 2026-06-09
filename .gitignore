@@ -9,3 +9,4 @@ env-for-cpanel-supabase.txt
 npm-debug.log*
 *.log
 Archive.zip
+public/uploads/_orig/

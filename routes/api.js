@@ -3,7 +3,7 @@ const { query, getPool } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
-const { getBestSellingProducts, getNewArrivalProducts } = require('../lib/homeProducts');
+const { getBestSellingProducts, getNewArrivalProducts, getHomeProductSections } = require('../lib/homeProducts');
 const { getRecommendedProducts } = require('../lib/productRecommendations');
 const { stripInternalProductFields, stripInternalProductList } = require('../lib/productPublic');
 const { getAdminIdFromRequest } = require('../lib/adminToken');
@@ -283,11 +283,8 @@ function cachePublic(res, seconds) {
 router.get('/products/home-sections', async (req, res) => {
   try {
     const limit = Math.min(48, Math.max(4, Number(req.query.limit) || 24));
-    const [bestSelling, newArrivals] = await Promise.all([
-      getBestSellingProducts(query, limit),
-      getNewArrivalProducts(query, limit),
-    ]);
-    cachePublic(res, 60);
+    const { bestSelling, newArrivals } = await getHomeProductSections(query, limit);
+    cachePublic(res, 300);
     res.json({
       ok: true,
       bestSelling: stripInternalProductList(bestSelling),
@@ -302,7 +299,7 @@ router.get('/products/home-sections', async (req, res) => {
 router.get('/bootstrap', async (req, res) => {
   try {
     const data = await getStoreBootstrap(req);
-    cachePublic(res, 60);
+    cachePublic(res, 300);
     res.json(data);
   } catch (err) {
     console.error('bootstrap', err);

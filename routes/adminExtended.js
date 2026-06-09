@@ -1,5 +1,6 @@
 const path = require('path');
 const { upload } = require('../lib/upload');
+const { optimizeAndSaveImage } = require('../lib/imageOptimize');
 const { sql: sqlDialect } = require('../lib/db-dialect');
 
 module.exports = function registerExtendedAdminRoutes(router, deps) {
@@ -273,10 +274,21 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
-  router.post('/upload', requireAdmin, upload.single('image'), (req, res) => {
-    if (!req.file) return res.status(400).json({ ok: false, error: 'No file uploaded' });
-    const url = '/uploads/' + req.file.filename;
-    res.json({ ok: true, url });
+  router.post('/upload', requireAdmin, upload.single('image'), async (req, res) => {
+    try {
+      if (!req.file) return res.status(400).json({ ok: false, error: 'No file uploaded' });
+      const saved = await optimizeAndSaveImage(req.file);
+      res.json({
+        ok: true,
+        url: saved.url,
+        format: saved.format,
+        sizeBefore: saved.bytesBefore,
+        sizeAfter: saved.bytesAfter,
+      });
+    } catch (err) {
+      console.error('upload optimize', err);
+      res.status(500).json({ ok: false, error: err.message || 'Image upload failed' });
+    }
   });
 
   // ——— Coupon update ———

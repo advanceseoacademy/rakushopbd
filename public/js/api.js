@@ -215,20 +215,40 @@
     return { bestSelling: best, newArrivals: newest };
   }
 
+  async function fetchHomeSectionsFallback(limit = 24) {
+    const lim = Math.min(48, Math.max(4, Number(limit) || 24));
+    try {
+      const data = await apiFetch(`/products/home-sections?limit=${lim}`);
+      if (data?.ok && (data.bestSelling?.length || data.newArrivals?.length)) return data;
+    } catch (e) {
+      console.warn('Home sections unavailable', e);
+    }
+    try {
+      const [bestRes, newRes] = await Promise.all([
+        apiFetch(`/products?sort=best-selling&limit=${lim}`),
+        apiFetch(`/products?sort=new-arrivals&limit=${lim}`),
+      ]);
+      const bestSelling = bestRes?.ok ? bestRes.products || [] : [];
+      const newArrivals = newRes?.ok ? newRes.products || [] : [];
+      if (bestSelling.length || newArrivals.length) {
+        return { ok: true, bestSelling, newArrivals };
+      }
+    } catch (e) {
+      console.warn('Home sections fallback unavailable', e);
+    }
+    return null;
+  }
+
   async function refreshHomeProductSections(boot) {
     if (!document.getElementById('track-new-arrivals')) return;
     if (boot?.ok && (boot.bestSelling?.length || boot.newArrivals?.length)) {
       paintHomeProductSections(bootHomeSections(boot));
       return;
     }
-    try {
-      const data = await apiFetch('/products/home-sections?limit=24');
-      if (data?.ok) {
-        paintHomeProductSections(data);
-        return;
-      }
-    } catch (e) {
-      console.warn('Home sections unavailable', e);
+    const data = await fetchHomeSectionsFallback(24);
+    if (data) {
+      paintHomeProductSections(data);
+      return;
     }
     if (boot?.ok) paintHomeProductSections(bootHomeSections(boot));
   }
@@ -2424,7 +2444,9 @@
     }
     applySettingsData(boot.settings);
     applyBannersData(boot.banners || []);
-    paintHomeProductSections(bootHomeSections(boot));
+    if (boot.bestSelling?.length || boot.newArrivals?.length) {
+      paintHomeProductSections(bootHomeSections(boot));
+    }
     document.dispatchEvent(new CustomEvent('raku:bootstrap', { detail: boot }));
     return true;
   }

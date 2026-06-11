@@ -1346,9 +1346,14 @@
     }
   }
 
+  function pickHeroBanner(banners) {
+    const heroes = (banners || []).filter((b) => b.position === 'hero');
+    return heroes.find((b) => b.image_url || b.imageUrl) || heroes[0] || null;
+  }
+
   function applyHeroMainBackground(heroMain, banner) {
     if (!heroMain) return;
-    const src = productImageSrc(banner?.image_url);
+    const src = productImageSrc(banner?.image_url || banner?.imageUrl);
     let imgEl = heroMain.querySelector('img.hero-main-photo');
     if (src) {
       heroMain.classList.add('hero-main--has-bg-photo');
@@ -1358,11 +1363,19 @@
         imgEl.className = 'hero-main-photo';
         heroMain.appendChild(imgEl);
       }
-      imgEl.src = src;
-      imgEl.alt = banner?.title || 'Homepage banner';
+      imgEl.onerror = () => {
+        heroMain.classList.remove('hero-main--has-bg-photo');
+        imgEl.remove();
+        if (banner?.bg_gradient || banner?.bgGradient) {
+          heroMain.style.setProperty('--hero-bg', banner.bg_gradient || banner.bgGradient);
+        }
+        if (window.syncHeroSideHeight) window.syncHeroSideHeight();
+      };
       imgEl.onload = () => {
         if (window.syncHeroSideHeight) window.syncHeroSideHeight();
       };
+      imgEl.src = src;
+      imgEl.alt = banner?.title || 'Homepage banner';
       if (imgEl.complete) {
         requestAnimationFrame(() => {
           if (window.syncHeroSideHeight) window.syncHeroSideHeight();
@@ -1374,14 +1387,13 @@
       if (imgEl) imgEl.remove();
       if (window.syncHeroSideHeight) window.syncHeroSideHeight();
     }
-    if (banner?.bg_gradient && !src) {
-      heroMain.style.setProperty('--hero-bg', banner.bg_gradient);
+    if ((banner?.bg_gradient || banner?.bgGradient) && !src) {
+      heroMain.style.setProperty('--hero-bg', banner.bg_gradient || banner.bgGradient);
     }
   }
 
   function applyBannersData(banners) {
-    const list = banners || [];
-    const main = list.find((b) => b.position === 'hero');
+    const main = pickHeroBanner(banners);
     if (main) {
       const heroMain = document.getElementById('hero-main');
       applyHeroMainBackground(heroMain, main);

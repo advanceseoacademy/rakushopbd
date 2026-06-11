@@ -1077,6 +1077,12 @@
     position: relative;
   }
 
+  @media (min-width: 901px) {
+    .hero-main--has-bg-photo {
+      min-height: 260px;
+    }
+  }
+
   .hero-main--has-bg-photo::before {
     display: none;
   }

@@ -29,7 +29,7 @@ if [ ! -d "$APP_DIR/.git" ]; then
 fi
 cd "$APP_DIR"
 git fetch origin main || true
-git clean -fd public/uploads/ 2>/dev/null || true
+# Keep VPS upload files — never git clean public/uploads (deletes product/banner images).
 git reset --hard origin/main || git pull origin main || true
 npm install
 

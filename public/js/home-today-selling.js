@@ -6,13 +6,16 @@
     return String(s ?? '')
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
 
   function productImgHtml(p) {
     if (p.image_url) {
       const src = window.productImageSrc ? window.productImageSrc(p.image_url) : p.image_url;
-      return `<img class="hero-today-product-photo" src="${esc(src)}" alt="${esc(p.name_bn)}" loading="lazy" decoding="async">`;
+      const icon = esc(p.icon || 'ti ti-package');
+      const color = esc(p.icon_color || '#2d8a2d');
+      return `<img class="hero-today-product-photo" src="${esc(src)}" alt="${esc(p.name_bn)}" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon}" style="color:${color};" hidden></i>`;
     }
     return `<i class="${esc(p.icon || 'ti ti-package')}" style="color:${esc(p.icon_color || '#2d8a2d')}"></i>`;
   }
@@ -55,8 +58,30 @@
       return;
     }
 
+    const img = main.querySelector('img.hero-main-photo');
+    if (img && !img.complete) return;
+
     const h = main.offsetHeight;
-    if (h > 0) side.style.height = `${h}px`;
+    if (h > 120) side.style.height = `${h}px`;
+    else side.style.height = '';
+  }
+
+  function bindHeroSideHeightSync() {
+    const main = document.getElementById('hero-main');
+    if (!main || main._rakuHeroSideBound) return;
+    main._rakuHeroSideBound = true;
+
+    const img = main.querySelector('img.hero-main-photo');
+    if (img) {
+      img.addEventListener('load', syncHeroSideHeight, { once: false });
+      img.addEventListener('error', syncHeroSideHeight, { once: false });
+    }
+
+    if (typeof ResizeObserver !== 'undefined') {
+      const obs = new ResizeObserver(() => syncHeroSideHeight());
+      obs.observe(main);
+      main._rakuHeroSideObs = obs;
+    }
   }
 
   window.syncHeroSideHeight = syncHeroSideHeight;
@@ -89,9 +114,16 @@
     if (titleEl) titleEl.textContent = title;
     listEl.innerHTML = products.slice(0, 2).map(heroTodayProductHtml).join('');
     bindTodaySellingLinks(listEl);
+    bindHeroSideHeightSync();
     requestAnimationFrame(() => {
       syncHeroSideHeight();
       requestAnimationFrame(syncHeroSideHeight);
     });
   };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindHeroSideHeightSync);
+  } else {
+    bindHeroSideHeightSync();
+  }
 })();

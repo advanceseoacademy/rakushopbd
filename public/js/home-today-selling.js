@@ -28,7 +28,9 @@
   function heroTodayProductHtml(p) {
     const slug = encodeURIComponent(p.slug || p.id);
     return `<a href="/product/${slug}" class="hero-today-product" data-product-id="${p.id}">
-      <div class="hero-today-product-img" style="background:${esc(p.bg_color || '#f3f4f6')}">${productImgHtml(p)}</div>
+      <div class="hero-today-product-img">
+        <div class="hero-today-product-img-inner">${productImgHtml(p)}</div>
+      </div>
       <div class="hero-today-product-body">
         <div class="hero-today-product-name">${esc(p.name_bn)}</div>
         <div class="hero-today-product-price">${formatPrice(p.price)}</div>

@@ -3,7 +3,8 @@ const { query, getPool } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
-const { getBestSellingProducts, getNewArrivalProducts, getHomeProductSections } = require('../lib/homeProducts');
+const { getHomeProductSections } = require('../lib/homeProducts');
+const { getTodaySellingProducts, getTodaySellingMeta } = require('../lib/todaySelling');
 const { getRecommendedProducts } = require('../lib/productRecommendations');
 const { stripInternalProductFields, stripInternalProductList } = require('../lib/productPublic');
 const { getAdminIdFromRequest } = require('../lib/adminToken');
@@ -293,6 +294,22 @@ router.get('/products/home-sections', async (req, res) => {
   } catch (err) {
     console.error('home-sections', err);
     res.status(500).json({ ok: false, error: 'Could not load products' });
+  }
+});
+
+router.get('/today-selling', async (req, res) => {
+  try {
+    cachePublic(res, 120);
+    const settings = await getSiteSettings(query);
+    const products = await getTodaySellingProducts(query, settings);
+    res.json({
+      ok: true,
+      meta: getTodaySellingMeta(settings),
+      products: stripInternalProductList(products),
+    });
+  } catch (err) {
+    console.error('today-selling', err);
+    res.json({ ok: true, meta: { enabled: true, title: 'Today Selling' }, products: [] });
   }
 });
 

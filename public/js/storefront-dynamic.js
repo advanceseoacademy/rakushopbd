@@ -24,6 +24,25 @@
       .replace(/"/g, '&quot;');
   }
 
+  function categoryIconHtml(c, pal) {
+    const paletteItem = pal || palette(0);
+    const url = c?.icon_url || c?.iconUrl;
+    if (url) {
+      const src = window.productImageSrc ? window.productImageSrc(url) : url;
+      return `<div class="cat-icon cat-icon--img" style="background:${paletteItem.bg};"><img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"><i class="ti ${escapeHtml(c.icon || 'ti-category')}" style="color:${paletteItem.color};" hidden></i></div>`;
+    }
+    return `<div class="cat-icon" style="background:${paletteItem.bg};"><i class="ti ${escapeHtml(c.icon || 'ti-category')}" style="color:${paletteItem.color};"></i></div>`;
+  }
+
+  function categoryNavIconHtml(c) {
+    const url = c?.icon_url || c?.iconUrl;
+    if (url) {
+      const src = window.productImageSrc ? window.productImageSrc(url) : url;
+      return `<img class="cat-nav-icon-img" src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async">`;
+    }
+    return `<i class="ti ${escapeHtml(c.icon || 'ti-category')}"></i>`;
+  }
+
   function partitionCategories(categories) {
     const all = categories || [];
     const catParentId = (c) => {
@@ -189,7 +208,7 @@
             const pal = palette(i);
             const count = Number(c.product_count) || 0;
             return `<a href="/category/${encodeURIComponent(c.slug)}" class="cat-card" data-cat-slug="${escapeHtml(c.slug)}">
-        <div class="cat-icon" style="background:${pal.bg};"><i class="ti ${escapeHtml(c.icon)}" style="color:${pal.color};"></i></div>
+        ${categoryIconHtml(c, pal)}
         <div class="cat-name">${escapeHtml(c.name_bn)}</div>
         <div class="cat-count">${count} product${count !== 1 ? 's' : ''}</div>
       </a>`;
@@ -326,14 +345,6 @@
     list.querySelectorAll('.mobile-cat-link').forEach((link) => {
       bindCategoryLink(link, () => {
         if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
-      });
-    });
-    list.querySelectorAll('.mobile-menu-group-toggle').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const group = btn.closest('.mobile-menu-group');
-        if (!group) return;
-        group.classList.toggle('open');
-        btn.setAttribute('aria-expanded', group.classList.contains('open') ? 'true' : 'false');
       });
     });
   }

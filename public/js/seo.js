@@ -400,11 +400,13 @@
       privacy: '/privacy-policy',
       terms: '/terms-and-conditions',
       return: '/return-policy',
+      preorder: '/pre-order-policy',
     };
     const titles = {
       privacy: s.legal_privacy_title || 'Privacy Policy',
       terms: s.legal_terms_title || 'Terms & Conditions',
       return: s.legal_return_title || 'Return Policy',
+      preorder: s.legal_preorder_title || 'Pre-Order Policy',
     };
     const path = paths[page] || '/';
     const label = titles[page] || page;
@@ -414,7 +416,9 @@
         ? s.legal_privacy_content
         : page === 'terms'
           ? s.legal_terms_content
-          : s.legal_return_content;
+          : page === 'return'
+            ? s.legal_return_content
+            : s.legal_preorder_content;
     const description = raw
       ? truncate(String(raw).replace(/<[^>]+>/g, ' '))
       : defaultDesc();
@@ -454,7 +458,7 @@
     if (NOINDEX.has(page)) return apply(forPrivatePage(page));
     if (page === 'appointment' || page === 'track') return apply(forPrivatePage(page));
     if (page === 'faq' || page === 'contact') return apply(forPrivatePage(page));
-    if (page === 'privacy' || page === 'terms' || page === 'return') return apply(forLegalPage(page));
+    if (page === 'privacy' || page === 'terms' || page === 'return' || page === 'preorder') return apply(forLegalPage(page));
     if (page === 'product' && opts?.product) return apply(forProduct(opts.product));
     if (page === 'category' && opts?.category) return apply(forCategory(opts.category));
   }

@@ -369,6 +369,7 @@
       document.getElementById('pf-bg').value = product.bg_color;
       document.getElementById('pf-tag').value = product.tag_type;
       document.getElementById('pf-featured').checked = !!product.is_featured;
+      syncPfTodaySellingFields(product);
       document.getElementById('pf-seo-title').value = product.seo_title || '';
       document.getElementById('pf-seo-desc').value = product.seo_description || '';
       document.getElementById('pf-seo-keywords').value = product.seo_keywords || '';
@@ -976,6 +977,48 @@
     }
   }
 
+  function syncPfTodaySellingFields(product) {
+    const cb = document.getElementById('pf-today-selling');
+    const wrap = document.getElementById('pf-today-selling-slot-wrap');
+    const slotSel = document.getElementById('pf-today-selling-slot');
+    if (!cb || !wrap || !slotSel) return;
+    const slot = Number(product?.today_selling_slot || product?.todaySellingSlot || 0);
+    cb.checked = slot === 1 || slot === 2;
+    slotSel.value = slot === 2 ? '2' : '1';
+    wrap.hidden = !cb.checked;
+  }
+
+  function collectTodaySellingSettings() {
+    return {
+      enabled: document.getElementById('ts-enabled')?.checked ? '1' : '0',
+      title: document.getElementById('ts-title')?.value.trim() || 'Today Selling',
+      product1: document.getElementById('ts-product-1')?.value || '',
+      product2: document.getElementById('ts-product-2')?.value || '',
+    };
+  }
+
+  async function fillTodaySellingProductSelects(selected1, selected2) {
+    const sel1 = document.getElementById('ts-product-1');
+    const sel2 = document.getElementById('ts-product-2');
+    if (!sel1 || !sel2) return;
+
+    const data = await api('/products?limit=200&page=1');
+    const products = data.ok ? data.products || [] : [];
+    const options =
+      '<option value="">— Select product —</option>' +
+      products
+        .map(
+          (p) =>
+            `<option value="${p.id}">${escHtml(p.name_bn)}${p.sku ? ` (${escHtml(p.sku)})` : ''}</option>`
+        )
+        .join('');
+
+    sel1.innerHTML = options;
+    sel2.innerHTML = options;
+    sel1.value = selected1 ? String(selected1) : '';
+    sel2.value = selected2 ? String(selected2) : '';
+  }
+
   function collectMarketingSettings() {
     return {
       marketing_enabled: document.getElementById('mkt-enabled')?.checked ? '1' : '0',
@@ -997,6 +1040,18 @@
     const data = await api('/settings');
     if (data.ok && data.settings) {
       const s = data.settings;
+      const tsEn = document.getElementById('ts-enabled');
+      if (tsEn) tsEn.checked = s.today_selling_enabled !== '0';
+      const tsTitle = document.getElementById('ts-title');
+      if (tsTitle) tsTitle.value = s.today_selling_title || 'Today Selling';
+      const prodData = await api('/products?limit=200&page=1');
+      if (prodData.ok && prodData.products) {
+        const slot1 = prodData.products.find((p) => Number(p.today_selling_slot) === 1);
+        const slot2 = prodData.products.find((p) => Number(p.today_selling_slot) === 2);
+        await fillTodaySellingProductSelects(slot1?.id, slot2?.id);
+      } else {
+        await fillTodaySellingProductSelects('', '');
+      }
       const en = document.getElementById('mkt-enabled');
       if (en) en.checked = s.marketing_enabled !== '0';
       document.getElementById('mkt1-title').value = s.marketing_card1_title || '';
@@ -1035,6 +1090,21 @@
   });
   document.getElementById('mkt2-image')?.addEventListener('input', (e) => {
     setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', e.target.value);
+  });
+
+  document.getElementById('pf-today-selling')?.addEventListener('change', (e) => {
+    const wrap = document.getElementById('pf-today-selling-slot-wrap');
+    if (wrap) wrap.hidden = !e.target.checked;
+  });
+
+  document.getElementById('today-selling-save-btn')?.addEventListener('click', async () => {
+    const payload = collectTodaySellingSettings();
+    const data = await api('/today-selling', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (data.ok) toast('Today Selling saved');
+    else toast(data.error || 'Save failed', 'error');
   });
 
   document.getElementById('marketing-save-btn')?.addEventListener('click', async () => {
@@ -1724,6 +1794,7 @@
     document.getElementById('pf-bg').value = '#e8f5e8';
     document.getElementById('pf-stock').value = 100;
     document.getElementById('pf-featured').checked = true;
+    syncPfTodaySellingFields(null);
     ['pf-short-desc', 'pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image', 'pf-discount-percent', 'pf-buy-price'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = '';
@@ -1837,6 +1908,9 @@
       bgColor: document.getElementById('pf-bg').value,
       tagType: document.getElementById('pf-tag').value,
       isFeatured: document.getElementById('pf-featured').checked,
+      todaySellingSlot: document.getElementById('pf-today-selling')?.checked
+        ? Number(document.getElementById('pf-today-selling-slot')?.value || 1)
+        : 0,
       seoTitle: document.getElementById('pf-seo-title')?.value?.trim() || null,
       seoDescription: document.getElementById('pf-seo-desc')?.value?.trim() || null,
       seoKeywords: document.getElementById('pf-seo-keywords')?.value?.trim() || null,
@@ -1879,6 +1953,81 @@
   document.getElementById('customers-search').oninput = debounce(loadCustomers, 400);
 
   // ——— Categories ———
+  function adminCategoryIconMarkup(c) {
+    const url = c?.icon_url || c?.iconUrl;
+    if (url) {
+      const src = String(url).replace(/"/g, '&quot;');
+      return `<span class="cat-tree-icon"><img src="${src}" alt=""></span>`;
+    }
+    return `<i class="ti ${escHtml(c?.icon || 'ti-category')}"></i>`;
+  }
+
+  function updateCfIconPreview() {
+    const url = document.getElementById('cf-icon-url')?.value.trim() || '';
+    const iconClass = document.getElementById('cf-icon')?.value.trim() || 'ti-category';
+    const img = document.getElementById('cf-icon-preview-img');
+    const fallback = document.getElementById('cf-icon-preview-fallback');
+    const removeBtn = document.getElementById('cf-icon-remove-btn');
+    if (!img || !fallback) return;
+    if (url) {
+      img.src = url;
+      img.hidden = false;
+      fallback.hidden = true;
+      if (removeBtn) removeBtn.hidden = false;
+      return;
+    }
+    img.removeAttribute('src');
+    img.hidden = true;
+    fallback.hidden = false;
+    const raw = iconClass.replace(/^ti\s+/, '').replace(/^ti-/, '');
+    fallback.className = `ti ti-${raw}`;
+    if (removeBtn) removeBtn.hidden = true;
+  }
+
+  function resetCfIconUpload() {
+    const urlEl = document.getElementById('cf-icon-url');
+    const fileEl = document.getElementById('cf-icon-file');
+    if (urlEl) urlEl.value = '';
+    if (fileEl) fileEl.value = '';
+    updateCfIconPreview();
+  }
+
+  document.getElementById('cf-icon-upload-btn')?.addEventListener('click', () => {
+    document.getElementById('cf-icon-file')?.click();
+  });
+
+  document.getElementById('cf-icon-remove-btn')?.addEventListener('click', () => {
+    resetCfIconUpload();
+  });
+
+  document.getElementById('cf-icon-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast('Shudhu image file upload kora jabe', 'error');
+      e.target.value = '';
+      return;
+    }
+    try {
+      const data = await uploadProductImage(file);
+      if (!data.ok || !data.url) {
+        toast(data.error || 'Upload fail', 'error');
+        return;
+      }
+      document.getElementById('cf-icon-url').value = data.url;
+      updateCfIconPreview();
+      toast('Icon uploaded');
+    } catch (err) {
+      toast('Upload fail', 'error');
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  document.getElementById('cf-icon')?.addEventListener('input', () => {
+    if (!document.getElementById('cf-icon-url')?.value.trim()) updateCfIconPreview();
+  });
+
   function resetCategoryForm() {
     hideCategorySubContext();
     document.getElementById('category-form-title').textContent = 'Add Category';
@@ -1888,6 +2037,7 @@
     document.getElementById('cf-name').value = '';
     document.getElementById('cf-slug').value = '';
     document.getElementById('cf-icon').value = 'ti-category';
+    resetCfIconUpload();
     document.getElementById('cf-sort').value = '0';
     setCategoryFormType('main');
     populateCategoryParentSelect(categories || [], {});
@@ -1905,6 +2055,7 @@
     document.getElementById('cf-name').value = '';
     document.getElementById('cf-slug').value = '';
     document.getElementById('cf-icon').value = 'ti-category';
+    resetCfIconUpload();
     document.getElementById('cf-sort').value = '0';
     cfSubParentId = pid;
     showCategorySubContext(parent);
@@ -1968,7 +2119,7 @@
         return `<div class="cat-tree-group">
         <div class="cat-tree-main">
           <span class="cat-badge cat-badge--main">Main</span>
-          <div class="cat-tree-main-name"><i class="ti ${escHtml(parent.icon || 'ti-category')}"></i> ${escHtml(parent.name_bn)}</div>
+          <div class="cat-tree-main-name">${adminCategoryIconMarkup(parent)} ${escHtml(parent.name_bn)}</div>
           <span class="cat-tree-meta">${subs.length} ta sub · ${parent.product_count} product</span>
           <div class="cat-tree-actions">
             <button type="button" class="btn btn-outline btn-xs" data-add-subcat="${parent.id}"><i class="ti ti-plus"></i> Sub add</button>
@@ -2015,6 +2166,8 @@
     document.getElementById('cf-name').value = c.name_bn;
     document.getElementById('cf-slug').value = c.slug;
     document.getElementById('cf-icon').value = c.icon || 'ti-category';
+    document.getElementById('cf-icon-url').value = c.icon_url || c.iconUrl || '';
+    updateCfIconPreview();
     document.getElementById('cf-sort').value = c.sort_order ?? 0;
     setCategoryFormType(catParentId(c) ? 'sub' : 'main');
     populateCategoryParentSelect(categories, { excludeId: c.id, selectedId: catParentId(c) || '' });
@@ -2098,6 +2251,7 @@
       name,
       slug: document.getElementById('cf-slug').value.trim() || undefined,
       icon: document.getElementById('cf-icon').value.trim() || 'ti-category',
+      iconUrl: document.getElementById('cf-icon-url').value.trim() || null,
       sortOrder: Number(document.getElementById('cf-sort').value) || 0,
       parentId: isSub ? parentId : null,
     };
@@ -2469,6 +2623,8 @@
       ['legal-terms-content', 'legal_terms_content'],
       ['legal-return-title', 'legal_return_title'],
       ['legal-return-content', 'legal_return_content'],
+      ['legal-preorder-title', 'legal_preorder_title'],
+      ['legal-preorder-content', 'legal_preorder_content'],
     ];
     map.forEach(([id, key]) => {
       const el = document.getElementById(id);
@@ -2493,6 +2649,8 @@
       legal_terms_content: document.getElementById('legal-terms-content')?.value || '',
       legal_return_title: document.getElementById('legal-return-title')?.value?.trim() || 'Return Policy',
       legal_return_content: document.getElementById('legal-return-content')?.value || '',
+      legal_preorder_title: document.getElementById('legal-preorder-title')?.value?.trim() || 'Pre-Order Policy',
+      legal_preorder_content: document.getElementById('legal-preorder-content')?.value || '',
     };
   }
 
@@ -2564,16 +2722,52 @@
   }
   document.getElementById('reviews-filter').onchange = loadReviews;
 
+  function syncBannerFormByPosition() {
+    const pos = document.getElementById('bn-position')?.value || 'hero';
+    const isHero = pos === 'hero';
+    document.querySelectorAll('.bn-field--hero-only').forEach((el) => {
+      el.hidden = !isHero;
+    });
+    document.querySelectorAll('.bn-field--promo-only').forEach((el) => {
+      el.hidden = isHero;
+    });
+    const titleInput = document.getElementById('bn-title');
+    if (titleInput) titleInput.required = !isHero;
+    const id = document.getElementById('bn-id')?.value;
+    const titleEl = document.getElementById('banner-form-title');
+    if (titleEl) {
+      if (isHero) titleEl.textContent = id ? 'Edit Homepage Hero' : 'Add Homepage Hero';
+      else titleEl.textContent = id ? 'Edit Banner' : 'Add Banner';
+    }
+  }
+
+  function updateBannerPreview() {
+    const wrap = document.getElementById('bn-preview-wrap');
+    const img = document.getElementById('bn-preview');
+    const url = document.getElementById('bn-image')?.value.trim();
+    if (!wrap || !img) return;
+    if (url) {
+      img.src = url;
+      wrap.hidden = false;
+    } else {
+      wrap.hidden = true;
+      img.removeAttribute('src');
+    }
+  }
+
   function resetBannerForm() {
-    document.getElementById('banner-form-title').textContent = 'Add Banner';
+    document.getElementById('banner-form-title').textContent = 'Add Homepage Hero';
     document.getElementById('bn-id').value = '';
     document.getElementById('banner-form').reset();
     document.getElementById('bn-link').value = '/';
     document.getElementById('bn-gradient').value = 'linear-gradient(135deg,#2d8a2d,#164816)';
     document.getElementById('bn-sort').value = '0';
     document.getElementById('bn-active').checked = true;
+    document.getElementById('bn-position').value = 'hero';
     const fileEl = document.getElementById('bn-file');
     if (fileEl) fileEl.value = '';
+    updateBannerPreview();
+    syncBannerFormByPosition();
   }
 
   async function loadBanners() {
@@ -2581,18 +2775,23 @@
     if (!data.ok) return;
     banners = data.banners;
     document.getElementById('banners-tbody').innerHTML = banners
-      .map(
-        (b) => `<tr><td>${b.title}</td><td>${b.position}</td><td>${b.link_url}</td>
+      .map((b) => {
+        const preview =
+          b.position === 'hero'
+            ? b.image_url
+              ? `<img src="${b.image_url}" alt="" style="width:72px;height:40px;object-fit:cover;border-radius:6px;border:1px solid var(--border);">`
+              : '<span class="text-muted">No image</span>'
+            : `<strong>${escHtml(b.title)}</strong>`;
+        return `<tr><td>${preview}</td><td>${escHtml(b.position)}</td><td>${escHtml(b.link_url || '')}</td>
         <td><span class="badge badge-${b.is_active ? 'green' : 'gray'}">${b.is_active ? 'Active' : 'Off'}</span></td>
         <td><button type="button" class="btn btn-outline btn-xs" data-edit-bn="${b.id}">Edit</button>
-        <button type="button" class="btn btn-danger btn-xs" data-del-bn="${b.id}">Delete</button></td></tr>`
-      )
+        <button type="button" class="btn btn-danger btn-xs" data-del-bn="${b.id}">Delete</button></td></tr>`;
+      })
       .join('');
     document.querySelectorAll('[data-edit-bn]').forEach((btn) => {
       btn.onclick = () => {
         const b = banners.find((x) => x.id === Number(btn.dataset.editBn));
         if (!b) return;
-        document.getElementById('banner-form-title').textContent = 'Edit Banner';
         document.getElementById('bn-id').value = b.id;
         document.getElementById('bn-title').value = b.title;
         document.getElementById('bn-position').value = b.position;
@@ -2604,6 +2803,8 @@
         document.getElementById('bn-active').checked = !!b.is_active;
         const fileEl = document.getElementById('bn-file');
         if (fileEl) fileEl.value = '';
+        syncBannerFormByPosition();
+        updateBannerPreview();
         openBannerModal();
       };
     });
@@ -2620,6 +2821,23 @@
   }
 
   document.getElementById('bn-reset')?.addEventListener('click', resetBannerForm);
+  document.getElementById('bn-position')?.addEventListener('change', syncBannerFormByPosition);
+  document.getElementById('bn-image')?.addEventListener('input', updateBannerPreview);
+  document.getElementById('bn-file')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const wrap = document.getElementById('bn-preview-wrap');
+      const img = document.getElementById('bn-preview');
+      if (wrap && img) {
+        img.src = reader.result;
+        wrap.hidden = false;
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  syncBannerFormByPosition();
 
   document.getElementById('banner-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -2636,12 +2854,25 @@
         return;
       }
     }
+    const position = document.getElementById('bn-position').value;
+    const isHero = position === 'hero';
+    if (isHero && !imageUrl) {
+      toast('Upload a hero banner image', 'error');
+      return;
+    }
+    const promoTitle = document.getElementById('bn-title').value.trim();
+    if (!isHero && !promoTitle) {
+      toast('Title is required', 'error');
+      return;
+    }
     const id = document.getElementById('bn-id').value;
     const body = {
-      title: document.getElementById('bn-title').value.trim(),
-      position: document.getElementById('bn-position').value,
+      title: isHero ? 'Homepage hero' : promoTitle,
+      position,
       linkUrl: document.getElementById('bn-link').value.trim() || '/',
-      bgGradient: document.getElementById('bn-gradient').value.trim(),
+      bgGradient: isHero
+        ? 'linear-gradient(135deg,#2d8a2d,#164816)'
+        : document.getElementById('bn-gradient').value.trim(),
       expiresAt: document.getElementById('bn-expires').value || null,
       imageUrl: imageUrl || null,
       sortOrder: Number(document.getElementById('bn-sort').value) || 0,

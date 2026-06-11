@@ -12,15 +12,16 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/main.css?v=56">
+<link rel="stylesheet" href="/css/main.css?v=63">
 <link rel="stylesheet" href="/css/category.css?v=3">
 <link rel="stylesheet" href="/css/account.css?v=6">
 <link rel="stylesheet" href="/css/cart.css?v=5">
-<link rel="stylesheet" href="/css/checkout-modal.css?v=12">
+<link rel="stylesheet" href="/css/checkout-modal.css?v=13">
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
-<link rel="stylesheet" href="/css/responsive.css?v=26">
+<link rel="stylesheet" href="/css/responsive.css?v=29">
 <link rel="stylesheet" href="/css/home-marketing.css?v=4">
+<link rel="stylesheet" href="/css/home-today-selling.css?v=4">
 <link rel="stylesheet" href="/css/appointment.css?v=2">
 <link rel="stylesheet" href="/css/face-analyzer.css?v=9">
 <link rel="stylesheet" href="/css/pages.css?v=4">
@@ -36,35 +37,15 @@
 
  <!-- Hero Section -->
  <div class="hero-grid" id="hero-grid">
- <div class="hero-main" id="hero-main">
- <div class="hero-content">
- <div class="hero-badge" id="hero-badge"><i class="ti ti-bolt" style="font-size:11px;"></i> Flash sale live</div>
- <h1 class="hero-title" id="hero-title">Best products<br>Best prices!</h1>
- <div class="hero-sub" id="hero-sub">Choose from thousands of products — delivered to your door</div>
- <div class="hero-btns">
- <a href="#products" class="btn-primary"><i class="ti ti-shopping-bag"></i>Shop Now</a>
- <a href="#categories" class="btn-outline-white">Browse Categories</a>
- </div>
- </div>
- <div class="hero-img-box">
- <i class="ti ti-package"></i>
- </div>
- </div>
- <div class="hero-side" id="hero-side">
- <div class="hero-card hero-card-a" id="hero-card-a">
- <div class="hero-card-icon"><i class="ti ti-truck-delivery"></i></div>
- <div class="hero-card-text">
- <div class="hero-card-label">Nationwide</div>
- <div class="hero-card-title">Free Delivery</div>
- </div>
- </div>
- <div class="hero-card hero-card-b" id="hero-card-b">
- <div class="hero-card-icon"><i class="ti ti-rosette-discount"></i></div>
- <div class="hero-card-text">
- <div class="hero-card-label">Today's deal</div>
- <div class="hero-card-title">Up to 50% off</div>
- </div>
- </div>
+ <div class="hero-main" id="hero-main" aria-label="Home banner"></div>
+ <div class="hero-side hero-today-selling" id="hero-today-selling" hidden>
+  <div class="hero-today-selling-head">
+   <h3 class="hero-today-selling-title">
+    <i class="ti ti-flame" aria-hidden="true"></i>
+    <span id="hero-today-selling-title">Today Selling</span>
+   </h3>
+  </div>
+  <div class="hero-today-selling-list" id="hero-today-selling-list"></div>
  </div>
  </div>
 
@@ -686,6 +667,10 @@
 <%- include('partials/spa-page-return') %>
 </div><!-- /page-return -->
 
+<div id="page-preorder" style="display:none;">
+<%- include('partials/spa-page-preorder') %>
+</div><!-- /page-preorder -->
+
 <!-- ===================================================
  TRACK ORDER PAGE
 =================================================== -->
@@ -908,8 +893,8 @@
 =================================================== -->
 <div id="page-checkout" style="display:none;">
 <style>
-.checkout-wrap { max-width:1200px; margin:0 auto; padding:24px 20px 40px; display:grid; grid-template-columns:1fr 380px; gap:24px; }
-@media(max-width:900px){ .checkout-wrap { grid-template-columns:1fr; } .checkout-summary-box { position:static; } }
+.checkout-wrap { max-width:720px; margin:0 auto; padding:24px 20px 40px; display:flex; flex-direction:column; gap:24px; }
+.checkout-summary-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; position:static; width:100%; }
 @media(max-width:520px){ .checkout-steps { overflow-x:auto; padding:0 12px; } .step-label { font-size:10px; } }
 
 .checkout-steps { display:flex; align-items:center; gap:0; margin-bottom:24px; max-width:1200px; margin-left:auto; margin-right:auto; padding:0 20px; }
@@ -983,7 +968,6 @@
 .btn-place-order:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(226,75,74,0.4); }
 
 /* Checkout Summary Box */
-.checkout-summary-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; position:sticky; top:80px; height:fit-content; }
 .checkout-product-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
 .checkout-product-row:last-of-type { border:none; }
 .checkout-prod-img { width:48px; height:48px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -1194,6 +1178,44 @@
 .btn-track:hover { background:var(--primary-light); }
 .btn-home-again { background:var(--surface); color:var(--primary); border:1.5px solid var(--primary); padding:13px 28px; border-radius:var(--radius-md); font-size:14px; font-weight:600; cursor:pointer; font-family:inherit; display:flex; align-items:center; gap:8px; transition:background 0.15s; }
 .btn-home-again:hover { background:var(--primary-pale); }
+.success-facebook-box {
+  background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius-lg);
+  padding: 18px 20px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+.success-facebook-box h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.success-facebook-box h3 i { color: #1877f2; font-size: 20px; }
+.success-facebook-box p {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+.success-facebook-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1877f2;
+  color: #fff;
+  text-decoration: none;
+  padding: 11px 18px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.15s, transform 0.1s;
+}
+.success-facebook-btn:hover { background: #166fe5; transform: translateY(-1px); color: #fff; }
 </style>
 
 <div class="success-wrap">
@@ -1225,6 +1247,14 @@
  <div id="success-order-summary" style="font-size:12px; color:var(--text-muted); line-height:2;">
  <p style="text-align:center;">Loading order summary…</p>
  </div>
+ </div>
+
+ <div class="success-facebook-box" id="success-facebook-box">
+  <h3><i class="ti ti-brand-facebook"></i> Stay connected with Raku Shop BD</h3>
+  <p>Follow our official Facebook page for order updates, new Japanese skincare arrivals, pre-order news, and exclusive offers.</p>
+  <a class="success-facebook-btn" id="success-facebook-link" href="https://www.facebook.com/rakushopbd" target="_blank" rel="noopener noreferrer">
+   <i class="ti ti-brand-facebook"></i> Visit our Facebook Page
+  </a>
  </div>
 
  <div class="success-actions">
@@ -1677,21 +1707,23 @@
 <% } %>
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/maintenance-view.js?v=3" defer></script>
-<script src="/js/seo.js?v=4" defer></script>
-<script src="/js/app.js?v=23" defer></script>
+<script src="/js/seo.js?v=5" defer></script>
+<script src="/js/mobile-menu.js?v=1" defer></script>
+<script src="/js/app.js?v=25" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
-<script src="/js/api.js?v=59" defer></script>
+<script src="/js/home-today-selling.js?v=4" defer></script>
+<script src="/js/api.js?v=67" defer></script>
 <script src="/js/home-recommendations.js?v=3" defer></script>
 <script src="/js/home-messenger-chats.js?v=2" defer></script>
 <script src="/js/home-customer-reviews.js?v=4" defer></script>
 <script src="/js/home-marketing.js?v=2" defer></script>
 <script src="/js/appointment.js?v=4" defer></script>
 <script src="/js/face-analyzer.js?v=10" defer></script>
-<script src="/js/footer-settings.js?v=5" defer></script>
-<script src="/js/storefront-dynamic.js?v=29" defer></script>
+<script src="/js/footer-settings.js?v=6" defer></script>
+<script src="/js/storefront-dynamic.js?v=31" defer></script>
 <script src="/js/search.js?v=5" defer></script>
 <script src="/js/account.js?v=9" defer></script>
-<script src="/js/legal-pages.js?v=1" defer></script>
+<script src="/js/legal-pages.js?v=2" defer></script>
 <script src="/js/faq.js?v=4" defer></script>
 <script src="/js/contact.js?v=3" defer></script>
 <script src="/js/track.js?v=2" defer></script>

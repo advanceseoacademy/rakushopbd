@@ -150,6 +150,8 @@
   window._rakuApiFetch = apiFetch;
   window.formatPrice = formatPrice;
   window.discountPercent = discountPercent;
+  window.productImageSrc = productImageSrc;
+  window.productMediaHtml = productMediaHtml;
 
   const productDetailCache = new Map();
   const productFetchInflight = new Map();
@@ -1344,43 +1346,65 @@
     }
   }
 
+  function applyHeroMainBackground(heroMain, banner) {
+    if (!heroMain) return;
+    const src = productImageSrc(banner?.image_url);
+    let imgEl = heroMain.querySelector('img.hero-main-photo');
+    if (src) {
+      heroMain.classList.add('hero-main--has-bg-photo');
+      heroMain.style.removeProperty('--hero-bg-photo');
+      if (!imgEl) {
+        imgEl = document.createElement('img');
+        imgEl.className = 'hero-main-photo';
+        heroMain.appendChild(imgEl);
+      }
+      imgEl.src = src;
+      imgEl.alt = banner?.title || 'Homepage banner';
+      imgEl.onload = () => {
+        if (window.syncHeroSideHeight) window.syncHeroSideHeight();
+      };
+      if (imgEl.complete) {
+        requestAnimationFrame(() => {
+          if (window.syncHeroSideHeight) window.syncHeroSideHeight();
+        });
+      }
+    } else {
+      heroMain.classList.remove('hero-main--has-bg-photo');
+      heroMain.style.removeProperty('--hero-bg-photo');
+      if (imgEl) imgEl.remove();
+      if (window.syncHeroSideHeight) window.syncHeroSideHeight();
+    }
+    if (banner?.bg_gradient && !src) {
+      heroMain.style.setProperty('--hero-bg', banner.bg_gradient);
+    }
+  }
+
   function applyBannersData(banners) {
     const list = banners || [];
     const main = list.find((b) => b.position === 'hero');
-    const promos = list.filter((b) => b.position === 'promo');
     if (main) {
-      const title = document.getElementById('hero-title');
-      const sub = document.getElementById('hero-sub');
       const heroMain = document.getElementById('hero-main');
-      if (title) title.textContent = main.title;
-      if (sub) sub.textContent = main.link_url ? 'Tap Shop Now to explore this offer' : sub?.textContent;
-      if (heroMain && main.bg_gradient) {
-        heroMain.style.setProperty('--hero-bg', main.bg_gradient);
+      applyHeroMainBackground(heroMain, main);
+      if (heroMain) {
+        if (main.link_url) {
+          heroMain.style.cursor = 'pointer';
+          heroMain.onclick = () => {
+            let url = main.link_url;
+            if (url.startsWith('#/')) url = url.slice(1);
+            else if (url.startsWith('#')) url = '/' + url.slice(1);
+            if (url.startsWith('/')) {
+              history.pushState(null, '', url);
+              if (window._rakuRestoreRoute) window._rakuRestoreRoute();
+            } else {
+              window.location.href = url;
+            }
+          };
+        } else {
+          heroMain.style.cursor = '';
+          heroMain.onclick = null;
+        }
       }
-      const shopBtn = document.querySelector('#hero-grid .btn-primary');
-      if (shopBtn && main.link_url) shopBtn.href = main.link_url;
     }
-    const cardA = document.getElementById('hero-card-a');
-    const cardB = document.getElementById('hero-card-b');
-    [cardA, cardB].forEach((card, i) => {
-      const b = promos[i];
-      if (!card || !b) return;
-      if (b.bg_gradient) card.style.setProperty('--hero-card-bg', b.bg_gradient);
-      const label = card.querySelector('.hero-card-label');
-      const t = card.querySelector('.hero-card-title');
-      if (label) label.textContent = 'Offer';
-      if (t) t.textContent = b.title;
-      card.style.cursor = 'pointer';
-      card.onclick = () => {
-        if (!b.link_url) return;
-        let url = b.link_url;
-        if (url.startsWith('#/')) url = url.slice(1);
-        else if (url.startsWith('#')) url = '/' + url.slice(1);
-        if (url.startsWith('/')) history.pushState(null, '', url);
-        else window.location.href = url;
-        if (window._rakuRestoreRoute) window._rakuRestoreRoute();
-      };
-    });
   }
 
   async function loadHeroSection() {
@@ -2244,6 +2268,11 @@
     if (ann && settings.announcement_text) ann.innerHTML = settings.announcement_text;
     const badge = document.getElementById('hero-badge');
     if (badge && settings.feature_flash_sale === '0') badge.style.display = 'none';
+    const fbLink = document.getElementById('success-facebook-link');
+    if (fbLink) {
+      const url = String(settings.social_facebook || '').trim() || 'https://www.facebook.com/rakushopbd';
+      fbLink.href = url;
+    }
     window._rakuStoreSettings = settings;
     document.dispatchEvent(new CustomEvent('raku:settings-loaded', { detail: settings }));
   }
@@ -2435,6 +2464,22 @@
     }
   }
 
+  async function refreshTodaySellingFromApi(boot) {
+    if (boot?.todaySelling?.length && window.applyTodaySellingData) {
+      window.applyTodaySellingData(boot);
+      return;
+    }
+    try {
+      const data = await apiFetch('/today-selling');
+      if (data.ok && window.applyTodaySellingData) {
+        window.applyTodaySellingData({
+          todaySellingMeta: data.meta,
+          todaySelling: data.products || [],
+        });
+      }
+    } catch (_) {}
+  }
+
   async function applyBootstrap(boot) {
     if (!boot?.ok) return false;
     if (boot.maintenance && !(await adminCanBypassMaintenance())) {
@@ -2444,6 +2489,7 @@
     }
     applySettingsData(boot.settings);
     applyBannersData(boot.banners || []);
+    await refreshTodaySellingFromApi(boot);
     if (boot.bestSelling?.length || boot.newArrivals?.length) {
       paintHomeProductSections(bootHomeSections(boot));
     }
@@ -2526,7 +2572,7 @@
         blocked = await applyBootstrap(await apiFetch('/bootstrap'));
       } catch (_) {
         await loadStoreSettings();
-        await Promise.all([loadHeroSection(), refreshHomeProductSections(null)]);
+        await Promise.all([loadHeroSection(), refreshHomeProductSections(null), refreshTodaySellingFromApi(null)]);
       }
     }
     if (blocked) return;

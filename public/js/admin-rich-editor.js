@@ -17,6 +17,7 @@
     'legal-privacy-content',
     'legal-terms-content',
     'legal-return-content',
+    'legal-preorder-content',
     'faq-answer',
   ];
 

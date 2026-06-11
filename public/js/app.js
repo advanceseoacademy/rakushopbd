@@ -23,21 +23,24 @@ document.addEventListener('DOMContentLoaded', function() {
     privacy: document.getElementById('page-privacy'),
     terms: document.getElementById('page-terms'),
     return: document.getElementById('page-return'),
+    preorder: document.getElementById('page-preorder'),
     track: document.getElementById('page-track'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact', 'privacy', 'terms', 'return', 'track'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact', 'privacy', 'terms', 'return', 'preorder', 'track'];
 
   const PATH_ALIASES = {
     'privacy-policy': 'privacy',
     'terms-and-conditions': 'terms',
     'return-policy': 'return',
+    'pre-order-policy': 'preorder',
   };
 
   const PAGE_PATHS = {
     privacy: '/privacy-policy',
     terms: '/terms-and-conditions',
     return: '/return-policy',
+    preorder: '/pre-order-policy',
   };
 
   // Show target route immediately (content fills via bootstrap / API)
@@ -112,6 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function showPage(name, opts) {
     if (typeof opts !== 'object' || opts === null) opts = {};
+    if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
     Object.values(pages).forEach((p) => {
       if (p) p.style.display = 'none';
     });
@@ -135,6 +139,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (name === 'return' && window._rakuInitLegalReturn) {
       window._rakuInitLegalReturn();
+    }
+    if (name === 'preorder' && window._rakuInitLegalPreorder) {
+      window._rakuInitLegalPreorder();
     }
     if (name === 'track' && window._rakuInitTrackPage) {
       window._rakuInitTrackPage();
@@ -195,6 +202,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window._rakuInitLegalTerms();
       } else if (route.page === 'return' && window._rakuInitLegalReturn) {
         window._rakuInitLegalReturn();
+      } else if (route.page === 'preorder' && window._rakuInitLegalPreorder) {
+        window._rakuInitLegalPreorder();
       } else if (route.page === 'track' && window._rakuInitTrackPage) {
         window._rakuInitTrackPage();
       }
@@ -429,30 +438,6 @@ document.addEventListener('DOMContentLoaded', function() {
     else showPage('home');
   });
 
-  // Mobile category menu (3-dot)
-  const mobileCatMenu = document.getElementById('mobile-cat-menu');
-  const mobileCatMenuBtn = document.getElementById('nav-mobile-menu-btn');
-  const mobileCatMenuClose = document.getElementById('mobile-cat-menu-close');
-  const mobileCatMenuBackdrop = document.getElementById('mobile-cat-menu-backdrop');
-
-  function openMobileCatMenu() {
-    if (!mobileCatMenu) return;
-    mobileCatMenu.classList.add('open');
-    mobileCatMenu.setAttribute('aria-hidden', 'false');
-    if (mobileCatMenuBtn) mobileCatMenuBtn.setAttribute('aria-expanded', 'true');
-    document.body.classList.add('mobile-cat-menu-open');
-  }
-
-  function closeMobileCatMenu() {
-    if (!mobileCatMenu) return;
-    mobileCatMenu.classList.remove('open');
-    mobileCatMenu.setAttribute('aria-hidden', 'true');
-    if (mobileCatMenuBtn) mobileCatMenuBtn.setAttribute('aria-expanded', 'false');
-    document.body.classList.remove('mobile-cat-menu-open');
-  }
-
-  window._rakuCloseMobileCatMenu = closeMobileCatMenu;
-
   const catDropdown = document.getElementById('header-cat-dropdown');
   const browseBtn = document.getElementById('nav-browse-cats-btn');
 
@@ -469,8 +454,11 @@ document.addEventListener('DOMContentLoaded', function() {
       e.preventDefault();
       e.stopPropagation();
       if (window.matchMedia('(max-width: 768px)').matches) {
-        if (mobileCatMenu?.classList.contains('open')) closeMobileCatMenu();
-        else openMobileCatMenu();
+        if (window._rakuOpenMobileCatMenu && window._rakuCloseMobileCatMenu) {
+          const mobileCatMenu = document.getElementById('mobile-cat-menu');
+          if (mobileCatMenu?.classList.contains('open')) window._rakuCloseMobileCatMenu();
+          else window._rakuOpenMobileCatMenu();
+        }
         return;
       }
       if (!catDropdown) return;
@@ -520,49 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  document.querySelectorAll('.mobile-cat-menu-extra .mobile-cat-link').forEach((link) => {
-    link.addEventListener('click', (e) => {
-      const href = link.getAttribute('href');
-      const spaRoutes = {
-        '/': 'home',
-        '/appointment': 'appointment',
-        '/faq': 'faq',
-        '/contact': 'contact',
-        '/track': 'track',
-        '/privacy-policy': 'privacy',
-        '/terms-and-conditions': 'terms',
-        '/return-policy': 'return',
-      };
-      if (spaRoutes[href] && window.showPage && !window.RAKU_STANDALONE) {
-        e.preventDefault();
-        closeMobileCatMenu();
-        showPage(spaRoutes[href]);
-      }
-    });
-  });
-
-  document.querySelectorAll('.mobile-menu-group-toggle').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.preventDefault();
-      const group = btn.closest('.mobile-menu-group');
-      if (!group) return;
-      const open = group.classList.toggle('open');
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    });
-  });
-
-  if (mobileCatMenuBtn && !mobileCatMenuBtn._rakuBound) {
-    mobileCatMenuBtn._rakuBound = true;
-    mobileCatMenuBtn.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (mobileCatMenu?.classList.contains('open')) closeMobileCatMenu();
-      else openMobileCatMenu();
-    });
-  }
-  if (mobileCatMenuClose) mobileCatMenuClose.addEventListener('click', closeMobileCatMenu);
-  if (mobileCatMenuBackdrop) mobileCatMenuBackdrop.addEventListener('click', closeMobileCatMenu);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && mobileCatMenu?.classList.contains('open')) closeMobileCatMenu();
     if (e.key === 'Escape') closeCatDropdown();
   });
 

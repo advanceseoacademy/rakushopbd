@@ -125,10 +125,17 @@
 }
 
 .checkout-modal-grid {
-  display: grid;
-  grid-template-columns: 1fr 300px;
+  display: flex;
+  flex-direction: column;
   gap: 22px;
-  align-items: start;
+}
+
+.checkout-modal-form {
+  order: 1;
+}
+
+.checkout-modal-summary {
+  order: 2;
 }
 
 @media (max-width: 768px) {
@@ -162,13 +169,10 @@
   }
 
   .checkout-modal-grid {
-    display: flex;
-    flex-direction: column;
-    grid-template-columns: none;
     gap: 16px;
   }
 
-  /* Full-page scroll: summary + form move together */
+  /* Form first, order summary below */
   .checkout-modal-body {
     flex: 1;
     min-height: 0;
@@ -181,7 +185,6 @@
   }
 
   .checkout-modal-summary {
-    order: -1;
     position: relative;
     max-height: none;
     overflow: visible;
@@ -429,8 +432,7 @@
 
 @media (min-width: 769px) {
   .checkout-modal-summary {
-    position: sticky;
-    top: 0;
+    position: static;
   }
 }
 

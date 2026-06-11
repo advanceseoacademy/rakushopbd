@@ -1,0 +1,233 @@
+/* Homepage hero — Today Selling sidebar */
+.hero-today-selling {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.hero-today-selling-head {
+  flex-shrink: 0;
+}
+
+.hero-today-selling-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(135deg, #1d9e75 0%, #2d8a2d 52%, #1a6b1a 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  text-align: center;
+  box-shadow:
+    0 4px 16px rgba(45, 138, 45, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-today-selling-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.hero-today-selling-title::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    105deg,
+    transparent 38%,
+    rgba(255, 255, 255, 0.14) 50%,
+    transparent 62%
+  );
+  transform: translateX(-120%);
+  animation: heroTodayTitleShine 5s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes heroTodayTitleShine {
+  0%, 72%, 100% { transform: translateX(-120%); }
+  86% { transform: translateX(120%); }
+}
+
+.hero-today-selling-title i {
+  font-size: 18px;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.18));
+}
+
+.hero-today-selling-title span {
+  position: relative;
+  z-index: 1;
+}
+
+.hero-today-selling-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+
+.hero-today-product {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+  transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+  flex: 1;
+}
+
+.hero-today-product:hover {
+  border-color: rgba(45, 138, 45, 0.25);
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
+  transform: translateY(-1px);
+}
+
+.hero-today-product-img {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.hero-today-product-img img,
+.hero-today-product-photo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 12px;
+  box-sizing: border-box;
+  display: block;
+}
+
+.hero-today-product-img i {
+  font-size: 40px;
+}
+
+.hero-today-product-body {
+  flex-shrink: 0;
+  padding: 8px 10px 10px;
+  text-align: center;
+}
+
+.hero-today-product-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+
+.hero-today-product-price {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+@media (min-width: 901px) {
+  .hero-grid {
+    align-items: stretch;
+  }
+
+  .hero-today-selling:not([hidden]) {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .hero-today-product {
+    min-height: 0;
+  }
+
+  .hero-today-product-name {
+    font-size: 12px;
+    margin-bottom: 4px;
+    -webkit-line-clamp: 2;
+  }
+
+  .hero-today-product-price {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 900px) {
+  .hero-today-selling {
+    width: 100%;
+  }
+
+  .hero-today-selling-title {
+    font-size: 14px;
+    padding: 10px 14px;
+  }
+
+  .hero-today-selling-title i {
+    font-size: 16px;
+  }
+
+  .hero-today-selling-list {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .hero-today-product {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .hero-today-product-img {
+    aspect-ratio: 1;
+    max-height: 140px;
+    flex: 0 0 auto;
+  }
+
+  .hero-today-product-name {
+    font-size: 12px;
+  }
+
+  .hero-today-product-price {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-today-selling-list {
+    flex-direction: row;
+  }
+
+  .hero-today-product-img {
+    aspect-ratio: 1;
+    max-height: 120px;
+    flex: 0 0 auto;
+  }
+}

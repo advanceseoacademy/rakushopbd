@@ -178,6 +178,10 @@
         label: (settings.legal_return_title || '').trim() || 'Return Policy',
         href: '/return-policy',
       },
+      {
+        label: (settings.legal_preorder_title || '').trim() || 'Pre-Order Policy',
+        href: '/pre-order-policy',
+      },
     ];
     const legalUl = document.getElementById('footer-legal-links');
     if (legalUl) {

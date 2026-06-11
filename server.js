@@ -22,6 +22,7 @@ const { registerAdminAuth } = require('./lib/registerAdminAuth');
 const { usePostgres, query } = require('./config/db');
 const { ensureAppointmentsTable } = require('./lib/ensureAppointmentsTable');
 const { ensureProductSeoColumns } = require('./lib/ensureProductSeoColumns');
+const { ensureTodaySellingColumn } = require('./lib/ensureTodaySellingColumn');
 const { ensureProductBuyPrice } = require('./lib/ensureProductBuyPrice');
 const { ensureProductImagesTable } = require('./lib/ensureProductImagesTable');
 const { ensureFooterSettings } = require('./lib/ensureFooterSettings');
@@ -35,6 +36,7 @@ const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
 const { ensureTrackingSettings } = require('./lib/ensureTrackingSettings');
 const { ensureLegalPages } = require('./lib/ensureLegalPages');
 const { ensureCategoryParent } = require('./lib/ensureCategoryParent');
+const { ensureCategoryIconUrl } = require('./lib/ensureCategoryIconUrl');
 const { buildTrackingScripts } = require('./lib/trackingScripts');
 const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug } = require('./lib/seo');
 const { getSiteSettings } = require('./lib/siteSettings');
@@ -217,7 +219,7 @@ app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy'],
   (req, res) => renderStorefront(req, res)
 );
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));
@@ -258,9 +260,13 @@ app.listen(PORT, () => {
   ensureCategoryParent()
     .then(() => console.log('categories.parent_id ready'))
     .catch((err) => console.warn('category parent_id:', err.message));
+  ensureCategoryIconUrl()
+    .then(() => console.log('categories.icon_url ready'))
+    .catch((err) => console.warn('category icon_url:', err.message));
   ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
   ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
   ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
+  ensureTodaySellingColumn().catch((err) => console.warn('today_selling_slot column:', err.message));
   ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
   ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
   ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));

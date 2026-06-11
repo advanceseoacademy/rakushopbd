@@ -23,12 +23,20 @@
       icon: 'ti-refresh',
       apiSlug: 'return',
     },
+    preorder: {
+      title: 'legal-preorder-title',
+      sub: 'legal-preorder-sub',
+      body: 'legal-preorder-body',
+      icon: 'ti-clock-hour-4',
+      apiSlug: 'preorder',
+    },
   };
 
   const SETTINGS_KEYS = {
     privacy: { title: 'legal_privacy_title', content: 'legal_privacy_content' },
     terms: { title: 'legal_terms_title', content: 'legal_terms_content' },
     return: { title: 'legal_return_title', content: 'legal_return_content' },
+    preorder: { title: 'legal_preorder_title', content: 'legal_preorder_content' },
   };
 
   const DEFAULTS = {
@@ -43,6 +51,10 @@
     return: {
       title: 'Return Policy',
       sub: 'Returns within 7 days — eligibility and how to apply.',
+    },
+    preorder: {
+      title: 'Pre-Order Policy',
+      sub: 'How pre-orders work for authentic Japanese skincare and beauty products.',
     },
   };
 
@@ -117,10 +129,11 @@
   window._rakuInitLegalPrivacy = () => init('privacy');
   window._rakuInitLegalTerms = () => init('terms');
   window._rakuInitLegalReturn = () => init('return');
+  window._rakuInitLegalPreorder = () => init('preorder');
 
   document.addEventListener('raku:settings-loaded', (e) => {
     const settings = e.detail || window._rakuStoreSettings;
-    ['privacy', 'terms', 'return'].forEach((key) => {
+    ['privacy', 'terms', 'return', 'preorder'].forEach((key) => {
       const page = document.getElementById(`page-${key}`);
       if (page && page.style.display !== 'none') {
         const data = pageFromSettings(key, settings);

@@ -17,6 +17,7 @@ const {
   categoryInClause,
   normalizeCategoryId,
 } = require('../lib/categoryHelpers');
+const { setProductTodaySellingSlot, setTodaySellingProducts, normalizeSlot } = require('../lib/todaySellingSlots');
 
 const router = express.Router();
 
@@ -475,6 +476,7 @@ router.post('/products', requireAdmin, async (req, res) => {
       imageAlt,
       ogImage,
       buyPrice,
+      todaySellingSlot,
     } = req.body;
     if (!name || !categoryId || price == null) {
       return res.status(400).json({ ok: false, error: 'Name, category and price are required' });
@@ -522,6 +524,7 @@ router.post('/products', requireAdmin, async (req, res) => {
       if (synced[0] && synced[0] !== imageUrl) {
         await query('UPDATE products SET image_url = ? WHERE id = ?', [synced[0], newId]);
       }
+      await setProductTodaySellingSlot(query, newId, todaySellingSlot);
     }
     clearStoreBootstrapCache();
     res.json({ ok: true, id: newId });
@@ -558,6 +561,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       imageAlt,
       ogImage,
       buyPrice,
+      todaySellingSlot,
     } = req.body;
     const productId = req.params.id;
     const pricing = normalizeProductDiscount(price, oldPrice, discountPercent);
@@ -606,6 +610,7 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
     if (synced[0] && synced[0] !== imageUrl) {
       await query('UPDATE products SET image_url = ? WHERE id = ?', [synced[0], productId]);
     }
+    await setProductTodaySellingSlot(query, productId, todaySellingSlot);
     clearStoreBootstrapCache();
     res.json({ ok: true });
   } catch (err) {
@@ -677,12 +682,12 @@ router.post('/categories/:parentId/subcategories', requireAdmin, async (req, res
     if (!parentCheck) {
       return res.status(400).json({ ok: false, error: 'Valid main category required' });
     }
-    const { name, slug, icon, sortOrder } = req.body;
+    const { name, slug, icon, iconUrl, sortOrder } = req.body;
     if (!name) return res.status(400).json({ ok: false, error: 'Name required' });
     const s = slug || slugify(name);
     await query(
-      'INSERT INTO categories (slug, name_bn, icon, sort_order, parent_id) VALUES (?, ?, ?, ?, ?)',
-      [s, name, icon || 'ti-category', sortOrder || 0, parentCheck]
+      'INSERT INTO categories (slug, name_bn, icon, icon_url, sort_order, parent_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [s, name, icon || 'ti-category', iconUrl || null, sortOrder || 0, parentCheck]
     );
     clearStoreBootstrapCache();
     res.json({ ok: true, parentId: parentCheck });
@@ -701,7 +706,7 @@ router.post('/categories/:parentId/subcategories', requireAdmin, async (req, res
 
 router.post('/categories', requireAdmin, async (req, res) => {
   try {
-    const { name, slug, icon, sortOrder } = req.body;
+    const { name, slug, icon, iconUrl, sortOrder } = req.body;
     const parentIdRaw = req.body.parentId ?? req.body.parent_id;
     if (!name) return res.status(400).json({ ok: false, error: 'Name required' });
     const parentCheck = await validateCategoryParent(parentIdRaw);
@@ -709,8 +714,8 @@ router.post('/categories', requireAdmin, async (req, res) => {
     const parent_id = parentCheck === null ? null : parentCheck;
     const s = slug || slugify(name);
     await query(
-      'INSERT INTO categories (slug, name_bn, icon, sort_order, parent_id) VALUES (?, ?, ?, ?, ?)',
-      [s, name, icon || 'ti-category', sortOrder || 0, parent_id]
+      'INSERT INTO categories (slug, name_bn, icon, icon_url, sort_order, parent_id) VALUES (?, ?, ?, ?, ?, ?)',
+      [s, name, icon || 'ti-category', iconUrl || null, sortOrder || 0, parent_id]
     );
     clearStoreBootstrapCache();
     res.json({ ok: true });
@@ -722,14 +727,14 @@ router.post('/categories', requireAdmin, async (req, res) => {
 
 router.put('/categories/:id', requireAdmin, async (req, res) => {
   try {
-    const { name, slug, icon, sortOrder } = req.body;
+    const { name, slug, icon, iconUrl, sortOrder } = req.body;
     const parentIdRaw = req.body.parentId ?? req.body.parent_id;
     const parentCheck = await validateCategoryParent(parentIdRaw, req.params.id);
     if (parentCheck?.error) return res.status(400).json({ ok: false, error: parentCheck.error });
     const parent_id = parentCheck === null ? null : parentCheck;
     await query(
-      'UPDATE categories SET slug=?, name_bn=?, icon=?, sort_order=?, parent_id=? WHERE id=?',
-      [slug, name, icon || 'ti-category', sortOrder || 0, parent_id, req.params.id]
+      'UPDATE categories SET slug=?, name_bn=?, icon=?, icon_url=?, sort_order=?, parent_id=? WHERE id=?',
+      [slug, name, icon || 'ti-category', iconUrl || null, sortOrder || 0, parent_id, req.params.id]
     );
     clearStoreBootstrapCache();
     res.json({ ok: true });
@@ -836,6 +841,26 @@ router.delete('/coupons/:id', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not delete coupon' });
+  }
+});
+
+// ——— Today Selling (hero sidebar) ———
+router.put('/today-selling', requireAdmin, async (req, res) => {
+  try {
+    const { enabled, title, product1, product2 } = req.body;
+    if (enabled != null) {
+      await query(upsertSiteSettingSql(), ['today_selling_enabled', enabled === false || enabled === '0' ? '0' : '1']);
+    }
+    if (title != null) {
+      await query(upsertSiteSettingSql(), ['today_selling_title', String(title).trim() || 'Today Selling']);
+    }
+    await setTodaySellingProducts(query, product1 || null, product2 || null);
+    clearSiteSettingsCache();
+    clearStoreBootstrapCache();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not save Today Selling' });
   }
 });
 

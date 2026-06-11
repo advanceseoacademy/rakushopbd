@@ -1055,8 +1055,7 @@
           if (!data.ok) return;
         }
         await syncCartBadge();
-        if (window.openCheckoutModal) await window.openCheckoutModal();
-        else if (window.showPage) window.showPage('checkout');
+        await proceedToCheckoutFromCart();
       };
     }
     const btnPre = document.getElementById('btn-pre-order');
@@ -1560,21 +1559,18 @@
       return;
     }
 
-    const box = document.querySelector('#page-checkout .checkout-summary-box');
-    if (!box) return;
-
-    box.querySelectorAll('.checkout-product-row').forEach((r) => r.remove());
-
-    const anchor = box.querySelector('.summary-title') || box;
-    data.cart.forEach((item) => {
-      const row = document.createElement('div');
-      row.className = 'checkout-product-row';
-      row.innerHTML = `
-        <div class="checkout-prod-img" style="background:${item.bgColor};">${cartThumbHtml(item)}</div>
-        <span class="checkout-prod-name">${escapeHtml(item.name)} ×${item.qty}</span>
-        <span class="checkout-prod-price">${formatPrice(item.price * item.qty)}</span>`;
-      anchor.insertAdjacentElement('afterend', row);
-    });
+    const itemsEl = document.getElementById('checkout-page-items');
+    if (itemsEl) {
+      itemsEl.innerHTML = data.cart
+        .map(
+          (item) => `<div class="cm-summary-item">
+            <div class="cm-summary-thumb" style="background:${item.bgColor};">${cartThumbHtml(item)}</div>
+            <span class="cm-summary-name">${escapeHtml(item.name)} ×${item.qty}</span>
+            <span class="cm-summary-price">${formatPrice(item.price * item.qty)}</span>
+          </div>`
+        )
+        .join('');
+    }
 
     if (data.totals) {
       applyTotalsToSummary(data.totals, '#page-checkout');
@@ -1586,6 +1582,8 @@
     if (!data.checkoutDistrict) {
       await selectDeliveryZone(district, '#page-checkout');
     }
+    await prefillCheckoutForm();
+    updatePaymentMethodUI(getSelectedPaymentMethod());
   }
 
   function discountRowHtml(delRow) {
@@ -1656,7 +1654,6 @@
 
     const cartPage = document.getElementById('page-cart');
     const checkoutPage = document.getElementById('page-checkout');
-    const modal = document.getElementById('checkout-modal');
 
     if (cartPage && cartPage.style.display !== 'none') {
       await renderCart();
@@ -1669,12 +1666,6 @@
     } else {
       applyTotalsToSummary(totals, '#page-checkout');
     }
-
-    if (modal?.classList.contains('open')) {
-      await renderCheckoutModalSummary();
-    } else {
-      applyTotalsToSummary(totals, '#checkout-modal');
-    }
   }
 
   async function updateCheckoutDistrict(district) {
@@ -1683,7 +1674,6 @@
     if (data.ok && data.totals) {
       applyTotalsToSummary(data.totals, '#page-cart');
       applyTotalsToSummary(data.totals, '#page-checkout');
-      applyTotalsToSummary(data.totals, '#checkout-modal');
     }
   }
 
@@ -1697,24 +1687,20 @@
   }
 
   function getSelectedDeliveryDistrict(scope) {
-    if (scope === '#checkout-modal') {
-      return document.getElementById('cm-district')?.value || '';
-    }
     if (scope === '#page-checkout') {
       return document.getElementById('checkout-page-district')?.value || '';
     }
-    return document.getElementById('cm-district')?.value || document.getElementById('checkout-page-district')?.value || '';
+    return document.getElementById('checkout-page-district')?.value || '';
   }
 
   function setDeliveryZoneUI(district, scope) {
     const value = district || 'Dhaka';
-    const isModal = scope === '#checkout-modal';
-    const hidden = document.getElementById(isModal ? 'cm-district' : 'checkout-page-district');
-    const grid = document.getElementById(isModal ? 'cm-zone-grid' : 'checkout-page-zone-grid');
-    const hint = document.getElementById(isModal ? 'cm-zone-hint' : 'checkout-page-zone-hint');
+    const hidden = document.getElementById('checkout-page-district');
+    const grid = document.getElementById('checkout-page-zone-grid');
+    const hint = document.getElementById('checkout-page-zone-hint');
     if (hidden) hidden.value = value;
     if (grid) {
-      grid.querySelectorAll(isModal ? '.cm-zone-tile' : '.checkout-zone-tile').forEach((tile) => {
+      grid.querySelectorAll('.checkout-zone-tile').forEach((tile) => {
         tile.classList.toggle('selected', tile.dataset.district === value);
       });
     }
@@ -1728,13 +1714,10 @@
   }
 
   function bindDeliveryZone(scope) {
-    const isModal = scope === '#checkout-modal';
-    const gridId = isModal ? 'cm-zone-grid' : 'checkout-page-zone-grid';
-    const grid = document.getElementById(gridId);
+    const grid = document.getElementById('checkout-page-zone-grid');
     if (!grid || grid._rakuBound) return;
     grid._rakuBound = true;
-    const selector = isModal ? '.cm-zone-tile' : '.checkout-zone-tile';
-    grid.querySelectorAll(selector).forEach((tile) => {
+    grid.querySelectorAll('.checkout-zone-tile').forEach((tile) => {
       tile.addEventListener('click', () => {
         void selectDeliveryZone(tile.dataset.district, scope);
       });
@@ -1824,10 +1807,8 @@
   function collectCheckoutFormData(scope) {
     const root = document.querySelector(scope);
     if (!root) return null;
-    const method =
-      scope === '#checkout-modal' ? getSelectedPaymentMethod() : root.querySelector('input[name="paymethod"]:checked')?.value;
-    const trxId =
-      scope === '#checkout-modal' ? document.getElementById('cm-trxid')?.value?.trim() || '' : '';
+    const method = getSelectedPaymentMethod();
+    const trxId = document.getElementById('cm-trxid')?.value?.trim() || '';
     let notes = root.querySelector('[name="notes"]')?.value?.trim() || '';
     if (trxId && method && method !== 'cod') {
       notes = [notes, `TrxID (${method}): ${trxId}`].filter(Boolean).join(' | ');
@@ -1857,12 +1838,10 @@
       alert('Please select delivery area (Inside Dhaka or Outside Dhaka)!');
       return;
     }
-    if (scope === '#checkout-modal') {
-      const payCfg = PAYMENT_UI[form.paymentMethod];
-      if (payCfg?.needsTrx && !form.trxId) {
-        alert('Please enter your payment Transaction ID (TrxID)!');
-        return;
-      }
+    const payCfg = PAYMENT_UI[form.paymentMethod];
+    if (payCfg?.needsTrx && !form.trxId) {
+      alert('Please enter your payment Transaction ID (TrxID)!');
+      return;
     }
     btn.disabled = true;
     const result = await apiFetch('/orders', { method: 'POST', body: JSON.stringify(form) });
@@ -1872,14 +1851,13 @@
       return;
     }
     if (window._rakuRenderSuccessOrder) window._rakuRenderSuccessOrder(result);
-    closeCheckoutModal();
     if (window._rakuSetCartCount) window._rakuSetCartCount(0);
     await renderCart();
     await syncCartBadge();
     if (window.showPage) window.showPage('success');
   }
 
-  function bindCheckoutModalPayments() {
+  function bindCheckoutPayments() {
     const grid = document.getElementById('cm-pay-grid');
     if (!grid || grid._rakuBound) return;
     grid._rakuBound = true;
@@ -1889,7 +1867,7 @@
     updatePaymentMethodUI(getSelectedPaymentMethod());
   }
 
-  async function prefillCheckoutModal() {
+  async function prefillCheckoutForm() {
     try {
       const res = await fetch((window.RAKU_API_BASE || '') + '/api/auth/me', { credentials: 'same-origin' });
       const data = await res.json();
@@ -1902,119 +1880,43 @@
     } catch (_) {}
   }
 
-  async function renderCheckoutModalSummary(cartData) {
-    const data = cartData || (await apiFetch('/cart'));
-    if (!data.ok) return;
-    const itemsEl = document.getElementById('checkout-modal-items');
-    if (itemsEl) {
-      itemsEl.innerHTML = data.cart
-        .map(
-          (item) => `<div class="cm-summary-item">
-            <div class="cm-summary-thumb" style="background:${item.bgColor};">${cartThumbHtml(item)}</div>
-            <span class="cm-summary-name">${item.name} ×${item.qty}</span>
-            <span class="cm-summary-price">${formatPrice(item.price * item.qty)}</span>
-          </div>`
-        )
-        .join('');
-    }
-    if (data.totals) {
-      applyTotalsToSummary(data.totals, '#checkout-modal');
-      syncCouponInputs(data.totals.couponCode);
-    }
-    const savedDistrict = data.checkoutDistrict || 'Dhaka';
-    setDeliveryZoneUI(savedDistrict, '#checkout-modal');
-  }
-
-  function closeCheckoutModal() {
-    const modal = document.getElementById('checkout-modal');
-    if (!modal) return;
-    modal.classList.remove('open');
-    modal.setAttribute('aria-hidden', 'true');
-    document.body.classList.remove('checkout-modal-open');
-    document.dispatchEvent(new CustomEvent('raku:navigate'));
-  }
-
-  function goBackFromCheckoutModal() {
-    closeCheckoutModal();
-    if (window.showPage) window.showPage('cart');
-  }
-
-  async function openCheckoutModal() {
-    const data = await apiFetch('/cart');
-    if (!data.ok || !data.cart.length) {
-      alert('Your cart is empty!');
-      return false;
-    }
-    await renderCheckoutModalSummary(data);
-    await prefillCheckoutModal();
-    const modal = document.getElementById('checkout-modal');
-    if (!modal) return false;
-    modal.classList.add('open');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('checkout-modal-open');
-    updatePaymentMethodUI(getSelectedPaymentMethod());
-    bindDeliveryZone('#checkout-modal');
-    const district = data.checkoutDistrict || 'Dhaka';
-    await selectDeliveryZone(district, '#checkout-modal');
-    document.getElementById('cm-name')?.focus();
-    return true;
-  }
-
   async function proceedToCheckoutFromCart() {
     const data = await apiFetch('/cart');
     if (!data.ok || !data.cart.length) {
       alert('Your cart is empty. Add products before checkout.');
-      return;
+      return false;
     }
-    const opened = await openCheckoutModal();
-    if (!opened && window.showPage) {
+    if (window.RAKU_STANDALONE) {
+      window.location.href = '/checkout';
+      return true;
+    }
+    if (window.showPage) {
       window.showPage('checkout');
       await renderCheckout();
+      return true;
     }
+    window.location.href = '/checkout';
+    return true;
   }
 
-  window.openCheckoutModal = openCheckoutModal;
+  window.openCheckoutModal = proceedToCheckoutFromCart;
   window.proceedToCheckoutFromCart = proceedToCheckoutFromCart;
-  window.closeCheckoutModal = closeCheckoutModal;
-  window.goBackFromCheckoutModal = goBackFromCheckoutModal;
-
-  function bindCheckoutModal() {
-    bindCheckoutModalPayments();
-    bindDeliveryZone('#checkout-modal');
-    const backBtn = document.getElementById('checkout-modal-back');
-    const closeBtn = document.getElementById('checkout-modal-close');
-    const overlay = document.getElementById('checkout-modal');
-    if (backBtn && !backBtn._rakuBound) {
-      backBtn._rakuBound = true;
-      backBtn.onclick = goBackFromCheckoutModal;
-    }
-    if (closeBtn && !closeBtn._rakuBound) {
-      closeBtn._rakuBound = true;
-      closeBtn.onclick = closeCheckoutModal;
-    }
-    if (overlay && !overlay._rakuOverlayBound) {
-      overlay._rakuOverlayBound = true;
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) closeCheckoutModal();
-      });
-    }
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && overlay?.classList.contains('open')) closeCheckoutModal();
-    });
-    const btnModal = document.getElementById('btn-place-order-modal');
-    if (btnModal && !btnModal._rakuBound) {
-      btnModal._rakuBound = true;
-      btnModal.onclick = () => placeOrder(btnModal, '#checkout-modal');
-    }
-  }
 
   function bindCheckout() {
-    bindCheckoutModal();
+    bindCheckoutPayments();
     bindDeliveryZone('#page-checkout');
     const btn = document.getElementById('btn-place-order');
     if (btn && !btn._rakuBound) {
       btn._rakuBound = true;
       btn.onclick = () => placeOrder(btn, '#page-checkout');
+    }
+    const backBtn = document.getElementById('checkout-back-cart');
+    if (backBtn && !backBtn._rakuBound) {
+      backBtn._rakuBound = true;
+      backBtn.onclick = () => {
+        if (window.RAKU_STANDALONE) window.location.href = '/cart';
+        else if (window.showPage) window.showPage('cart');
+      };
     }
   }
 

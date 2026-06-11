@@ -330,8 +330,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const btnBuyNow = document.getElementById('btn-buy-now');
   if (btnBuyNow) {
     btnBuyNow.addEventListener('click', async () => {
-      if (window.openCheckoutModal) await window.openCheckoutModal();
-      else showPage('checkout');
+      if (window.proceedToCheckoutFromCart) await window.proceedToCheckoutFromCart();
+      else if (window.showPage) window.showPage('checkout');
     });
   }
 

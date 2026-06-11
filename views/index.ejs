@@ -16,7 +16,7 @@
 <link rel="stylesheet" href="/css/category.css?v=3">
 <link rel="stylesheet" href="/css/account.css?v=6">
 <link rel="stylesheet" href="/css/cart.css?v=5">
-<link rel="stylesheet" href="/css/checkout-modal.css?v=13">
+<link rel="stylesheet" href="/css/checkout-modal.css?v=14">
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
 <link rel="stylesheet" href="/css/responsive.css?v=29">
@@ -770,99 +770,6 @@
 </div>
 </div><!-- /page-cart -->
 
-<!-- Checkout popup (from cart) -->
-<div class="checkout-modal-overlay" id="checkout-modal" aria-hidden="true">
-  <div class="checkout-modal-box" role="dialog" aria-labelledby="checkout-modal-title">
-    <div class="checkout-modal-head">
-      <button type="button" class="checkout-modal-back" id="checkout-modal-back" aria-label="Back to cart">
-        <i class="ti ti-arrow-left" aria-hidden="true"></i>
-        <span>Back</span>
-      </button>
-      <h2 id="checkout-modal-title"><i class="ti ti-shopping-cart-check"></i> Checkout</h2>
-      <button type="button" class="checkout-modal-close" id="checkout-modal-close" aria-label="Close">&times;</button>
-    </div>
-    <div class="checkout-modal-body">
-      <div class="checkout-modal-grid">
-        <form class="checkout-modal-form" id="checkout-modal-form" onsubmit="return false;">
-          <div class="cm-section">
-            <div class="cm-section-title"><i class="ti ti-user"></i> Contact &amp; delivery</div>
-            <div class="cm-row">
-              <div class="cm-field">
-                <label class="cm-label" for="cm-name">Full name *</label>
-                <input class="cm-input" id="cm-name" name="name" type="text" placeholder="e.g. Rafi Ahmed" required>
-              </div>
-              <div class="cm-field">
-                <label class="cm-label" for="cm-phone">Mobile number *</label>
-                <input class="cm-input" id="cm-phone" name="phone" type="tel" placeholder="e.g. 01712345678" required>
-              </div>
-            </div>
-            <div class="cm-row cm-row-1">
-              <div class="cm-field">
-                <label class="cm-label" for="cm-address">Full address *</label>
-                <textarea class="cm-input" id="cm-address" name="address" rows="2" placeholder="e.g. House 12, Road 5, Dhanmondi, Dhaka" required style="resize:none;"></textarea>
-              </div>
-            </div>
-            <div class="cm-row cm-row-1">
-              <div class="cm-field">
-                <span class="cm-label">Delivery area *</span>
-                <div class="cm-zone-grid" id="cm-zone-grid" role="group" aria-label="Delivery area">
-                  <input type="hidden" name="district" id="cm-district" value="Dhaka">
-                  <button type="button" class="cm-zone-tile selected" data-district="Dhaka">Inside Dhaka</button>
-                  <button type="button" class="cm-zone-tile" data-district="Outside Dhaka">Outside Dhaka</button>
-                </div>
-                <small class="cm-zone-hint" id="cm-zone-hint"></small>
-              </div>
-            </div>
-          </div>
-          <div class="cm-section cm-payment-block">
-            <h3 class="cm-pay-heading">Choose payment method</h3>
-            <p class="cm-pay-subtitle">Pay manually — use any method below</p>
-            <div class="cm-pay-grid-2" id="cm-pay-grid" role="group" aria-label="Payment method">
-              <input type="hidden" name="paymethod" id="cm-paymethod-value" value="bkash">
-              <button type="button" class="cm-pay-tile selected" data-method="bkash">bKash</button>
-              <button type="button" class="cm-pay-tile" data-method="nagad">Nagad</button>
-              <button type="button" class="cm-pay-tile" data-method="rocket">Rocket</button>
-              <button type="button" class="cm-pay-tile" data-method="cod">COD</button>
-            </div>
-            <div class="cm-pay-instruct-box" id="cm-pay-instruct-box">
-              <div class="cm-pay-instruct-label">Instructions</div>
-              <p class="cm-pay-instruct-text" id="cm-pay-instruct-text"></p>
-              <div class="cm-pay-number" id="cm-pay-number" hidden></div>
-              <p class="cm-pay-instruct-hint" id="cm-pay-instruct-hint"></p>
-            </div>
-            <div class="cm-field cm-trx-field" id="cm-trx-wrap">
-              <label class="cm-label" for="cm-trxid">Transaction ID (TrxID) *</label>
-              <input class="cm-input" id="cm-trxid" name="trxid" type="text" placeholder="e.g. 8A7K9X2M" autocomplete="off">
-            </div>
-          </div>
-          <div class="cm-section">
-            <div class="cm-section-title"><i class="ti ti-notes"></i> Order notes (optional)</div>
-            <textarea class="cm-input" id="cm-notes" name="notes" rows="2" placeholder="e.g. Call before delivery, evening preferred" style="width:100%;resize:none;"></textarea>
-          </div>
-        </form>
-        <aside class="checkout-modal-summary">
-          <h3>Order summary</h3>
-          <div id="checkout-modal-items"></div>
-          <div class="cm-summary-rows">
-            <div class="cm-summary-row"><span>Subtotal</span><span class="summary-subtotal">৳0</span></div>
-            <div class="cm-summary-row"><span>Delivery</span><span class="summary-delivery">Free</span></div>
-            <div class="c-coupon-row cm-coupon-row">
-              <input class="c-coupon-input js-coupon-input" type="text" placeholder="Coupon code" autocomplete="off">
-              <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
-              <button type="button" class="c-coupon-remove js-coupon-remove" hidden>Remove</button>
-            </div>
-            <div class="cm-summary-row cm-total"><span>Total</span><span class="summary-total">৳0</span></div>
-          </div>
-          <button type="button" class="btn-place-order-modal" id="btn-place-order-modal">
-            <i class="ti ti-lock"></i> Place order
-          </button>
-          <p class="cm-secure"><i class="ti ti-shield-check"></i> Secure checkout</p>
-        </aside>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Track Order modal -->
 <div class="trk-overlay" id="track-modal" aria-hidden="true">
   <div class="trk-modal" role="dialog" aria-labelledby="trk-title">
@@ -892,265 +799,104 @@
  CHECKOUT / PAYMENT PAGE
 =================================================== -->
 <div id="page-checkout" style="display:none;">
-<style>
-.checkout-wrap { max-width:720px; margin:0 auto; padding:24px 20px 40px; display:flex; flex-direction:column; gap:24px; }
-.checkout-summary-box { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; position:static; width:100%; }
-@media(max-width:520px){ .checkout-steps { overflow-x:auto; padding:0 12px; } .step-label { font-size:10px; } }
+<div class="checkout-page">
+  <div class="checkout-page-head">
+    <button type="button" class="checkout-page-back" id="checkout-back-cart" aria-label="Back to cart">
+      <i class="ti ti-arrow-left" aria-hidden="true"></i>
+      <span>Back to cart</span>
+    </button>
+    <h1 class="checkout-page-title"><i class="ti ti-shopping-cart-check"></i> Checkout</h1>
+  </div>
 
-.checkout-steps { display:flex; align-items:center; gap:0; margin-bottom:24px; max-width:1200px; margin-left:auto; margin-right:auto; padding:0 20px; }
-.step-item { display:flex; align-items:center; gap:8px; }
-.step-circle { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; flex-shrink:0; }
-.step-active .step-circle { background:var(--primary); color:#fff; }
-.step-done .step-circle { background:var(--green); color:#fff; }
-.step-inactive .step-circle { background:var(--border); color:var(--text-muted); }
-.step-label { font-size:12px; font-weight:600; }
-.step-active .step-label { color:var(--primary); }
-.step-done .step-label { color:var(--green); }
-.step-inactive .step-label { color:var(--text-muted); }
-.step-line { flex:1; height:2px; background:var(--border); margin:0 8px; min-width:20px; }
-.step-line-done { background:var(--green); }
+  <div class="checkout-steps checkout-page-steps">
+    <div class="step-item step-done"><div class="step-circle"><i class="ti ti-check" style="font-size:14px;"></i></div><span class="step-label">Cart</span></div>
+    <div class="step-line step-line-done"></div>
+    <div class="step-item step-active"><div class="step-circle">2</div><span class="step-label">Checkout</span></div>
+    <div class="step-line"></div>
+    <div class="step-item step-inactive"><div class="step-circle">3</div><span class="step-label">Confirmation</span></div>
+  </div>
 
-.section-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); padding:20px; margin-bottom:16px; }
-.section-card-title { font-size:15px; font-weight:700; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
-.section-card-title i { color:var(--primary); font-size:18px; }
+  <div class="checkout-page-grid">
+    <form class="checkout-page-form checkout-modal-form" id="checkout-page-form" onsubmit="return false;">
+      <div class="cm-section">
+        <div class="cm-section-title"><i class="ti ti-user"></i> Contact &amp; delivery</div>
+        <div class="cm-row">
+          <div class="cm-field">
+            <label class="cm-label" for="cm-name">Full name *</label>
+            <input class="cm-input" id="cm-name" name="name" type="text" placeholder="e.g. Rafi Ahmed" required>
+          </div>
+          <div class="cm-field">
+            <label class="cm-label" for="cm-phone">Mobile number *</label>
+            <input class="cm-input" id="cm-phone" name="phone" type="tel" placeholder="e.g. 01712345678" required>
+          </div>
+        </div>
+        <div class="cm-row cm-row-1">
+          <div class="cm-field">
+            <label class="cm-label" for="cm-address">Full address *</label>
+            <textarea class="cm-input" id="cm-address" name="address" rows="2" placeholder="e.g. House 12, Road 5, Dhanmondi, Dhaka" required style="resize:none;"></textarea>
+          </div>
+        </div>
+        <div class="cm-row cm-row-1">
+          <div class="cm-field">
+            <span class="cm-label">Delivery area *</span>
+            <div class="checkout-zone-grid" id="checkout-page-zone-grid" role="group" aria-label="Delivery area">
+              <input type="hidden" name="district" id="checkout-page-district" value="Dhaka">
+              <button type="button" class="checkout-zone-tile selected" data-district="Dhaka">Inside Dhaka</button>
+              <button type="button" class="checkout-zone-tile" data-district="Outside Dhaka">Outside Dhaka</button>
+            </div>
+            <small class="checkout-zone-hint" id="checkout-page-zone-hint"></small>
+          </div>
+        </div>
+      </div>
 
-.form-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
-.form-row-1 { grid-template-columns:1fr; }
-@media(max-width:500px){ .form-row { grid-template-columns:1fr; } }
-.form-group { display:flex; flex-direction:column; gap:5px; }
-.form-label { font-size:12px; font-weight:600; color:var(--text-muted); }
-.form-input {
- border:1.5px solid var(--border); border-radius:var(--radius-sm); padding:10px 12px;
- font-family:inherit; font-size:14px; color:var(--text); outline:none; background:var(--surface);
- transition:border-color 0.15s;
-}
-.form-input:focus { border-color:var(--primary); }
-.form-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B6B6B' fill='none' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+      <div class="cm-section cm-payment-block">
+        <h3 class="cm-pay-heading">Choose payment method</h3>
+        <p class="cm-pay-subtitle">Pay manually — use any method below</p>
+        <div class="cm-pay-grid-2" id="cm-pay-grid" role="group" aria-label="Payment method">
+          <input type="hidden" name="paymethod" id="cm-paymethod-value" value="bkash">
+          <button type="button" class="cm-pay-tile selected" data-method="bkash">bKash</button>
+          <button type="button" class="cm-pay-tile" data-method="nagad">Nagad</button>
+          <button type="button" class="cm-pay-tile" data-method="rocket">Rocket</button>
+          <button type="button" class="cm-pay-tile" data-method="cod">COD</button>
+        </div>
+        <div class="cm-pay-instruct-box" id="cm-pay-instruct-box">
+          <div class="cm-pay-instruct-label">Instructions</div>
+          <p class="cm-pay-instruct-text" id="cm-pay-instruct-text"></p>
+          <div class="cm-pay-number" id="cm-pay-number" hidden></div>
+          <p class="cm-pay-instruct-hint" id="cm-pay-instruct-hint"></p>
+        </div>
+        <div class="cm-field cm-trx-field" id="cm-trx-wrap">
+          <label class="cm-label" for="cm-trxid">Transaction ID (TrxID) *</label>
+          <input class="cm-input" id="cm-trxid" name="trxid" type="text" placeholder="e.g. 8A7K9X2M" autocomplete="off">
+        </div>
+      </div>
 
-/* Payment Methods */
-.pay-methods-grid { display:flex; flex-direction:column; gap:10px; }
-.pay-method-card {
- border:2px solid var(--border); border-radius:var(--radius-md); padding:14px 16px;
- cursor:pointer; transition:all 0.15s; display:flex; align-items:center; gap:12px;
-}
-.pay-method-card:hover { border-color:var(--primary-light); background:var(--primary-pale); }
-.pay-method-card.selected { border-color:var(--primary); background:var(--primary-pale); }
-.pay-method-card input[type=radio] { display:none; }
-.pay-method-icon {
- width:44px; height:44px; border-radius:var(--radius-sm);
- display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:22px;
-}
-.pay-method-name { font-size:14px; font-weight:600; color:var(--text); }
-.pay-method-desc { font-size:11px; color:var(--text-muted); }
-.pay-method-check { margin-left:auto; width:22px; height:22px; border-radius:50%; border:2px solid var(--border); display:flex; align-items:center; justify-content:center; }
-.pay-method-card.selected .pay-method-check { background:var(--primary); border-color:var(--primary); }
-.pay-method-card.selected .pay-method-check::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; }
+      <div class="cm-section">
+        <div class="cm-section-title"><i class="ti ti-notes"></i> Order notes (optional)</div>
+        <textarea class="cm-input" id="cm-notes" name="notes" rows="2" placeholder="e.g. Call before delivery, evening preferred" style="width:100%;resize:none;"></textarea>
+      </div>
+    </form>
 
-.pay-sub-form { margin-top:10px; padding:14px; background:var(--surface2); border-radius:var(--radius-md); border:1px solid var(--border); }
-.pay-sub-form .form-label { color:var(--text); }
-.pay-number-input { display:flex; gap:8px; }
-.pay-number-input input { flex:1; }
-.pay-otp-hint { font-size:11px; color:var(--text-muted); margin-top:6px; display:flex; align-items:center; gap:4px; }
-.pay-otp-hint i { color:var(--amber); }
-
-/* Card form */
-.card-number-input { position:relative; }
-.card-number-input i { position:absolute; right:12px; top:50%; transform:translateY(-50%); font-size:20px; color:var(--text-light); }
-.card-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-
-/* COD */
-.cod-info { display:flex; align-items:center; gap:12px; padding:12px; background:var(--amber-pale); border-radius:var(--radius-md); border:1px solid var(--amber); }
-.cod-info i { font-size:24px; color:var(--amber); }
-.cod-info p { font-size:13px; color:var(--amber); font-weight:500; }
-
-/* Place order btn */
-.btn-place-order { width:100%; background:linear-gradient(135deg, var(--accent) 0%, #c23938 100%); color:#fff; border:none; padding:16px; border-radius:var(--radius-md); font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:10px; transition:transform 0.15s, box-shadow 0.15s; box-shadow:0 4px 16px rgba(226,75,74,0.35); }
-.btn-place-order:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(226,75,74,0.4); }
-
-/* Checkout Summary Box */
-.checkout-product-row { display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
-.checkout-product-row:last-of-type { border:none; }
-.checkout-prod-img { width:48px; height:48px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-.checkout-prod-img i { font-size:22px; }
-.checkout-prod-name { font-size:12px; font-weight:600; flex:1; }
-.checkout-prod-price { font-size:13px; font-weight:700; color:var(--accent); }
-</style>
-
-<!-- Steps -->
-<div class="checkout-steps" style="margin-top:20px;">
- <div class="step-item step-done"><div class="step-circle"><i class="ti ti-check" style="font-size:14px;"></i></div><span class="step-label">Cart</span></div>
- <div class="step-line step-line-done"></div>
- <div class="step-item step-active"><div class="step-circle">2</div><span class="step-label">Checkout</span></div>
- <div class="step-line"></div>
- <div class="step-item step-inactive"><div class="step-circle">3</div><span class="step-label">Confirmation</span></div>
-</div>
-
-<div class="checkout-wrap">
- <!-- Left: Forms -->
- <div>
- <!-- Shipping Info -->
- <div class="section-card">
- <div class="section-card-title"><i class="ti ti-map-pin"></i> Delivery Address</div>
- <div class="form-row">
- <div class="form-group"><label class="form-label">Full Name *</label><input class="form-input" type="text" placeholder="Enter your full name"></div>
- <div class="form-group"><label class="form-label">Mobile Number *</label><input class="form-input" type="tel" placeholder="+880 1XXXXXXXXX"></div>
- </div>
- <div class="form-row form-row-1">
- <div class="form-group"><label class="form-label">Full Address *</label><textarea class="form-input" rows="2" placeholder="House, road, area..." style="resize:none;"></textarea></div>
- </div>
- <div class="form-row form-row-1">
- <div class="form-group">
- <label class="form-label">Delivery area *</label>
- <div class="checkout-zone-grid" id="checkout-page-zone-grid" role="group" aria-label="Delivery area">
- <input type="hidden" name="district" id="checkout-page-district" value="Dhaka">
- <button type="button" class="checkout-zone-tile selected" data-district="Dhaka">Inside Dhaka</button>
- <button type="button" class="checkout-zone-tile" data-district="Outside Dhaka">Outside Dhaka</button>
- </div>
- <small class="checkout-zone-hint" id="checkout-page-zone-hint"></small>
- </div>
- </div>
- </div>
-
- <!-- Payment Methods -->
- <div class="section-card">
- <div class="section-card-title"><i class="ti ti-credit-card"></i> Payment Method</div>
- <div class="pay-methods-grid">
-
- <!-- bKash -->
- <div class="pay-method-card" data-method="bkash">
- <input type="radio" name="paymethod" value="bkash">
- <div class="pay-method-icon" style="background:#fce4ec;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/28/BKash_Logo.svg/100px-BKash_Logo.svg.png" alt="bKash" style="width:36px; height:auto;" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-weight:800;color:#d81b60;font-size:13px;\'>bKash</span>'"></div>
- <div><div class="pay-method-name">bKash</div><div class="pay-method-desc">Mobile banking — instant payment</div></div>
- <div class="pay-method-check"></div>
- </div>
- <div class="pay-sub-form" id="form-bkash" style="display:none;">
- <div class="form-group">
- <label class="form-label">bKash number</label>
- <div class="pay-number-input">
- <input class="form-input" type="tel" placeholder="01XXXXXXXXX" style="flex:1;">
- </div>
- </div>
- <p class="pay-otp-hint"><i class="ti ti-info-circle"></i> Order confirmed Your bKash number OTP All।</p>
- </div>
-
- <!-- Nagad -->
- <div class="pay-method-card" data-method="nagad">
- <input type="radio" name="paymethod" value="nagad">
- <div class="pay-method-icon" style="background:#fff3e0;"><img src="https://upload.wikimedia.org/wikipedia/commons/thumb/9/92/Nagad_Logo.svg/100px-Nagad_Logo.svg.png" alt="Nagad" style="width:36px; height:auto;" onerror="this.style.display='none'; this.parentElement.innerHTML='<span style=\'font-weight:800;color:#e65100;font-size:13px;\'>Nagad</span>'"></div>
- <div><div class="pay-method-name">Nagad</div><div class="pay-method-desc">Postal mobile banking</div></div>
- <div class="pay-method-check"></div>
- </div>
- <div class="pay-sub-form" id="form-nagad" style="display:none;">
- <div class="form-group">
- <label class="form-label">Nagad number</label>
- <input class="form-input" type="tel" placeholder="01XXXXXXXXX">
- </div>
- <p class="pay-otp-hint"><i class="ti ti-info-circle"></i> Enter your Nagad PIN to confirm payment.</p>
- </div>
-
- <!-- Rocket -->
- <div class="pay-method-card" data-method="rocket">
- <input type="radio" name="paymethod" value="rocket">
- <div class="pay-method-icon" style="background:#ede7f6;"><i class="ti ti-rocket" style="color:#7b1fa2;"></i></div>
- <div><div class="pay-method-name">Rocket (DBBL)</div><div class="pay-method-desc">Dutch-Bangla mobile banking</div></div>
- <div class="pay-method-check"></div>
- </div>
- <div class="pay-sub-form" id="form-rocket" style="display:none;">
- <div class="form-group">
- <label class="form-label">Rocket number</label>
- <input class="form-input" type="tel" placeholder="01XXXXXXXXX">
- </div>
- <p class="pay-otp-hint"><i class="ti ti-info-circle"></i> A payment request will be sent to your Rocket account.</p>
- </div>
-
- <!-- Card -->
- <div class="pay-method-card" data-method="card">
- <input type="radio" name="paymethod" value="card">
- <div class="pay-method-icon" style="background:#e3f2fd;"><i class="ti ti-credit-card" style="color:#1565c0;"></i></div>
- <div><div class="pay-method-name">Credit / Debit Card</div><div class="pay-method-desc">Visa, MasterCard, AMEX accepted</div></div>
- <div class="pay-method-check"></div>
- </div>
- <div class="pay-sub-form" id="form-card" style="display:none;">
- <div class="form-group" style="margin-bottom:10px;">
- <label class="form-label">Card number</label>
- <div class="card-number-input">
- <input class="form-input" type="text" placeholder="XXXX XXXX XXXX XXXX" maxlength="19" style="width:100%; padding-right:40px;">
- <i class="ti ti-credit-card"></i>
- </div>
- </div>
- <div class="card-row">
- <div class="form-group"><label class="form-label">Expiry</label><input class="form-input" type="text" placeholder="MM/YY" maxlength="5"></div>
- <div class="form-group"><label class="form-label">CVV</label><input class="form-input" type="text" placeholder="XXX" maxlength="4"></div>
- </div>
- <div class="form-group" style="margin-top:8px;"><label class="form-label">Cardholder name</label><input class="form-input" type="text" placeholder="Enter name"></div>
- </div>
-
- <!-- Bank Transfer -->
- <div class="pay-method-card" data-method="bank">
- <input type="radio" name="paymethod" value="bank">
- <div class="pay-method-icon" style="background:#e8f5e9;"><i class="ti ti-building-bank" style="color:#2e7d32;"></i></div>
- <div><div class="pay-method-name">Bank Transfer</div><div class="pay-method-desc">NPSB / BEFTN internet banking</div></div>
- <div class="pay-method-check"></div>
- </div>
- <div class="pay-sub-form" id="form-bank" style="display:none;">
- <p style="font-size:13px; color:var(--text-muted); line-height:1.7; margin-bottom:8px;">Transfer to the account below and save your reference number:</p>
- <div style="background:#fff; border:1px solid var(--border); border-radius:8px; padding:12px; font-size:12px; line-height:2;">
- <b>Bank:</b> Dutch-Bangla Bank Limited<br>
- <b>Account name:</b> RakuShopBD Limited<br>
- <b>Account number:</b> 1234567890<br>
- <b>Routing:</b> 090261419
- </div>
- </div>
-
- <!-- COD -->
- <div class="pay-method-card selected" data-method="cod">
- <input type="radio" name="paymethod" value="cod" checked>
- <div class="pay-method-icon" style="background:#fff8e1;"><i class="ti ti-cash" style="color:#f57f17;"></i></div>
- <div><div class="pay-method-name"> Delivery</div><div class="pay-method-desc">Pay when you receive</div></div>
- <div class="pay-method-check" style="background:var(--primary); border-color:var(--primary);"><div style="width:8px;height:8px;border-radius:50%;background:#fff;margin:auto;"></div></div>
- </div>
- <div class="pay-sub-form" id="form-cod" style="display:block;">
- <div class="cod-info">
- <i class="ti ti-info-circle"></i>
- <p> Delivery Delivery Pay। ।</p>
- </div>
- </div>
-
- </div>
- </div>
-
- <!-- Order Notes -->
- <div class="section-card">
- <div class="section-card-title"><i class="ti ti-notes"></i> Order Notes (optional)</div>
- <div class="form-group">
- <textarea class="form-input" rows="3" placeholder="Any special instructions..." style="resize:none; width:100%;"></textarea>
- </div>
- </div>
- </div>
-
- <!-- Right: Summary -->
- <div>
- <div class="checkout-summary-box">
- <div class="summary-title" style="margin-bottom:14px;">Order Summary</div>
- <div style="border-top:1.5px solid var(--border); margin:12px 0;"></div>
- <div class="summary-row"><span class="summary-row-label">Subtotal</span><span class="summary-subtotal">৳7,797</span></div>
- <div class="summary-row"><span class="summary-row-label">Delivery</span><span class="summary-delivery" style="color:var(--green);">Free</span></div>
- <div class="c-coupon-row checkout-coupon-row">
- <input class="c-coupon-input js-coupon-input" type="text" placeholder="Coupon code e.g. RakuShopBD10" autocomplete="off">
- <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
- <button type="button" class="c-coupon-remove js-coupon-remove" hidden>Remove</button>
- </div>
- <div class="summary-total-row"><span>Total </span><span class="summary-total" style="color:var(--accent);">৳7,797</span></div>
- <button class="btn-place-order" id="btn-place-order"><i class="ti ti-lock"></i> Place Order</button>
- <div class="secure-badges" style="margin-top:12px;">
- <span class="sec-badge"><i class="ti ti-shield-check"></i> SSL secured</span>
- <span class="sec-badge"><i class="ti ti-refresh"></i> 7 days Return</span>
- </div>
- <div style="text-align:center; margin-top:10px; font-size:11px; color:var(--text-light);">
- By placing an order you agree to our <a href="/terms-and-conditions" style="color:var(--primary);">Terms</a> and <a href="/privacy-policy" style="color:var(--primary);">Privacy Policy</a>.
- </div>
- </div>
- </div>
+    <aside class="checkout-page-summary checkout-modal-summary">
+      <h3>Order summary</h3>
+      <div id="checkout-page-items"></div>
+      <div class="cm-summary-rows">
+        <div class="cm-summary-row"><span>Subtotal</span><span class="summary-subtotal">৳0</span></div>
+        <div class="cm-summary-row"><span>Delivery</span><span class="summary-delivery">Free</span></div>
+        <div class="c-coupon-row cm-coupon-row">
+          <input class="c-coupon-input js-coupon-input" type="text" placeholder="Coupon code" autocomplete="off">
+          <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
+          <button type="button" class="c-coupon-remove js-coupon-remove" hidden>Remove</button>
+        </div>
+        <div class="cm-summary-row cm-total"><span>Total</span><span class="summary-total">৳0</span></div>
+      </div>
+      <button type="button" class="btn-place-order-modal" id="btn-place-order">
+        <i class="ti ti-lock"></i> Place order
+      </button>
+      <p class="cm-secure"><i class="ti ti-shield-check"></i> Secure checkout</p>
+      <p class="checkout-page-legal">By placing an order you agree to our <a href="/terms-and-conditions">Terms</a> and <a href="/privacy-policy">Privacy Policy</a>.</p>
+    </aside>
+  </div>
 </div>
 </div><!-- /page-checkout -->
 
@@ -1709,10 +1455,10 @@
 <script src="/js/maintenance-view.js?v=3" defer></script>
 <script src="/js/seo.js?v=5" defer></script>
 <script src="/js/mobile-menu.js?v=1" defer></script>
-<script src="/js/app.js?v=25" defer></script>
+<script src="/js/app.js?v=26" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
 <script src="/js/home-today-selling.js?v=6" defer></script>
-<script src="/js/api.js?v=68" defer></script>
+<script src="/js/api.js?v=69" defer></script>
 <script src="/js/home-recommendations.js?v=3" defer></script>
 <script src="/js/home-messenger-chats.js?v=2" defer></script>
 <script src="/js/home-customer-reviews.js?v=4" defer></script>

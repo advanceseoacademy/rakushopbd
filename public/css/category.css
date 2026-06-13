@@ -47,8 +47,16 @@
 @media (max-width: 900px) {
   .cat-layout {
     grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
   }
+
+  .cat-main {
+    order: 1;
+  }
+
   .cat-sidebar {
+    order: 2;
     position: static;
   }
 }

@@ -847,14 +847,14 @@ router.delete('/coupons/:id', requireAdmin, async (req, res) => {
 // ——— Today Selling (hero sidebar) ———
 router.put('/today-selling', requireAdmin, async (req, res) => {
   try {
-    const { enabled, title, product1, product2 } = req.body;
+    const { enabled, title, product1 } = req.body;
     if (enabled != null) {
       await query(upsertSiteSettingSql(), ['today_selling_enabled', enabled === false || enabled === '0' ? '0' : '1']);
     }
     if (title != null) {
       await query(upsertSiteSettingSql(), ['today_selling_title', String(title).trim() || 'Today Selling']);
     }
-    await setTodaySellingProducts(query, product1 || null, product2 || null);
+    await setTodaySellingProducts(query, product1 || null);
     clearSiteSettingsCache();
     clearStoreBootstrapCache();
     res.json({ ok: true });

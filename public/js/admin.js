@@ -1011,13 +1011,9 @@
 
   function syncPfTodaySellingFields(product) {
     const cb = document.getElementById('pf-today-selling');
-    const wrap = document.getElementById('pf-today-selling-slot-wrap');
-    const slotSel = document.getElementById('pf-today-selling-slot');
-    if (!cb || !wrap || !slotSel) return;
+    if (!cb) return;
     const slot = Number(product?.today_selling_slot || product?.todaySellingSlot || 0);
-    cb.checked = slot === 1 || slot === 2;
-    slotSel.value = slot === 2 ? '2' : '1';
-    wrap.hidden = !cb.checked;
+    cb.checked = slot === 1;
   }
 
   function collectTodaySellingSettings() {
@@ -1025,14 +1021,12 @@
       enabled: document.getElementById('ts-enabled')?.checked ? '1' : '0',
       title: document.getElementById('ts-title')?.value.trim() || 'Today Selling',
       product1: document.getElementById('ts-product-1')?.value || '',
-      product2: document.getElementById('ts-product-2')?.value || '',
     };
   }
 
-  async function fillTodaySellingProductSelects(selected1, selected2) {
+  async function fillTodaySellingProductSelects(selected1) {
     const sel1 = document.getElementById('ts-product-1');
-    const sel2 = document.getElementById('ts-product-2');
-    if (!sel1 || !sel2) return;
+    if (!sel1) return;
 
     const data = await api('/products?limit=200&page=1');
     const products = data.ok ? data.products || [] : [];
@@ -1046,9 +1040,7 @@
         .join('');
 
     sel1.innerHTML = options;
-    sel2.innerHTML = options;
     sel1.value = selected1 ? String(selected1) : '';
-    sel2.value = selected2 ? String(selected2) : '';
   }
 
   function collectMarketingSettings() {
@@ -1079,10 +1071,9 @@
       const prodData = await api('/products?limit=200&page=1');
       if (prodData.ok && prodData.products) {
         const slot1 = prodData.products.find((p) => Number(p.today_selling_slot) === 1);
-        const slot2 = prodData.products.find((p) => Number(p.today_selling_slot) === 2);
-        await fillTodaySellingProductSelects(slot1?.id, slot2?.id);
+        await fillTodaySellingProductSelects(slot1?.id);
       } else {
-        await fillTodaySellingProductSelects('', '');
+        await fillTodaySellingProductSelects('');
       }
       const en = document.getElementById('mkt-enabled');
       if (en) en.checked = s.marketing_enabled !== '0';
@@ -1122,11 +1113,6 @@
   });
   document.getElementById('mkt2-image')?.addEventListener('input', (e) => {
     setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', e.target.value);
-  });
-
-  document.getElementById('pf-today-selling')?.addEventListener('change', (e) => {
-    const wrap = document.getElementById('pf-today-selling-slot-wrap');
-    if (wrap) wrap.hidden = !e.target.checked;
   });
 
   document.getElementById('today-selling-save-btn')?.addEventListener('click', async () => {
@@ -1945,9 +1931,7 @@
       bgColor: document.getElementById('pf-bg').value,
       tagType: document.getElementById('pf-tag').value,
       isFeatured: document.getElementById('pf-featured').checked,
-      todaySellingSlot: document.getElementById('pf-today-selling')?.checked
-        ? Number(document.getElementById('pf-today-selling-slot')?.value || 1)
-        : 0,
+      todaySellingSlot: document.getElementById('pf-today-selling')?.checked ? 1 : 0,
       seoTitle: document.getElementById('pf-seo-title')?.value?.trim() || null,
       seoDescription: document.getElementById('pf-seo-desc')?.value?.trim() || null,
       seoKeywords: document.getElementById('pf-seo-keywords')?.value?.trim() || null,

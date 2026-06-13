@@ -302,14 +302,7 @@
               <div class="form-group"><label class="form-label"><input type="checkbox" id="pf-featured" checked> Show on homepage</label></div>
               <div class="form-group">
                 <label class="form-label"><input type="checkbox" id="pf-today-selling"> Show in Today Selling</label>
-                <small class="form-hint">Hero banner-এর ডান পাশে — সাইটে সর্বোচ্চ ২টি product</small>
-              </div>
-              <div class="form-group" id="pf-today-selling-slot-wrap" hidden>
-                <label class="form-label" for="pf-today-selling-slot">Today Selling slot</label>
-                <select class="form-input form-select" id="pf-today-selling-slot">
-                  <option value="1">Slot 1 (top)</option>
-                  <option value="2">Slot 2 (bottom)</option>
-                </select>
+                <small class="form-hint">Hero banner-এর ডান পাশে — ১টি featured product</small>
               </div>
               <details class="form-seo-panel" id="pf-seo-panel">
                 <summary class="form-seo-summary"><i class="ti ti-search"></i> SEO &amp; Search (optional)</summary>
@@ -427,16 +420,13 @@
       <div class="adm-section" id="sec-marketing">
         <div class="card" style="margin-bottom:20px;">
           <div class="card-title">Today Selling (hero sidebar)</div>
-          <p class="form-hint" style="margin-bottom:14px;">Homepage hero banner-এর ডান পাশে ২টি product দেখাবে।</p>
+          <p class="form-hint" style="margin-bottom:14px;">Homepage hero banner-এর ডান পাশে ১টি featured product দেখাবে।</p>
           <div class="settings-row" style="margin-bottom:14px;">
             <div><div>Show Today Selling</div><div class="settings-row-info">Next to homepage hero banner</div></div>
             <label class="toggle"><input type="checkbox" id="ts-enabled" checked><span class="toggle-slider"></span></label>
           </div>
           <div class="form-group"><label class="form-label">Section title</label><input class="form-input" id="ts-title" value="Today Selling"></div>
-          <div class="form-2col">
-            <div class="form-group"><label class="form-label">Product 1</label><select class="form-input form-select" id="ts-product-1"><option value="">— Select product —</option></select></div>
-            <div class="form-group"><label class="form-label">Product 2</label><select class="form-input form-select" id="ts-product-2"><option value="">— Select product —</option></select></div>
-          </div>
+          <div class="form-group"><label class="form-label">Featured product</label><select class="form-input form-select" id="ts-product-1"><option value="">— Select product —</option></select></div>
           <button type="button" class="btn btn-primary" id="today-selling-save-btn"><i class="ti ti-device-floppy"></i> Save Today Selling</button>
         </div>
         <div class="grid-2" style="margin-bottom:20px;">
@@ -1120,6 +1110,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/admin-rich-editor.js?v=3"></script>
-<script src="/js/admin.js?v=66"></script>
+<script src="/js/admin.js?v=67"></script>
 </body>
 </html>

@@ -1815,6 +1815,13 @@
   }
   .cat-icon--img {
     overflow: hidden;
+    padding: 0;
+  }
+  .cat-icon--img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
   }
   .cat-name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
   .cat-count { font-size: 10px; color: var(--text-light); }

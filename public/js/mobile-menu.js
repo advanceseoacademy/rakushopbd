@@ -6,6 +6,7 @@
     '/': 'home',
     '/appointment': 'appointment',
     '/faq': 'faq',
+    '/rewards': 'rewards',
     '/contact': 'contact',
     '/track': 'track',
     '/privacy-policy': 'privacy',

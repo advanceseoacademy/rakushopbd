@@ -358,6 +358,7 @@
       success: 'Order Confirmed',
       appointment: 'Book Appointment',
       track: 'Track Order',
+      rewards: 'Raku Rewards',
     };
     const label = labels[page] || page;
     const sn = siteName();
@@ -457,10 +458,25 @@
     if (page === 'home') return apply(forHome());
     if (NOINDEX.has(page)) return apply(forPrivatePage(page));
     if (page === 'appointment' || page === 'track') return apply(forPrivatePage(page));
-    if (page === 'faq' || page === 'contact') return apply(forPrivatePage(page));
+    if (page === 'faq' || page === 'contact' || page === 'rewards') return apply(forPrivatePage(page));
     if (page === 'privacy' || page === 'terms' || page === 'return' || page === 'preorder') return apply(forLegalPage(page));
     if (page === 'product' && opts?.product) return apply(forProduct(opts.product));
     if (page === 'category' && opts?.category) return apply(forCategory(opts.category));
+    if (page === 'category' && opts?.categorySlug) {
+      const slug = String(opts.categorySlug);
+      const virtualTitles = {
+        all: 'All Products',
+        'best-selling': 'Best Selling Products',
+        'new-arrivals': 'New Arrivals',
+        'today-deals': 'Today Deals',
+      };
+      const cats = window._rakuCategories || [];
+      const cat = cats.find((c) => c.slug === slug) || {
+        slug,
+        name_bn: virtualTitles[slug] || slug.replace(/-/g, ' '),
+      };
+      return apply(forCategory(cat));
+    }
   }
 
   window.RakuSEO = {

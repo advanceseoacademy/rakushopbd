@@ -1430,3 +1430,66 @@ body.banner-modal-open {
   color: #94a3b8;
   font-style: normal;
 }
+
+/* Marketing admin tabs */
+.marketing-admin-page .settings-tabs {
+  flex-wrap: wrap;
+}
+
+.marketing-checklist {
+  max-height: 320px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.marketing-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.marketing-tier-panel {
+  margin: 0 !important;
+  height: auto;
+}
+
+.marketing-tier-head {
+  cursor: default;
+}
+
+.marketing-tier-panel .form-seo-body {
+  padding: 12px 14px 14px;
+}
+
+.marketing-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.marketing-promo-card {
+  margin: 0;
+  box-shadow: none;
+}
+
+.marketing-promo-card .settings-card-head {
+  padding-bottom: 0;
+}
+
+.marketing-img-preview {
+  max-width: 120px;
+  max-height: 120px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  object-fit: cover;
+}
+
+@media (max-width: 900px) {
+  .marketing-tier-grid,
+  .marketing-promo-grid {
+    grid-template-columns: 1fr;
+  }
+}

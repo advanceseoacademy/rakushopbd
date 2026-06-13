@@ -29,6 +29,7 @@ const { ensureFooterSettings } = require('./lib/ensureFooterSettings');
 const { ensureContactMessagesTable } = require('./lib/ensureContactMessagesTable');
 const { ensurePhoneSubscribersTable } = require('./lib/ensurePhoneSubscribersTable');
 const { ensureMarketingSettings } = require('./lib/ensureMarketingSettings');
+const { ensureRewardsSettings } = require('./lib/ensureRewardsSettings');
 const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
 const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
@@ -182,11 +183,26 @@ async function renderStorefront(req, res) {
     const productRef = productMatch ? decodeURIComponent(productMatch[1]) : null;
     const categoryMatch = req.path.match(/^\/category\/([^/]+)$/);
     const categorySlug = categoryMatch ? decodeURIComponent(categoryMatch[1]) : null;
-    const [bootstrap, product, category] = await Promise.all([
-      getStoreBootstrap(req, { lite: true }),
-      productRef ? getProductByRef(productRef) : null,
-      categorySlug ? getCategoryBySlug(categorySlug) : null,
-    ]);
+
+    const bootstrap = await getStoreBootstrap(req, { lite: true });
+    let product = null;
+    let category = null;
+
+    if (productRef) {
+      try {
+        product = await getProductByRef(productRef);
+      } catch (err) {
+        console.warn('renderStorefront product lookup failed', err.message);
+      }
+    }
+
+    if (categorySlug) {
+      try {
+        category = await getCategoryBySlug(categorySlug, bootstrap?.settings || {});
+      } catch (err) {
+        console.warn('renderStorefront category lookup failed', err.message);
+      }
+    }
 
     if (product && productRef && isNumericProductRef(productRef) && product.slug) {
       return res.redirect(301, `/product/${encodeURIComponent(product.slug)}`);
@@ -207,9 +223,25 @@ async function renderStorefront(req, res) {
 
 app.get('/', (req, res) => renderStorefront(req, res));
 
-app.get('/admin', (req, res) => {
+app.get('/admin', async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  res.render('admin');
+  try {
+    await ensureRewardsSettings();
+    const { parseRewardsContent } = require('./lib/rewardsPage');
+    const { query } = require('./config/db');
+    const rows = await query(
+      'SELECT setting_value FROM site_settings WHERE setting_key = ? LIMIT 1',
+      ['rewards_page_content']
+    );
+    const rewardsContent = parseRewardsContent({
+      rewards_page_content: rows[0]?.setting_value,
+    });
+    res.render('admin', { rewardsContent });
+  } catch (err) {
+    console.warn('admin render:', err.message);
+    const { getDefaultRewardsContent } = require('./lib/rewardsPage');
+    res.render('admin', { rewardsContent: getDefaultRewardsContent() });
+  }
 });
 
 app.use('/api', apiRoutes);
@@ -219,7 +251,7 @@ app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/rewards', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy'],
   (req, res) => renderStorefront(req, res)
 );
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));
@@ -271,6 +303,7 @@ app.listen(PORT, () => {
   ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
   ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
   ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
+  ensureRewardsSettings().catch((err) => console.warn('rewards settings:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
   ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));

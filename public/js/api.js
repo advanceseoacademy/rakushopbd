@@ -570,7 +570,7 @@
 
     document
       .querySelectorAll(
-        '#page-home .product-card[data-id], #page-category .product-card[data-id], #related-product-grid .product-card[data-id]'
+        '#page-home .product-card[data-id], #page-home .today-deals-card[data-id], #page-category .product-card[data-id], #related-product-grid .product-card[data-id]'
       )
       .forEach((card) => {
         const pid = Number(card.dataset.id);
@@ -584,6 +584,8 @@
     applyCartButtonsUI();
     requestAnimationFrame(() => syncAllHomeScrollCardWidths());
   }
+
+  window._rakuBindProductGrid = bindProductGridEvents;
 
   const HOME_PRODUCT_TRACK_IDS = [
     'track-best-selling',
@@ -647,15 +649,33 @@
     all: 'All Products',
     'best-selling': 'Best Selling Products',
     'new-arrivals': 'New Arrivals',
+    'today-deals': 'Today Deals',
   };
 
   const HOME_COLLECTIONS = {
-    'best-selling': { title: 'Best Selling Products', api: '/products?sort=best-selling&limit=100' },
-    'new-arrivals': { title: 'New Arrivals', api: '/products?sort=new-arrivals&limit=100' },
+    all: { title: 'All Products', api: '/products?category=all&limit=200' },
+    'best-selling': {
+      title: 'Best Selling Products',
+      api: '/collections/best-selling?limit=100',
+      preserveOrder: true,
+    },
+    'new-arrivals': { title: 'New Arrivals', api: '/collections/new-arrivals?limit=100', preserveOrder: true },
+    'today-deals': { title: 'Today Deals', api: '/today-deals', preserveOrder: true },
+  };
+
+  const HOME_COLLECTION_SLUGS = new Set(Object.keys(HOME_COLLECTIONS));
+  window._rakuHomeCollections = window._rakuHomeCollections || {};
+
+  window._rakuSetHomeCollectionLabel = function (slug, title) {
+    const label = String(title || '').trim();
+    if (!label || !HOME_COLLECTIONS[slug]) return;
+    CATEGORY_LABELS[slug] = label;
+    HOME_COLLECTIONS[slug].title = label;
   };
 
   window._rakuSetCategoryLabels = function (categories) {
     categories.forEach((c) => {
+      if (HOME_COLLECTION_SLUGS.has(c.slug)) return;
       CATEGORY_LABELS[c.slug] = c.name_bn;
     });
   };
@@ -702,10 +722,12 @@
   }
 
   const categoryState = {
-    slug: 'electronics',
+    slug: 'all',
     items: [],
     filtered: [],
   };
+
+  let categoryLoadToken = 0;
 
   function priceInRange(price, range) {
     const p = Number(price);
@@ -761,7 +783,10 @@
     let list = categoryState.items.filter(
       (p) => priceInRange(p.price, priceRange) && productMatchesRating(p, ratings) && productMatchesBrand(p, brands)
     );
-    list = sortProducts(list, sortBy);
+    const collection = HOME_COLLECTIONS[categoryState.slug];
+    if (!collection?.preserveOrder) {
+      list = sortProducts(list, sortBy);
+    }
     categoryState.filtered = list;
     renderCategoryGrid();
     updateCategoryCounts();
@@ -837,6 +862,10 @@
       ).length;
       el.textContent = c ? `(${c})` : '';
     });
+
+    list.querySelectorAll('input[name="cat-brand"]').forEach((el) => {
+      el.onchange = applyCategoryFilters;
+    });
   }
 
   function resetCategoryFilters() {
@@ -856,19 +885,61 @@
     });
     const sort = document.getElementById('cat-sort-select');
     if (sort) sort.onchange = applyCategoryFilters;
+  }
 
-    const brandList = document.getElementById('cat-brand-list');
-    if (brandList) {
-      brandList.onclick = (e) => {
-        if (e.target.matches('input[name="cat-brand"]')) applyCategoryFilters();
-      };
+  function bootstrapCollectionProducts(slug) {
+    const boot = window._rakuStoreBoot || window.__RAKU_BOOTSTRAP;
+    if (!boot) return [];
+    if (slug === 'best-selling') return boot.bestSelling || [];
+    if (slug === 'new-arrivals') return boot.newArrivals || [];
+    if (slug === 'today-deals') return boot.todayDeals || [];
+    return [];
+  }
+
+  function parseCollectionProducts(slug, data) {
+    if (!data?.ok) return null;
+    if (Array.isArray(data.products)) return data.products;
+    if (slug === 'best-selling' && Array.isArray(data.bestSelling)) return data.bestSelling;
+    if (slug === 'new-arrivals' && Array.isArray(data.newArrivals)) return data.newArrivals;
+    return null;
+  }
+
+  async function loadHomeCollectionProducts(slug, collection) {
+    const cached = window._rakuHomeCollections?.[slug];
+    if (cached?.length) {
+      void (async () => {
+        try {
+          const data = await apiFetch(collection.api);
+          const fresh = parseCollectionProducts(slug, data);
+          if (fresh?.length) window._rakuHomeCollections[slug] = fresh;
+        } catch (_) {}
+      })();
+      return cached;
     }
+
+    try {
+      const data = await apiFetch(collection.api);
+      if (slug === 'today-deals' && data.meta?.title) {
+        window._rakuSetHomeCollectionLabel?.('today-deals', data.meta.title);
+      }
+      const items = parseCollectionProducts(slug, data);
+      if (items?.length) {
+        window._rakuHomeCollections[slug] = items;
+        return items;
+      }
+    } catch (_) {}
+
+    const bootItems = bootstrapCollectionProducts(slug);
+    if (bootItems.length) return bootItems;
+    return [];
   }
 
   async function openCategory(slug, opts = {}) {
-    const collection = HOME_COLLECTIONS[slug];
+    const loadToken = ++categoryLoadToken;
+    const normalizedSlug = String(slug || '').trim();
+    const collection = HOME_COLLECTIONS[normalizedSlug];
     const fallback = window._rakuCategories?.[0]?.slug || 'all';
-    categoryState.slug = slug || (collection ? slug : fallback);
+    categoryState.slug = normalizedSlug || (collection ? normalizedSlug : fallback);
     const label = collection?.title || CATEGORY_LABELS[categoryState.slug] || 'Products';
 
     if (window._rakuTrackCategoryBrowse) window._rakuTrackCategoryBrowse(categoryState.slug);
@@ -884,35 +955,45 @@
     if (grid) grid.innerHTML = '<p class="cat-loading">Loading products...</p>';
 
     if (window.showPage) {
-      window.showPage('category', { categorySlug: categoryState.slug, skipUrl: opts.skipUrl });
+      window.showPage('category', {
+        categorySlug: categoryState.slug,
+        skipUrl: opts.skipUrl,
+        category: HOME_COLLECTION_SLUGS.has(categoryState.slug)
+          ? { slug: categoryState.slug, name_bn: label }
+          : (window._rakuCategories || []).find((c) => c.slug === categoryState.slug) || null,
+      });
     }
 
     resetCategoryFilters();
     const sortEl = document.getElementById('cat-sort-select');
     if (sortEl) {
-      if (slug === 'best-selling') sortEl.value = 'best-selling';
-      else if (slug === 'new-arrivals') sortEl.value = 'newest';
+      if (normalizedSlug === 'best-selling') sortEl.value = 'best-selling';
+      else if (normalizedSlug === 'new-arrivals') sortEl.value = 'newest';
     }
 
-    const apiUrl = collection
-      ? collection.api
-      : `/products?category=${encodeURIComponent(categoryState.slug)}`;
-
-    try {
-      const data = await apiFetch(apiUrl);
-      if (data.ok) {
-        categoryState.items = data.products;
-        products = [...new Map([...products, ...data.products].map((p) => [p.id, p])).values()];
-      } else {
-        categoryState.items = collection
-          ? []
-          : products.filter((p) => categorySlugsForFilter(categoryState.slug).has(p.category_slug));
+    let items = [];
+    if (collection) {
+      items = await loadHomeCollectionProducts(normalizedSlug, collection);
+    } else {
+      try {
+        const data = await apiFetch(`/products?category=${encodeURIComponent(categoryState.slug)}`);
+        if (data.ok) items = data.products || [];
+      } catch {
+        items = products.filter((p) => categorySlugsForFilter(categoryState.slug).has(p.category_slug));
       }
-    } catch {
-      categoryState.items = collection
-        ? []
-        : products.filter((p) => categorySlugsForFilter(categoryState.slug).has(p.category_slug));
     }
+
+    categoryState.items = items;
+    if (items.length) {
+      products = [...new Map([...products, ...items].map((p) => [p.id, p])).values()];
+    }
+
+    if (normalizedSlug === 'today-deals' && window._rakuSetHomeCollectionLabel) {
+      const dealsTitle = CATEGORY_LABELS['today-deals'];
+      if (dealsTitle) updateCategoryBreadcrumb(categoryState.slug, dealsTitle);
+    }
+
+    if (loadToken !== categoryLoadToken) return;
 
     renderBrandFilters();
     bindCategoryFilterEvents();
@@ -921,10 +1002,17 @@
 
     if (window.RakuSEO) {
       const cats = window._rakuCategories || [];
-      const cat =
-        cats.find((c) => c.slug === categoryState.slug) ||
-        { slug: categoryState.slug, name_bn: label };
-      window.RakuSEO.apply(window.RakuSEO.forCategory(cat));
+      const cat = cats.find((c) => c.slug === categoryState.slug);
+      if (cat) {
+        window.RakuSEO.apply(window.RakuSEO.forCategory(cat));
+      } else if (HOME_COLLECTION_SLUGS.has(categoryState.slug)) {
+        window.RakuSEO.apply(
+          window.RakuSEO.forCategory({
+            slug: categoryState.slug,
+            name_bn: CATEGORY_LABELS[categoryState.slug] || label,
+          })
+        );
+      }
     }
   }
 
@@ -1174,7 +1262,17 @@
         products.find((x) => x.slug === raw) ||
         null;
     }
-    if (!p) return;
+    if (!p) {
+      paintProductCore({
+        name_bn: 'Product not found',
+        price: 0,
+        bg_color: '#f5f5f5',
+        description_bn: 'This product may have been removed. Please browse our catalog.',
+      });
+      const titleEl = document.getElementById('pv-title');
+      if (titleEl) titleEl.textContent = 'Product not found';
+      return;
+    }
 
     mergeProductRecord(p);
     currentProduct = p;
@@ -1435,23 +1533,14 @@
         if (banner?.bg_gradient || banner?.bgGradient) {
           heroMain.style.setProperty('--hero-bg', banner.bg_gradient || banner.bgGradient);
         }
-        if (window.syncHeroSideHeight) window.syncHeroSideHeight();
       };
-      const syncHero = () => {
-        if (window.syncHeroSideHeight) {
-          window.syncHeroSideHeight();
-          requestAnimationFrame(() => window.syncHeroSideHeight?.());
-        }
-      };
-      imgEl.onload = syncHero;
+      imgEl.onload = null;
       imgEl.src = src;
       imgEl.alt = banner?.title || 'Homepage banner';
-      if (imgEl.complete) syncHero();
     } else {
       heroMain.classList.remove('hero-main--has-bg-photo');
       heroMain.style.removeProperty('--hero-bg-photo');
       if (imgEl) imgEl.remove();
-      if (window.syncHeroSideHeight) window.syncHeroSideHeight();
     }
     if ((banner?.bg_gradient || banner?.bgGradient) && !src) {
       heroMain.style.setProperty('--hero-bg', banner.bg_gradient || banner.bgGradient);
@@ -1459,6 +1548,8 @@
   }
 
   function applyBannersData(banners) {
+    const heroMain = document.getElementById('hero-main');
+    if (heroMain?.classList.contains('hero-main--slider')) return;
     const main = pickHeroBanner(banners);
     if (main) {
       const heroMain = document.getElementById('hero-main');
@@ -2285,7 +2376,6 @@
     const isReviewTrack =
       trackId === 'track-customer-reviews' || trackId === 'track-messenger-reviews';
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
-    if (isCategoryTrack && !isMobile) return;
     if (isTrustBar && !isMobile) return;
     // Horizontal auto-scroll on review carousels jumps the page on mobile browsers.
     if (isReviewTrack && isMobile) return;
@@ -2412,6 +2502,8 @@
   function paintHomeProductSections(data) {
     const best = data.bestSelling || [];
     const newest = data.newArrivals || [];
+    window._rakuHomeCollections['best-selling'] = best;
+    window._rakuHomeCollections['new-arrivals'] = newest;
     const merged = [];
     const seen = new Set();
     [...best, ...newest].forEach((p) => {
@@ -2450,17 +2542,37 @@
     }
   }
 
-  async function refreshTodaySellingFromApi(boot) {
-    if (boot?.todaySelling?.length && window.applyTodaySellingData) {
-      window.applyTodaySellingData(boot);
+  function refreshHeroSideSlider(boot) {
+    if (!window.applyHeroSideSliderData) return;
+    if (boot?.heroSideSlider) {
+      window.applyHeroSideSliderData(boot.heroSideSlider);
+    }
+  }
+
+  async function refreshHeroSideSliderFromApi(boot) {
+    refreshHeroSideSlider(boot);
+    if (boot?.heroSideSlider?.slides?.length) return;
+    try {
+      const data = await apiFetch('/bootstrap');
+      if (data.ok) refreshHeroSideSlider(data);
+    } catch (_) {}
+  }
+
+  async function refreshTodayDealsFromApi(boot) {
+    if (boot?.todayDeals?.length && window.applyTodayDealsData) {
+      window.applyTodayDealsData(boot);
+      return;
+    }
+    if (boot?.todayDealsMeta?.enabled === false) {
+      window.applyTodayDealsData?.({ todayDealsMeta: boot.todayDealsMeta, todayDeals: [] });
       return;
     }
     try {
-      const data = await apiFetch('/today-selling');
-      if (data.ok && window.applyTodaySellingData) {
-        window.applyTodaySellingData({
-          todaySellingMeta: data.meta,
-          todaySelling: data.products || [],
+      const data = await apiFetch('/today-deals');
+      if (data.ok && window.applyTodayDealsData) {
+        window.applyTodayDealsData({
+          todayDealsMeta: data.meta,
+          todayDeals: data.products || [],
         });
       }
     } catch (_) {}
@@ -2468,19 +2580,29 @@
 
   async function applyBootstrap(boot) {
     if (!boot?.ok) return false;
+    window._rakuStoreBoot = boot;
     if (boot.maintenance && !(await adminCanBypassMaintenance())) {
       if (window.showMaintenancePage) window.showMaintenancePage(boot.settings);
       else location.reload();
       return true;
     }
     applySettingsData(boot.settings);
-    applyBannersData(boot.banners || []);
-    await refreshTodaySellingFromApi(boot);
-    if (boot.bestSelling?.length || boot.newArrivals?.length) {
-      paintHomeProductSections(bootHomeSections(boot));
-    }
+    const sliderActive = boot?.heroSideSlider?.enabled && boot?.heroSideSlider?.slides?.length;
+    if (!sliderActive) applyBannersData(boot.banners || []);
+    await refreshHeroSideSliderFromApi(boot);
+    await refreshTodayDealsFromApi(boot);
+
+    // Categories/stats must render even if home product rows fail later.
     document.dispatchEvent(new CustomEvent('raku:bootstrap', { detail: boot }));
-    return true;
+
+    if (boot.bestSelling?.length || boot.newArrivals?.length) {
+      try {
+        paintHomeProductSections(bootHomeSections(boot));
+      } catch (err) {
+        console.warn('Home product sections failed', err);
+      }
+    }
+    return false;
   }
 
   async function loadStoreSettings() {
@@ -2547,7 +2669,8 @@
       : Promise.resolve();
 
     // Reload-safe: paint /product, /category, etc. before bootstrap (uses __RAKU_PRELOAD_PRODUCT)
-    if (!isHome && window._rakuRestoreRoute) {
+    if (!isHome && window._rakuRestoreRoute && !window._rakuDidInitialRouteRestore) {
+      window._rakuDidInitialRouteRestore = true;
       try {
         await window._rakuRestoreRoute();
       } catch (err) {
@@ -2563,7 +2686,12 @@
         blocked = await applyBootstrap(await apiFetch('/bootstrap'));
       } catch (_) {
         await loadStoreSettings();
-        await Promise.all([loadHeroSection(), refreshHomeProductSections(null), refreshTodaySellingFromApi(null)]);
+        await Promise.all([
+          loadHeroSection(),
+          refreshHomeProductSections(null),
+          refreshHeroSideSliderFromApi(null),
+          refreshTodayDealsFromApi(null),
+        ]);
       }
     }
     if (blocked) return;

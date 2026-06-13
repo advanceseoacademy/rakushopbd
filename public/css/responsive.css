@@ -202,22 +202,7 @@ svg {
     font-size: 17px;
   }
 
-  /* Category horizontal scroll — edge padding + force swipe scroll */
-  .category-scroll-wrap--home {
-    margin-left: calc(-1 * max(12px, var(--safe-left)) + 12px);
-    margin-right: calc(-1 * max(12px, var(--safe-right)) + 12px);
-    overflow: visible;
-  }
-
-  #categories {
-    min-width: 0;
-  }
-
-  .category-scroll-wrap--home .category-scroll-track {
-    padding-left: max(4px, var(--safe-left));
-    padding-right: max(4px, var(--safe-right));
-    scroll-padding-left: max(4px, var(--safe-left));
-  }
+  /* Category row — full bleed handled in main.css */
 
   /* Product cards */
   .product-card {
@@ -895,39 +880,7 @@ svg {
   }
 }
 
-/* ——— Category swipe scroll (mobile, load last) ——— */
-@media (max-width: 768px) {
-  .category-scroll-wrap--home #home-category-track:not(.category-grid--all) {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    align-items: stretch;
-    width: 100%;
-    max-width: 100%;
-    min-width: 0;
-    gap: 10px;
-    margin-bottom: 20px;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;
-    scroll-snap-type: x mandatory;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-
-  .category-scroll-wrap--home #home-category-track:not(.category-grid--all)::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Exactly 3 cards visible — swipe for more */
-  .category-scroll-wrap--home #home-category-track:not(.category-grid--all) .cat-card {
-    flex: 0 0 calc((100% - 20px) / 3) !important;
-    min-width: calc((100% - 20px) / 3) !important;
-    width: calc((100% - 20px) / 3) !important;
-    max-width: calc((100% - 20px) / 3) !important;
-    flex-shrink: 0 !important;
-    box-sizing: border-box;
-  }
-}
+/* Category row — single line scroll (styles in main.css) */
 
 /* ——— Home product rows: 2 cards visible on mobile ——— */
 @media (max-width: 768px) {

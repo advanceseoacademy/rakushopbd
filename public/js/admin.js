@@ -370,7 +370,6 @@
       document.getElementById('pf-bg').value = product.bg_color;
       document.getElementById('pf-tag').value = product.tag_type;
       document.getElementById('pf-featured').checked = !!product.is_featured;
-      syncPfTodaySellingFields(product);
       document.getElementById('pf-seo-title').value = product.seo_title || '';
       document.getElementById('pf-seo-desc').value = product.seo_description || '';
       document.getElementById('pf-seo-keywords').value = product.seo_keywords || '';
@@ -1009,38 +1008,331 @@
     }
   }
 
-  function syncPfTodaySellingFields(product) {
-    const cb = document.getElementById('pf-today-selling');
-    if (!cb) return;
-    const slot = Number(product?.today_selling_slot || product?.todaySellingSlot || 0);
-    cb.checked = slot === 1;
+  let heroSliderSlides = [];
+
+  function parseHeroSliderSlides(raw) {
+    try {
+      if (typeof raw === 'string' && raw.trim()) return JSON.parse(raw);
+      if (Array.isArray(raw)) return raw;
+    } catch (_) {}
+    return [];
   }
 
-  function collectTodaySellingSettings() {
+  function readHeroSliderSlidesFromDom() {
+    return heroSliderSlides.map((slide, i) => {
+      const imageEl = document.querySelector(`.hero-slider-image[data-index="${i}"]`);
+      const linkEl = document.querySelector(`.hero-slider-link[data-index="${i}"]`);
+      const altEl = document.querySelector(`.hero-slider-alt[data-index="${i}"]`);
+      return {
+        image: imageEl?.value.trim() || slide.image || '',
+        link: linkEl?.value.trim() || slide.link || '',
+        alt: altEl?.value.trim() || slide.alt || '',
+        pendingFile: slide.pendingFile || null,
+      };
+    });
+  }
+
+  function renderHeroSliderSlides() {
+    const root = document.getElementById('hero-slider-slides');
+    if (!root) return;
+    root.innerHTML = heroSliderSlides
+      .map(
+        (slide, i) => `
+      <div class="card hero-slider-admin-row" data-index="${i}" style="margin-top:12px;padding:14px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <strong>Slide ${i + 1}</strong>
+          <button type="button" class="btn btn-outline btn-sm hero-slider-remove" data-index="${i}"><i class="ti ti-trash"></i> Remove</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Image</label>
+          <input class="form-input hero-slider-image" data-index="${i}" value="${escHtml(slide.image || '')}" placeholder="/uploads/... or https://...">
+          <input class="form-input hero-slider-file" data-index="${i}" type="file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
+          ${
+            slide.image
+              ? `<img class="hero-slider-preview" data-index="${i}" src="${escHtml(slide.image)}" alt="" style="max-width:100%;max-height:140px;margin-top:8px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">`
+              : `<img class="hero-slider-preview" data-index="${i}" alt="" hidden style="max-width:100%;max-height:140px;margin-top:8px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">`
+          }
+        </div>
+        <div class="form-2col">
+          <div class="form-group"><label class="form-label">Link (optional)</label><input class="form-input hero-slider-link" data-index="${i}" value="${escHtml(slide.link || '')}" placeholder="/category/skincare or #products"></div>
+          <div class="form-group"><label class="form-label">Alt text</label><input class="form-input hero-slider-alt" data-index="${i}" value="${escHtml(slide.alt || '')}" placeholder="Promo image description"></div>
+        </div>
+      </div>`
+      )
+      .join('');
+  }
+
+  function loadHeroSliderFromSettings(s) {
+    const en = document.getElementById('hero-slider-enabled');
+    if (en) en.checked = s.hero_side_slider_enabled !== '0';
+    const intervalEl = document.getElementById('hero-slider-interval');
+    if (intervalEl) intervalEl.value = (Number(s.hero_side_slider_interval) || 4500) / 1000;
+    heroSliderSlides = parseHeroSliderSlides(s.hero_side_slides).map((slide) => ({
+      image: slide.image || slide.imageUrl || '',
+      link: slide.link || slide.linkUrl || '',
+      alt: slide.alt || slide.title || '',
+      pendingFile: null,
+    }));
+    if (!heroSliderSlides.length) {
+      heroSliderSlides.push({ image: '', link: '', alt: '', pendingFile: null });
+    }
+    renderHeroSliderSlides();
+  }
+
+  function collectHeroSliderSettings() {
+    const slides = readHeroSliderSlidesFromDom();
+    const intervalSec = Number(document.getElementById('hero-slider-interval')?.value) || 4.5;
     return {
-      enabled: document.getElementById('ts-enabled')?.checked ? '1' : '0',
-      title: document.getElementById('ts-title')?.value.trim() || 'Today Selling',
-      product1: document.getElementById('ts-product-1')?.value || '',
+      enabled: document.getElementById('hero-slider-enabled')?.checked ? '1' : '0',
+      intervalMs: Math.round(Math.max(3, Math.min(12, intervalSec)) * 1000),
+      slides: slides.map(({ image, link, alt }) => ({ image, link, alt })),
+      pendingFiles: slides.map((s) => s.pendingFile),
     };
   }
 
-  async function fillTodaySellingProductSelects(selected1) {
-    const sel1 = document.getElementById('ts-product-1');
-    if (!sel1) return;
+  function parseTodayDealsProductIds(raw) {
+    try {
+      if (typeof raw === 'string' && raw.trim()) return JSON.parse(raw);
+      if (Array.isArray(raw)) return raw;
+    } catch (_) {}
+    return [];
+  }
 
-    const data = await api('/products?limit=200&page=1');
-    const products = data.ok ? data.products || [] : [];
-    const options =
-      '<option value="">— Select product —</option>' +
-      products
-        .map(
-          (p) =>
-            `<option value="${p.id}">${escHtml(p.name_bn)}${p.sku ? ` (${escHtml(p.sku)})` : ''}</option>`
-        )
-        .join('');
+  function toDatetimeLocalValue(iso) {
+    const raw = String(iso || '').trim();
+    if (!raw) return '';
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return '';
+    const local = new Date(d.getTime() - d.getTimeZoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  }
 
-    sel1.innerHTML = options;
-    sel1.value = selected1 ? String(selected1) : '';
+  function renderTodayDealsProductChecks(products, selectedIds) {
+    const root = document.getElementById('today-deals-products');
+    if (!root) return;
+    const selected = new Set((selectedIds || []).map(Number));
+    if (!products.length) {
+      root.innerHTML = '<p class="form-hint">No products found.</p>';
+      return;
+    }
+    root.innerHTML = products
+      .map((p) => {
+        const checked = selected.has(Number(p.id)) ? ' checked' : '';
+        return `<label class="form-label" style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+          <input type="checkbox" class="td-product-check" value="${p.id}"${checked}>
+          <span>${escHtml(p.name_bn)}${p.sku ? ` <small style="color:var(--text-muted);">(${escHtml(p.sku)})</small>` : ''}</span>
+        </label>`;
+      })
+      .join('');
+  }
+
+  async function loadTodayDealsFromSettings(s) {
+    const en = document.getElementById('td-enabled');
+    if (en) en.checked = s.today_deals_enabled !== '0';
+    const titleEl = document.getElementById('td-title');
+    if (titleEl) titleEl.value = s.today_deals_title || 'Today Deals';
+    const endsEl = document.getElementById('td-ends-at');
+    if (endsEl) endsEl.value = toDatetimeLocalValue(s.today_deals_ends_at);
+    const selectedIds = parseTodayDealsProductIds(s.today_deals_product_ids);
+    const prodData = await api('/products?limit=200&page=1');
+    renderTodayDealsProductChecks(prodData.ok ? prodData.products || [] : [], selectedIds);
+  }
+
+  function collectTodayDealsSettings() {
+    const ids = [...document.querySelectorAll('.td-product-check:checked')]
+      .map((el) => Number(el.value))
+      .filter(Boolean)
+      .slice(0, 12);
+    const dt = document.getElementById('td-ends-at')?.value || '';
+    let endsAt = '';
+    if (dt) {
+      const parsed = new Date(dt);
+      if (!Number.isNaN(parsed.getTime())) endsAt = parsed.toISOString();
+    }
+    return {
+      enabled: document.getElementById('td-enabled')?.checked ? '1' : '0',
+      title: document.getElementById('td-title')?.value.trim() || 'Today Deals',
+      endsAt,
+      productIds: ids,
+    };
+  }
+
+  const RW_TIER_ORDER = ['silver', 'gold', 'platinum'];
+  const RW_EXTRA_ICONS = ['ti-message-circle', 'ti-users', 'ti-shopping-bag'];
+
+  const REWARDS_PAGE_DEFAULTS = {
+    eyebrow: 'Earn More as You Shop!',
+    title: 'Raku Rewards Program',
+    intro:
+      'We reward loyal customers for shopping and engaging with RakuShopBD. The more you shop, the more benefits you unlock — earn points on every order and redeem them on future purchases.',
+    tiers: [
+      {
+        key: 'silver',
+        name: 'Raku Silver',
+        intro: 'Become a Raku Silver member with just one successful order!',
+        pointsLine: 'Earn 1 point for every ৳100 spent',
+        valueLine: '1 point = ৳1',
+        note: 'Start earning points right away and redeem them on your next purchase.',
+      },
+      {
+        key: 'gold',
+        name: 'Raku Gold',
+        intro: 'Earn 100 points within the last 6 months to reach Gold status.',
+        pointsLine: 'Earn 1.5 points for every ৳100 spent',
+        valueLine: '1 point = ৳1',
+        note: 'Exclusive benefits: special discounts on selected products and early access to offers.',
+      },
+      {
+        key: 'platinum',
+        name: 'Raku Platinum',
+        intro: 'Achieve Platinum by earning 300 points in the last 6 months.',
+        pointsLine: 'Earn 2 points for every ৳100 spent',
+        valueLine: '1 point = ৳1',
+        note: 'Platinum perks: exclusive discounts, special gifts, and first access to promotions.',
+      },
+    ],
+    extra: {
+      title: 'Extra Ways to Earn Points',
+      subtitle: 'Not only shopping — we also reward your activity on our site.',
+      items: [
+        'Product reviews: Earn 5 points per approved review',
+        'Community engagement: Earn bonus points on selected campaigns',
+        'Every purchase: Keep earning points on all eligible orders',
+      ],
+    },
+    redeem: {
+      title: 'How to Redeem Points',
+      items: [
+        'Minimum 100 points required to redeem',
+        'After 100 points, redeem in multiples of 50',
+        'Apply points at checkout on your RakuShopBD account',
+        'Points cannot be exchanged for cash',
+      ],
+    },
+    cta: {
+      title: 'Unlock Rewards with Ease',
+      text: 'Whether you are buying skincare favourites or leaving a helpful review, points add up quickly. Join today and start collecting rewards!',
+      shopLabel: 'Start Shopping',
+      accountLabel: 'My Account',
+    },
+  };
+
+  function parseRewardsAdminContent(raw) {
+    const defaults = REWARDS_PAGE_DEFAULTS;
+    let data = null;
+    try {
+      if (typeof raw === 'string' && raw.trim()) data = JSON.parse(raw);
+      else if (raw && typeof raw === 'object') data = raw;
+    } catch (_) {}
+    if (!data) return defaults;
+
+    const tiersIn = Array.isArray(data.tiers) ? data.tiers : [];
+    const tiers = defaults.tiers.map((def, i) => {
+      const t = tiersIn[i] || {};
+      return {
+        key: def.key,
+        name: String(t.name || def.name).trim() || def.name,
+        intro: String(t.intro || def.intro).trim() || def.intro,
+        pointsLine: String(t.pointsLine || t.points || def.pointsLine).trim() || def.pointsLine,
+        valueLine: String(t.valueLine || t.value || def.valueLine).trim() || def.valueLine,
+        note: String(t.note || def.note).trim() || def.note,
+      };
+    });
+
+    const extraItems = Array.isArray(data.extra?.items) ? data.extra.items : [];
+    const extra = {
+      title: String(data.extra?.title || defaults.extra.title).trim() || defaults.extra.title,
+      subtitle: String(data.extra?.subtitle || defaults.extra.subtitle).trim() || defaults.extra.subtitle,
+      items: defaults.extra.items.map((def, i) => String(extraItems[i]?.text || extraItems[i] || def).trim() || def),
+    };
+
+    const redeemItems = Array.isArray(data.redeem?.items) ? data.redeem.items : [];
+    const redeem = {
+      title: String(data.redeem?.title || defaults.redeem.title).trim() || defaults.redeem.title,
+      items: defaults.redeem.items.map((def, i) => String(redeemItems[i] || def).trim() || def),
+    };
+
+    const cta = {
+      title: String(data.cta?.title || defaults.cta.title).trim() || defaults.cta.title,
+      text: String(data.cta?.text || defaults.cta.text).trim() || defaults.cta.text,
+      shopLabel: String(data.cta?.shopLabel || defaults.cta.shopLabel).trim() || defaults.cta.shopLabel,
+      accountLabel: String(data.cta?.accountLabel || defaults.cta.accountLabel).trim() || defaults.cta.accountLabel,
+    };
+
+    return {
+      eyebrow: String(data.eyebrow || defaults.eyebrow).trim() || defaults.eyebrow,
+      title: String(data.title || defaults.title).trim() || defaults.title,
+      intro: String(data.intro || defaults.intro).trim() || defaults.intro,
+      tiers,
+      extra,
+      redeem,
+      cta,
+    };
+  }
+
+  function fillRewardsPageForm(s) {
+    const c = parseRewardsAdminContent(s?.rewards_page_content);
+    const set = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val ?? '';
+    };
+    set('rw-eyebrow', c.eyebrow);
+    set('rw-title', c.title);
+    set('rw-intro', c.intro);
+    c.tiers.forEach((tier) => {
+      document.querySelectorAll(`.rw-tier-field[data-tier="${tier.key}"]`).forEach((el) => {
+        el.value = tier[el.dataset.field] || '';
+      });
+    });
+    set('rw-extra-title', c.extra.title);
+    set('rw-extra-sub', c.extra.subtitle);
+    set('rw-extra-1', c.extra.items[0]);
+    set('rw-extra-2', c.extra.items[1]);
+    set('rw-extra-3', c.extra.items[2]);
+    set('rw-redeem-title', c.redeem.title);
+    set('rw-redeem-1', c.redeem.items[0]);
+    set('rw-redeem-2', c.redeem.items[1]);
+    set('rw-redeem-3', c.redeem.items[2]);
+    set('rw-redeem-4', c.redeem.items[3]);
+    set('rw-cta-title', c.cta.title);
+    set('rw-cta-text', c.cta.text);
+    set('rw-cta-shop', c.cta.shopLabel);
+    set('rw-cta-account', c.cta.accountLabel);
+  }
+
+  function collectRewardsPageContent() {
+    const tierData = (key) => {
+      const row = { key, name: '', intro: '', pointsLine: '', valueLine: '', note: '' };
+      document.querySelectorAll(`.rw-tier-field[data-tier="${key}"]`).forEach((el) => {
+        row[el.dataset.field] = el.value.trim();
+      });
+      return row;
+    };
+    const raw = {
+      eyebrow: document.getElementById('rw-eyebrow')?.value.trim() || '',
+      title: document.getElementById('rw-title')?.value.trim() || '',
+      intro: document.getElementById('rw-intro')?.value.trim() || '',
+      tiers: RW_TIER_ORDER.map(tierData),
+      extra: {
+        title: document.getElementById('rw-extra-title')?.value.trim() || '',
+        subtitle: document.getElementById('rw-extra-sub')?.value.trim() || '',
+        items: RW_EXTRA_ICONS.map((icon, i) => ({
+          icon,
+          text: document.getElementById(`rw-extra-${i + 1}`)?.value.trim() || '',
+        })),
+      },
+      redeem: {
+        title: document.getElementById('rw-redeem-title')?.value.trim() || '',
+        items: [1, 2, 3, 4].map((n) => document.getElementById(`rw-redeem-${n}`)?.value.trim() || ''),
+      },
+      cta: {
+        title: document.getElementById('rw-cta-title')?.value.trim() || '',
+        text: document.getElementById('rw-cta-text')?.value.trim() || '',
+        shopLabel: document.getElementById('rw-cta-shop')?.value.trim() || '',
+        accountLabel: document.getElementById('rw-cta-account')?.value.trim() || '',
+      },
+    };
+    return parseRewardsAdminContent(JSON.stringify(raw));
   }
 
   function collectMarketingSettings() {
@@ -1064,17 +1356,10 @@
     const data = await api('/settings');
     if (data.ok && data.settings) {
       const s = data.settings;
-      const tsEn = document.getElementById('ts-enabled');
-      if (tsEn) tsEn.checked = s.today_selling_enabled !== '0';
-      const tsTitle = document.getElementById('ts-title');
-      if (tsTitle) tsTitle.value = s.today_selling_title || 'Today Selling';
-      const prodData = await api('/products?limit=200&page=1');
-      if (prodData.ok && prodData.products) {
-        const slot1 = prodData.products.find((p) => Number(p.today_selling_slot) === 1);
-        await fillTodaySellingProductSelects(slot1?.id);
-      } else {
-        await fillTodaySellingProductSelects('');
-      }
+      window._lastSettingsCache = { ...(window._lastSettingsCache || {}), ...s };
+      loadHeroSliderFromSettings(s);
+      await loadTodayDealsFromSettings(s);
+      fillRewardsPageForm(s);
       const en = document.getElementById('mkt-enabled');
       if (en) en.checked = s.marketing_enabled !== '0';
       document.getElementById('mkt1-title').value = s.marketing_card1_title || '';
@@ -1094,6 +1379,8 @@
       setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', s.marketing_card2_image);
       const mkt2File = document.getElementById('mkt2-file');
       if (mkt2File) mkt2File.value = '';
+    } else {
+      fillRewardsPageForm({});
     }
     await loadPhoneSubscribers();
   }
@@ -1115,13 +1402,102 @@
     setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', e.target.value);
   });
 
-  document.getElementById('today-selling-save-btn')?.addEventListener('click', async () => {
-    const payload = collectTodaySellingSettings();
-    const data = await api('/today-selling', {
+  document.getElementById('hero-slider-slides')?.addEventListener('input', (e) => {
+    const t = e.target;
+    if (!t.classList.contains('hero-slider-image')) return;
+    const i = Number(t.dataset.index);
+    const preview = document.querySelector(`.hero-slider-preview[data-index="${i}"]`);
+    const src = t.value.trim();
+    if (preview) {
+      if (src) {
+        preview.src = src;
+        preview.hidden = false;
+      } else {
+        preview.removeAttribute('src');
+        preview.hidden = true;
+      }
+    }
+  });
+
+  document.getElementById('hero-slider-slides')?.addEventListener('change', (e) => {
+    const t = e.target;
+    if (!t.classList.contains('hero-slider-file')) return;
+    const i = Number(t.dataset.index);
+    const file = t.files?.[0];
+    if (!file || !heroSliderSlides[i]) return;
+    heroSliderSlides[i].pendingFile = file;
+    const preview = document.querySelector(`.hero-slider-preview[data-index="${i}"]`);
+    if (preview) {
+      preview.src = URL.createObjectURL(file);
+      preview.hidden = false;
+    }
+  });
+
+  document.getElementById('hero-slider-slides')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('.hero-slider-remove');
+    if (!btn) return;
+    const i = Number(btn.dataset.index);
+    heroSliderSlides = readHeroSliderSlidesFromDom();
+    heroSliderSlides.splice(i, 1);
+    if (!heroSliderSlides.length) {
+      heroSliderSlides.push({ image: '', link: '', alt: '', pendingFile: null });
+    }
+    renderHeroSliderSlides();
+  });
+
+  document.getElementById('hero-slider-add-btn')?.addEventListener('click', () => {
+    heroSliderSlides = readHeroSliderSlidesFromDom();
+    heroSliderSlides.push({ image: '', link: '', alt: '', pendingFile: null });
+    renderHeroSliderSlides();
+  });
+
+  document.getElementById('hero-slider-save-btn')?.addEventListener('click', async () => {
+    heroSliderSlides = readHeroSliderSlidesFromDom();
+    for (let i = 0; i < heroSliderSlides.length; i++) {
+      const file = heroSliderSlides[i].pendingFile;
+      if (!file) continue;
+      const up = await uploadProductImage(file);
+      if (!up.ok) {
+        toast(up.error || `Slide ${i + 1} upload failed`, 'error');
+        return;
+      }
+      heroSliderSlides[i].image = up.url;
+      heroSliderSlides[i].pendingFile = null;
+    }
+
+    const payload = collectHeroSliderSettings();
+    payload.slides = heroSliderSlides.map(({ image, link, alt }) => ({ image, link, alt }));
+    const data = await api('/hero-side-slider', {
       method: 'PUT',
       body: JSON.stringify(payload),
     });
-    if (data.ok) toast('Today Selling saved');
+    if (data.ok) {
+      toast('Hero slider saved');
+      renderHeroSliderSlides();
+    } else toast(data.error || 'Save failed', 'error');
+  });
+
+  document.getElementById('rewards-page-save-btn')?.addEventListener('click', async () => {
+    const content = collectRewardsPageContent();
+    const data = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ rewards_page_content: JSON.stringify(content) }),
+    });
+    if (data.ok) {
+      if (window._lastSettingsCache) {
+        window._lastSettingsCache.rewards_page_content = JSON.stringify(content);
+      }
+      toast('Rewards page saved');
+    } else toast(data.error || 'Save failed', 'error');
+  });
+
+  document.getElementById('today-deals-save-btn')?.addEventListener('click', async () => {
+    const payload = collectTodayDealsSettings();
+    const data = await api('/today-deals', {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    if (data.ok) toast('Today Deals saved');
     else toast(data.error || 'Save failed', 'error');
   });
 
@@ -1812,7 +2188,6 @@
     document.getElementById('pf-bg').value = '#e8f5e8';
     document.getElementById('pf-stock').value = 100;
     document.getElementById('pf-featured').checked = true;
-    syncPfTodaySellingFields(null);
     ['pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image', 'pf-discount-percent', 'pf-buy-price'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = '';
@@ -1931,7 +2306,6 @@
       bgColor: document.getElementById('pf-bg').value,
       tagType: document.getElementById('pf-tag').value,
       isFeatured: document.getElementById('pf-featured').checked,
-      todaySellingSlot: document.getElementById('pf-today-selling')?.checked ? 1 : 0,
       seoTitle: document.getElementById('pf-seo-title')?.value?.trim() || null,
       seoDescription: document.getElementById('pf-seo-desc')?.value?.trim() || null,
       seoKeywords: document.getElementById('pf-seo-keywords')?.value?.trim() || null,
@@ -2403,6 +2777,7 @@
     { value: 'appointment', label: 'Book Appointment' },
     { value: 'track', label: 'Track Order' },
     { value: 'faq', label: 'FAQ' },
+    { value: 'rewards', label: 'Raku Rewards' },
     { value: 'contact', label: 'Contact Us' },
     { value: 'privacy', label: 'Privacy Policy' },
     { value: 'terms', label: 'Terms & Conditions' },
@@ -2416,6 +2791,7 @@
     '/appointment': 'appointment',
     '/track': 'track',
     '/faq': 'faq',
+    '/rewards': 'rewards',
     '/contact': 'contact',
     '/privacy-policy': 'privacy',
     '/terms-and-conditions': 'terms',
@@ -2695,7 +3071,32 @@
     });
   }
 
+  function switchMarketingTab(tabId) {
+    const root = document.getElementById('sec-marketing');
+    if (!root || !tabId) return;
+    root.querySelectorAll('[data-marketing-tab]').forEach((t) => {
+      t.classList.toggle('active', t.dataset.marketingTab === tabId);
+    });
+    root.querySelectorAll('.settings-panel').forEach((p) => {
+      p.classList.toggle('active', p.id === `marketing-panel-${tabId}`);
+    });
+    if (tabId === 'rewards') {
+      fillRewardsPageForm(window._lastSettingsCache || {});
+    }
+  }
+
+  function initMarketingTabs() {
+    const root = document.getElementById('sec-marketing');
+    if (!root || root._marketingTabsBound) return;
+    root._marketingTabsBound = true;
+    root.querySelectorAll('[data-marketing-tab]').forEach((tab) => {
+      tab.addEventListener('click', () => switchMarketingTab(tab.dataset.marketingTab));
+    });
+  }
+
   initLegalTabs();
+  initMarketingTabs();
+  fillRewardsPageForm({});
 
   async function loadAnalytics() {
     const data = await api('/analytics');

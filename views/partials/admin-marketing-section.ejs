@@ -1,0 +1,285 @@
+      <div class="adm-section" id="sec-marketing">
+        <div class="settings-page marketing-admin-page">
+          <div class="settings-page-head">
+            <div>
+              <h2 class="settings-page-title">Marketing &amp; Homepage</h2>
+              <p class="settings-page-desc">Homepage hero, deals, rewards page, promo cards, and phone subscribers — organized by tab. Each area has its own save button.</p>
+            </div>
+          </div>
+
+          <nav class="settings-tabs" role="tablist" aria-label="Marketing sections">
+            <button type="button" class="settings-tab active" data-marketing-tab="hero" role="tab"><i class="ti ti-photo"></i><span>Hero Slider</span></button>
+            <button type="button" class="settings-tab" data-marketing-tab="deals" role="tab"><i class="ti ti-flame"></i><span>Today Deals</span></button>
+            <button type="button" class="settings-tab" data-marketing-tab="rewards" role="tab"><i class="ti ti-award"></i><span>Rewards Page</span></button>
+            <button type="button" class="settings-tab" data-marketing-tab="promo" role="tab"><i class="ti ti-layout-cards"></i><span>Promo Cards</span></button>
+            <button type="button" class="settings-tab" data-marketing-tab="subscribers" role="tab"><i class="ti ti-phone"></i><span>Subscribers</span></button>
+          </nav>
+
+          <!-- Hero slider -->
+          <div class="settings-panel active" id="marketing-panel-hero" role="tabpanel">
+            <div class="settings-card">
+              <div class="settings-card-head">
+                <div class="settings-card-icon settings-card-icon--green"><i class="ti ti-photo"></i></div>
+                <div>
+                  <h3 class="settings-card-title">Hero banner slider</h3>
+                  <p class="settings-card-desc">Full-width homepage hero — upload multiple images; they auto-slide.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="settings-row" style="margin-bottom:16px;">
+                  <div><div>Show banner slider</div><div class="settings-row-info">Replaces single banner when slides are saved</div></div>
+                  <label class="toggle"><input type="checkbox" id="hero-slider-enabled" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Slide interval (seconds)</label>
+                  <input class="form-input" type="number" id="hero-slider-interval" min="3" max="12" value="4.5" step="0.5" style="max-width:160px;">
+                </div>
+                <div class="settings-subsection-label"><i class="ti ti-stack-2"></i> Slides</div>
+                <div id="hero-slider-slides"></div>
+                <button type="button" class="btn btn-outline btn-sm" id="hero-slider-add-btn" style="margin-top:12px;"><i class="ti ti-plus"></i> Add slide</button>
+              </div>
+              <div class="settings-card-foot">
+                <button type="button" class="btn btn-primary" id="hero-slider-save-btn"><i class="ti ti-device-floppy"></i> Save Hero Slider</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Today Deals -->
+          <div class="settings-panel" id="marketing-panel-deals" role="tabpanel">
+            <div class="settings-card">
+              <div class="settings-card-head">
+                <div class="settings-card-icon settings-card-icon--amber"><i class="ti ti-flame"></i></div>
+                <div>
+                  <h3 class="settings-card-title">Today Deals</h3>
+                  <p class="settings-card-desc">Hot-deals style product row with countdown timer next to the title.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="settings-row" style="margin-bottom:16px;">
+                  <div><div>Show Today Deals</div><div class="settings-row-info">Hidden automatically when timer ends</div></div>
+                  <label class="toggle"><input type="checkbox" id="td-enabled" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="form-2col">
+                  <div class="form-group">
+                    <label class="form-label">Section title</label>
+                    <input class="form-input" id="td-title" value="Today Deals">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Deal ends at</label>
+                    <input class="form-input" type="datetime-local" id="td-ends-at">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Products (max 12)</label>
+                  <div id="today-deals-products" class="today-deals-admin-products marketing-checklist"></div>
+                </div>
+              </div>
+              <div class="settings-card-foot">
+                <button type="button" class="btn btn-primary" id="today-deals-save-btn"><i class="ti ti-device-floppy"></i> Save Today Deals</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rewards page -->
+          <% 
+            const rc = rewardsContent || {};
+            const rwTier = (idx) => (rc.tiers && rc.tiers[idx]) ? rc.tiers[idx] : {};
+            const rwExtra = (idx) => {
+              const items = rc.extra && rc.extra.items;
+              if (!items || !items[idx]) return '';
+              const it = items[idx];
+              return typeof it === 'string' ? it : (it.text || '');
+            };
+            const rwRedeem = (idx) => (rc.redeem && rc.redeem.items && rc.redeem.items[idx]) ? rc.redeem.items[idx] : '';
+          %>
+          <div class="settings-panel" id="marketing-panel-rewards" role="tabpanel">
+            <div class="settings-card" id="rewards-page-admin">
+              <div class="settings-card-head">
+                <div class="settings-card-icon settings-card-icon--purple"><i class="ti ti-award"></i></div>
+                <div>
+                  <h3 class="settings-card-title">Raku Rewards page</h3>
+                  <p class="settings-card-desc">Edit text at <code>/rewards</code> — page layout stays the same.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="settings-subsection-label"><i class="ti ti-text-size"></i> Page header</div>
+                <div class="form-group"><label class="form-label">Eyebrow text</label><input class="form-input" id="rw-eyebrow" value="<%= rc.eyebrow || 'Earn More as You Shop!' %>" placeholder="Earn More as You Shop!"></div>
+                <div class="form-2col">
+                  <div class="form-group"><label class="form-label">Page title</label><input class="form-input" id="rw-title" value="<%= rc.title || 'Raku Rewards Program' %>" placeholder="Raku Rewards Program"></div>
+                  <div class="form-group"><label class="form-label">Intro</label><textarea class="form-input form-textarea" id="rw-intro" rows="3"><%= rc.intro || '' %></textarea></div>
+                </div>
+
+                <div class="settings-subsection">
+                  <div class="settings-subsection-label"><i class="ti ti-medal"></i> Membership tiers</div>
+                  <div class="marketing-tier-grid">
+                    <div class="form-seo-panel marketing-tier-panel">
+                      <div class="form-seo-summary marketing-tier-head"><i class="ti ti-award"></i> Silver</div>
+                      <div class="form-seo-body">
+                        <div class="form-group"><label class="form-label">Name</label><input class="form-input rw-tier-field" data-tier="silver" data-field="name" value="<%= rwTier(0).name || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Intro</label><input class="form-input rw-tier-field" data-tier="silver" data-field="intro" value="<%= rwTier(0).intro || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Points line</label><input class="form-input rw-tier-field" data-tier="silver" data-field="pointsLine" value="<%= rwTier(0).pointsLine || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Value line</label><input class="form-input rw-tier-field" data-tier="silver" data-field="valueLine" value="<%= rwTier(0).valueLine || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Note</label><input class="form-input rw-tier-field" data-tier="silver" data-field="note" value="<%= rwTier(0).note || '' %>"></div>
+                      </div>
+                    </div>
+                    <div class="form-seo-panel marketing-tier-panel">
+                      <div class="form-seo-summary marketing-tier-head"><i class="ti ti-award"></i> Gold</div>
+                      <div class="form-seo-body">
+                        <div class="form-group"><label class="form-label">Name</label><input class="form-input rw-tier-field" data-tier="gold" data-field="name" value="<%= rwTier(1).name || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Intro</label><input class="form-input rw-tier-field" data-tier="gold" data-field="intro" value="<%= rwTier(1).intro || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Points line</label><input class="form-input rw-tier-field" data-tier="gold" data-field="pointsLine" value="<%= rwTier(1).pointsLine || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Value line</label><input class="form-input rw-tier-field" data-tier="gold" data-field="valueLine" value="<%= rwTier(1).valueLine || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Note</label><input class="form-input rw-tier-field" data-tier="gold" data-field="note" value="<%= rwTier(1).note || '' %>"></div>
+                      </div>
+                    </div>
+                    <div class="form-seo-panel marketing-tier-panel">
+                      <div class="form-seo-summary marketing-tier-head"><i class="ti ti-award"></i> Platinum</div>
+                      <div class="form-seo-body">
+                        <div class="form-group"><label class="form-label">Name</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="name" value="<%= rwTier(2).name || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Intro</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="intro" value="<%= rwTier(2).intro || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Points line</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="pointsLine" value="<%= rwTier(2).pointsLine || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Value line</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="valueLine" value="<%= rwTier(2).valueLine || '' %>"></div>
+                        <div class="form-group"><label class="form-label">Note</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="note" value="<%= rwTier(2).note || '' %>"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="settings-subsection">
+                  <div class="settings-subsection-label"><i class="ti ti-sparkles"></i> Extra ways to earn</div>
+                  <div class="form-2col">
+                    <div class="form-group"><label class="form-label">Section title</label><input class="form-input" id="rw-extra-title" value="<%= rc.extra && rc.extra.title ? rc.extra.title : '' %>"></div>
+                    <div class="form-group"><label class="form-label">Subtitle</label><input class="form-input" id="rw-extra-sub" value="<%= rc.extra && rc.extra.subtitle ? rc.extra.subtitle : '' %>"></div>
+                  </div>
+                  <div class="form-group"><label class="form-label">Item 1</label><input class="form-input" id="rw-extra-1" value="<%= rwExtra(0) %>"></div>
+                  <div class="form-group"><label class="form-label">Item 2</label><input class="form-input" id="rw-extra-2" value="<%= rwExtra(1) %>"></div>
+                  <div class="form-group"><label class="form-label">Item 3</label><input class="form-input" id="rw-extra-3" value="<%= rwExtra(2) %>"></div>
+                </div>
+
+                <div class="settings-subsection">
+                  <div class="settings-subsection-label"><i class="ti ti-gift"></i> Redeem rules</div>
+                  <div class="form-group"><label class="form-label">Section title</label><input class="form-input" id="rw-redeem-title" value="<%= rc.redeem && rc.redeem.title ? rc.redeem.title : '' %>"></div>
+                  <div class="form-2col">
+                    <div class="form-group"><label class="form-label">Rule 1</label><input class="form-input" id="rw-redeem-1" value="<%= rwRedeem(0) %>"></div>
+                    <div class="form-group"><label class="form-label">Rule 2</label><input class="form-input" id="rw-redeem-2" value="<%= rwRedeem(1) %>"></div>
+                    <div class="form-group"><label class="form-label">Rule 3</label><input class="form-input" id="rw-redeem-3" value="<%= rwRedeem(2) %>"></div>
+                    <div class="form-group"><label class="form-label">Rule 4</label><input class="form-input" id="rw-redeem-4" value="<%= rwRedeem(3) %>"></div>
+                  </div>
+                </div>
+
+                <div class="settings-subsection">
+                  <div class="settings-subsection-label"><i class="ti ti-click"></i> Bottom call-to-action</div>
+                  <div class="form-group"><label class="form-label">CTA title</label><input class="form-input" id="rw-cta-title" value="<%= rc.cta && rc.cta.title ? rc.cta.title : '' %>"></div>
+                  <div class="form-group"><label class="form-label">CTA text</label><textarea class="form-input form-textarea" id="rw-cta-text" rows="2"><%= rc.cta && rc.cta.text ? rc.cta.text : '' %></textarea></div>
+                  <div class="form-2col">
+                    <div class="form-group"><label class="form-label">Shop button</label><input class="form-input" id="rw-cta-shop" value="<%= rc.cta && rc.cta.shopLabel ? rc.cta.shopLabel : '' %>"></div>
+                    <div class="form-group"><label class="form-label">Account button</label><input class="form-input" id="rw-cta-account" value="<%= rc.cta && rc.cta.accountLabel ? rc.cta.accountLabel : '' %>"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-card-foot">
+                <button type="button" class="btn btn-primary" id="rewards-page-save-btn"><i class="ti ti-device-floppy"></i> Save Rewards Page</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Promo cards -->
+          <div class="settings-panel" id="marketing-panel-promo" role="tabpanel">
+            <div class="settings-card" style="margin-bottom:16px;">
+              <div class="settings-card-head">
+                <div class="settings-card-icon settings-card-icon--pink"><i class="ti ti-layout-cards"></i></div>
+                <div>
+                  <h3 class="settings-card-title">Homepage promo cards</h3>
+                  <p class="settings-card-desc">Two cards below Best Selling — left promo + right phone subscribe.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="settings-row" style="margin-bottom:18px;">
+                  <div><div>Show marketing section</div><div class="settings-row-info">Appears on homepage below product rows</div></div>
+                  <label class="toggle"><input type="checkbox" id="mkt-enabled" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="marketing-promo-grid">
+                  <div class="settings-card marketing-promo-card">
+                    <div class="settings-card-head" style="padding-top:16px;">
+                      <div class="settings-card-icon settings-card-icon--pink" style="width:38px;height:38px;font-size:18px;"><i class="ti ti-layout-sidebar"></i></div>
+                      <div><h4 class="settings-card-title" style="font-size:14px;">Left card</h4></div>
+                    </div>
+                    <div class="settings-card-body" style="padding-top:8px;">
+                      <form id="marketing-card1-form">
+                        <div class="form-group"><label class="form-label">Heading</label><input class="form-input" id="mkt1-title"></div>
+                        <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="mkt1-desc" rows="3"></textarea></div>
+                        <div class="form-2col">
+                          <div class="form-group"><label class="form-label">Button text</label><input class="form-input" id="mkt1-btn"></div>
+                          <div class="form-group"><label class="form-label">Button link</label><input class="form-input" id="mkt1-link" placeholder="#products"></div>
+                        </div>
+                        <div class="form-group">
+                          <label class="form-label">Image</label>
+                          <input class="form-input" id="mkt1-image" placeholder="/uploads/...">
+                          <input class="form-input" type="file" id="mkt1-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
+                          <div id="mkt1-preview-wrap" hidden style="margin-top:8px;"><img id="mkt1-preview" alt="Preview" class="marketing-img-preview"></div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt1-bg" placeholder="#fce4ec"></div>
+                      </form>
+                    </div>
+                  </div>
+                  <div class="settings-card marketing-promo-card">
+                    <div class="settings-card-head" style="padding-top:16px;">
+                      <div class="settings-card-icon settings-card-icon--purple" style="width:38px;height:38px;font-size:18px;"><i class="ti ti-phone"></i></div>
+                      <div><h4 class="settings-card-title" style="font-size:14px;">Right card (subscribe)</h4></div>
+                    </div>
+                    <div class="settings-card-body" style="padding-top:8px;">
+                      <form id="marketing-card2-form">
+                        <div class="form-group"><label class="form-label">Heading</label><input class="form-input" id="mkt2-title"></div>
+                        <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="mkt2-desc" rows="3"></textarea></div>
+                        <div class="form-group"><label class="form-label">Submit button</label><input class="form-input" id="mkt2-btn" placeholder="Submit"></div>
+                        <div class="form-group">
+                          <label class="form-label">Image</label>
+                          <input class="form-input" id="mkt2-image" placeholder="/uploads/...">
+                          <input class="form-input" type="file" id="mkt2-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
+                          <div id="mkt2-preview-wrap" hidden style="margin-top:8px;"><img id="mkt2-preview" alt="Preview" class="marketing-img-preview"></div>
+                        </div>
+                        <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt2-bg" placeholder="#ede7f6"></div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="settings-card-foot">
+                <button type="button" class="btn btn-primary" id="marketing-save-btn"><i class="ti ti-device-floppy"></i> Save Promo Cards</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subscribers -->
+          <div class="settings-panel" id="marketing-panel-subscribers" role="tabpanel">
+            <div class="settings-card">
+              <div class="settings-card-head">
+                <div class="settings-card-icon settings-card-icon--blue"><i class="ti ti-phone"></i></div>
+                <div>
+                  <h3 class="settings-card-title">Phone subscribers</h3>
+                  <p class="settings-card-desc">Numbers collected from the homepage subscribe card.</p>
+                </div>
+              </div>
+              <div class="settings-card-body" style="padding-bottom:0;">
+                <div class="table-wrap" style="margin:0;border:none;box-shadow:none;">
+                  <div class="table-header">
+                    <h3 style="font-size:15px;margin:0;">All subscribers</h3>
+                    <div class="table-actions">
+                      <input class="tbl-search" id="subscribers-search" type="text" placeholder="Search phone...">
+                      <select class="tbl-select" id="subscribers-status-filter">
+                        <option value="all">All status</option>
+                        <option value="new">New</option>
+                        <option value="read">Read</option>
+                        <option value="archived">Archived</option>
+                      </select>
+                    </div>
+                  </div>
+                  <table class="tbl"><thead><tr><th>Phone</th><th>Source</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+                  <tbody id="subscribers-tbody"></tbody></table>
+                  <div class="pagination-bar" id="subscribers-pagination"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>

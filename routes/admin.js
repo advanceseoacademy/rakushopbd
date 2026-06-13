@@ -18,6 +18,7 @@ const {
   normalizeCategoryId,
 } = require('../lib/categoryHelpers');
 const { setProductTodaySellingSlot, setTodaySellingProducts, normalizeSlot } = require('../lib/todaySellingSlots');
+const { parseRewardsContent } = require('../lib/rewardsPage');
 
 const router = express.Router();
 
@@ -844,7 +845,81 @@ router.delete('/coupons/:id', requireAdmin, async (req, res) => {
   }
 });
 
-// ——— Today Selling (hero sidebar) ———
+// ——— Hero side slider (homepage) ———
+router.put('/hero-side-slider', requireAdmin, async (req, res) => {
+  try {
+    const { enabled, slides, intervalMs } = req.body;
+    if (enabled != null) {
+      await query(upsertSiteSettingSql(), [
+        'hero_side_slider_enabled',
+        enabled === false || enabled === '0' ? '0' : '1',
+      ]);
+    }
+    if (slides != null) {
+      const cleaned = (Array.isArray(slides) ? slides : [])
+        .map((s) => ({
+          image: String(s?.image || s?.imageUrl || '').trim(),
+          link: String(s?.link || s?.linkUrl || '').trim(),
+          alt: String(s?.alt || s?.title || '').trim(),
+        }))
+        .filter((s) => s.image);
+      await query(upsertSiteSettingSql(), ['hero_side_slides', JSON.stringify(cleaned)]);
+    }
+    if (intervalMs != null) {
+      const ms = Math.max(2500, Math.min(12000, Number(intervalMs) || 4500));
+      await query(upsertSiteSettingSql(), ['hero_side_slider_interval', String(ms)]);
+    }
+    clearSiteSettingsCache();
+    clearStoreBootstrapCache();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not save hero slider' });
+  }
+});
+
+// ——— Today Deals (homepage section) ———
+router.put('/today-deals', requireAdmin, async (req, res) => {
+  try {
+    const { enabled, title, endsAt, productIds } = req.body;
+    if (enabled != null) {
+      await query(upsertSiteSettingSql(), [
+        'today_deals_enabled',
+        enabled === false || enabled === '0' ? '0' : '1',
+      ]);
+    }
+    if (title != null) {
+      await query(upsertSiteSettingSql(), [
+        'today_deals_title',
+        String(title).trim() || 'Today Deals',
+      ]);
+    }
+    if (endsAt != null) {
+      const raw = String(endsAt || '').trim();
+      let value = '';
+      if (raw) {
+        const ms = Date.parse(raw);
+        value = Number.isFinite(ms) ? new Date(ms).toISOString() : '';
+      }
+      await query(upsertSiteSettingSql(), ['today_deals_ends_at', value]);
+    }
+    if (productIds != null) {
+      const ids = (Array.isArray(productIds) ? productIds : [])
+        .map((id) => Number(id))
+        .filter((id) => id > 0)
+        .slice(0, 12);
+      await query(upsertSiteSettingSql(), ['today_deals_product_ids', JSON.stringify(ids)]);
+    }
+    clearSiteSettingsCache();
+    clearStoreBootstrapCache();
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not save Today Deals' });
+  }
+});
+
+// ——— Today Selling (legacy — kept for old admin clients) ———
 router.put('/today-selling', requireAdmin, async (req, res) => {
   try {
     const { enabled, title, product1 } = req.body;
@@ -868,6 +943,7 @@ router.put('/today-selling', requireAdmin, async (req, res) => {
 router.get('/settings', requireAdmin, async (req, res) => {
   try {
     const settings = await getSettingsMap();
+    settings.rewards_page_content = JSON.stringify(parseRewardsContent(settings));
     res.json({ ok: true, settings });
   } catch (err) {
     console.error(err);

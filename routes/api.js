@@ -3,10 +3,12 @@ const { query, getPool } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
-const { getHomeProductSections } = require('../lib/homeProducts');
+const { getHomeProductSections, getBestSellingProducts, getNewArrivalProducts } = require('../lib/homeProducts');
 const { getTodaySellingProducts, getTodaySellingMeta } = require('../lib/todaySelling');
+const { getTodayDealsProducts, getTodayDealsMeta } = require('../lib/todayDeals');
 const { getRecommendedProducts } = require('../lib/productRecommendations');
 const { stripInternalProductFields, stripInternalProductList } = require('../lib/productPublic');
+const { parseRewardsContent } = require('../lib/rewardsPage');
 const { getAdminIdFromRequest } = require('../lib/adminToken');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
@@ -252,10 +254,16 @@ router.post('/products/:id/reviews', async (req, res) => {
 router.post('/coupons/validate', async (req, res) => {
   try {
     const { code, subtotal } = req.body;
+    const normalizedCode = String(code || '')
+      .trim()
+      .toUpperCase();
+    if (!normalizedCode) {
+      return res.status(400).json({ ok: false, error: 'Coupon code is required' });
+    }
     const rows = await query(
       `SELECT * FROM coupons WHERE code=? AND is_active=1
        AND ${sqlDialect.curDateOrLater()}`,
-      [code.toUpperCase()]
+      [normalizedCode]
     );
     if (!rows.length) return res.json({ ok: false, error: 'Invalid coupon' });
     const c = rows[0];
@@ -313,6 +321,44 @@ router.get('/today-selling', async (req, res) => {
   }
 });
 
+router.get('/today-deals', async (req, res) => {
+  try {
+    cachePublic(res, 120);
+    const settings = await getSiteSettings(query);
+    const products = await getTodayDealsProducts(query, settings);
+    res.json({
+      ok: true,
+      meta: getTodayDealsMeta(settings),
+      products: stripInternalProductList(products),
+    });
+  } catch (err) {
+    console.error('today-deals', err);
+    res.json({ ok: true, meta: { enabled: false, title: 'Today Deals', endsAt: null }, products: [] });
+  }
+});
+
+router.get('/collections/:slug', async (req, res) => {
+  try {
+    const slug = String(req.params.slug || '').trim();
+    const limit = Math.min(200, Math.max(8, Number(req.query.limit) || 100));
+    let products = [];
+
+    if (slug === 'best-selling') {
+      products = await getBestSellingProducts(query, limit);
+    } else if (slug === 'new-arrivals') {
+      products = await getNewArrivalProducts(query, limit);
+    } else {
+      return res.status(404).json({ ok: false, error: 'Unknown collection' });
+    }
+
+    cachePublic(res, 60);
+    res.json({ ok: true, products: stripInternalProductList(products) });
+  } catch (err) {
+    console.error('collections', err);
+    res.status(500).json({ ok: false, error: 'Could not load collection' });
+  }
+});
+
 router.get('/bootstrap', async (req, res) => {
   try {
     const data = await getStoreBootstrap(req);
@@ -327,6 +373,7 @@ router.get('/bootstrap', async (req, res) => {
 router.get('/settings', async (req, res) => {
   try {
     const settings = await getSiteSettings(query);
+    settings.rewards_page_content = JSON.stringify(parseRewardsContent(settings));
     cachePublic(res, 300);
     const maintenance = settings.maintenance_mode === '1' && !getAdminIdFromRequest(req);
     res.json({ ok: true, settings, maintenance });
@@ -370,10 +417,13 @@ router.get('/products', async (req, res) => {
     const params = [];
     const where = [];
 
-    if (!isSearch && (!category || category === 'all')) {
+    const categorySlug = category ? String(category).trim() : '';
+    const isAllProductsBrowse = categorySlug === 'all';
+
+    if (!isSearch && !categorySlug) {
       where.push('p.is_featured = 1');
     }
-    if (category && category !== 'all') {
+    if (categorySlug && !isAllProductsBrowse) {
       const catIds = await resolveCategoryIdsBySlug(query, category);
       if (catIds.length) {
         const { clause, params: catParams } = categoryInClause(catIds);
@@ -416,11 +466,11 @@ router.get('/products', async (req, res) => {
     }
     if (where.length) sql += ' WHERE ' + where.join(' AND ');
     sql += ' ORDER BY p.name_bn ASC';
-    const isHomeFeatured =
-      !isSearch && (!category || category === 'all') && !excludeId;
+    const isHomeFeatured = !isSearch && !categorySlug && !excludeId;
+    const maxCap = isAllProductsBrowse ? 200 : 48;
     const lim = Math.min(
       Math.max(Number(limit) || (isHomeFeatured ? 24 : 0), 0),
-      48
+      maxCap
     );
     if (lim) sql += ` LIMIT ${lim}`;
 

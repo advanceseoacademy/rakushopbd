@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     wishlist: document.getElementById('page-wishlist'),
     appointment: document.getElementById('page-appointment'),
     faq: document.getElementById('page-faq'),
+    rewards: document.getElementById('page-rewards'),
     contact: document.getElementById('page-contact'),
     privacy: document.getElementById('page-privacy'),
     terms: document.getElementById('page-terms'),
@@ -27,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function() {
     track: document.getElementById('page-track'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact', 'privacy', 'terms', 'return', 'preorder', 'track'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'rewards', 'contact', 'privacy', 'terms', 'return', 'preorder', 'track'];
 
   const PATH_ALIASES = {
     'privacy-policy': 'privacy',
@@ -101,6 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
       home: '/',
       appointment: '/appointment',
       faq: '/faq',
+      rewards: '/rewards',
       contact: '/contact',
       track: '/track',
     };
@@ -127,6 +129,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (name === 'faq' && window._rakuInitFaqPage) {
       window._rakuInitFaqPage();
+    }
+    if (name === 'rewards' && window._rakuInitRewardsPage) {
+      window._rakuInitRewardsPage();
     }
     if (name === 'contact' && window._rakuInitContactPage) {
       window._rakuInitContactPage();
@@ -194,6 +199,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window._rakuInitAppointmentPage();
       } else if (route.page === 'faq' && window._rakuInitFaqPage) {
         window._rakuInitFaqPage();
+      } else if (route.page === 'rewards' && window._rakuInitRewardsPage) {
+        window._rakuInitRewardsPage();
       } else if (route.page === 'contact' && window._rakuInitContactPage) {
         window._rakuInitContactPage();
       } else if (route.page === 'privacy' && window._rakuInitLegalPrivacy) {
@@ -497,6 +504,7 @@ document.addEventListener('DOMContentLoaded', function() {
         '/': 'home',
         '/appointment': 'appointment',
         '/faq': 'faq',
+        '/rewards': 'rewards',
         '/contact': 'contact',
         '/track': 'track',
       };
@@ -513,4 +521,19 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   document.dispatchEvent(new CustomEvent('raku:ready'));
+
+  const SPA_INIT = {
+    rewards: () => window._rakuInitRewardsPage?.(),
+    faq: () => window._rakuInitFaqPage?.(),
+    contact: () => window._rakuInitContactPage?.(),
+    appointment: () => window._rakuInitAppointmentPage?.(),
+    privacy: () => window._rakuInitLegalPrivacy?.(),
+    terms: () => window._rakuInitLegalTerms?.(),
+    return: () => window._rakuInitLegalReturn?.(),
+    preorder: () => window._rakuInitLegalPreorder?.(),
+    track: () => window._rakuInitTrackPage?.(),
+  };
+  setTimeout(() => {
+    SPA_INIT[initialRoute.page]?.();
+  }, 0);
 }); // end DOMContentLoaded

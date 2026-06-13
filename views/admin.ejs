@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/admin.css?v=15">
+<link rel="stylesheet" href="/css/admin.css?v=17">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
 </head>
@@ -300,10 +300,6 @@
                 </select>
               </div>
               <div class="form-group"><label class="form-label"><input type="checkbox" id="pf-featured" checked> Show on homepage</label></div>
-              <div class="form-group">
-                <label class="form-label"><input type="checkbox" id="pf-today-selling"> Show in Today Selling</label>
-                <small class="form-hint">Hero banner-এর ডান পাশে — ১টি featured product</small>
-              </div>
               <details class="form-seo-panel" id="pf-seo-panel">
                 <summary class="form-seo-summary"><i class="ti ti-search"></i> SEO &amp; Search (optional)</summary>
                 <div class="form-seo-body">
@@ -417,82 +413,7 @@
         </div>
       </div>
 
-      <div class="adm-section" id="sec-marketing">
-        <div class="card" style="margin-bottom:20px;">
-          <div class="card-title">Today Selling (hero sidebar)</div>
-          <p class="form-hint" style="margin-bottom:14px;">Homepage hero banner-এর ডান পাশে ১টি featured product দেখাবে।</p>
-          <div class="settings-row" style="margin-bottom:14px;">
-            <div><div>Show Today Selling</div><div class="settings-row-info">Next to homepage hero banner</div></div>
-            <label class="toggle"><input type="checkbox" id="ts-enabled" checked><span class="toggle-slider"></span></label>
-          </div>
-          <div class="form-group"><label class="form-label">Section title</label><input class="form-input" id="ts-title" value="Today Selling"></div>
-          <div class="form-group"><label class="form-label">Featured product</label><select class="form-input form-select" id="ts-product-1"><option value="">— Select product —</option></select></div>
-          <button type="button" class="btn btn-primary" id="today-selling-save-btn"><i class="ti ti-device-floppy"></i> Save Today Selling</button>
-        </div>
-        <div class="grid-2" style="margin-bottom:20px;">
-          <div class="card">
-            <div class="card-title">Left marketing card</div>
-            <form id="marketing-card1-form">
-              <div class="form-group"><label class="form-label">Heading</label><input class="form-input" id="mkt1-title"></div>
-              <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="mkt1-desc" rows="4"></textarea></div>
-              <div class="form-2col">
-                <div class="form-group"><label class="form-label">Button text</label><input class="form-input" id="mkt1-btn"></div>
-                <div class="form-group"><label class="form-label">Button link</label><input class="form-input" id="mkt1-link" placeholder="#products or /appointment"></div>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Image</label>
-                <input class="form-input" id="mkt1-image" placeholder="/uploads/... or https://...">
-                <input class="form-input" type="file" id="mkt1-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
-                <div id="mkt1-preview-wrap" hidden style="margin-top:8px;">
-                  <img id="mkt1-preview" alt="Preview" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">
-                </div>
-              </div>
-              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt1-bg" placeholder="#fce4ec"></div>
-            </form>
-          </div>
-          <div class="card">
-            <div class="card-title">Right marketing card (phone subscribe)</div>
-            <form id="marketing-card2-form">
-              <div class="form-group"><label class="form-label">Heading</label><input class="form-input" id="mkt2-title"></div>
-              <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="mkt2-desc" rows="4"></textarea></div>
-              <div class="form-group"><label class="form-label">Submit button text</label><input class="form-input" id="mkt2-btn" placeholder="Submit"></div>
-              <div class="form-group">
-                <label class="form-label">Image</label>
-                <input class="form-input" id="mkt2-image" placeholder="/uploads/... or https://...">
-                <input class="form-input" type="file" id="mkt2-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
-                <div id="mkt2-preview-wrap" hidden style="margin-top:8px;">
-                  <img id="mkt2-preview" alt="Preview" style="max-width:120px;max-height:120px;border-radius:8px;border:1px solid var(--border);object-fit:cover;">
-                </div>
-              </div>
-              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt2-bg" placeholder="#ede7f6"></div>
-            </form>
-          </div>
-        </div>
-        <div class="card" style="margin-bottom:20px;">
-          <div class="settings-row" style="margin-bottom:14px;">
-            <div><div>Show marketing section on homepage</div><div class="settings-row-info">Below Best Selling Products</div></div>
-            <label class="toggle"><input type="checkbox" id="mkt-enabled" checked><span class="toggle-slider"></span></label>
-          </div>
-          <button type="button" class="btn btn-primary" id="marketing-save-btn"><i class="ti ti-device-floppy"></i> Save marketing cards</button>
-        </div>
-        <div class="table-wrap" style="margin:0;">
-          <div class="table-header">
-            <h3>Phone subscribers</h3>
-            <div class="table-actions">
-              <input class="tbl-search" id="subscribers-search" type="text" placeholder="Search phone number...">
-              <select class="tbl-select" id="subscribers-status-filter">
-                <option value="all">All status</option>
-                <option value="new">New</option>
-                <option value="read">Read</option>
-                <option value="archived">Archived</option>
-              </select>
-            </div>
-          </div>
-          <table class="tbl"><thead><tr><th>Phone</th><th>Source</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody id="subscribers-tbody"></tbody></table>
-          <div class="pagination-bar" id="subscribers-pagination"></div>
-        </div>
-      </div>
+      <%- include('partials/admin-marketing-section', { rewardsContent: typeof rewardsContent !== 'undefined' ? rewardsContent : null }) %>
 
       <div class="adm-section" id="sec-messenger">
         <div class="card" style="margin-bottom:20px;">
@@ -1110,6 +1031,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/admin-rich-editor.js?v=3"></script>
-<script src="/js/admin.js?v=67"></script>
+<script src="/js/admin.js?v=70"></script>
 </body>
 </html>

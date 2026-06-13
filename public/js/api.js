@@ -12,6 +12,14 @@
     return Number(n).toLocaleString('en-US');
   }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   function formatPrice(amount) {
     return '৳' + fmtNum(Math.round(amount));
   }
@@ -56,7 +64,7 @@
       const src = productImageSrc(p.image_url).replace(/"/g, '&quot;');
       const icon = normalizeIconClass(p.icon);
       const color = p.icon_color || '#2d8a2d';
-      return `<img src="${src}" alt="${alt}" loading="lazy" decoding="async" style="width:100%;height:100%;object-fit:contain;padding:8px;border-radius:inherit;" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon}" style="color:${color};" hidden></i>`;
+      return `<img src="${src}" alt="${alt}" loading="eager" decoding="async" style="width:100%;height:100%;object-fit:contain;padding:8px;border-radius:inherit;" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon}" style="color:${color};" hidden></i>`;
     }
     return `<i class="${p.icon}" style="color:${p.icon_color};"></i>`;
   }
@@ -120,15 +128,15 @@
         : null;
     const oldPrice = oldVal ? `<span class="prod-old">${formatPrice(oldVal)}</span>` : '';
     return `
-      <div class="product-card" data-cat="${p.category_slug}" data-id="${p.id}" data-price="${p.price}">
+      <div class="product-card" data-cat="${escapeHtml(p.category_slug || '')}" data-id="${p.id}" data-price="${p.price}">
         <div class="prod-img" style="background:${p.bg_color};">
           ${tagHtml(p)}
           <button class="prod-wish" type="button" data-id="${p.id}" aria-label="Add to wishlist"><i class="ti ti-heart"></i></button>
           ${productMediaHtml(p)}
         </div>
         <div class="prod-info">
-          <div class="prod-category">${p.category_name}</div>
-          <div class="prod-name">${p.name_bn}</div>
+          <div class="prod-category">${escapeHtml(p.category_name || '')}</div>
+          <div class="prod-name">${escapeHtml(p.name_bn || '')}</div>
           <div class="prod-rating"><span class="stars">${stars(p.rating)}</span><span class="rating-count">(${fmtNum(p.review_count)})</span></div>
           <div class="prod-foot">
             <div><span class="prod-price">${formatPrice(p.price)}</span>${oldPrice}</div>
@@ -574,7 +582,66 @@
       });
 
     applyCartButtonsUI();
+    requestAnimationFrame(() => syncAllHomeScrollCardWidths());
   }
+
+  const HOME_PRODUCT_TRACK_IDS = [
+    'track-best-selling',
+    'track-new-arrivals',
+    'track-recommended-for-you',
+  ];
+
+  function visibleHomeScrollCards() {
+    if (window.matchMedia('(max-width: 768px)').matches) return 2;
+    if (window.matchMedia('(max-width: 1024px)').matches) return 3;
+    return 4;
+  }
+
+  function syncHomeScrollCardWidths(trackId) {
+    const track = document.getElementById(trackId);
+    if (!track) return;
+    const cards = track.querySelectorAll('.product-card');
+    if (!cards.length) return;
+
+    const styles = getComputedStyle(track);
+    const gapRaw = styles.columnGap && styles.columnGap !== 'normal' ? styles.columnGap : styles.gap;
+    const gap = Number.parseFloat(gapRaw) || 16;
+    const visible = visibleHomeScrollCards();
+    const trackWidth = track.getBoundingClientRect().width;
+    if (trackWidth < 40) return;
+
+    const width = Math.max(120, Math.floor((trackWidth - gap * (visible - 1)) / visible));
+    cards.forEach((card) => {
+      card.style.flex = '0 0 auto';
+      card.style.width = `${width}px`;
+      card.style.minWidth = `${width}px`;
+      card.style.maxWidth = `${width}px`;
+    });
+  }
+
+  function syncAllHomeScrollCardWidths() {
+    HOME_PRODUCT_TRACK_IDS.forEach(syncHomeScrollCardWidths);
+  }
+
+  let homeScrollResizeBound = false;
+  function bindHomeScrollResize() {
+    if (homeScrollResizeBound) return;
+    homeScrollResizeBound = true;
+    let timer;
+    window.addEventListener('resize', () => {
+      clearTimeout(timer);
+      timer = setTimeout(syncAllHomeScrollCardWidths, 100);
+    });
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(() => syncAllHomeScrollCardWidths());
+      HOME_PRODUCT_TRACK_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) ro.observe(el);
+      });
+    }
+  }
+
+  window._rakuSyncHomeScrollCardWidths = syncAllHomeScrollCardWidths;
 
   const CATEGORY_LABELS = {
     all: 'All Products',
@@ -2320,6 +2387,11 @@
       return;
     }
     track.innerHTML = list.map(productCardHtml).join('');
+    bindHomeScrollResize();
+    requestAnimationFrame(() => {
+      syncHomeScrollCardWidths(trackId);
+      setTimeout(() => syncHomeScrollCardWidths(trackId), 50);
+    });
   }
 
   function bindHomeSeeAll(btnId, collectionSlug) {
@@ -2452,7 +2524,12 @@
     });
   }
 
-  document.addEventListener('raku:ready', async () => {
+  let storefrontBootstrapStarted = false;
+
+  async function runStorefrontBootstrap() {
+    if (storefrontBootstrapStarted) return;
+    storefrontBootstrapStarted = true;
+
     void syncCartBadge();
     void syncWishlist();
     patchCheckoutForm();
@@ -2492,6 +2569,8 @@
     if (blocked) return;
 
     await homeProductsPromise;
+    bindHomeScrollResize();
+    syncAllHomeScrollCardWidths();
 
     if (isHome && window.showPage) window.showPage('home', { skipUrl: true });
 
@@ -2517,5 +2596,15 @@
         if (window._rakuPrefetchFaqs) window._rakuPrefetchFaqs();
       }, 800);
     }
+  }
+
+  document.addEventListener('raku:ready', () => {
+    void runStorefrontBootstrap();
   });
+
+  if (document.readyState !== 'loading') {
+    setTimeout(() => {
+      void runStorefrontBootstrap();
+    }, 0);
+  }
 })();

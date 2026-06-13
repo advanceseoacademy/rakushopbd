@@ -517,6 +517,20 @@ svg {
     padding-bottom: 12px;
   }
 
+  #page-product .product-desc-rich {
+    line-height: 1.65;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  #page-product .product-desc-rich p {
+    margin: 0 0 0.75em;
+  }
+
+  #page-product .product-desc-rich p:last-child {
+    margin-bottom: 0;
+  }
+
   #page-product .pv-qty-row {
     flex-wrap: wrap;
     gap: 10px;
@@ -918,11 +932,8 @@ svg {
 /* ——— Home product rows: 2 cards visible on mobile ——— */
 @media (max-width: 768px) {
   .home-scroll-track .product-card {
-    flex: 0 0 calc((100vw - 48px) / 2) !important;
-    min-width: calc((100vw - 48px) / 2) !important;
-    max-width: calc((100vw - 48px) / 2) !important;
-    width: calc((100vw - 48px) / 2) !important;
-    flex-shrink: 0 !important;
+    flex: 0 0 auto;
+    flex-shrink: 0;
     box-sizing: border-box;
   }
 

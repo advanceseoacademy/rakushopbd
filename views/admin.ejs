@@ -119,6 +119,7 @@
             <div class="table-header"><h3>Recent Orders</h3><button type="button" class="btn btn-outline btn-sm" data-goto="orders">View all</button></div>
             <table class="tbl"><thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th></tr></thead>
             <tbody id="dash-orders-tbody"></tbody></table>
+            <div class="pagination-bar" id="dash-orders-pagination" hidden></div>
           </div>
           <div class="card" style="margin:0;">
             <div class="card-title">Recent Activity</div>
@@ -271,8 +272,8 @@
                 <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
               </div>
               <div class="form-section-title">Content</div>
-              <div class="form-group"><label class="form-label">Product specifications</label><textarea class="form-input form-textarea" id="pf-short-desc" rows="8" placeholder="Brand&#9;Brand name&#10;Product weight&#9;100g&#10;Skin Type&#9;Dry&#10;Scent&#9;Citrus&#10;Item Form&#9;Gel&#10;&#10;One row per line — Label [Tab] Value (or Label: Value)"></textarea><small class="form-hint">Product page-এ specification table হিসেবে দেখাবে (Brand, Weight, Skin Type ইত্যাদি)।</small></div>
-              <div class="form-group"><label class="form-label">Description (optional)</label><textarea class="form-input form-textarea" id="pf-desc" rows="5" placeholder="Extra details — care instructions, warranty, shipping notes…"></textarea></div>
+              <div class="form-group"><label class="form-label">Product specifications</label><textarea class="form-input form-textarea" id="pf-short-desc" rows="8" placeholder="Brand&#9;Brand name&#10;Product weight&#9;100g&#10;Skin Type&#9;Dry&#10;&#10;Tab-separated lines = specification table। Bold, color, highlight formatting ও ব্যবহার করতে পারেন।"></textarea><small class="form-hint">Specification table বা formatted text — Heading, Link, Bold, Italic, Underline, Text color, Highlight supported।</small></div>
+              <div class="form-group"><label class="form-label">Description (optional)</label><textarea class="form-input form-textarea" id="pf-desc" rows="5" placeholder="Extra details — care instructions, warranty, shipping notes…"></textarea><small class="form-hint">Heading, Link, Bold, Italic, Underline, Text color, Highlight formatting supported।</small></div>
               <div class="form-section-title">Media</div>
               <div class="form-group">
                 <label class="form-label">Product images</label>
@@ -1118,7 +1119,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-<script src="/js/admin-rich-editor.js?v=1"></script>
-<script src="/js/admin.js?v=64"></script>
+<script src="/js/admin-rich-editor.js?v=3"></script>
+<script src="/js/admin.js?v=66"></script>
 </body>
 </html>

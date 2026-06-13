@@ -1,14 +1,22 @@
 /**
- * Lightweight rich text editor for admin page content (Quill).
+ * Lightweight rich text editor for admin (Quill).
  * Syncs HTML into hidden/source textareas for existing save handlers.
  */
 (function () {
   const editors = new Map();
 
-  const TOOLBAR = [
+  const PAGE_TOOLBAR = [
     [{ header: [2, 3, false] }],
     ['bold', 'italic', 'underline'],
     [{ list: 'ordered' }, { list: 'bullet' }],
+    ['link'],
+    ['clean'],
+  ];
+
+  const PRODUCT_TOOLBAR = [
+    [{ header: [2, 3, false] }],
+    ['bold', 'italic', 'underline'],
+    [{ color: [] }, { background: [] }],
     ['link'],
     ['clean'],
   ];
@@ -20,6 +28,8 @@
     'legal-preorder-content',
     'faq-answer',
   ];
+
+  const PRODUCT_EDITOR_IDS = ['pf-short-desc', 'pf-desc'];
 
   function quillReady() {
     return typeof window.Quill === 'function';
@@ -35,7 +45,7 @@
     if (!box) {
       box = document.createElement('div');
       box.id = boxId;
-      box.className = 'rich-editor-box';
+      box.className = 'rich-editor-box rich-editor-box--product';
       ta.parentNode.insertBefore(box, ta);
     }
 
@@ -44,9 +54,10 @@
     ta.hidden = true;
     ta.style.display = 'none';
 
+    const toolbar = options?.toolbar || PAGE_TOOLBAR;
     const quill = new Quill(`#${boxId}`, {
       theme: 'snow',
-      modules: { toolbar: TOOLBAR },
+      modules: { toolbar },
       placeholder: options?.placeholder || ta.getAttribute('placeholder') || 'Write content…',
     });
 
@@ -68,23 +79,33 @@
     if (ta && quill) ta.value = quill.root.innerHTML;
   }
 
+  function initEditors(ids, options) {
+    if (!quillReady()) return;
+    ids.forEach((id) => {
+      if (document.getElementById(id)) mountEditor(id, options);
+    });
+  }
+
   window.RakuRichEditor = {
     init(textareaId, options) {
       return mountEditor(textareaId, options);
     },
 
     initPageEditors() {
-      if (!quillReady()) return;
-      PAGE_EDITOR_IDS.forEach((id) => {
-        if (document.getElementById(id)) mountEditor(id);
-      });
+      initEditors(PAGE_EDITOR_IDS);
+    },
+
+    initProductEditors() {
+      initEditors(PRODUCT_EDITOR_IDS, { toolbar: PRODUCT_TOOLBAR });
     },
 
     setContent(textareaId, html) {
       const ta = document.getElementById(textareaId);
       const value = html || '';
       if (ta) ta.value = value;
-      const quill = editors.get(textareaId) || mountEditor(textareaId);
+      const quill = editors.get(textareaId) || mountEditor(textareaId, {
+        toolbar: PRODUCT_EDITOR_IDS.includes(textareaId) ? PRODUCT_TOOLBAR : PAGE_TOOLBAR,
+      });
       if (quill) quill.root.innerHTML = value;
     },
 
@@ -98,7 +119,11 @@
     },
 
     syncAll() {
-      PAGE_EDITOR_IDS.forEach((id) => syncEditor(id));
+      [...PAGE_EDITOR_IDS, ...PRODUCT_EDITOR_IDS].forEach((id) => syncEditor(id));
+    },
+
+    syncProductEditors() {
+      PRODUCT_EDITOR_IDS.forEach((id) => syncEditor(id));
     },
   };
 

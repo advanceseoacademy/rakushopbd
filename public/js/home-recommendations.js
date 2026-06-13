@@ -133,9 +133,12 @@
     track.innerHTML = list.map((p) => window.productCardHtml(p)).join('');
 
     if (window.bindProductGridEvents) window.bindProductGridEvents();
+    if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
 
     requestAnimationFrame(() => {
+      if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
       setTimeout(() => {
+        if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
         if (window._rakuInitHomeScrollAuto) {
           window._rakuInitHomeScrollAuto('track-recommended-for-you', 3500);
         }

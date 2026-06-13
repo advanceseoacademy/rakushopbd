@@ -63,6 +63,7 @@
   let currentOrderId = null;
 
   let ordersPage = 1;
+  let dashRecentOrdersPage = 1;
   let appointmentsPage = 1;
   let contactsPage = 1;
   let subscribersPage = 1;
@@ -380,7 +381,16 @@
       setProductFormTitle('Add Product');
     }
     switchPage('product-form');
-    setTimeout(() => document.getElementById('pf-name')?.focus(), 50);
+    setTimeout(() => {
+      if (window.RakuRichEditor) {
+        window.RakuRichEditor.initProductEditors();
+        const descVal = product ? (product.description_bn || '') : '';
+        const shortVal = product ? (product.short_description || '') : '';
+        window.RakuRichEditor.setContent('pf-desc', descVal);
+        window.RakuRichEditor.setContent('pf-short-desc', shortVal);
+      }
+      document.getElementById('pf-name')?.focus();
+    }, 50);
   }
 
   function closeProductForm() {
@@ -581,6 +591,34 @@
   });
 
   // ——— Dashboard ———
+  async function loadDashboardRecentOrders(page) {
+    if (page) dashRecentOrdersPage = page;
+    const data = await api(`/orders?page=${dashRecentOrdersPage}&limit=5`);
+    const tbody = document.getElementById('dash-orders-tbody');
+    if (!data.ok || !tbody) return;
+    tbody.innerHTML = data.orders.length
+      ? data.orders
+          .map(
+            (o) => `<tr>
+        <td><b>${o.orderNumber}</b></td><td>${o.customerName}</td><td>${o.itemsPreview}</td>
+        <td>${o.totalFormatted}</td><td>${statusBadgeHtml(o.status)}</td></tr>`
+          )
+          .join('')
+      : '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">No orders yet</td></tr>';
+
+    const pag = data.pagination;
+    const pagEl = document.getElementById('dash-orders-pagination');
+    if (pagEl && pag) {
+      pagEl.hidden = pag.pages <= 1;
+      pagEl.innerHTML = `<span>Page ${pag.page} of ${pag.pages} (${pag.total} orders)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} data-dash-op="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page >= pag.pages ? 'disabled' : ''} data-dash-op="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-dash-op]').forEach((b) => {
+        b.onclick = () => loadDashboardRecentOrders(dashRecentOrdersPage + Number(b.dataset.dashOp));
+      });
+    }
+  }
+
   async function loadDashboard() {
     const data = await api('/dashboard');
     if (!data.ok) {
@@ -610,13 +648,7 @@
       if (d.ok && d.newCount != null) setSubscriberBadge(d.newCount);
     });
 
-    document.getElementById('dash-orders-tbody').innerHTML = data.recentOrders
-      .map(
-        (o) => `<tr>
-        <td><b>${o.orderNumber}</b></td><td>${o.customerName}</td><td>${o.itemsPreview}</td>
-        <td>${o.totalFormatted}</td><td>${statusBadgeHtml(o.status)}</td></tr>`
-      )
-      .join('');
+    await loadDashboardRecentOrders(dashRecentOrdersPage);
 
     drawCharts(data);
 
@@ -1795,10 +1827,14 @@
     document.getElementById('pf-stock').value = 100;
     document.getElementById('pf-featured').checked = true;
     syncPfTodaySellingFields(null);
-    ['pf-short-desc', 'pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image', 'pf-discount-percent', 'pf-buy-price'].forEach((id) => {
+    ['pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image', 'pf-discount-percent', 'pf-buy-price'].forEach((id) => {
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
+    if (window.RakuRichEditor) {
+      window.RakuRichEditor.setContent('pf-desc', '');
+      window.RakuRichEditor.setContent('pf-short-desc', '');
+    }
     const oldEl = document.getElementById('pf-old-price');
     if (oldEl) delete oldEl.dataset.userEdited;
     const priceEl = document.getElementById('pf-price');
@@ -1864,6 +1900,7 @@
 
   document.getElementById('product-form').onsubmit = async (e) => {
     e.preventDefault();
+    window.RakuRichEditor?.syncProductEditors?.();
     const id = document.getElementById('pf-id').value;
     const galleryUrls = [];
     for (const item of pfGalleryItems) {
@@ -1899,8 +1936,8 @@
       discountPercent: discParsed === null ? null : discParsed,
       stock: Number(document.getElementById('pf-stock').value),
       sku: document.getElementById('pf-sku').value.trim(),
-      description: document.getElementById('pf-desc').value.trim(),
-      shortDescription: document.getElementById('pf-short-desc')?.value?.trim() || null,
+      description: (window.RakuRichEditor?.getContent('pf-desc') || document.getElementById('pf-desc').value).trim(),
+      shortDescription: (window.RakuRichEditor?.getContent('pf-short-desc') || document.getElementById('pf-short-desc')?.value || '').trim() || null,
       imageUrl,
       galleryUrls,
       icon: document.getElementById('pf-icon').value,

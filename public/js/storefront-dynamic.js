@@ -458,6 +458,34 @@
     return null;
   }
 
+  function isHtmlContent(s) {
+    return /<[a-z][\s\S]*>/i.test(String(s || ''));
+  }
+
+  function htmlToPlainText(html) {
+    const d = document.createElement('div');
+    d.innerHTML = html;
+    const blocks = d.querySelectorAll('p, li, div');
+    if (blocks.length) {
+      return Array.from(blocks)
+        .map((el) => (el.textContent || '').trim())
+        .filter(Boolean)
+        .join('\n');
+    }
+    return (d.textContent || d.innerText || '').trim();
+  }
+
+  function renderRichProductHtml(html) {
+    if (!html) return '';
+    return `<div class="product-desc-rich">${html}</div>`;
+  }
+
+  function renderShortDescriptionRichHtml(p) {
+    const short = String(p.short_description || '').trim();
+    if (!short || !isHtmlContent(short)) return '';
+    return renderRichProductHtml(short);
+  }
+
   function parseSpecLine(line, loose) {
     const trimmed = String(line || '').trim();
     if (!trimmed) return null;
@@ -510,8 +538,9 @@
   }
 
   function getProductSpecs(p) {
-    const short = String(p.short_description || '').trim();
-    if (!short) return [];
+    const raw = String(p.short_description || '').trim();
+    if (!raw) return [];
+    const short = isHtmlContent(raw) ? htmlToPlainText(raw) : raw;
 
     const strict = parseProductDescription(short, { loose: false });
     if (strict.specs.length && !strict.prose.length) return strict.specs;
@@ -533,7 +562,8 @@
   }
 
   function productShortDescription(p) {
-    const short = String(p.short_description || '').trim();
+    const raw = String(p.short_description || '').trim();
+    const short = raw && isHtmlContent(raw) ? htmlToPlainText(raw) : raw;
     if (short) {
       const { specs, prose } = parseProductDescription(short, { loose: true });
       if (specs.length && !prose.length) return '';
@@ -577,6 +607,7 @@
   function renderProductDescriptionHtml(p) {
     const longText = String(p.description_bn || '').trim();
     if (longText) {
+      if (isHtmlContent(longText)) return renderRichProductHtml(longText);
       const lines = longText.split(/\r?\n/).filter(Boolean);
       if (lines.length > 1) {
         return lines.map((line) => `<p class="product-desc-prose">${escapeHtml(line)}</p>`).join('');
@@ -626,6 +657,7 @@
 
     const specsInline = document.getElementById('pv-specs-inline');
     const specs = getProductSpecs(p);
+    const richSpecHtml = !specs.length ? renderShortDescriptionRichHtml(p) : '';
     if (specsInline) {
       if (specs.length) {
         specsInline.innerHTML = renderSpecTable(specs);
@@ -636,7 +668,7 @@
       }
     }
 
-    setProductSpecUiVisible(specs.length > 0);
+    setProductSpecUiVisible(specs.length > 0 || Boolean(richSpecHtml));
 
     const discBadge = document.querySelector('#page-product .pv-discount-badge');
     const pct = window.discountPercent ? window.discountPercent(p) : Number(p.discount_percent) || null;
@@ -686,7 +718,7 @@
       if (specs.length) {
         spec.innerHTML = renderSpecTable(specs);
       } else {
-        spec.innerHTML = '';
+        spec.innerHTML = richSpecHtml;
       }
     }
   };

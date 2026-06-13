@@ -192,7 +192,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
     const recentOrders = await query(
       `SELECT o.id, o.order_number, o.customer_name, o.total, o.status, o.created_at,
         ${sqlDialect.orderItemsPreview('o')} AS items_preview
-       FROM orders o ORDER BY o.created_at DESC LIMIT 8`
+       FROM orders o ORDER BY o.created_at DESC LIMIT 5`
     );
 
     const statusBreakdown = await query(

@@ -16,7 +16,7 @@
      <span class="navbar-hamburger-line"></span>
     </button>
     <a href="/" class="logo site-logo-link" aria-label="RakuShopBD — Home">
-     <img src="/images/rakushopbd-logo.png" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
+     <%- include('site-logo', { logoClass: 'site-logo-img site-logo-img--header', logoWidth: 280, logoHeight: 68, logoAlt: 'RakuShopBD — Comfort Your Life' }) %>
     </a>
     <div class="nav-actions nav-actions--header nav-actions--mobile-bar">
      <a href="#" class="header-icon-btn" id="nav-wishlist-btn" aria-label="Wishlist">
@@ -40,7 +40,7 @@
        <option value="all">All Products</option>
       </select>
       <div class="search-field">
-       <input class="search-input" id="search-input" type="search" autocomplete="off" placeholder="Search for product" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
+       <input class="search-input" id="search-input" type="search" role="combobox" autocomplete="off" placeholder="Search for product" aria-haspopup="listbox" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
        <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
        <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
       </div>

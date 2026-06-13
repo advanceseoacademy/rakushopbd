@@ -16,7 +16,19 @@
     if (!el) return;
     const src = String(url || '').trim();
     if (src) {
-      el.innerHTML = `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async">`;
+      if (window._rakuResponsiveImgHtml) {
+        el.innerHTML = window._rakuResponsiveImgHtml(src, {
+          alt: '',
+          widths: [400, 800],
+          sizes: '(max-width: 768px) 44vw, 385px',
+          width: 385,
+          height: 385,
+          loading: 'lazy',
+          decoding: 'async',
+        });
+      } else {
+        el.innerHTML = `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async" width="385" height="385">`;
+      }
     } else {
       el.innerHTML = '<i class="ti ti-photo"></i>';
     }

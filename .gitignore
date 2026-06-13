@@ -10,3 +10,4 @@ npm-debug.log*
 *.log
 Archive.zip
 public/uploads/_orig/
+public/.cache/

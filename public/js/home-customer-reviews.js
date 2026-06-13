@@ -285,7 +285,7 @@
         </div>
         <span class="home-review-verified"><i class="ti ti-circle-check-filled"></i> Verified</span>
       </div>
-      <div class="home-review-stars" aria-label="${review.rating} out of 5 stars">${starsHtml(review.rating)}</div>
+      <div class="home-review-stars" role="img" aria-label="${review.rating} out of 5 stars">${starsHtml(review.rating)}</div>
       <p class="home-review-text">${escapeHtml(review.text)}</p>
     </article>`;
   }
@@ -337,9 +337,13 @@
   }
 
   document.addEventListener('raku:ready', () => {
-    void paintHomeCustomerReviews();
+    const run = () => void paintHomeCustomerReviews();
+    if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 3500 });
+    else setTimeout(run, 1500);
   });
   document.addEventListener('raku:bootstrap', () => {
-    void paintHomeCustomerReviews();
+    const run = () => void paintHomeCustomerReviews();
+    if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 3500 });
+    else setTimeout(run, 1500);
   });
 })();

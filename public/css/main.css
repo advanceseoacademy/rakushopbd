@@ -1356,7 +1356,7 @@
   }
   .see-all {
     font-size: 13px;
-    color: var(--primary-light);
+    color: var(--primary-dark);
     text-decoration: none;
     display: flex;
     align-items: center;
@@ -1956,6 +1956,7 @@
 
   @media (max-width: 768px) {
     .category-scroll-wrap--home #home-category-track {
+      --cat-card-size: calc((100% - 24px) / 3);
       justify-content: flex-start;
     }
 
@@ -2277,15 +2278,18 @@
   .social-btn:hover { background: rgba(255,255,255,0.15); }
   .social-btn i { font-size: 17px; color: rgba(255,255,255,0.8); }
   .footer-heading { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 16px; }
-  .footer-links { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .footer-links { list-style: none; display: flex; flex-direction: column; gap: 10px; }
   .footer-links li a {
     font-size: 13px;
     color: rgba(255,255,255,0.6);
     text-decoration: none;
     transition: color 0.15s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    min-height: 24px;
+    min-width: 24px;
+    padding: 4px 2px;
     cursor: pointer;
   }
   .footer-links li a:hover { color: #fff; }

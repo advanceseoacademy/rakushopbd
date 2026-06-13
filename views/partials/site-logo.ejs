@@ -1,0 +1,11 @@
+<%
+  const cls = typeof logoClass !== 'undefined' ? logoClass : 'site-logo-img';
+  const w = typeof logoWidth !== 'undefined' ? logoWidth : 280;
+  const h = typeof logoHeight !== 'undefined' ? logoHeight : 68;
+  const alt = typeof logoAlt !== 'undefined' ? logoAlt : 'RakuShopBD';
+%>
+<picture>
+  <source srcset="/images/rakushopbd-logo-560.webp" media="(min-resolution: 2dppx), (-webkit-min-device-pixel-ratio: 2)" type="image/webp">
+  <source srcset="/images/rakushopbd-logo-280.webp" type="image/webp">
+  <img src="/images/rakushopbd-logo-280.webp" alt="<%= alt %>" class="<%= cls %>" width="<%= w %>" height="<%= h %>" decoding="async">
+</picture>

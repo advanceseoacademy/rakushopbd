@@ -1508,7 +1508,7 @@
     const f2 = document.getElementById('mkt2-file')?.files?.[0];
 
     if (f1) {
-      const up = await uploadProductImage(f1);
+      const up = await uploadProductImage(f1, 800);
       if (!up.ok) {
         toast(up.error || 'Left card image upload failed', 'error');
         return;
@@ -1519,7 +1519,7 @@
       setMktImagePreview('mkt1-preview-wrap', 'mkt1-preview', img1);
     }
     if (f2) {
-      const up = await uploadProductImage(f2);
+      const up = await uploadProductImage(f2, 800);
       if (!up.ok) {
         toast(up.error || 'Right card image upload failed', 'error');
         return;
@@ -1770,10 +1770,11 @@
     return item.preview || item.url;
   }
 
-  async function uploadProductImage(file) {
+  async function uploadProductImage(file, maxWidth) {
     const fd = new FormData();
     fd.append('image', file);
-    const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+    const q = maxWidth ? `?maxWidth=${encodeURIComponent(maxWidth)}` : '';
+    const up = await fetch(API + '/upload' + q, { method: 'POST', credentials: 'same-origin', body: fd });
     return up.json();
   }
 
@@ -3492,8 +3493,27 @@
   });
 
   function collectSeoSettings() {
+    const rawSiteUrl = document.getElementById('set-site-url')?.value?.trim() || '';
+    let siteUrl = rawSiteUrl;
+    if (siteUrl.includes(',')) {
+      const parts = siteUrl
+        .split(',')
+        .map((part) => part.trim())
+        .filter(Boolean);
+      siteUrl = parts.find((part) => /^https?:\/\//i.test(part)) || parts[parts.length - 1];
+    }
+    if (siteUrl && !/^https?:\/\//i.test(siteUrl)) {
+      siteUrl = `https://${siteUrl.replace(/^\/+/, '')}`;
+    }
+    try {
+      if (siteUrl) {
+        const parsed = new URL(siteUrl);
+        siteUrl = `${parsed.protocol}//${parsed.host}`;
+      }
+    } catch (_) {}
+
     return {
-      site_url: document.getElementById('set-site-url')?.value?.trim() || '',
+      site_url: siteUrl,
       seo_home_title: document.getElementById('set-seo-home-title')?.value?.trim() || '',
       seo_meta_description: document.getElementById('set-seo-description')?.value?.trim() || '',
       seo_meta_keywords: document.getElementById('set-seo-keywords')?.value?.trim() || '',

@@ -133,16 +133,9 @@
     track.innerHTML = list.map((p) => window.productCardHtml(p)).join('');
 
     if (window.bindProductGridEvents) window.bindProductGridEvents();
-    if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
 
     requestAnimationFrame(() => {
-      if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
-      setTimeout(() => {
-        if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
-        if (window._rakuInitHomeScrollAuto) {
-          window._rakuInitHomeScrollAuto('track-recommended-for-you', 3500);
-        }
-      }, 120);
+      if (window._rakuScheduleHomeScrollAuto) window._rakuScheduleHomeScrollAuto();
     });
   }
 
@@ -180,19 +173,21 @@
   function bootRecommendations() {
     const page = document.getElementById('page-home');
     if (!page || page.style.display === 'none') return;
-    void loadRecommendations();
+    const run = () => void loadRecommendations();
+    if (window.requestIdleCallback) {
+      requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      setTimeout(run, 2000);
+    }
   }
 
-  document.addEventListener('raku:ready', bootRecommendations);
   document.addEventListener('raku:bootstrap', bootRecommendations);
   document.addEventListener('raku:behavior-changed', scheduleRefresh);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') scheduleRefresh();
   });
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(bootRecommendations, 100));
-  } else {
-    setTimeout(bootRecommendations, 100);
+  if (window._rakuStoreBoot?.ok || window.__RAKU_BOOTSTRAP?.ok) {
+    bootRecommendations();
   }
 })();

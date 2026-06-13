@@ -277,7 +277,9 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
   router.post('/upload', requireAdmin, upload.single('image'), async (req, res) => {
     try {
       if (!req.file) return res.status(400).json({ ok: false, error: 'No file uploaded' });
-      const saved = await optimizeAndSaveImage(req.file);
+      const maxWidthRaw = Number(req.query.maxWidth) || 0;
+      const maxWidth = maxWidthRaw > 0 ? Math.min(maxWidthRaw, 1920) : undefined;
+      const saved = await optimizeAndSaveImage(req.file, maxWidth ? { maxWidth } : {});
       res.json({
         ok: true,
         url: saved.url,

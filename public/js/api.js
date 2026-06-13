@@ -147,12 +147,27 @@
   }
 
   async function apiFetch(url, options) {
-    const res = await fetch(API + url, {
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'same-origin',
-      ...options,
-    });
-    return res.json();
+    try {
+      const res = await fetch(API + url, {
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        ...options,
+      });
+      const text = await res.text();
+      let data = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        return { ok: false, error: res.ok ? 'Invalid response' : `Request failed (${res.status})` };
+      }
+      if (!res.ok && data.ok !== false) {
+        data.ok = false;
+        data.error = data.error || `Request failed (${res.status})`;
+      }
+      return data;
+    } catch {
+      return { ok: false, error: 'Network error' };
+    }
   }
 
   window._rakuApiFetch = apiFetch;
@@ -166,19 +181,31 @@
 
   function mergeProductRecord(p) {
     if (!p?.id) return;
+    const prev = productDetailCache.get(p.id);
+    if (prev) {
+      if (!p.image_url && prev.image_url) p.image_url = prev.image_url;
+      if (!p.imageUrl && prev.imageUrl) p.imageUrl = prev.imageUrl;
+      if ((!p.gallery_urls || !p.gallery_urls.length) && prev.gallery_urls?.length) {
+        p.gallery_urls = prev.gallery_urls;
+      }
+      if ((!p.gallery || !p.gallery.length) && prev.gallery?.length) {
+        p.gallery = prev.gallery;
+      }
+    }
     productDetailCache.set(p.id, p);
     const idx = products.findIndex((x) => x.id === p.id);
     if (idx >= 0) products[idx] = p;
     else products.push(p);
   }
 
-  async function fetchProductDetail(ref) {
+  async function fetchProductDetail(ref, opts = {}) {
     const raw = String(ref ?? '').trim();
     if (!raw) return null;
     const byId = /^\d+$/.test(raw);
     const cacheKey = byId ? Number(raw) : `slug:${raw}`;
-    if (productDetailCache.has(cacheKey)) return productDetailCache.get(cacheKey);
-    if (productFetchInflight.has(cacheKey)) return productFetchInflight.get(cacheKey);
+    const bypassCache = Boolean(opts.bypassCache);
+    if (!bypassCache && productDetailCache.has(cacheKey)) return productDetailCache.get(cacheKey);
+    if (!bypassCache && productFetchInflight.has(cacheKey)) return productFetchInflight.get(cacheKey);
     const apiPath = byId ? `/products/${raw}` : `/products/${encodeURIComponent(raw)}`;
     const job = apiFetch(apiPath)
       .then((data) => {
@@ -703,14 +730,20 @@
     html += `<i class="ti ti-chevron-right" style="font-size:11px;"></i>`;
     html += `<span class="current">${escapeHtmlCat(label)}</span>`;
     nav.innerHTML = html;
-    nav.querySelector('[data-page="home"]')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (window.showPage) window.showPage('home');
-    });
-    nav.querySelector('.cat-bc-parent')?.addEventListener('click', (e) => {
-      e.preventDefault();
-      if (window.openCategory) window.openCategory(parent.slug);
-    });
+    const homeLink = nav.querySelector('[data-page="home"]');
+    if (homeLink) {
+      homeLink.onclick = (e) => {
+        e.preventDefault();
+        if (window.showPage) window.showPage('home');
+      };
+    }
+    const parentLink = nav.querySelector('.cat-bc-parent');
+    if (parentLink && parent) {
+      parentLink.onclick = (e) => {
+        e.preventDefault();
+        if (window.openCategory) window.openCategory(parent.slug);
+      };
+    }
   }
 
   function escapeHtmlCat(s) {
@@ -728,6 +761,7 @@
   };
 
   let categoryLoadToken = 0;
+  let productLoadToken = 0;
 
   function priceInRange(price, range) {
     const p = Number(price);
@@ -911,7 +945,14 @@
         try {
           const data = await apiFetch(collection.api);
           const fresh = parseCollectionProducts(slug, data);
-          if (fresh?.length) window._rakuHomeCollections[slug] = fresh;
+          if (fresh?.length) {
+            window._rakuHomeCollections[slug] = fresh;
+            if (categoryState.slug === slug) {
+              categoryState.items = fresh;
+              categoryState.filtered = [...fresh];
+              applyCategoryFilters();
+            }
+          }
         } catch (_) {}
       })();
       return cached;
@@ -972,7 +1013,18 @@
     }
 
     let items = [];
-    if (collection) {
+    if (opts.search) {
+      try {
+        const params = new URLSearchParams({ search: String(opts.search).trim(), limit: '48' });
+        if (categoryState.slug && categoryState.slug !== 'all') {
+          params.set('category', categoryState.slug);
+        }
+        const data = await apiFetch(`/products?${params}`);
+        if (data.ok) items = data.products || [];
+      } catch {
+        items = [];
+      }
+    } else if (collection) {
       items = await loadHomeCollectionProducts(normalizedSlug, collection);
     } else {
       try {
@@ -988,7 +1040,9 @@
       products = [...new Map([...products, ...items].map((p) => [p.id, p])).values()];
     }
 
-    if (normalizedSlug === 'today-deals' && window._rakuSetHomeCollectionLabel) {
+    if (opts.search) {
+      updateCategoryBreadcrumb(categoryState.slug, `Search: ${opts.search}`);
+    } else if (normalizedSlug === 'today-deals' && window._rakuSetHomeCollectionLabel) {
       const dealsTitle = CATEGORY_LABELS['today-deals'];
       if (dealsTitle) updateCategoryBreadcrumb(categoryState.slug, dealsTitle);
     }
@@ -1031,10 +1085,16 @@
   }
 
   function productGalleryUrls(p) {
-    const gallery = Array.isArray(p?.gallery_urls) ? p.gallery_urls.filter(Boolean) : [];
-    if (p?.image_url) {
-      if (!gallery.length) return [p.image_url];
-      if (!gallery.includes(p.image_url)) return [p.image_url, ...gallery];
+    const mainUrl = String(p?.image_url || p?.imageUrl || '').trim();
+    let gallery = Array.isArray(p?.gallery_urls) ? p.gallery_urls.filter(Boolean) : [];
+    if (!gallery.length && Array.isArray(p?.gallery)) {
+      gallery = p.gallery
+        .map((row) => row?.image_url || row?.imageUrl)
+        .filter(Boolean);
+    }
+    if (mainUrl) {
+      if (!gallery.length) return [mainUrl];
+      if (!gallery.includes(mainUrl)) return [mainUrl, ...gallery];
     }
     return gallery;
   }
@@ -1074,7 +1134,7 @@
     const urls = productGalleryUrls(p);
     const mainImg = document.querySelector('#page-product .main-product-img');
     const thumbRow = document.querySelector('#page-product .thumb-row');
-    const alt = (p.image_alt || p.name_bn || 'Product').trim();
+    const alt = (p.image_alt || p.imageAlt || p.name_bn || p.nameBn || 'Product').trim();
 
     if (!urls.length) {
       setMainProductPhoto(mainImg, null, alt, p.bg_color, p.icon, p.icon_color);
@@ -1085,7 +1145,7 @@
       return;
     }
 
-    setMainProductPhoto(mainImg, urls[0], alt, p.bg_color, p.icon, p.icon_color);
+    setMainProductPhoto(mainImg, urls[0], alt, p.bg_color || p.bgColor, p.icon, p.icon_color || p.iconColor);
 
     if (!thumbRow) return;
     if (urls.length <= 1) {
@@ -1228,17 +1288,41 @@
     loadProductReviews(p.id);
     bindReviewSubmit(p.id);
     setReviewRating(5);
-    if (window._rakuEnhanceProductPageSync) window._rakuEnhanceProductPageSync(p);
+    if (window._rakuEnhanceProductPageSync) {
+      window._rakuEnhanceProductPageSync(p);
+    } else if (window._rakuPaintPreloadedProductPage) {
+      window._rakuPaintPreloadedProductPage();
+    }
     void window._rakuEnhanceProductPageRelated?.(p);
+  }
+
+  function productHasDetailContent(p) {
+    if (!p) return false;
+    const stripHtml = (s) => String(s || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    return Boolean(stripHtml(p.description_bn) || stripHtml(p.short_description));
+  }
+
+  function productHasGallery(p) {
+    return productGalleryUrls(p).length > 0;
+  }
+
+  function productNeedsDetailFetch(p) {
+    if (!p) return true;
+    if (!('stock' in p)) return true;
+    if (!productHasGallery(p)) return true;
+    const hasDesc = Boolean(String(p.description_bn || p.descriptionBn || '').trim());
+    const hasShort = Boolean(String(p.short_description || p.shortDescription || '').trim());
+    if (hasDesc || hasShort) return false;
+    return true;
   }
 
   async function openProduct(idOrSlug, opts = {}) {
     const raw = String(idOrSlug ?? '').trim();
     if (!raw) return;
+    const loadToken = ++productLoadToken;
     const byId = /^\d+$/.test(raw);
     const n = byId ? Number(raw) : null;
 
-    let p = null;
     const preloaded =
       window.__RAKU_PRELOAD_PRODUCT?.ok &&
       (byId
@@ -1248,19 +1332,38 @@
         : null;
 
     if (preloaded) {
+      mergeProductRecord(preloaded);
+      currentProduct = preloaded;
       paintProductCore(preloaded);
+      bindProductActions(preloaded);
+      finishProductPage(preloaded);
     } else {
-      paintProductCore({ name_bn: 'Loading...', price: 0, bg_color: '#f5f5f5' });
-    }
-
-    const detailed = await fetchProductDetail(raw);
-    if (detailed) p = detailed;
-    else if (preloaded) p = preloaded;
-    else {
-      p =
+      const cached =
         (byId && products.find((x) => x.id === n)) ||
         products.find((x) => x.slug === raw) ||
         null;
+      if (cached) {
+        mergeProductRecord(cached);
+        currentProduct = cached;
+        paintProductCore(cached);
+        bindProductActions(cached);
+        finishProductPage(cached);
+      } else if (!document.querySelector('#page-product .main-product-img img.product-photo')) {
+        paintProductCore({ name_bn: 'Loading...', price: 0, bg_color: '#f5f5f5' });
+      }
+    }
+
+    let p = preloaded;
+    if (!p || productNeedsDetailFetch(p)) {
+      const detailed = await fetchProductDetail(raw);
+      if (loadToken !== productLoadToken) return;
+      if (detailed) p = detailed;
+      else if (!p) {
+        p =
+          (byId && products.find((x) => x.id === n)) ||
+          products.find((x) => x.slug === raw) ||
+          null;
+      }
     }
     if (!p) {
       paintProductCore({
@@ -1269,17 +1372,17 @@
         bg_color: '#f5f5f5',
         description_bn: 'This product may have been removed. Please browse our catalog.',
       });
-      const titleEl = document.getElementById('pv-title');
-      if (titleEl) titleEl.textContent = 'Product not found';
       return;
     }
 
     mergeProductRecord(p);
     currentProduct = p;
     if (window._rakuTrackProductView) window._rakuTrackProductView(p);
-    paintProductCore(p);
-    bindProductActions(p);
-    finishProductPage(p);
+    if (!preloaded || p !== preloaded) {
+      paintProductCore(p);
+      bindProductActions(p);
+      finishProductPage(p);
+    }
 
     if (window.showPage) {
       window.showPage('product', {
@@ -1289,9 +1392,10 @@
       });
     }
 
-    if ('category_slug' in p && 'stock' in p) return;
+    if (!productNeedsDetailFetch(p)) return;
 
-    const full = await fetchProductDetail(p.slug || p.id);
+    const full = await fetchProductDetail(p.slug || p.id, { bypassCache: true });
+    if (loadToken !== productLoadToken) return;
     if (!full || full.id !== p.id) return;
     mergeProductRecord(full);
     currentProduct = full;
@@ -2648,6 +2752,13 @@
 
   let storefrontBootstrapStarted = false;
 
+  function flushPendingRelatedProduct() {
+    if (!window._rakuPendingRelatedProduct) return;
+    const pending = window._rakuPendingRelatedProduct;
+    delete window._rakuPendingRelatedProduct;
+    void window._rakuEnhanceProductPageRelated?.(pending);
+  }
+
   async function runStorefrontBootstrap() {
     if (storefrontBootstrapStarted) return;
     storefrontBootstrapStarted = true;
@@ -2730,9 +2841,6 @@
     void runStorefrontBootstrap();
   });
 
-  if (document.readyState !== 'loading') {
-    setTimeout(() => {
-      void runStorefrontBootstrap();
-    }, 0);
-  }
+  flushPendingRelatedProduct();
+  void runStorefrontBootstrap();
 })();

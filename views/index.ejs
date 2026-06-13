@@ -274,6 +274,7 @@
 .pv-info { min-width: 0; }
 .pv-cat { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
 .pv-title { font-size:22px; font-weight:700; color:var(--text); line-height:1.35; margin-bottom:10px; word-break:break-word; }
+.pv-summary { font-size:14px; color:var(--text-muted); line-height:1.55; margin:0 0 12px; }
 .pv-rating-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
 .pv-stars { color:#EF9F27; font-size:16px; }
 .pv-rating-num { font-size:14px; font-weight:600; }
@@ -423,6 +424,7 @@
  <div class="pv-info">
  <div class="pv-cat">Electronics › Smartwatch</div>
  <h1 class="pv-title">Smartwatch Pro — Health Tracker, GPS, AMOLED Display</h1>
+ <p class="pv-summary" id="pv-summary" hidden></p>
  <div class="pv-rating-row">
  <span class="pv-stars">★★★★★</span>
  <span class="pv-rating-num">4.9</span>
@@ -1470,19 +1472,65 @@
 <% } %>
 <% if (typeof productJson !== 'undefined' && productJson) { %>
 <script>window.__RAKU_PRELOAD_PRODUCT=<%- productJson %>;</script>
+<script>
+(function () {
+  var pre = window.__RAKU_PRELOAD_PRODUCT;
+  if (!pre || !pre.ok || !pre.product) return;
+  var m = (location.pathname || '').match(/^\/product\/([^/]+)\/?$/);
+  if (!m) return;
+  var ref = decodeURIComponent(m[1]);
+  var p = pre.product;
+  var match = /^\d+$/.test(ref) ? Number(p.id) === Number(ref) : p.slug === ref;
+  if (!match) return;
+  var url = String(p.image_url || p.imageUrl || '').trim();
+  var titleEl = document.querySelector('#page-product .pv-title');
+  if (titleEl) titleEl.textContent = p.name_bn || p.nameBn || titleEl.textContent;
+  var priceEl = document.querySelector('#page-product .pv-price');
+  if (priceEl && (p.price != null)) {
+    priceEl.textContent = '৳' + Number(p.price).toLocaleString('en-BD');
+  }
+  var descEl = document.getElementById('tab-desc-content');
+  var longDesc = String(p.description_bn || p.descriptionBn || '').trim();
+  if (descEl && longDesc) {
+    descEl.innerHTML = longDesc.indexOf('<') >= 0
+      ? '<div class="product-desc-rich">' + longDesc + '</div>'
+      : '<p class="product-desc-prose">' + longDesc + '</p>';
+  }
+  if (!url) return;
+  var main = document.querySelector('#page-product .main-product-img');
+  if (!main) return;
+  main.querySelectorAll(':scope > i').forEach(function (i) { i.remove(); });
+  var img = main.querySelector('img.product-photo');
+  if (!img) {
+    img = document.createElement('img');
+    img.className = 'product-photo';
+    img.style.cssText = 'width:100%;height:100%;object-fit:contain;padding:12px;box-sizing:border-box;';
+    img.loading = 'eager';
+    img.decoding = 'async';
+    main.appendChild(img);
+  }
+  if (url.charAt(0) === '/') img.src = url;
+  else if (/^https?:\/\//i.test(url)) img.src = url;
+  else img.src = '/' + url;
+  img.alt = String(p.image_alt || p.imageAlt || p.name_bn || p.nameBn || 'Product').trim();
+  var bg = p.bg_color || p.bgColor;
+  if (bg) main.style.background = bg;
+})();
+</script>
 <% } %>
 <% if (typeof seoJson !== 'undefined' && seoJson) { %>
 <script>window.__RAKU_SEO=<%- seoJson %>;</script>
 <% } %>
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/maintenance-view.js?v=3" defer></script>
-<script src="/js/seo.js?v=6" defer></script>
+<script src="/js/seo.js?v=7" defer></script>
 <script src="/js/mobile-menu.js?v=1" defer></script>
-<script src="/js/app.js?v=27" defer></script>
+<script src="/js/app.js?v=29" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
 <script src="/js/home-hero-slider.js?v=2" defer></script>
 <script src="/js/home-today-deals.js?v=3" defer></script>
-<script src="/js/api.js?v=81" defer></script>
+<script src="/js/storefront-dynamic.js?v=42" defer></script>
+<script src="/js/api.js?v=87" defer></script>
 <script src="/js/home-recommendations.js?v=4" defer></script>
 <script src="/js/home-messenger-chats.js?v=2" defer></script>
 <script src="/js/home-customer-reviews.js?v=4" defer></script>
@@ -1490,8 +1538,7 @@
 <script src="/js/appointment.js?v=4" defer></script>
 <script src="/js/face-analyzer.js?v=10" defer></script>
 <script src="/js/footer-settings.js?v=6" defer></script>
-<script src="/js/storefront-dynamic.js?v=37" defer></script>
-<script src="/js/search.js?v=5" defer></script>
+<script src="/js/search.js?v=6" defer></script>
 <script src="/js/account.js?v=9" defer></script>
 <script src="/js/legal-pages.js?v=2" defer></script>
 <script src="/js/faq.js?v=4" defer></script>

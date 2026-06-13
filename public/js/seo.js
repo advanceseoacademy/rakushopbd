@@ -262,7 +262,13 @@
     const seoKw = String(p.seo_keywords || '').trim();
     const title = seoTitle || `${name} — Buy Online | ${sn}`;
     const description = truncate(
-      seoDesc || p.description_bn || `${name}. Order from ${sn} with fast delivery.`
+      seoDesc ||
+        p.description_bn ||
+        String(p.short_description || '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim() ||
+        `${name}. Order from ${sn} with fast delivery.`
     );
     const ogTitle = seoTitle || `${name} | ${sn}`;
     const ogImage = productOgImage(p);

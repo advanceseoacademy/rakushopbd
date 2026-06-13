@@ -117,6 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function showPage(name, opts) {
     if (typeof opts !== 'object' || opts === null) opts = {};
+    window._rakuVisiblePage = name;
     if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
     Object.values(pages).forEach((p) => {
       if (p) p.style.display = 'none';
@@ -315,15 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Add to cart on home grid — handled by api.js (bindProductGridEvents)
-
-  // Product card click → product page
-  document.querySelectorAll('#page-home .product-card').forEach(card => {
-    card.addEventListener('click', function(e) {
-      if (e.target.closest('.add-cart-btn') || e.target.closest('.preorder-btn') || e.target.closest('.prod-wish')) return;
-      showPage('product');
-    });
-  });
+  // Home product cards — handled by api.js (bindProductGridEvents)
 
   // Logo → home
   document.querySelectorAll('.site-logo-link').forEach(l => {
@@ -334,33 +327,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Add to cart / buy now handled by api.js (bindProductActions on product page)
 
-  const btnBuyNow = document.getElementById('btn-buy-now');
-  if (btnBuyNow) {
-    btnBuyNow.addEventListener('click', async () => {
-      if (window.proceedToCheckoutFromCart) await window.proceedToCheckoutFromCart();
-      else if (window.showPage) window.showPage('checkout');
-    });
-  }
+  // Product gallery thumbnails — handled by api.js (paintProductGallery)
 
-  // Thumbnail click
-  document.querySelectorAll('.thumb-img').forEach(thumb => {
-    thumb.addEventListener('click', function() {
-      document.querySelectorAll('.thumb-img').forEach(t => t.classList.remove('active'));
-      this.classList.add('active');
-      const main = document.querySelector('.main-product-img');
-      if (main) main.style.background = this.style.background;
-    });
-  });
-
-  // Qty +/- (all qty controls)
-  document.querySelectorAll('.qty-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
+  // Product page qty — cart qty handled by api.js (bindCartEvents)
+  document.querySelectorAll('#page-product .qty-btn').forEach((btn) => {
+    btn.addEventListener('click', function () {
       const input = this.parentElement.querySelector('.qty-input');
-      let v = parseInt(input.value) || 1;
+      if (!input) return;
+      let v = parseInt(input.value, 10) || 1;
       if (this.dataset.dir === 'up') v = Math.min(v + 1, 99);
       else v = Math.max(v - 1, 1);
       input.value = v;
-      updateCartTotals();
     });
   });
 
@@ -439,11 +416,7 @@ document.addEventListener('DOMContentLoaded', function() {
     showPage('home');
   });
 
-  const btnTrackOrder = document.getElementById('btn-track-order');
-  if (btnTrackOrder) btnTrackOrder.addEventListener('click', () => {
-    if (window.openAccount) window.openAccount();
-    else showPage('home');
-  });
+  // Track order on success page — handled by api.js (bindTrackOrderModal)
 
   const catDropdown = document.getElementById('header-cat-dropdown');
   const browseBtn = document.getElementById('nav-browse-cats-btn');

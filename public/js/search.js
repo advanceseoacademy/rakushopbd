@@ -141,16 +141,21 @@
     updateClearBtn();
     if (!q) return;
 
+    const cat = getCategory();
+    if (window.openCategory) {
+      const slug = cat !== 'all' ? cat : 'all';
+      await window.openCategory(slug, { search: q });
+      return;
+    }
+
     if (window.showPage) window.showPage('home');
     else if (window.RAKU_STANDALONE) {
-      const cat = getCategory();
       const params = new URLSearchParams({ search: q });
       if (cat !== 'all') params.set('category', cat);
       window.location.href = `/?${params.toString()}`;
       return;
     }
 
-    const cat = getCategory();
     const params = new URLSearchParams({ search: q, limit: '24' });
     if (cat !== 'all') params.set('category', cat);
 

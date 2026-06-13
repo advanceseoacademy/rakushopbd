@@ -707,6 +707,37 @@ router.post('/orders', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Please enter name, phone and address' });
     }
 
+    const productIds = [...new Set(cart.map((item) => Number(item.productId)).filter(Boolean))];
+    if (productIds.length) {
+      const placeholders = productIds.map(() => '?').join(',');
+      const stockRows = await query(
+        `SELECT id, name_bn, stock FROM products WHERE id IN (${placeholders})`,
+        productIds
+      );
+      const stockById = new Map(stockRows.map((row) => [Number(row.id), Number(row.stock) || 0]));
+      for (const item of cart) {
+        const stock = stockById.get(Number(item.productId));
+        if (stock === undefined) {
+          return res.status(400).json({
+            ok: false,
+            error: `${item.name} is no longer available.`,
+          });
+        }
+        if (stock <= 0) {
+          return res.status(400).json({
+            ok: false,
+            error: `${item.name} is out of stock.`,
+          });
+        }
+        if (Number(item.qty) > stock) {
+          return res.status(400).json({
+            ok: false,
+            error: `${item.name} only has ${stock} left in stock.`,
+          });
+        }
+      }
+    }
+
     const orderDistrict = (district && String(district).trim()) || '—';
     const discount = req.session.couponDiscount || 0;
     const { subtotal, delivery, total } = await calcTotalsForRequest(req, cart, discount);

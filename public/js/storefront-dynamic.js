@@ -73,8 +73,11 @@
   function applySiteBranding(settings) {
     if (!settings) return;
     const name = settings.site_name || 'RakuShopBD';
-    if (window.RakuSEO) window.RakuSEO.apply(window.RakuSEO.forHome());
-    else document.title = `${name} — Best Online Shopping`;
+    const visiblePage = window._rakuVisiblePage;
+    if (!visiblePage || visiblePage === 'home') {
+      if (window.RakuSEO) window.RakuSEO.apply(window.RakuSEO.forHome());
+      else document.title = `${name} — Best Online Shopping`;
+    }
 
     if (window._rakuApplyFooterSettings) window._rakuApplyFooterSettings(settings);
 
@@ -266,11 +269,11 @@
       : '<p class="category-scroll-empty">No categories yet.</p>';
 
     track.querySelectorAll('.cat-card').forEach((card) => {
-      card.addEventListener('click', (e) => {
+      card.onclick = (e) => {
         e.preventDefault();
         const slug = card.dataset.catSlug;
         if (window.openCategory) window.openCategory(slug);
-      });
+      };
     });
 
     syncHomeCategoryCardWidths();
@@ -516,15 +519,41 @@
     return /<[a-z][\s\S]*>/i.test(String(s || ''));
   }
 
+  function parseHtmlSpecTable(html) {
+    const raw = String(html || '').trim();
+    if (!raw || !/<table[\s>]/i.test(raw)) return [];
+    const d = document.createElement('div');
+    d.innerHTML = raw;
+    const specs = [];
+    d.querySelectorAll('table tr').forEach((tr) => {
+      const cells = tr.querySelectorAll('td, th');
+      if (cells.length < 2) return;
+      const label = String(cells[0].textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const value = String(cells[1].textContent || '')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (label && value) specs.push({ label, value });
+    });
+    return specs;
+  }
+
   function htmlToPlainText(html) {
+    const tableSpecs = parseHtmlSpecTable(html);
+    if (tableSpecs.length) {
+      return tableSpecs.map((row) => `${row.label}\t${row.value}`).join('\n');
+    }
+
     const d = document.createElement('div');
     d.innerHTML = html;
     const blocks = d.querySelectorAll('p, li, div');
     if (blocks.length) {
-      return Array.from(blocks)
+      const text = Array.from(blocks)
         .map((el) => (el.textContent || '').trim())
         .filter(Boolean)
         .join('\n');
+      if (text) return text;
     }
     return (d.textContent || d.innerText || '').trim();
   }
@@ -592,8 +621,14 @@
   }
 
   function getProductSpecs(p) {
-    const raw = String(p.short_description || '').trim();
+    const raw = String(p?.short_description || p?.shortDescription || '').trim();
     if (!raw) return [];
+
+    if (isHtmlContent(raw)) {
+      const tableSpecs = parseHtmlSpecTable(raw);
+      if (tableSpecs.length) return tableSpecs;
+    }
+
     const short = isHtmlContent(raw) ? htmlToPlainText(raw) : raw;
 
     const strict = parseProductDescription(short, { loose: false });
@@ -615,22 +650,44 @@
     return [];
   }
 
-  function productShortDescription(p) {
-    const raw = String(p.short_description || '').trim();
-    const short = raw && isHtmlContent(raw) ? htmlToPlainText(raw) : raw;
-    if (short) {
-      const { specs, prose } = parseProductDescription(short, { loose: true });
-      if (specs.length && !prose.length) return '';
-      if (prose.length) {
-        const line = prose[0];
-        return line.length > 240 ? `${line.slice(0, 237)}…` : line;
-      }
-      if (specs.length) return '';
-      return short.length > 240 ? `${short.slice(0, 237)}…` : short;
+  function plainTextContent(s) {
+    const raw = String(s || '').trim();
+    if (!raw) return '';
+    return isHtmlContent(raw) ? htmlToPlainText(raw).trim() : raw;
+  }
+
+  function renderDescriptionBlock(text) {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+    if (isHtmlContent(raw)) return renderRichProductHtml(raw);
+    const lines = raw.split(/\r?\n/).filter(Boolean);
+    if (lines.length > 1) {
+      return lines.map((line) => `<p class="product-desc-prose">${escapeHtml(line)}</p>`).join('');
     }
-    const desc = String(p.description_bn || '').trim();
-    if (!desc) return '';
-    const { prose, specs } = parseProductDescription(desc);
+    return `<p class="product-desc-prose">${escapeHtml(raw)}</p>`;
+  }
+
+  function hasShortDescription(p) {
+    return Boolean(String(p?.short_description || p?.shortDescription || '').trim());
+  }
+
+  function renderShortDescriptionHtml(p) {
+    const shortRaw = String(p?.short_description || p?.shortDescription || '').trim();
+    if (!shortRaw) return '';
+
+    const specs = getProductSpecs(p);
+    if (specs.length) return renderSpecTable(specs);
+
+    if (isHtmlContent(shortRaw)) return renderRichProductHtml(shortRaw);
+
+    return renderDescriptionBlock(shortRaw);
+  }
+
+  function productShortDescription(p) {
+    const shortPlain = plainTextContent(p?.short_description || p?.shortDescription);
+    if (!shortPlain) return '';
+
+    const { specs, prose } = parseProductDescription(shortPlain, { loose: true });
     if (prose.length) {
       const line = prose[0];
       return line.length > 240 ? `${line.slice(0, 237)}…` : line;
@@ -642,9 +699,7 @@
         .join(' · ');
       return preview.length > 240 ? `${preview.slice(0, 237)}…` : preview;
     }
-    const first = desc.split(/\n+/).find((line) => line.trim()) || desc;
-    const line = first.trim();
-    return line.length > 240 ? `${line.slice(0, 237)}…` : line;
+    return shortPlain.length > 240 ? `${shortPlain.slice(0, 237)}…` : shortPlain;
   }
 
   function renderSpecTable(specs) {
@@ -659,17 +714,12 @@
   }
 
   function renderProductDescriptionHtml(p) {
-    const longText = String(p.description_bn || '').trim();
-    if (longText) {
-      if (isHtmlContent(longText)) return renderRichProductHtml(longText);
-      const lines = longText.split(/\r?\n/).filter(Boolean);
-      if (lines.length > 1) {
-        return lines.map((line) => `<p class="product-desc-prose">${escapeHtml(line)}</p>`).join('');
-      }
-      return `<p class="product-desc-prose">${escapeHtml(longText)}</p>`;
+    const longText = String(p.description_bn || p.descriptionBn || '').trim();
+    if (plainTextContent(longText)) {
+      return renderDescriptionBlock(longText);
     }
 
-    return `<p class="product-desc-prose">${escapeHtml(p.name_bn)} — quality product from ${escapeHtml(p.category_name || 'RakuShopBD')}.</p>`;
+    return `<p class="product-desc-prose">${escapeHtml(p.name_bn || p.nameBn || 'Product')} — quality product from ${escapeHtml(p.category_name || p.categoryName || 'RakuShopBD')}.</p>`;
   }
 
   function setProductSpecUiVisible(show) {
@@ -694,11 +744,24 @@
     const bcCat = document.getElementById('pv-breadcrumb-cat');
     const bcName = document.getElementById('pv-breadcrumb-name');
     if (bcCat) {
-      bcCat.textContent = p.category_name || '';
+      bcCat.textContent = p.category_name || p.categoryName || '';
       bcCat.style.cursor = 'pointer';
-      bcCat.onclick = () => p.category_slug && window.openCategory && window.openCategory(p.category_slug);
+      const catSlug = p.category_slug || p.categorySlug;
+      bcCat.onclick = () => catSlug && window.openCategory && window.openCategory(catSlug);
     }
-    if (bcName) bcName.textContent = p.name_bn;
+    if (bcName) bcName.textContent = p.name_bn || p.nameBn;
+
+    const summaryEl = document.getElementById('pv-summary');
+    if (summaryEl) {
+      const summary = productShortDescription(p);
+      if (summary) {
+        summaryEl.textContent = summary;
+        summaryEl.hidden = false;
+      } else {
+        summaryEl.textContent = '';
+        summaryEl.hidden = true;
+      }
+    }
 
     const stars = document.querySelector('#page-product .pv-stars');
     if (stars) stars.textContent = starsHtml(p.rating);
@@ -710,11 +773,11 @@
     if (sold) sold.style.display = 'none';
 
     const specsInline = document.getElementById('pv-specs-inline');
-    const specs = getProductSpecs(p);
-    const richSpecHtml = !specs.length ? renderShortDescriptionRichHtml(p) : '';
+    const shortHtml = renderShortDescriptionHtml(p);
+    const hasShort = hasShortDescription(p);
     if (specsInline) {
-      if (specs.length) {
-        specsInline.innerHTML = renderSpecTable(specs);
+      if (hasShort && shortHtml) {
+        specsInline.innerHTML = shortHtml;
         specsInline.hidden = false;
       } else {
         specsInline.innerHTML = '';
@@ -722,7 +785,7 @@
       }
     }
 
-    setProductSpecUiVisible(specs.length > 0 || Boolean(richSpecHtml));
+    setProductSpecUiVisible(getProductSpecs(p).length > 0);
 
     const discBadge = document.querySelector('#page-product .pv-discount-badge');
     const pct = window.discountPercent ? window.discountPercent(p) : Number(p.discount_percent) || null;
@@ -769,22 +832,24 @@
 
     const spec = document.getElementById('tab-spec-content');
     if (spec) {
-      if (specs.length) {
-        spec.innerHTML = renderSpecTable(specs);
-      } else {
-        spec.innerHTML = richSpecHtml;
-      }
+      spec.innerHTML = hasShort ? shortHtml : '';
     }
   };
 
   window._rakuEnhanceProductPageRelated = async function (p) {
     if (!p) return;
     const grid = document.getElementById('related-product-grid');
-    if (!grid || !p.category_slug) return;
+    if (!grid) return;
+    const catSlug = p.category_slug || p.categorySlug;
+    if (!catSlug) {
+      grid.innerHTML =
+        '<p style="grid-column:1/-1;color:var(--text-muted);text-align:center;padding:24px;">No related products.</p>';
+      return;
+    }
     grid.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);">Loading...</p>';
     try {
       const data = await window._rakuApiFetch(
-        `/products?category=${encodeURIComponent(p.category_slug)}&limit=4&exclude=${p.id}`
+        `/products?category=${encodeURIComponent(catSlug)}&limit=4&exclude=${p.id}`
       );
       if (data.ok && data.products.length) {
         grid.innerHTML = data.products.map((rp) => window.productCardHtml(rp)).join('');
@@ -799,10 +864,33 @@
     if (relSee) {
       relSee.onclick = (e) => {
         e.preventDefault();
-        if (window.openCategory) window.openCategory(p.category_slug);
+        if (window.openCategory) window.openCategory(catSlug);
       };
     }
   };
+
+  function matchPreloadedProduct() {
+    const pre = window.__RAKU_PRELOAD_PRODUCT;
+    if (!pre?.ok || !pre.product) return null;
+    const m = (location.pathname || '').match(/^\/product\/([^/]+)\/?$/);
+    if (!m) return null;
+    const ref = decodeURIComponent(m[1]);
+    const p = pre.product;
+    const byId = /^\d+$/.test(ref);
+    if (byId ? Number(p.id) !== Number(ref) : p.slug !== ref) return null;
+    return p;
+  }
+
+  window._rakuPaintPreloadedProductPage = function () {
+    const p = matchPreloadedProduct();
+    if (!p) return;
+    if (window._rakuEnhanceProductPageSync) window._rakuEnhanceProductPageSync(p);
+    const loadRelated = () => void window._rakuEnhanceProductPageRelated?.(p);
+    if (window._rakuApiFetch) loadRelated();
+    else window._rakuPendingRelatedProduct = p;
+  };
+
+  window._rakuPaintPreloadedProductPage();
 
   window._rakuEnhanceProductPage = window._rakuEnhanceProductPageSync;
 

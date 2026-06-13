@@ -288,12 +288,32 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
+    height: 100%;
+    align-self: stretch;
     overflow: hidden;
+  }
+
+  .hero-today-selling-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .hero-today-product--solo {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .hero-today-product-img {
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
   .hero-today-product-img-inner {
     min-height: 0;
-    padding: 32px 18px 12px;
+    height: 100%;
+    padding: 28px 18px 12px;
   }
 
   .hero-today-product-name {

@@ -1437,16 +1437,16 @@
         }
         if (window.syncHeroSideHeight) window.syncHeroSideHeight();
       };
-      imgEl.onload = () => {
-        if (window.syncHeroSideHeight) window.syncHeroSideHeight();
+      const syncHero = () => {
+        if (window.syncHeroSideHeight) {
+          window.syncHeroSideHeight();
+          requestAnimationFrame(() => window.syncHeroSideHeight?.());
+        }
       };
+      imgEl.onload = syncHero;
       imgEl.src = src;
       imgEl.alt = banner?.title || 'Homepage banner';
-      if (imgEl.complete) {
-        requestAnimationFrame(() => {
-          if (window.syncHeroSideHeight) window.syncHeroSideHeight();
-        });
-      }
+      if (imgEl.complete) syncHero();
     } else {
       heroMain.classList.remove('hero-main--has-bg-photo');
       heroMain.style.removeProperty('--hero-bg-photo');

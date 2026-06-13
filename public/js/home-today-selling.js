@@ -79,21 +79,40 @@
 
     if (side.hidden || window.matchMedia('(max-width: 900px)').matches) {
       side.style.height = '';
+      main.style.minHeight = '';
       return;
     }
 
-    const img = main.querySelector('img.hero-main-photo');
-    if (img && !img.complete) return;
+    side.style.height = '';
+    main.style.minHeight = '';
 
-    const h = main.offsetHeight;
-    if (h > 120) side.style.height = `${h}px`;
-    else side.style.height = '';
+    const measure = () => {
+      const mainH = Math.ceil(main.getBoundingClientRect().height);
+      const sideH = Math.ceil(side.getBoundingClientRect().height);
+      const targetH = Math.max(mainH, sideH, 260);
+      if (targetH < 120) return;
+
+      side.style.height = `${targetH}px`;
+      if (main.classList.contains('hero-main--has-bg-photo')) {
+        main.style.minHeight = `${targetH}px`;
+      }
+    };
+
+    requestAnimationFrame(() => {
+      measure();
+      requestAnimationFrame(measure);
+    });
   }
 
   function bindHeroSideHeightSync() {
     const main = document.getElementById('hero-main');
+    const side = document.getElementById('hero-today-selling');
     if (!main || main._rakuHeroSideBound) return;
     main._rakuHeroSideBound = true;
+
+    const onMainImageChange = () => syncHeroSideHeight();
+
+    main.addEventListener('load', onMainImageChange, true);
 
     const img = main.querySelector('img.hero-main-photo');
     if (img) {
@@ -104,6 +123,7 @@
     if (typeof ResizeObserver !== 'undefined') {
       const obs = new ResizeObserver(() => syncHeroSideHeight());
       obs.observe(main);
+      if (side) obs.observe(side);
       main._rakuHeroSideObs = obs;
     }
   }

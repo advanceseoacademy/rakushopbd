@@ -13,6 +13,7 @@
     '/terms-and-conditions': 'terms',
     '/return-policy': 'return',
     '/pre-order-policy': 'preorder',
+    '/reward-point-policy': 'points',
   };
 
   function bindMobileMenu() {

@@ -2,18 +2,21 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --primary:       #206020;
-  --primary-dark:  #164816;
-  --primary-pale:  #e8f5e8;
-  --accent:        #d48696;
-  --accent-dark:   #9e5568;
-  --green:         #2d8a2d;
-  --green-pale:    #e8f5e8;
-  --amber:         #b8860b;
-  --amber-pale:    #faf3e0;
-  --sidebar-bg:    #103010;
-  --sidebar-hover: #1a5020;
-  --sidebar-active:#2d8a2d;
+  --brand:         #1E4620;
+  --brand-light:   #2D6B32;
+  --brand-dark:    #143318;
+  --brand-pale:    #E8F3EA;
+  --primary:       #EF7A9C;
+  --primary-light: #F5A0B8;
+  --primary-dark:  #D85A7A;
+  --primary-pale:  #FDE8EF;
+  --accent:        #2D6B32;
+  --accent-dark:   #1E4620;
+  --green:         #2D6B32;
+  --green-pale:    #E8F3EA;
+  --sidebar-bg:    #143318;
+  --sidebar-hover: #1E4620;
+  --sidebar-active:#EF7A9C;
   --bg:            #f1f5f9;
   --surface:       #ffffff;
   --border:        #e2e8f0;
@@ -28,7 +31,7 @@ body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(-
 
 /* ===================== LOGIN ===================== */
 #login-page {
-  min-height:100vh; background:linear-gradient(135deg,#103010 0%,#206020 50%,#2d8a2d 100%);
+  min-height:100vh; background:linear-gradient(135deg,var(--brand-dark) 0%,var(--brand) 50%,var(--brand-light) 100%);
   display:flex; align-items:center; justify-content:center; padding:20px;
 }
 .login-card {
@@ -95,7 +98,7 @@ body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(-
   position:relative;
 }
 .nav-item:hover { background:var(--sidebar-hover); color:#e2e8f0; }
-.nav-item.active { background:var(--primary); color:#fff; }
+.nav-item.active { background:var(--sidebar-active); color:#fff; }
 .nav-item i { font-size:18px; flex-shrink:0; }
 
 .nav-group { margin: 2px 8px 6px; }
@@ -267,7 +270,7 @@ table.tbl { width:100%; border-collapse:collapse; }
 .badge { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; white-space:nowrap; }
 .badge::before { content:''; width:6px; height:6px; border-radius:50%; flex-shrink:0; }
 .badge-green  { background:#dcfce7; color:#166534; } .badge-green::before  { background:#166534; }
-.badge-blue   { background:#e8f5e8; color:#164816; } .badge-blue::before   { background:#164816; }
+.badge-blue   { background:var(--brand-pale); color:var(--brand); } .badge-blue::before   { background:var(--brand); }
 .badge-amber  { background:#fef3c7; color:#92400e; } .badge-amber::before  { background:#92400e; }
 .badge-red    { background:#fee2e2; color:#991b1b; } .badge-red::before    { background:#991b1b; }
 .badge-gray   { background:#f1f5f9; color:#475569; } .badge-gray::before   { background:#94a3b8; }
@@ -1055,7 +1058,7 @@ body.banner-modal-open {
 
 .cf-icon-preview i {
   font-size: 24px;
-  color: #2d8a2d;
+  color: var(--brand);
 }
 
 .cf-icon-preview img {
@@ -1097,7 +1100,7 @@ body.banner-modal-open {
 
 .cat-tree-icon i {
   font-size: 13px;
-  color: #2d8a2d;
+  color: var(--brand);
 }
 
 /* ===================== SETTINGS PAGE ===================== */
@@ -1209,7 +1212,7 @@ body.banner-modal-open {
   flex-shrink: 0;
 }
 
-.settings-card-icon--green { background: #e8f5e8; color: #206020; }
+.settings-card-icon--green { background: var(--brand-pale); color: var(--brand); }
 .settings-card-icon--blue { background: #eff6ff; color: #2563eb; }
 .settings-card-icon--pink { background: #fdf0f3; color: #be4a6a; }
 .settings-card-icon--amber { background: #fef3c7; color: #b45309; }

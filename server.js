@@ -253,7 +253,7 @@ app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/rewards', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/rewards', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy', '/reward-point-policy'],
   (req, res) => renderStorefront(req, res)
 );
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));

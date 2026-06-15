@@ -213,7 +213,20 @@
     return [];
   }
 
+  async function fetchReviewProductPool() {
+    const base = window.RAKU_API_BASE || '';
+    try {
+      const res = await fetch(`${base}/api/products/review-pool`, { credentials: 'same-origin' });
+      const data = await res.json();
+      if (data?.ok && data.products?.length) return data.products;
+    } catch (_) {}
+    return [];
+  }
+
   async function getProductPool() {
+    const fromApi = await fetchReviewProductPool();
+    if (fromApi.length) return fromApi;
+
     const boot = window.__RAKU_BOOTSTRAP;
     let pool = collectProductsFromBoot(boot);
     if (pool.length < REVIEW_PROFILES.length) {

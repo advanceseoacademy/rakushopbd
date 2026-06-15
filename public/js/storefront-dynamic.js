@@ -4,12 +4,12 @@
  */
 (function () {
   const CAT_PALETTE = [
-    { bg: '#e8f5e8', color: '#2d8a2d' },
-    { bg: '#fdf0f3', color: '#d48696' },
+    { bg: '#E8F3EA', color: '#2D6B32' },
+    { bg: '#FDE8EF', color: '#EF7A9C' },
     { bg: '#faf3e0', color: '#8a6914' },
-    { bg: '#fce8ec', color: '#9e5568' },
-    { bg: '#e8f5e8', color: '#206020' },
-    { bg: '#f0f8ff', color: '#2d8a2d' },
+    { bg: '#f8c8d8', color: '#D85A7A' },
+    { bg: '#d4edd8', color: '#1E4620' },
+    { bg: '#fce8ec', color: '#F5A0B8' },
   ];
 
   function palette(i) {
@@ -100,25 +100,29 @@
     const trust = [
       {
         icon: 'ti-truck-delivery',
-        color: '#2d8a2d',
+        color: '#2D6B32',
+        bg: '#E8F3EA',
         title: settings.trust_1_title || 'Free & fast delivery',
         sub: settings.trust_1_sub || `Nationwide on orders over ৳${freeMin}`,
       },
       {
         icon: 'ti-shield-check',
-        color: '#2d8a2d',
+        color: '#D85A7A',
+        bg: '#FDE8EF',
         title: settings.trust_2_title || '100% authentic products',
         sub: settings.trust_2_sub || 'Full refund on counterfeit items',
       },
       {
         icon: 'ti-refresh',
-        color: '#8a6914',
+        color: '#B45309',
+        bg: '#FEF3C7',
         title: settings.trust_3_title || 'Easy returns policy',
         sub: settings.trust_3_sub || 'No-questions return within 7 days',
       },
       {
         icon: 'ti-headset',
-        color: '#d48696',
+        color: '#2563EB',
+        bg: '#DBEAFE',
         title: settings.trust_4_title || '24/7 customer support',
         sub: settings.trust_4_sub || 'Call or chat anytime',
       },
@@ -127,7 +131,7 @@
     if (trustBar) {
       trustBar.innerHTML = trust
         .map(
-          (t) => `<div class="trust-item">
+          (t) => `<div class="trust-item trust-item--colored" style="background:${t.bg};border-color:${t.bg};">
         <i class="ti ${t.icon} trust-icon" style="color:${t.color};"></i>
         <div><div class="trust-title">${escapeHtml(t.title)}</div><div class="trust-sub">${escapeHtml(t.sub)}</div></div>
       </div>`
@@ -159,10 +163,10 @@
       return `${x}+`;
     };
     const items = [
-      { icon: 'ti-box', bg: '#b8dfc0', color: '#1b6b1b', num: `${stats.productCount}+`, label: 'Total Products' },
-      { icon: 'ti-users', bg: '#a8d4f5', color: '#0d47a1', num: '500+', label: 'Happy Customers' },
-      { icon: 'ti-truck', bg: '#f5d98a', color: '#7a5a00', num: `${stats.districts} Districts`, label: 'Delivery Coverage' },
-      { icon: 'ti-star', bg: '#f5b8c8', color: '#8b2e4a', num: `${stats.avgRating} ⭐`, label: 'Average Rating' },
+      { icon: 'ti-box', bg: '#c8e6cc', color: '#2D6B32', num: `${stats.productCount}+`, label: 'Total Products' },
+      { icon: 'ti-users', bg: '#f8c8d8', color: '#D85A7A', num: '500+', label: 'Happy Customers' },
+      { icon: 'ti-truck', bg: '#fde8ef', color: '#EF7A9C', num: `${stats.districts} Districts`, label: 'Delivery Coverage' },
+      { icon: 'ti-star', bg: '#d4edd8', color: '#1E4620', num: `${stats.avgRating} ⭐`, label: 'Average Rating' },
     ];
     grid.innerHTML = items
       .map(
@@ -698,16 +702,23 @@
           `<tr><th scope="row">${escapeHtml(row.label)}</th><td>${escapeHtml(row.value)}</td></tr>`
       )
       .join('');
-    return `<div class="product-desc-spec"><table class="spec-table"><tbody>${rows}</tbody></table></div>`;
+    return `<h3 class="pv-product-details-heading">Product Details</h3><div class="product-desc-spec"><table class="spec-table"><tbody>${rows}</tbody></table></div>`;
+  }
+
+  function wrapAdditionalDetails(content) {
+    if (!content) return '';
+    return `<h3 class="pv-additional-details-heading">Additional Details</h3>${content}`;
   }
 
   function renderProductDescriptionHtml(p) {
     const longText = String(p.description_bn || p.descriptionBn || '').trim();
     if (plainTextContent(longText)) {
-      return renderDescriptionBlock(longText);
+      return wrapAdditionalDetails(renderDescriptionBlock(longText));
     }
 
-    return `<p class="product-desc-prose">${escapeHtml(p.name_bn || p.nameBn || 'Product')} — quality product from ${escapeHtml(p.category_name || p.categoryName || 'RakuShopBD')}.</p>`;
+    return wrapAdditionalDetails(
+      `<p class="product-desc-prose">${escapeHtml(p.name_bn || p.nameBn || 'Product')} — quality product from ${escapeHtml(p.category_name || p.categoryName || 'RakuShopBD')}.</p>`
+    );
   }
 
   function setProductSpecUiVisible(show) {
@@ -739,12 +750,20 @@
     }
     if (bcName) bcName.textContent = p.name_bn || p.nameBn;
 
+    const reviewCount = Number(p.review_count) || 0;
     const stars = document.querySelector('#page-product .pv-stars');
-    if (stars) stars.textContent = starsHtml(p.rating);
+    if (stars) stars.textContent = reviewCount ? starsHtml(p.rating) : '☆☆☆☆☆';
     const rNum = document.querySelector('#page-product .pv-rating-num');
-    if (rNum) rNum.textContent = Number(p.rating).toFixed(1);
+    if (rNum) {
+      rNum.textContent = reviewCount ? Number(p.rating).toFixed(1) : '0.0';
+      rNum.style.display = reviewCount ? '' : 'none';
+    }
     const rev = document.querySelector('#page-product .pv-reviews');
-    if (rev) rev.textContent = `(${Number(p.review_count) || 0} Reviews)`;
+    if (rev) {
+      rev.textContent = reviewCount
+        ? `(${reviewCount} Review${reviewCount !== 1 ? 's' : ''})`
+        : '(No reviews yet)';
+    }
     const sold = document.querySelector('#page-product .pv-sold');
     if (sold) sold.style.display = 'none';
 

@@ -26,8 +26,12 @@
     'legal-terms-content',
     'legal-return-content',
     'legal-preorder-content',
+    'legal-points-content',
     'faq-answer',
   ];
+
+  /** Keep HTML tables intact — no Quill mount */
+  const PLAIN_HTML_EDITOR_IDS = ['legal-points-content'];
 
   const PRODUCT_EDITOR_IDS = ['pf-short-desc', 'pf-desc'];
 
@@ -36,6 +40,7 @@
   }
 
   function mountEditor(textareaId, options) {
+    if (PLAIN_HTML_EDITOR_IDS.includes(textareaId)) return null;
     if (editors.has(textareaId)) return editors.get(textareaId);
     const ta = document.getElementById(textareaId);
     if (!ta || !quillReady()) return null;
@@ -103,6 +108,7 @@
       const ta = document.getElementById(textareaId);
       const value = html || '';
       if (ta) ta.value = value;
+      if (PLAIN_HTML_EDITOR_IDS.includes(textareaId)) return;
       const quill = editors.get(textareaId) || mountEditor(textareaId, {
         toolbar: PRODUCT_EDITOR_IDS.includes(textareaId) ? PRODUCT_TOOLBAR : PAGE_TOOLBAR,
       });

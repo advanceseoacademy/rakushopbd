@@ -628,7 +628,7 @@
 
     const s = data.stats;
     document.getElementById('dash-stats').innerHTML = `
-      <div class="stat-card"><div class="stat-icon" style="background:#e8f5e8;"><i class="ti ti-currency-taka" style="color:#2d8a2d;font-size:26px;"></i></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#E8F3EA;"><i class="ti ti-currency-taka" style="color:#2D6B32;font-size:26px;"></i></div>
         <div><div class="stat-num">${s.monthRevenueFormatted}</div><div class="stat-label">Revenue (this month)</div></div></div>
       <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;"><i class="ti ti-shopping-bag" style="color:#1D9E75;font-size:26px;"></i></div>
         <div><div class="stat-num">${s.pendingOrders}</div><div class="stat-label">Orders in progress</div></div></div>
@@ -655,7 +655,7 @@
     const actEl = document.getElementById('dash-activity');
     if (actEl) {
       const icons = { order: 'ti-shopping-bag', user: 'ti-user-plus', alert: 'ti-alert-triangle', review: 'ti-star', contact: 'ti-mail' };
-      const colors = { order: '#e8f5e8', user: '#dcfce7', alert: '#fee2e2', review: '#fef3c7', contact: '#dbeafe' };
+      const colors = { order: '#E8F3EA', user: '#dcfce7', alert: '#fee2e2', review: '#fef3c7', contact: '#dbeafe' };
       const acts = data.activity || [];
       actEl.innerHTML = acts.length
         ? acts
@@ -702,7 +702,7 @@
       const y = H - pad.b - bh;
       const w = bw * 0.64;
       const grad = ctx.createLinearGradient(0, y, 0, H - pad.b);
-      grad.addColorStop(0, '#2d8a2d');
+      grad.addColorStop(0, '#2D6B32');
       grad.addColorStop(1, '#93c5fd');
       ctx.fillStyle = grad;
       ctx.fillRect(x, y, w, bh);
@@ -716,7 +716,7 @@
   function drawDonutChart(breakdown) {
     const canvas = document.getElementById('donut-chart');
     if (!canvas) return;
-    const colors = { delivered: '#2d8a2d', pending: '#EF9F27', confirmed: '#64748b', shipped: '#1D9E75', cancelled: '#d48696' };
+    const colors = { delivered: '#2D6B32', pending: '#EF9F27', confirmed: '#64748b', shipped: '#1D9E75', cancelled: '#d48696' };
     const slices = breakdown.map((b) => ({ val: b.cnt, color: colors[b.status] || '#94a3b8', label: b.status }));
     const total = slices.reduce((a, s) => a + s.val, 0) || 1;
     const dc = canvas.getContext('2d');
@@ -1958,7 +1958,7 @@
   function productThumbHtml(p) {
     const bg = p.bg_color || '#f0f0f0';
     const icon = p.icon || 'ti ti-package';
-    const color = p.icon_color || '#2d8a2d';
+    const color = p.icon_color || '#2D6B32';
     if (p.image_url) {
       const alt = String(p.name_bn || 'Product').replace(/"/g, '&quot;');
       const src = String(p.image_url).replace(/"/g, '&quot;');
@@ -2273,8 +2273,8 @@
     document.getElementById('product-form').reset();
     document.getElementById('pf-id').value = '';
     document.getElementById('pf-icon').value = 'ti-package';
-    document.getElementById('pf-icon-color').value = '#2d8a2d';
-    document.getElementById('pf-bg').value = '#e8f5e8';
+    document.getElementById('pf-icon-color').value = '#2D6B32';
+    document.getElementById('pf-bg').value = '#E8F3EA';
     document.getElementById('pf-stock').value = 100;
     document.getElementById('pf-featured').checked = true;
     ['pf-seo-title', 'pf-seo-desc', 'pf-seo-keywords', 'pf-image-alt', 'pf-og-image', 'pf-discount-percent', 'pf-buy-price'].forEach((id) => {
@@ -2418,7 +2418,7 @@
     if (statsData.ok) {
       const s = statsData.stats;
       document.getElementById('customer-stats').innerHTML = `
-        <div class="stat-card"><div class="stat-icon" style="background:#e8f5e8;"><i class="ti ti-users" style="color:#2d8a2d;"></i></div><div><div class="stat-num">${s.total}</div><div class="stat-label">Total customers</div></div></div>
+        <div class="stat-card"><div class="stat-icon" style="background:#E8F3EA;"><i class="ti ti-users" style="color:#2D6B32;"></i></div><div><div class="stat-num">${s.total}</div><div class="stat-label">Total customers</div></div></div>
         <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;"><i class="ti ti-user-plus" style="color:#1D9E75;"></i></div><div><div class="stat-num">${s.monthNew}</div><div class="stat-label">New this month</div></div></div>
         <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;"><i class="ti ti-chart-line" style="color:#EF9F27;"></i></div><div><div class="stat-num">${s.avgSpentFormatted}</div><div class="stat-label">Avg. spent</div></div></div>`;
     }
@@ -2774,7 +2774,7 @@
     document.getElementById('coupons-tbody').innerHTML = coupons
       .map(
         (c) => `<tr>
-        <td><code style="background:#e8f5e8;padding:3px 8px;border-radius:4px;font-weight:700;">${c.code}</code></td>
+        <td><code style="background:#E8F3EA;padding:3px 8px;border-radius:4px;font-weight:700;">${c.code}</code></td>
         <td>${c.discount_type}</td><td>${c.discount_type === 'percent' ? c.discount_value + '%' : '৳' + c.discount_value}</td>
         <td>৳${Number(c.min_order).toLocaleString()}</td>
         <td>${c.used_count}${c.usage_limit ? '/' + c.usage_limit : ''}</td>
@@ -2871,6 +2871,7 @@
     { value: 'privacy', label: 'Privacy Policy' },
     { value: 'terms', label: 'Terms & Conditions' },
     { value: 'return', label: 'Return Policy' },
+    { value: 'points', label: 'Reward Point Policy' },
   ];
 
   const FOOTER_HREF_TO_PAGE = {
@@ -2885,6 +2886,7 @@
     '/privacy-policy': 'privacy',
     '/terms-and-conditions': 'terms',
     '/return-policy': 'return',
+    '/reward-point-policy': 'points',
   };
 
   function normalizeFooterLinkForEditor(link) {
@@ -3111,6 +3113,8 @@
       ['legal-return-content', 'legal_return_content'],
       ['legal-preorder-title', 'legal_preorder_title'],
       ['legal-preorder-content', 'legal_preorder_content'],
+      ['legal-points-title', 'legal_points_title'],
+      ['legal-points-content', 'legal_points_content'],
     ];
     map.forEach(([id, key]) => {
       const el = document.getElementById(id);
@@ -3137,6 +3141,8 @@
       legal_return_content: document.getElementById('legal-return-content')?.value || '',
       legal_preorder_title: document.getElementById('legal-preorder-title')?.value?.trim() || 'Pre-Order Policy',
       legal_preorder_content: document.getElementById('legal-preorder-content')?.value || '',
+      legal_points_title: document.getElementById('legal-points-title')?.value?.trim() || 'Reward Point Policy',
+      legal_points_content: document.getElementById('legal-points-content')?.value || '',
     };
   }
 
@@ -3192,7 +3198,7 @@
     if (!data.ok) return;
     const s = data.stats;
     document.getElementById('analytics-stats').innerHTML = `
-      <div class="stat-card"><div class="stat-icon" style="background:#e8f5e8;"><i class="ti ti-shopping-bag"></i></div><div><div class="stat-num">${s.monthOrders}</div><div class="stat-label">Orders this month</div></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#E8F3EA;"><i class="ti ti-shopping-bag"></i></div><div><div class="stat-num">${s.monthOrders}</div><div class="stat-label">Orders this month</div></div></div>
       <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;"><i class="ti ti-users"></i></div><div><div class="stat-num">${s.monthCustomers}</div><div class="stat-label">New customers</div></div></div>
       <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;"><i class="ti ti-receipt"></i></div><div><div class="stat-num">${s.avgOrderFormatted}</div><div class="stat-label">Avg. order value</div></div></div>
       <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;"><i class="ti ti-chart-line"></i></div><div><div class="stat-num">—</div><div class="stat-label">Top products below</div></div></div>`;
@@ -3271,7 +3277,7 @@
     document.getElementById('bn-id').value = '';
     document.getElementById('banner-form').reset();
     document.getElementById('bn-link').value = '/';
-    document.getElementById('bn-gradient').value = 'linear-gradient(135deg,#2d8a2d,#164816)';
+    document.getElementById('bn-gradient').value = 'linear-gradient(135deg,#1E4620,#2D6B32)';
     document.getElementById('bn-sort').value = '0';
     document.getElementById('bn-active').checked = true;
     document.getElementById('bn-position').value = 'hero';
@@ -3307,7 +3313,7 @@
         document.getElementById('bn-title').value = b.title;
         document.getElementById('bn-position').value = b.position;
         document.getElementById('bn-link').value = b.link_url || '/';
-        document.getElementById('bn-gradient').value = b.bg_gradient || 'linear-gradient(135deg,#2d8a2d,#164816)';
+        document.getElementById('bn-gradient').value = b.bg_gradient || 'linear-gradient(135deg,#1E4620,#2D6B32)';
         document.getElementById('bn-image').value = b.image_url || '';
         document.getElementById('bn-expires').value = b.expires_at ? String(b.expires_at).slice(0, 10) : '';
         document.getElementById('bn-sort').value = b.sort_order ?? 0;
@@ -3382,7 +3388,7 @@
       position,
       linkUrl: document.getElementById('bn-link').value.trim() || '/',
       bgGradient: isHero
-        ? 'linear-gradient(135deg,#2d8a2d,#164816)'
+        ? 'linear-gradient(135deg,#1E4620,#2D6B32)'
         : document.getElementById('bn-gradient').value.trim(),
       expiresAt: document.getElementById('bn-expires').value || null,
       imageUrl: imageUrl || null,

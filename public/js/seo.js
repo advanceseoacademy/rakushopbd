@@ -8,9 +8,31 @@
     return window.__RAKU_BOOTSTRAP?.settings || {};
   }
 
+  function normalizeSiteUrl(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    const m = s.match(/https?:\/\/[^\s,<>"']+/i);
+    if (m) {
+      try {
+        const u = new URL(m[0]);
+        return `${u.protocol}//${u.host}`;
+      } catch (_) {
+        return m[0].replace(/\/+$/, '');
+      }
+    }
+    const host = s.split(/[\s,]/)[0].replace(/^\/+|\/+$/g, '');
+    if (!host) return '';
+    try {
+      const u = new URL(host.includes('://') ? host : `https://${host}`);
+      return `${u.protocol}//${u.host}`;
+    } catch (_) {
+      return s.replace(/\/+$/, '');
+    }
+  }
+
   function baseUrl() {
     const s = settings();
-    if (s.site_url) return String(s.site_url).replace(/\/$/, '');
+    if (s.site_url) return normalizeSiteUrl(s.site_url);
     return `${location.origin}`;
   }
 
@@ -408,12 +430,14 @@
       terms: '/terms-and-conditions',
       return: '/return-policy',
       preorder: '/pre-order-policy',
+      points: '/reward-point-policy',
     };
     const titles = {
       privacy: s.legal_privacy_title || 'Privacy Policy',
       terms: s.legal_terms_title || 'Terms & Conditions',
       return: s.legal_return_title || 'Return Policy',
       preorder: s.legal_preorder_title || 'Pre-Order Policy',
+      points: s.legal_points_title || 'Reward Point Policy',
     };
     const path = paths[page] || '/';
     const label = titles[page] || page;
@@ -425,7 +449,9 @@
           ? s.legal_terms_content
           : page === 'return'
             ? s.legal_return_content
-            : s.legal_preorder_content;
+            : page === 'preorder'
+              ? s.legal_preorder_content
+              : s.legal_points_content;
     const description = raw
       ? truncate(String(raw).replace(/<[^>]+>/g, ' '))
       : defaultDesc();
@@ -465,7 +491,7 @@
     if (NOINDEX.has(page)) return apply(forPrivatePage(page));
     if (page === 'appointment' || page === 'track') return apply(forPrivatePage(page));
     if (page === 'faq' || page === 'contact' || page === 'rewards') return apply(forPrivatePage(page));
-    if (page === 'privacy' || page === 'terms' || page === 'return' || page === 'preorder') return apply(forLegalPage(page));
+    if (page === 'privacy' || page === 'terms' || page === 'return' || page === 'preorder' || page === 'points') return apply(forLegalPage(page));
     if (page === 'product' && opts?.product) return apply(forProduct(opts.product));
     if (page === 'category' && opts?.category) return apply(forCategory(opts.category));
     if (page === 'category' && opts?.categorySlug) {

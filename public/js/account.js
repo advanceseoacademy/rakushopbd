@@ -549,7 +549,7 @@
   window.openAccount = async function () {
     if (window.showPage) window.showPage('account');
     await loadSession();
-    window.scrollTo(0, 0);
+    (window.rakuScrollToTop || (() => window.scrollTo(0, 0)))();
   };
 
   window.openAccountTrack = function (orderNumber) {

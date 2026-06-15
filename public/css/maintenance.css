@@ -5,7 +5,7 @@ body.maint-body {
   min-height: 100vh;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: #1a1a1a;
-  background: #0a1a0a;
+  background: #0a140a;
   overflow-x: hidden;
 }
 
@@ -13,9 +13,9 @@ body.maint-body {
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(45, 138, 45, 0.35) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 50% at 85% 90%, rgba(212, 134, 150, 0.25) 0%, transparent 50%),
-    linear-gradient(160deg, #0f2810 0%, #164816 40%, #103010 100%);
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(45, 107, 50, 0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 50% at 85% 90%, rgba(239, 122, 156, 0.25) 0%, transparent 50%),
+    linear-gradient(160deg, #0f2810 0%, #1E4620 40%, #143318 100%);
   z-index: 0;
 }
 
@@ -70,8 +70,8 @@ body.maint-body {
   height: 72px;
   margin: 0 auto 20px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #e8f5e8 0%, #fce8ec 100%);
-  border: 2px solid rgba(32, 96, 32, 0.15);
+  background: linear-gradient(135deg, #E8F3EA 0%, #FDE8EF 100%);
+  border: 2px solid rgba(30, 70, 32, 0.15);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -79,19 +79,19 @@ body.maint-body {
 }
 
 @keyframes maintPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(45, 138, 45, 0.2); }
-  50% { box-shadow: 0 0 0 12px rgba(45, 138, 45, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 122, 156, 0.2); }
+  50% { box-shadow: 0 0 0 12px rgba(239, 122, 156, 0); }
 }
 
 .maint-icon-ring i {
   font-size: 34px;
-  color: #206020;
+  color: #EF7A9C;
 }
 
 .maint-title {
   font-size: 28px;
   font-weight: 800;
-  color: #103010;
+  color: #143318;
   letter-spacing: -0.02em;
   margin-bottom: 10px;
   line-height: 1.2;
@@ -109,9 +109,9 @@ body.maint-body {
 
 .maint-announce {
   font-size: 13px;
-  color: #206020;
-  background: #e8f5e8;
-  border: 1px solid rgba(32, 96, 32, 0.12);
+  color: #1E4620;
+  background: #E8F3EA;
+  border: 1px solid rgba(30, 70, 32, 0.12);
   border-radius: 12px;
   padding: 12px 16px;
   margin-bottom: 24px;
@@ -129,7 +129,7 @@ body.maint-body {
 .maint-progress-bar {
   height: 100%;
   width: 65%;
-  background: linear-gradient(90deg, #206020, #2d8a2d, #d48696);
+  background: linear-gradient(90deg, #1E4620, #2D6B32, #EF7A9C);
   border-radius: 99px;
   animation: maintBar 2s ease-in-out infinite alternate;
 }
@@ -155,7 +155,7 @@ body.maint-body {
   border-radius: 10px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  color: #206020;
+  color: #1E4620;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
@@ -163,8 +163,8 @@ body.maint-body {
 }
 
 .maint-contact a:hover {
-  background: #e8f5e8;
-  border-color: #2d8a2d;
+  background: #FDE8EF;
+  border-color: #EF7A9C;
   transform: translateY(-1px);
 }
 

@@ -42,7 +42,7 @@
       const src = esc(p.image_url || p.imageUrl);
       return `<img src="${src}" alt="${esc(p.name_bn || 'Product')}" loading="lazy" decoding="async">`;
     }
-    return `<i class="${esc(p.icon || 'ti ti-package')}" style="color:${esc(p.icon_color || p.iconColor || '#2d8a2d')};font-size:42px;"></i>`;
+    return `<i class="${esc(p.icon || 'ti ti-package')}" style="color:${esc(p.icon_color || p.iconColor || '#2D6B32')};font-size:42px;"></i>`;
   }
 
   function productIsOutOfStock(p) {
@@ -52,10 +52,11 @@
   }
 
   function actionBtn(p) {
+    if (window.productCardActionBtn) return window.productCardActionBtn(p);
     if (!productIsOutOfStock(p)) {
-      return `<button type="button" class="today-deals-add-cart add-cart-btn" data-id="${p.id}">Add To Cart</button>`;
+      return `<button type="button" class="add-cart-btn" data-id="${p.id}"><i class="ti ti-shopping-cart-plus"></i> Add to Cart</button>`;
     }
-    return `<button type="button" class="today-deals-add-cart preorder-btn" data-id="${p.id}">Pre-order</button>`;
+    return `<button type="button" class="preorder-btn" data-id="${p.id}"><i class="ti ti-clock-hour-4"></i> Pre-order</button>`;
   }
 
   function cardHtml(p) {
@@ -65,7 +66,7 @@
         ? p.old_price || p.oldPrice || Math.round(Number(p.price) / (1 - pct / 100))
         : null;
     const discHtml = pct ? `<span class="today-deals-discount">${fmtNum(pct)}%</span>` : '';
-    const oldHtml = oldVal ? `<span class="today-deals-card-old">${formatPrice(oldVal)}</span>` : '';
+    const oldHtml = oldVal ? `<span class="today-deals-card-old prod-old">${formatPrice(oldVal)}</span>` : '';
     const reviews = Number(p.review_count ?? p.reviewCount) || 0;
 
     return `<article class="today-deals-card" data-id="${p.id}">
@@ -75,15 +76,17 @@
       </div>
       <div class="today-deals-card-body">
         <div class="today-deals-card-name">${esc(p.name_bn || p.nameBn || '')}</div>
-        <div class="today-deals-card-rating">
+        <div class="today-deals-card-rating prod-rating">
           <span class="stars">${stars(p.rating)}</span>
           <span class="rating-count">(${fmtNum(reviews)})</span>
         </div>
-        <div class="today-deals-card-prices">
-          <span class="today-deals-card-price">${formatPrice(p.price)}</span>
-          ${oldHtml}
+        <div class="today-deals-card-foot prod-foot">
+          <div>
+            <span class="today-deals-card-price prod-price">${formatPrice(p.price)}</span>
+            ${oldHtml}
+          </div>
+          ${actionBtn(p)}
         </div>
-        ${actionBtn(p)}
       </div>
     </article>`;
   }

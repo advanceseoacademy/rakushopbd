@@ -1,74 +1,350 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://rakushopbd.com/</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/appointment</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/appointment</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/track</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/track</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/medicinal-atnon-acne-care-gel-for-skin-care-after-noticeable-acne-formulated-with-3-active-ingredients-kobayashi-pharmac</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/faq</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/rewards</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/contact</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/privacy-policy</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/terms-and-conditions</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/return-policy</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/pre-order-policy</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/reward-point-policy</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/melano-cc-medicinal-use-concentrated-stain-countermeasure-premium-serum-20ml</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/melano-cc-pharmaceutical-whitening-gel-for-freckles-100g</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/product/nivea-sun-protective-water-gel-spf50-pa-pump-140-g-1781408303463</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/skin-aqua-super-moisture-uv-gel-sunscreen-3-9-oz-110-g-hyaluronic-acid-infused-uv-quick-adhesive-gel-spf50-pa</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/product/nivea-sun-protective-water-gel-spf50-pa-pump-140-g</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/skin-aqua-spf50-pa-tone-up-uv-essence-sunscreen-increased-transparency-shimmering-sabon-scent-lavender</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/product/skin-aqua-super-moisture-gel-spf-35-pa-110-g</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/ski-n-aqua-super-moisture-barrier-uv-essence-2-5-oz-70-g-formulated-with-hyaluronic-acid-tight-fit-uv-spf-50-pa-water-re</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/product/kose-moisture-mild-white-perfect-essence-all-in-one-230-ml</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/skin-aqua-super-moisture-barrier-uv-gel-3-5-oz-100-g-with-hyaluronic-acid-spf50-pa-adhesive-fit-water-resistant-super-wa</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/product/keana-nadeshiko-rice-mask-10-sheets</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/skin-aqua-50-super-moisture-gel-pump-4-9-oz-140-g</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/product/senka-perfect-whip-collagen-in-facial-cleansing-foam-120-g</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/gyutto-corset-hair-mask-200g-toste-treatment-curl-care-frizz-and-damage-repair-hair-mask-hair-pack-hair-treatment</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/product/senka-perfect-whip-white-clay-120-g</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://rakushopbd.com/product/fino-premium-touch-permeation-essence-hair-mask-8-1-ounces-230g</loc>
-    <lastmod>2026-06-04</lastmod>
+    <loc>https://www.rakushopbd.com/product/senka-perfect-whip-a-facial-cleansing-foam-120-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/skin-aqua-hyaluronic-serum-uv-spf50-pa-70-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/melano-cc-medicated-anti-blemish-whitening-lotion-moisturizing-170-ml</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/melano-cc-deep-clear-enzyme-facewash-130-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/pair-acne-cream-w-14-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/sana-nameraka-honpo-moist-gel-all-in-one-cream-100-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/melano-cc-medicated-stain-concentration-treatment-serum</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/nivea-sun-spf28-pa-protected-water-gel-for-kids-120-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/reihaku-hatomugi-cleansing-foam-130-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/omi-sun-bears-active-protect-milk-sunscreen-spf-50-pa-30-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/sunbears-active-protect-cool-waterproof-30-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/pure-natural-pcd-cream-essence-moist-100-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/hada-labo-gokujun-premium-hyaluronic-liquid-lotion-170-ml</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/hada-labo-gokujun-medicinal-firming-emulsion-140-ml</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/reihaku-hatomugi-high-moisturizing-gel-300gm</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/biore-makeup-remover-perfect-oil-mini-1781011611826</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/sana-soy-milk-wrinkle-eye-cream-20g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/chifure-washable-cold-cream-makeup-remover-massage</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/sun-protective-water-gel-spf50-pa-pump-140-g-1780985367885</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/kumano-cosme-deve-deep-cleansing-oil-180ml</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/kumano-oil-div-deep-cleansing-oil-refill</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/softymo-speedy-cleansing-oil-230ml</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/kose-suncut-uv-gel-spf50-pa</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/daiso-deep-c-moisture-gel-40g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/daiso-deep-h-moisture-gel-40g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/hada-labo-gokujyun-perfect-gel-100g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/skin-lab-ultra-jun-hyaluron-foaming-face-wash</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/acness-medicated-pore-cleanser-facial-cleanser-130g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/biore-skin-care-facial-cleanser-medicated-acne-care-130g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/skin-life-medicated-acne-care-face-wash-130g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/medicinal-atnon-acne-care-gel-for-skin-care-after-noticeable-acne-formulated-with-3-active-ingredients-kobayashi-pharmac</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/melano-cc-pharmaceutical-whitening-gel-for-freckles-100g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/skin-aqua-super-moisture-uv-gel-sunscreen-3-9-oz-110-g-hyaluronic-acid-infused-uv-quick-adhesive-gel-spf50-pa</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/skin-aqua-spf50-pa-tone-up-uv-essence-sunscreen-increased-transparency-shimmering-sabon-scent-lavender</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/ski-n-aqua-super-moisture-barrier-uv-essence-2-5-oz-70-g-formulated-with-hyaluronic-acid-tight-fit-uv-spf-50-pa-water-re</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/skin-aqua-super-moisture-barrier-uv-gel-3-5-oz-100-g-with-hyaluronic-acid-spf50-pa-adhesive-fit-water-resistant-super-wa</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/skin-aqua-50-super-moisture-gel-pump-4-9-oz-140-g</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/gyutto-corset-hair-mask-200g-toste-treatment-curl-care-frizz-and-damage-repair-hair-mask-hair-pack-hair-treatment</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://www.rakushopbd.com/product/fino-premium-touch-permeation-essence-hair-mask-8-1-ounces-230g</loc>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>

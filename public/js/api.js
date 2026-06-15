@@ -42,7 +42,7 @@
       return `<span class="prod-tag" style="background:#FAEEDA;color:#854F0B;">${p.tag_text}</span>`;
     }
     if (p.tag_type === 'new' && p.tag_text) {
-      return `<span class="prod-tag" style="background:#e8f5e8;color:#2d8a2d;">${p.tag_text}</span>`;
+      return `<span class="prod-tag" style="background:#E8F3EA;color:#2D6B32;">${p.tag_text}</span>`;
     }
     return '';
   }
@@ -63,7 +63,7 @@
       const alt = productImageAlt(p);
       const src = productImageSrc(p.image_url).replace(/"/g, '&quot;');
       const icon = normalizeIconClass(p.icon);
-      const color = p.icon_color || '#2d8a2d';
+      const color = p.icon_color || '#2D6B32';
       return `<img src="${src}" alt="${alt}" loading="eager" decoding="async" style="width:100%;height:100%;object-fit:contain;padding:8px;border-radius:inherit;" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon}" style="color:${color};" hidden></i>`;
     }
     return `<i class="${p.icon}" style="color:${p.icon_color};"></i>`;
@@ -79,7 +79,7 @@
 
   function cartThumbHtml(item, cls) {
     const icon = normalizeIconClass(item.icon || 'ti-package');
-    const color = item.iconColor || '#2d8a2d';
+    const color = item.iconColor || '#2D6B32';
     if (item.imageUrl) {
       const alt = String(item.name || '').replace(/"/g, '&quot;');
       const src = String(item.imageUrl).replace(/"/g, '&quot;');
@@ -87,6 +87,32 @@
     }
     return `<i class="${icon} ${cls || ''}" style="color:${color};"></i>`;
   }
+
+  function productStockMax(p) {
+    if (!p || !Object.prototype.hasOwnProperty.call(p, 'stock')) return 99;
+    const s = Number(p.stock);
+    if (!Number.isFinite(s) || s <= 0) return 1;
+    return Math.min(99, s);
+  }
+
+  function resetProductPageQty() {
+    const input = document.querySelector('#page-product .qty-input');
+    if (input) input.value = '1';
+    paintProductRewardPoints(1);
+  }
+
+  function getProductPageQty(p) {
+    const ref = p || currentProduct;
+    const input = document.querySelector('#page-product .qty-input');
+    const max = productStockMax(ref);
+    let v = parseInt(input?.value, 10) || 1;
+    v = Math.max(1, Math.min(max, v));
+    if (input) input.value = String(v);
+    return v;
+  }
+
+  window._rakuProductStockMax = () => productStockMax(currentProduct);
+  window._rakuGetProductPageQty = () => getProductPageQty(currentProduct);
 
   function productIsOutOfStock(p) {
     if (!p || !Object.prototype.hasOwnProperty.call(p, 'stock')) return false;
@@ -114,7 +140,7 @@
     };
     if (window._rakuPrefillContactPreOrder) window._rakuPrefillContactPreOrder(payload);
     if (window.showPage) window.showPage('contact');
-    window.scrollTo(0, 0);
+    (window.rakuScrollToTop || (() => window.scrollTo(0, 0)))();
   }
 
   window.productInStock = productInStock;
@@ -308,7 +334,7 @@
   function openCartPage() {
     if (window.showPage) window.showPage('cart');
     if (window.renderCart) void window.renderCart();
-    window.scrollTo(0, 0);
+    (window.rakuScrollToTop || (() => window.scrollTo(0, 0)))();
   }
 
   function applyCartButtonsUI() {
@@ -504,7 +530,7 @@
   async function openWishlist() {
     await renderWishlist();
     if (window.showPage) window.showPage('wishlist');
-    window.scrollTo(0, 0);
+    (window.rakuScrollToTop || (() => window.scrollTo(0, 0)))();
   }
 
   window.openWishlist = openWishlist;
@@ -1161,7 +1187,7 @@
         mainEl.appendChild(mainIcon);
       }
       mainIcon.className = icon || 'ti ti-package';
-      mainIcon.style.color = iconColor || '#2d8a2d';
+      mainIcon.style.color = iconColor || '#2D6B32';
       mainIcon.style.fontSize = '140px';
     }
   }
@@ -1241,6 +1267,8 @@
 
   window._rakuUpdateProductRewardPoints = paintProductRewardPoints;
 
+  let lastProductPageQtyId = null;
+
   function paintProductCore(p) {
     if (!p) return;
     const titleEl = document.querySelector('#page-product .pv-title');
@@ -1284,8 +1312,18 @@
     }
 
     paintProductGallery(p);
-    const qtyInput = document.querySelector('#page-product .qty-input');
-    paintProductRewardPoints(qtyInput ? parseInt(qtyInput.value, 10) || 1 : 1);
+
+    const pid = Number(p.id) || 0;
+    if (pid && lastProductPageQtyId !== pid) {
+      lastProductPageQtyId = pid;
+      resetProductPageQty();
+    } else if (!pid) {
+      lastProductPageQtyId = null;
+      resetProductPageQty();
+    } else {
+      paintProductRewardPoints(getProductPageQty(p));
+    }
+
     updateProductPurchaseButtons(p);
   }
 
@@ -1312,7 +1350,8 @@
           openCartPage();
           return;
         }
-        const data = await addToCart(p.id);
+        const qty = getProductPageQty(p);
+        const data = await addToCart(p.id, qty);
         if (!data.ok) return;
         updateProductPageCartBtn();
       };
@@ -1322,7 +1361,8 @@
       btnBuy.onclick = async () => {
         if (!productInStock(p)) return;
         if (!cartProductIds.has(p.id)) {
-          const data = await addToCart(p.id);
+          const qty = getProductPageQty(p);
+          const data = await addToCart(p.id, qty);
           if (!data.ok) return;
         }
         await syncCartBadge();
@@ -1619,11 +1659,15 @@
       .join('')
       .slice(0, 2)
       .toUpperCase();
-    const date = new Date(r.created_at).toLocaleDateString('en-US', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    });
+    const date = r.created_at
+      ? new Date(r.created_at).toLocaleDateString('en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : r.city
+        ? escapeHtml(r.city)
+        : 'Verified purchase';
     const comment = escapeHtml(r.comment || '');
     return `<article class="review-card">
       <div class="review-head">
@@ -1639,18 +1683,33 @@
     </article>`;
   }
 
+  function paintProductReviewStats(count, avgRating) {
+    const n = Number(count) || 0;
+    const avg = Number(avgRating) || 0;
+    const tabBtn = document.querySelector('.tab-btn[data-tab="tab-reviews"]');
+    const pvRev = document.querySelector('.pv-reviews');
+    const starsEl = document.querySelector('#page-product .pv-stars');
+    const rNum = document.querySelector('#page-product .pv-rating-num');
+    const countLabel = n ? `(${n} Review${n !== 1 ? 's' : ''})` : '(No reviews yet)';
+    if (tabBtn) tabBtn.textContent = n ? `Reviews (${n})` : 'Reviews';
+    if (pvRev) pvRev.textContent = countLabel;
+    if (starsEl) starsEl.textContent = n ? stars(avg) : '☆☆☆☆☆';
+    if (rNum) {
+      rNum.textContent = n ? avg.toFixed(1) : '0.0';
+      rNum.style.display = n ? '' : 'none';
+    }
+  }
+
   async function loadProductReviews(productId) {
     const list = document.getElementById('product-reviews-list');
     if (!list) return;
     try {
       const data = await apiFetch(`/products/${productId}/reviews`);
       const reviews = data.reviews || [];
-      const tabBtn = document.querySelector('.tab-btn[data-tab="tab-reviews"]');
-      const pvRev = document.querySelector('.pv-reviews');
-      const countLabel = reviews.length ? `(${reviews.length} Reviews)` : '(No reviews yet)';
-      if (tabBtn) tabBtn.textContent = reviews.length ? `Reviews (${reviews.length})` : 'Reviews';
-      if (pvRev) pvRev.textContent = countLabel;
+      const count = Number(data.count) || reviews.length;
+      const avgRating = Number(data.avgRating) || 0;
 
+      paintProductReviewStats(count, avgRating);
       renderReviewsSummary(reviews);
 
       if (!reviews.length) {
@@ -1663,7 +1722,7 @@
       }
 
       list.innerHTML =
-        `<div class="reviews-list-header"><i class="ti ti-messages"></i> Customer reviews (${reviews.length})</div>` +
+        `<div class="reviews-list-header"><i class="ti ti-messages"></i> Customer reviews (${count})</div>` +
         reviews.map(reviewCardHtml).join('');
     } catch (_) {
       list.innerHTML = '';
@@ -2894,7 +2953,7 @@
     bindHomeScrollResize();
     syncAllHomeScrollCardWidths();
 
-    if (isHome && window.showPage) window.showPage('home', { skipUrl: true });
+    if (isHome && window.showPage) window.showPage('home', { skipUrl: true, skipScroll: true });
 
     bindCategoryFilterEvents();
 
@@ -2904,6 +2963,8 @@
     if (onCart) sessionTasks.push(renderCart());
     if (onCheckout) sessionTasks.push(renderCheckout());
     void Promise.all(sessionTasks);
+
+    window._rakuRestoreScrollPosition?.();
 
     if (window.requestIdleCallback) {
       requestIdleCallback(() => prefillReviewName(), { timeout: 3000 });

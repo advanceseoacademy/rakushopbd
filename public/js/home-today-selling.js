@@ -14,10 +14,10 @@
     if (p.image_url) {
       const src = window.productImageSrc ? window.productImageSrc(p.image_url) : p.image_url;
       const icon = esc(p.icon || 'ti ti-package');
-      const color = esc(p.icon_color || '#2d8a2d');
+      const color = esc(p.icon_color || '#2D6B32');
       return `<img class="hero-today-product-photo" src="${esc(src)}" alt="${esc(p.name_bn)}" loading="eager" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><i class="${icon}" style="color:${color};" hidden></i>`;
     }
-    return `<i class="${esc(p.icon || 'ti ti-package')}" style="color:${esc(p.icon_color || '#2d8a2d')}"></i>`;
+    return `<i class="${esc(p.icon || 'ti ti-package')}" style="color:${esc(p.icon_color || '#2D6B32')}"></i>`;
   }
 
   function formatPrice(amount) {

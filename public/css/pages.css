@@ -388,6 +388,31 @@
   color: var(--text-light);
 }
 
+.legal-content .legal-lead {
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+
+.legal-content .legal-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 14px;
+}
+
+.legal-content .legal-table th,
+.legal-content .legal-table td {
+  border: 1px solid var(--border);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.legal-content .legal-table th {
+  background: var(--primary-pale);
+  font-weight: 600;
+}
+
 .legal-loading {
   text-align: center;
   color: var(--text-muted);

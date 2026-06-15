@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>RakuShopBD — Admin Panel</title>
-<link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
+<link rel="icon" href="/images/rakushopbd-logo.png?v=5" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/admin.css?v=17">
+<link rel="stylesheet" href="/css/admin.css?v=18">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
 </head>
@@ -18,7 +18,7 @@
 <div id="login-page">
   <div class="login-card">
     <div class="login-logo">
-      <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-login" width="300" height="80">
+      <img src="/images/rakushopbd-logo.png?v=5" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-login" width="300" height="80">
     </div>
     <div class="login-tagline">Admin Dashboard — Sign in to manage your store</div>
     <div class="login-error" id="login-error"><i class="ti ti-alert-circle"></i> <span>Invalid username or password</span></div>
@@ -40,7 +40,7 @@
   <div class="adm-sidebar-overlay" id="adm-sidebar-overlay" aria-hidden="true"></div>
   <aside class="sidebar" id="adm-sidebar">
     <div class="sidebar-logo">
-      <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-sidebar" width="240" height="58">
+      <img src="/images/rakushopbd-logo.png?v=5" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-sidebar" width="240" height="58">
       <div class="sidebar-version">Admin Panel</div>
     </div>
     <div class="sidebar-section">Main</div>
@@ -64,6 +64,7 @@
         <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="terms"><i class="ti ti-file-text"></i> Terms &amp; Conditions</button>
         <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="return"><i class="ti ti-refresh"></i> Return Policy</button>
         <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="preorder"><i class="ti ti-clock-hour-4"></i> Pre-Order Policy</button>
+        <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="points"><i class="ti ti-award"></i> Reward Point Policy</button>
       </div>
     </div>
     <div class="nav-item" data-page="coupons"><i class="ti ti-discount"></i> Coupons</div>
@@ -295,7 +296,7 @@
               </div>
               <div class="form-2col">
                 <div class="form-group"><label class="form-label">Icon class</label><input class="form-input" id="pf-icon" placeholder="ti-watch" value="ti-package"></div>
-                <div class="form-group"><label class="form-label">Icon color</label><input class="form-input" id="pf-icon-color" value="#2d8a2d"></div>
+                <div class="form-group"><label class="form-label">Icon color</label><input class="form-input" id="pf-icon-color" value="#2D6B32"></div>
               </div>
               <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="pf-bg" value="#e8f5e8"></div>
               <div class="form-section-title">Display</div>
@@ -449,7 +450,7 @@
           <div class="settings-page-head">
             <div>
               <h2 class="settings-page-title">Legal Pages</h2>
-              <p class="settings-page-desc">Edit Privacy Policy, Terms &amp; Conditions, Return Policy, and Pre-Order Policy — grouped under the <strong>Legal</strong> menu on your storefront footer.</p>
+              <p class="settings-page-desc">Edit Privacy Policy, Terms &amp; Conditions, Return Policy, Pre-Order Policy, and Reward Point Policy — grouped under the <strong>Legal</strong> menu on your storefront footer.</p>
             </div>
           </div>
 
@@ -468,6 +469,7 @@
             <button type="button" class="settings-tab" data-legal-tab="terms" role="tab"><i class="ti ti-file-text"></i><span>Terms</span></button>
             <button type="button" class="settings-tab" data-legal-tab="return" role="tab"><i class="ti ti-refresh"></i><span>Returns</span></button>
             <button type="button" class="settings-tab" data-legal-tab="preorder" role="tab"><i class="ti ti-clock-hour-4"></i><span>Pre-Order</span></button>
+            <button type="button" class="settings-tab" data-legal-tab="points" role="tab"><i class="ti ti-award"></i><span>Points</span></button>
           </nav>
 
           <form id="legal-form">
@@ -546,6 +548,26 @@
                     <label class="form-label">Page content</label>
                     <textarea class="form-input form-textarea" id="legal-preorder-content" rows="16" placeholder="Write your pre-order policy…"></textarea>
                     <small class="form-hint">Use the toolbar for headings, bold text, lists, and links — no HTML coding needed.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="settings-panel" id="legal-panel-points" role="tabpanel">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--green"><i class="ti ti-award"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Reward Point Policy</h3>
+                    <p class="settings-card-desc">Live at <code>/reward-point-policy</code></p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-group"><label class="form-label">Page title</label><input class="form-input" id="legal-points-title" placeholder="Reward Point Policy"></div>
+                  <div class="form-group">
+                    <label class="form-label">Page content</label>
+                    <textarea class="form-input form-textarea" id="legal-points-content" rows="16" placeholder="Write your reward point policy…"></textarea>
+                    <small class="form-hint">HTML supported — keep <code>&lt;table class="legal-table"&gt;</code> for the earn-points table. Use headings (<code>&lt;h2&gt;</code>) and lists like other legal pages.</small>
                   </div>
                 </div>
               </div>
@@ -637,7 +659,7 @@
                   <div class="form-group"><label class="form-label">Footer description</label><textarea class="form-input form-textarea" id="set-footer-desc" rows="2" placeholder="Short about text under logo"></textarea></div>
                   <div class="form-2col">
                     <div class="form-group"><label class="form-label">Store hours</label><input class="form-input" id="set-store-hours" placeholder="9 AM — 10 PM"></div>
-                    <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png"></div>
+                    <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png?v=5"></div>
                   </div>
                   <div class="form-group"><label class="form-label">Upload logo</label><input class="form-input form-input-file" type="file" id="set-logo-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
                   <div class="settings-subsection">
@@ -749,7 +771,7 @@
                   </div>
                 </div>
                 <div class="settings-card-body">
-                  <div class="form-group"><label class="form-label">Public site URL</label><input class="form-input" id="set-site-url" type="url" placeholder="https://rakushopbd.com"></div>
+                  <div class="form-group"><label class="form-label">Public site URL</label><input class="form-input" id="set-site-url" type="url" placeholder="https://www.rakushopbd.com"><small class="form-hint">Use full URL only, e.g. <code>https://www.rakushopbd.com</code> — no extra text before it.</small></div>
                   <div class="form-group"><label class="form-label">Home page title</label><input class="form-input" id="set-seo-home-title" placeholder="RakuShopBD — Best Online Shopping in Bangladesh"></div>
                   <div class="form-group"><label class="form-label">Default meta description</label><textarea class="form-input form-textarea" id="set-seo-description" rows="3" placeholder="150–160 characters for Google search results"></textarea></div>
                   <div class="form-2col">
@@ -949,7 +971,7 @@
       </div>
       <div class="form-group bn-field bn-field--promo-only" hidden><label class="form-label">Title *</label><input class="form-input" id="bn-title"></div>
       <div class="form-group"><label class="form-label">Link URL <span class="bn-field bn-field--hero-only">(optional — whole banner clickable)</span></label><input class="form-input" id="bn-link" value="/"></div>
-      <div class="form-group bn-field bn-field--promo-only" hidden><label class="form-label">Gradient CSS</label><input class="form-input" id="bn-gradient" value="linear-gradient(135deg,#2d8a2d,#164816)"></div>
+      <div class="form-group bn-field bn-field--promo-only" hidden><label class="form-label">Gradient CSS</label><input class="form-input" id="bn-gradient" value="linear-gradient(135deg,#1E4620,#2D6B32)"></div>
       <div class="form-group"><label class="form-label">Image URL</label><input class="form-input" id="bn-image" placeholder="/uploads/..."></div>
       <div class="form-group"><label class="form-label">Upload image <span class="bn-field bn-field--hero-only">*</span></label><input class="form-input" type="file" id="bn-file" accept="image/*"></div>
       <div id="bn-preview-wrap" hidden style="margin-bottom:12px;">
@@ -1036,7 +1058,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-<script src="/js/admin-rich-editor.js?v=3"></script>
-<script src="/js/admin.js?v=71"></script>
+<script src="/js/admin-rich-editor.js?v=4"></script>
+<script src="/js/admin.js?v=74"></script>
 </body>
 </html>

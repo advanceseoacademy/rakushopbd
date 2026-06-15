@@ -1,18 +1,22 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    /* RakushopBD logo — forest green + soft pink */
-    --primary: #206020;
-    --primary-light: #2d8a2d;
-    --primary-dark: #164816;
-    --primary-pale: #e8f5e8;
-    --accent: #d48696;
-    --accent-light: #fce8ec;
-    --accent-dark: #9e5568;
-    --discount-badge-bg: #D85A77;
+    /* RakushopBD logo — forest green + vibrant pink */
+    --brand: #1E4620;
+    --brand-light: #2D6B32;
+    --brand-dark: #143318;
+    --brand-pale: #E8F3EA;
+    --primary: #EF7A9C;
+    --primary-light: #F5A0B8;
+    --primary-dark: #D85A7A;
+    --primary-pale: #FDE8EF;
+    --accent: #2D6B32;
+    --accent-light: #E8F3EA;
+    --accent-dark: #1E4620;
+    --discount-badge-bg: #D85A7A;
     --discount-badge-color: #fff;
-    --green: #2d8a2d;
-    --green-pale: #e8f5e8;
+    --green: #2D6B32;
+    --green-pale: #E8F3EA;
     --amber: #8a6914;
     --amber-pale: #faf3e0;
     --pink: #e8b4bc;
@@ -30,20 +34,29 @@
     --radius-xl: 20px;
   }
 
+  html {
+    scrollbar-gutter: stable;
+    scroll-behavior: smooth;
+    scroll-padding-top: 72px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
   body {
     font-family: 'Hind Siliguri', sans-serif;
     background: var(--bg);
     color: var(--text);
     min-height: 100vh;
-  }
-
-  html {
-    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
   }
 
   /* ===== TOP ANNOUNCEMENT BAR ===== */
   .announcement {
-    background: var(--primary);
+    background: var(--brand);
     color: #fff;
     text-align: center;
     padding: 8px 16px;
@@ -53,7 +66,7 @@
     justify-content: center;
     gap: 8px;
   }
-  .announcement i { font-size: 14px; color: #f0d0d0; }
+  .announcement i { font-size: 14px; color: var(--primary-light); }
 
   /* ===== NAVBAR ===== */
   .navbar {
@@ -1053,7 +1066,7 @@
     margin-bottom: 24px;
   }
   .hero-main {
-    --hero-bg: linear-gradient(135deg, #164816 0%, #206020 35%, #2d8a2d 65%, #1a6b1a 100%);
+    --hero-bg: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand) 35%, var(--brand-light) 65%, var(--brand) 100%);
     --hero-bg-photo: none;
     background: var(--hero-bg);
     background-size: 280% 280%;
@@ -1269,7 +1282,7 @@
     animation-duration: 8s;
   }
   .hero-card-b {
-    --hero-card-bg: linear-gradient(135deg, #1d9e75 0%, #0f6e56 40%, #2d8a2d 70%, #164816 100%);
+    --hero-card-bg: linear-gradient(135deg, var(--brand-light) 0%, var(--brand) 40%, var(--brand-dark) 70%, var(--brand) 100%);
     background: var(--hero-card-bg);
     animation-duration: 9s;
     animation-direction: reverse;
@@ -1801,7 +1814,7 @@
 
   /* Category card size tokens */
   .category-scroll-wrap--home {
-    --cat-card-size: 120px;
+    --cat-card-size: 110px;
     /* Full-bleed: break out of .main max-width container */
     width: 100vw;
     max-width: 100vw;
@@ -1817,14 +1830,14 @@
   }
 
   .category-grid.category-grid--all {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
     justify-items: center;
   }
   .cat-card {
     position: relative;
     display: flex;
     flex-direction: column;
-    width: var(--cat-card-size, 120px);
+    width: var(--cat-card-size, 110px);
     max-width: 100%;
     height: auto;
     justify-self: center;
@@ -1856,7 +1869,7 @@
     margin: 0;
     overflow: hidden;
   }
-  .cat-icon i { font-size: 26px; }
+  .cat-icon i { font-size: 24px; }
   .cat-icon img {
     width: 100%;
     height: 100%;
@@ -1875,8 +1888,8 @@
     position: static;
     flex: 1 0 auto;
     z-index: 1;
-    min-height: 52px;
-    padding: 8px 6px 10px;
+    min-height: 48px;
+    padding: 7px 5px 9px;
     background: var(--surface);
     pointer-events: none;
     box-sizing: border-box;
@@ -1918,7 +1931,7 @@
     width: 100%;
     max-width: 100%;
     min-width: 0;
-    gap: 12px;
+    gap: 11px;
     margin-bottom: 28px;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1934,9 +1947,9 @@
   }
 
   .category-scroll-wrap--home #home-category-track .cat-card {
-    flex: 0 0 var(--cat-card-size, 120px);
-    width: var(--cat-card-size, 120px);
-    max-width: var(--cat-card-size, 120px);
+    flex: 0 0 var(--cat-card-size, 110px);
+    width: var(--cat-card-size, 110px);
+    max-width: var(--cat-card-size, 110px);
     height: auto;
     align-self: stretch;
     flex-shrink: 0;
@@ -2226,21 +2239,26 @@
 
   /* ===== TRUST BADGES ===== */
   .trust-bar {
-    background: var(--surface);
-    border-radius: var(--radius-lg);
-    border: 1px solid var(--border);
+    background: transparent;
+    border: none;
+    border-radius: 0;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
   }
   .trust-item {
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 20px 22px;
-    border-right: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+    background: var(--surface);
   }
-  .trust-item:last-child { border-right: none; }
-  .trust-icon { font-size: 28px; }
+  .trust-item--colored {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
+  .trust-icon { font-size: 28px; flex-shrink: 0; }
   .trust-title { font-size: 13px; font-weight: 700; color: var(--text); }
   .trust-sub { font-size: 11px; font-weight: 500; color: var(--text-muted); margin-top: 2px; }
 
@@ -2250,7 +2268,7 @@
 
   /* ===== FOOTER ===== */
   .footer {
-    background: #103010;
+    background: var(--brand-dark);
     color: rgba(255,255,255,0.8);
     padding: 48px 0 24px;
     margin-top: 20px;
@@ -2287,8 +2305,9 @@
     transition: background 0.15s;
     text-decoration: none;
   }
-  .social-btn:hover { background: rgba(255,255,255,0.15); }
+  .social-btn:hover { background: rgba(239, 122, 156, 0.25); }
   .social-btn i { font-size: 17px; color: rgba(255,255,255,0.8); }
+  .social-btn:hover i { color: #F5A0B8; }
   .footer-heading { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 16px; }
   .footer-links { list-style: none; display: flex; flex-direction: column; gap: 8px; }
   .footer-links li a {

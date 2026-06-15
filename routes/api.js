@@ -7,6 +7,7 @@ const { getHomeProductSections, getBestSellingProducts, getNewArrivalProducts } 
 const { getTodaySellingProducts, getTodaySellingMeta } = require('../lib/todaySelling');
 const { getTodayDealsProducts, getTodayDealsMeta } = require('../lib/todayDeals');
 const { getRecommendedProducts } = require('../lib/productRecommendations');
+const { attachMergedReviewStatsToProducts } = require('../lib/productReviews');
 const { stripInternalProductFields, stripInternalProductList } = require('../lib/productPublic');
 const { parseRewardsContent } = require('../lib/rewardsPage');
 const { pointsFromCartItems } = require('../lib/rewardPoints');
@@ -196,14 +197,14 @@ router.get('/messenger-chats', async (req, res) => {
 
 router.get('/products/:id/reviews', async (req, res) => {
   try {
-    const reviews = await query(
-      `SELECT customer_name, rating, comment, created_at FROM product_reviews
-       WHERE product_id=? AND status='approved' ORDER BY created_at DESC LIMIT 50`,
-      [req.params.id]
-    );
-    res.json({ ok: true, reviews });
+    const productId = Number(req.params.id);
+    if (!productId) return res.json({ ok: true, reviews: [], count: 0, avgRating: 0 });
+    const { getProductReviewsPayload } = require('../lib/productReviews');
+    const payload = await getProductReviewsPayload(query, productId);
+    cachePublic(res, 60);
+    res.json({ ok: true, ...payload });
   } catch (err) {
-    res.json({ ok: true, reviews: [] });
+    res.json({ ok: true, reviews: [], count: 0, avgRating: 0 });
   }
 });
 
@@ -237,6 +238,11 @@ router.post('/products/:id/reviews', async (req, res) => {
        VALUES (?, ?, ?, ?, ?, ?)`,
       [productId, userId, customerName, rating, comment || null, status]
     );
+
+    if (status === 'approved') {
+      const { syncProductReviewStats } = require('../lib/productReviews');
+      await syncProductReviewStats(query, productId);
+    }
 
     res.json({
       ok: true,
@@ -290,19 +296,42 @@ function cachePublic(res, seconds) {
   }
 }
 
+async function publicProductList(products, pool) {
+  const list = stripInternalProductList(products);
+  return attachMergedReviewStatsToProducts(query, list, pool ? { pool } : undefined);
+}
+
 router.get('/products/home-sections', async (req, res) => {
   try {
     const limit = Math.min(48, Math.max(4, Number(req.query.limit) || 24));
     const { bestSelling, newArrivals } = await getHomeProductSections(query, limit);
+    const { getReviewProductPool } = require('../lib/productReviews');
+    const pool = await getReviewProductPool(query);
+    const [bestMerged, newMerged] = await Promise.all([
+      publicProductList(bestSelling, pool),
+      publicProductList(newArrivals, pool),
+    ]);
     cachePublic(res, 300);
     res.json({
       ok: true,
-      bestSelling: stripInternalProductList(bestSelling),
-      newArrivals: stripInternalProductList(newArrivals),
+      bestSelling: bestMerged,
+      newArrivals: newMerged,
     });
   } catch (err) {
     console.error('home-sections', err);
     res.status(500).json({ ok: false, error: 'Could not load products' });
+  }
+});
+
+router.get('/products/review-pool', async (req, res) => {
+  try {
+    const { getReviewProductPool } = require('../lib/productReviews');
+    const products = await getReviewProductPool(query);
+    cachePublic(res, 300);
+    res.json({ ok: true, products });
+  } catch (err) {
+    console.error('review-pool', err);
+    res.status(500).json({ ok: false, error: 'Could not load review products' });
   }
 });
 
@@ -314,7 +343,7 @@ router.get('/today-selling', async (req, res) => {
     res.json({
       ok: true,
       meta: getTodaySellingMeta(settings),
-      products: stripInternalProductList(products),
+      products: await publicProductList(products),
     });
   } catch (err) {
     console.error('today-selling', err);
@@ -330,7 +359,7 @@ router.get('/today-deals', async (req, res) => {
     res.json({
       ok: true,
       meta: getTodayDealsMeta(settings),
-      products: stripInternalProductList(products),
+      products: await publicProductList(products),
     });
   } catch (err) {
     console.error('today-deals', err);
@@ -353,7 +382,7 @@ router.get('/collections/:slug', async (req, res) => {
     }
 
     cachePublic(res, 60);
-    res.json({ ok: true, products: stripInternalProductList(products) });
+    res.json({ ok: true, products: await publicProductList(products) });
   } catch (err) {
     console.error('collections', err);
     res.status(500).json({ ok: false, error: 'Could not load collection' });
@@ -399,12 +428,12 @@ router.get('/products', async (req, res) => {
     const listLimit = Math.min(200, Math.max(8, Number(limit) || 100));
 
     if (sortMode === 'best-selling') {
-      const products = stripInternalProductList(await getBestSellingProducts(query, listLimit));
+      const products = await publicProductList(await getBestSellingProducts(query, listLimit));
       cachePublic(res, 60);
       return res.json({ ok: true, products });
     }
     if (sortMode === 'new-arrivals') {
-      const products = stripInternalProductList(await getNewArrivalProducts(query, listLimit));
+      const products = await publicProductList(await getNewArrivalProducts(query, listLimit));
       cachePublic(res, 60);
       return res.json({ ok: true, products });
     }
@@ -475,7 +504,7 @@ router.get('/products', async (req, res) => {
     );
     if (lim) sql += ` LIMIT ${lim}`;
 
-    const products = stripInternalProductList(await query(sql, params));
+    const products = await publicProductList(await query(sql, params));
     cachePublic(res, 60);
     res.json({ ok: true, products });
   } catch (err) {
@@ -501,7 +530,7 @@ router.get('/products/recommended', async (req, res) => {
       limit,
     });
     res.set('Cache-Control', 'private, no-store');
-    res.json({ ok: true, ...data, products: stripInternalProductList(data.products) });
+    res.json({ ok: true, ...data, products: await publicProductList(data.products) });
   } catch (err) {
     console.error('products/recommended', err);
     res.status(500).json({ ok: false, error: 'Could not load recommendations' });
@@ -511,7 +540,7 @@ router.get('/products/recommended', async (req, res) => {
 router.get('/products/:ref', async (req, res) => {
   try {
     const ref = String(req.params.ref || '').trim();
-    const reserved = new Set(['recommended', 'home-sections']);
+    const reserved = new Set(['recommended', 'home-sections', 'review-pool']);
     if (reserved.has(ref.toLowerCase())) {
       return res.status(404).json({ ok: false, error: 'Use /api/products/recommended' });
     }
@@ -524,7 +553,15 @@ router.get('/products/:ref', async (req, res) => {
     );
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Product not found' });
     const { attachGalleryToProduct } = require('../lib/productImages');
-    const product = stripInternalProductFields(await attachGalleryToProduct(rows[0]));
+    let product = stripInternalProductFields(await attachGalleryToProduct(rows[0]));
+    try {
+      const { getProductReviewsPayload } = require('../lib/productReviews');
+      const { count, avgRating } = await getProductReviewsPayload(query, product.id);
+      if (count > 0) {
+        product.review_count = count;
+        product.rating = avgRating || product.rating;
+      }
+    } catch (_) {}
     cachePublic(res, 120);
     res.json({ ok: true, product });
   } catch (err) {
@@ -643,7 +680,13 @@ router.post('/cart/add', async (req, res) => {
     }
     const cart = getCart(req);
     const existing = cart.find((i) => i.productId === p.id);
-    const addQty = Math.max(1, Math.min(99, Number(qty) || 1));
+    const addQty = Math.max(
+      1,
+      Math.min(
+        Math.max(1, Math.min(99, Number(p.stock) || 99)),
+        Math.max(1, Math.min(99, Number(qty) || 1))
+      )
+    );
 
     if (existing) {
       return res.json({

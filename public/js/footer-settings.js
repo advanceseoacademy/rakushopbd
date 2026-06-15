@@ -28,6 +28,7 @@
     if (link.page === 'privacy') return { label: label || 'Privacy Policy', href: '/privacy-policy' };
     if (link.page === 'terms') return { label: label || 'Terms & Conditions', href: '/terms-and-conditions' };
     if (link.page === 'return') return { label: label || 'Return Policy', href: '/return-policy' };
+    if (link.page === 'points') return { label: label || 'Reward Point Policy', href: '/reward-point-policy' };
     return link;
   }
 
@@ -72,7 +73,91 @@
     privacy: '/privacy-policy',
     terms: '/terms-and-conditions',
     return: '/return-policy',
+    preorder: '/pre-order-policy',
+    points: '/reward-point-policy',
   };
+
+  const LEGAL_HREFS = new Set([
+    '/privacy-policy',
+    '/terms-and-conditions',
+    '/return-policy',
+    '/pre-order-policy',
+    '/reward-point-policy',
+  ]);
+
+  function footerLinkDest(link) {
+    const normalized = normalizeFooterLink(link);
+    if (!normalized) return '';
+    if (normalized.page) {
+      const href = PAGE_HREFS[normalized.page] || '';
+      if (href) return href;
+      return `page:${normalized.page}`;
+    }
+    const href = String(normalized.href || '#').trim();
+    if (href && href !== '#') return href;
+    return '';
+  }
+
+  function footerLinkKey(link) {
+    const normalized = normalizeFooterLink(link);
+    if (!normalized) return '';
+    const label = String(normalized.label || '').trim().toLowerCase();
+    const dest = footerLinkDest(link);
+    if (label && dest) return `${label}::${dest}`;
+    if (dest) return dest;
+    return label ? `label:${label}` : '';
+  }
+
+  function footerLinkDestKey(link) {
+    const dest = footerLinkDest(link);
+    return dest ? `dest:${dest}` : footerLinkKey(link);
+  }
+
+  function dedupeFooterLinks(links) {
+    const seen = new Set();
+    const out = [];
+    (links || []).forEach((link) => {
+      const key = footerLinkKey(link);
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      out.push(normalizeFooterLink(link));
+    });
+    return out;
+  }
+
+  function isLegalFooterLink(link) {
+    const normalized = normalizeFooterLink(link);
+    if (!normalized) return false;
+    const label = String(normalized.label || '').trim().toLowerCase();
+    if (
+      label === 'privacy policy' ||
+      label === 'terms & conditions' ||
+      label === 'terms' ||
+      label === 'return policy' ||
+      label === 'pre-order policy' ||
+      label === 'reward point policy'
+    ) {
+      return true;
+    }
+    if (
+      normalized.page === 'privacy' ||
+      normalized.page === 'terms' ||
+      normalized.page === 'return' ||
+      normalized.page === 'preorder' ||
+      normalized.page === 'points'
+    ) {
+      return true;
+    }
+    return LEGAL_HREFS.has(String(normalized.href || '').trim());
+  }
+
+  function prepareFooterColumnLinks(links, excludeDestKeys) {
+    return dedupeFooterLinks(links).filter((link) => {
+      if (isLegalFooterLink(link)) return false;
+      const key = footerLinkKey(link);
+      return key && !excludeDestKeys.has(footerLinkDestKey(link));
+    });
+  }
 
   function linkHtml(link, usePageRoutes) {
     const label = escapeHtml(link.label || 'Link');
@@ -91,7 +176,7 @@
     if (!settings) return;
     const name = settings.site_name || 'RakuShopBD';
 
-    const logoUrl = (settings.site_logo_url || '').trim() || '/images/rakushopbd-logo.png';
+    const logoUrl = (settings.site_logo_url || '').trim() || '/images/rakushopbd-logo.png?v=5';
     document.querySelectorAll('.site-logo-img').forEach((img) => {
       if (img.getAttribute('src') !== logoUrl) img.setAttribute('src', logoUrl);
     });
@@ -146,13 +231,18 @@
     }
 
     const standalone = !!window.RAKU_FOOTER_AUTOLOAD;
-    const quick = parseFooterLinks(settings.footer_quick_links);
+    const helpRaw = parseFooterLinks(settings.footer_help_links);
+    const help = prepareFooterColumnLinks(helpRaw, new Set());
+    const helpKeys = new Set(help.map((link) => footerLinkDestKey(link)).filter(Boolean));
+
+    const quickRaw = parseFooterLinks(settings.footer_quick_links);
+    const quick = prepareFooterColumnLinks(quickRaw, helpKeys);
+
     const quickUl = document.getElementById('footer-quick-links');
     if (quickUl && quick?.length) {
       quickUl.innerHTML = quick.map((link) => linkHtml(link, standalone)).join('');
     }
 
-    const help = parseFooterLinks(settings.footer_help_links);
     const helpUl = document.getElementById('footer-help-links');
     if (helpUl && help?.length) {
       helpUl.innerHTML = help.map((link) => linkHtml(link, standalone)).join('');
@@ -183,6 +273,10 @@
       {
         label: (settings.legal_preorder_title || '').trim() || 'Pre-Order Policy',
         href: '/pre-order-policy',
+      },
+      {
+        label: 'Reward Point Policy',
+        href: '/reward-point-policy',
       },
     ];
     const legalUl = document.getElementById('footer-legal-links');

@@ -1,3 +1,88 @@
+(function () {
+  const SCROLL_KEY = 'raku_scroll_pos';
+
+  function rakuScrollToTop() {
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    window.scrollTo({ top: 0, left: 0, behavior: reduce ? 'auto' : 'smooth' });
+  }
+
+  function scrollStoragePath() {
+    return `${location.pathname || '/'}${location.search || ''}`;
+  }
+
+  function saveScrollPosition() {
+    try {
+      sessionStorage.setItem(
+        SCROLL_KEY,
+        JSON.stringify({
+          x: window.scrollX || 0,
+          y: window.scrollY || document.documentElement.scrollTop || 0,
+          path: scrollStoragePath(),
+        })
+      );
+    } catch (_) {}
+  }
+
+  function readScrollPosition() {
+    try {
+      const raw = sessionStorage.getItem(SCROLL_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (data.path !== scrollStoragePath()) return null;
+      return data;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function shouldRestoreScrollOnLoad() {
+    const nav = performance.getEntriesByType?.('navigation')?.[0];
+    if (nav) return nav.type === 'reload';
+    return performance.navigation?.type === 1;
+  }
+
+  function restoreScrollPosition() {
+    if (!shouldRestoreScrollOnLoad()) return;
+    const saved = readScrollPosition();
+    if (!saved) return;
+
+    let attempts = 0;
+    const maxAttempts = 20;
+    const tick = () => {
+      const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      const target = Math.min(Math.max(0, Number(saved.y) || 0), maxScroll);
+      window.scrollTo({ top: target, left: Number(saved.x) || 0, behavior: 'auto' });
+      const done = Math.abs(window.scrollY - target) < 6 || attempts >= maxAttempts;
+      if (done) return;
+      attempts += 1;
+      requestAnimationFrame(() => setTimeout(tick, 150));
+    };
+    tick();
+    window.addEventListener('load', tick, { once: true });
+    document.addEventListener('raku:bootstrap', () => setTimeout(tick, 80), { once: true });
+  }
+
+  let scrollSaveTimer;
+  window.addEventListener(
+    'scroll',
+    () => {
+      clearTimeout(scrollSaveTimer);
+      scrollSaveTimer = setTimeout(saveScrollPosition, 120);
+    },
+    { passive: true }
+  );
+  window.addEventListener('pagehide', saveScrollPosition);
+  window.addEventListener('beforeunload', saveScrollPosition);
+
+  if ('scrollRestoration' in history) {
+    history.scrollRestoration = 'manual';
+  }
+
+  window.rakuScrollToTop = rakuScrollToTop;
+  window._rakuSaveScrollPosition = saveScrollPosition;
+  window._rakuRestoreScrollPosition = restoreScrollPosition;
+})();
+
 document.addEventListener('DOMContentLoaded', function() {
   // Redirect old hash URLs (#/account) to clean paths (/account)
   if (location.hash && location.hash.startsWith('#/')) {
@@ -25,16 +110,18 @@ document.addEventListener('DOMContentLoaded', function() {
     terms: document.getElementById('page-terms'),
     return: document.getElementById('page-return'),
     preorder: document.getElementById('page-preorder'),
+    points: document.getElementById('page-points'),
     track: document.getElementById('page-track'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'rewards', 'contact', 'privacy', 'terms', 'return', 'preorder', 'track'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'rewards', 'contact', 'privacy', 'terms', 'return', 'preorder', 'points', 'track'];
 
   const PATH_ALIASES = {
     'privacy-policy': 'privacy',
     'terms-and-conditions': 'terms',
     'return-policy': 'return',
     'pre-order-policy': 'preorder',
+    'reward-point-policy': 'points',
   };
 
   const PAGE_PATHS = {
@@ -42,6 +129,7 @@ document.addEventListener('DOMContentLoaded', function() {
     terms: '/terms-and-conditions',
     return: '/return-policy',
     preorder: '/pre-order-policy',
+    points: '/reward-point-policy',
   };
 
   // Show target route immediately (content fills via bootstrap / API)
@@ -149,6 +237,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (name === 'preorder' && window._rakuInitLegalPreorder) {
       window._rakuInitLegalPreorder();
     }
+    if (name === 'points' && window._rakuInitLegalPoints) {
+      window._rakuInitLegalPoints();
+    }
     if (name === 'track' && window._rakuInitTrackPage) {
       window._rakuInitTrackPage();
     }
@@ -163,7 +254,9 @@ document.addEventListener('DOMContentLoaded', function() {
         history.pushState({ page: name, ...opts }, '', path);
       }
     }
-    window.scrollTo(0, 0);
+    if (!opts.skipScroll) {
+      window.rakuScrollToTop();
+    }
     if (window.RakuSEO) {
       window.RakuSEO.onNavigate(name, opts);
     }
@@ -179,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
   async function restoreFromUrl() {
     const route = parsePath();
     routeRestoring = true;
-    showPage(route.page, { ...route, skipUrl: true });
+    showPage(route.page, { ...route, skipUrl: true, skipScroll: true });
     routeRestoring = false;
 
     try {
@@ -212,12 +305,15 @@ document.addEventListener('DOMContentLoaded', function() {
         window._rakuInitLegalReturn();
       } else if (route.page === 'preorder' && window._rakuInitLegalPreorder) {
         window._rakuInitLegalPreorder();
+      } else if (route.page === 'points' && window._rakuInitLegalPoints) {
+        window._rakuInitLegalPoints();
       } else if (route.page === 'track' && window._rakuInitTrackPage) {
         window._rakuInitTrackPage();
       }
     } catch (err) {
       console.warn('Route restore failed', err);
     }
+    window._rakuRestoreScrollPosition?.();
   }
 
   window.addEventListener('popstate', () => {
@@ -334,10 +430,11 @@ document.addEventListener('DOMContentLoaded', function() {
     btn.addEventListener('click', function () {
       const input = this.parentElement.querySelector('.qty-input');
       if (!input) return;
+      const max = window._rakuProductStockMax ? window._rakuProductStockMax() : 99;
       let v = parseInt(input.value, 10) || 1;
-      if (this.dataset.dir === 'up') v = Math.min(v + 1, 99);
+      if (this.dataset.dir === 'up') v = Math.min(v + 1, max);
       else v = Math.max(v - 1, 1);
-      input.value = v;
+      input.value = String(v);
       if (window._rakuUpdateProductRewardPoints) window._rakuUpdateProductRewardPoints(v);
     });
   });
@@ -357,7 +454,7 @@ document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('#page-product .product-card').forEach(card => {
     card.addEventListener('click', function(e) {
       if (e.target.closest('.add-cart-btn') || e.target.closest('.preorder-btn') || e.target.closest('.prod-wish')) return;
-      window.scrollTo(0, 0);
+      window.rakuScrollToTop();
     });
   });
 
@@ -505,6 +602,7 @@ document.addEventListener('DOMContentLoaded', function() {
     terms: () => window._rakuInitLegalTerms?.(),
     return: () => window._rakuInitLegalReturn?.(),
     preorder: () => window._rakuInitLegalPreorder?.(),
+    points: () => window._rakuInitLegalPoints?.(),
     track: () => window._rakuInitTrackPage?.(),
   };
   setTimeout(() => {

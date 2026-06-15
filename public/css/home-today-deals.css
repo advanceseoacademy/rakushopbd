@@ -192,66 +192,45 @@
 .today-deals-card-rating {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 4px;
+  margin-bottom: 4px;
 }
 
 .today-deals-card-rating .stars {
-  color: var(--accent);
-  letter-spacing: 1px;
+  color: #ef9f27;
+  font-size: 11px;
+  letter-spacing: 0;
 }
 
 .today-deals-card-rating .rating-count {
-  color: var(--text-muted);
+  color: var(--text-light);
+  font-size: 10px;
 }
 
-.today-deals-card-prices {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.today-deals-card-price {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.today-deals-card-old {
-  font-size: 13px;
-  color: var(--text-muted);
-  text-decoration: line-through;
-}
-
-.today-deals-add-cart {
+.today-deals-card-foot {
   margin-top: auto;
-  width: 100%;
-  border: 1.5px solid #111827;
-  background: #fff;
-  color: #111827;
-  border-radius: var(--radius-md);
-  padding: 10px 12px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: inherit;
-  cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease;
 }
 
-.today-deals-add-cart:hover {
-  background: #111827;
-  color: #fff;
+.today-deals-card-foot .prod-price,
+.today-deals-card-price {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--accent);
 }
 
-.today-deals-add-cart.preorder-btn {
-  border-color: #d97706;
-  color: #d97706;
+.today-deals-card-old,
+.today-deals-card-foot .prod-old {
+  font-size: 11px;
+  color: var(--text-light);
+  text-decoration: line-through;
+  margin-left: 5px;
 }
 
-.today-deals-add-cart.preorder-btn:hover {
-  background: #d97706;
-  color: #fff;
+.today-deals-scroll-track .add-cart-btn,
+.today-deals-scroll-track .preorder-btn {
+  font-size: 11px;
+  padding: 9px 12px;
+  min-height: 36px;
 }
 
 @media (max-width: 1024px) {
@@ -281,6 +260,34 @@
 
   .today-deals-countdown-part strong {
     font-size: 16px;
+  }
+
+  .today-deals-card-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .today-deals-card-foot .prod-old {
+    display: block;
+    margin-left: 0;
+    margin-top: 2px;
+  }
+
+  .today-deals-scroll-track .add-cart-btn,
+  .today-deals-scroll-track .preorder-btn {
+    width: 100%;
+    min-height: 34px;
+    padding: 7px 8px;
+    font-size: 10px;
+    gap: 4px;
+    border-radius: 8px;
+    justify-content: center;
+  }
+
+  .today-deals-scroll-track .add-cart-btn .ti,
+  .today-deals-scroll-track .preorder-btn .ti {
+    font-size: 14px;
   }
 }
 

@@ -18,7 +18,7 @@
   gap: 8px;
   padding: 11px 16px;
   border-radius: 14px;
-  background: linear-gradient(135deg, #1d9e75 0%, #2d8a2d 52%, #1a6b1a 100%);
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-light) 52%, var(--brand-dark) 100%);
   color: #fff;
   font-size: 14px;
   font-weight: 800;
@@ -257,7 +257,7 @@
   margin-top: 4px;
   padding: 10px 14px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #1a6b1a 0%, #2d8a2d 55%, #3da83d 100%);
+  background: linear-gradient(135deg, var(--brand-dark) 0%, var(--brand-light) 55%, var(--brand) 100%);
   color: #fff;
   font-size: 12px;
   font-weight: 700;

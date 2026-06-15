@@ -56,7 +56,7 @@
     }
     const raw = String(p.icon || 'ti-package').trim();
     const iconClass = raw.startsWith('ti ') ? raw : raw.startsWith('ti-') ? `ti ${raw}` : raw;
-    return `<i class="${escapeHtml(iconClass)}" style="color:${escapeHtml(p.icon_color || '#2d8a2d')};"></i>`;
+    return `<i class="${escapeHtml(iconClass)}" style="color:${escapeHtml(p.icon_color || '#2D6B32')};"></i>`;
   }
 
   function renderSuggest(list, state) {

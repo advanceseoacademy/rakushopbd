@@ -193,7 +193,14 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       if (!['approved', 'rejected', 'pending'].includes(status)) {
         return res.status(400).json({ ok: false, error: 'Invalid status' });
       }
+      const rows = await query('SELECT product_id FROM product_reviews WHERE id = ? LIMIT 1', [
+        req.params.id,
+      ]);
       await query('UPDATE product_reviews SET status = ? WHERE id = ?', [status, req.params.id]);
+      if (rows.length) {
+        const { syncProductReviewStats } = require('../lib/productReviews');
+        await syncProductReviewStats(query, rows[0].product_id);
+      }
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ ok: false, error: 'Could not update review' });
@@ -202,7 +209,14 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
 
   router.delete('/reviews/:id', requireAdmin, async (req, res) => {
     try {
+      const rows = await query('SELECT product_id FROM product_reviews WHERE id = ? LIMIT 1', [
+        req.params.id,
+      ]);
       await query('DELETE FROM product_reviews WHERE id = ?', [req.params.id]);
+      if (rows.length) {
+        const { syncProductReviewStats } = require('../lib/productReviews');
+        await syncProductReviewStats(query, rows[0].product_id);
+      }
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ ok: false, error: 'Could not delete review' });

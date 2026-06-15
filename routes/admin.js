@@ -4,6 +4,7 @@ const { query } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { slugify } = require('../lib/slugify');
 const { clearSiteSettingsCache } = require('../lib/siteSettings');
+const { normalizeSiteBaseUrl } = require('../lib/seo');
 const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
 const { requireAdmin } = require('../middleware/requireAdmin');
 const { sql: sqlDialect, upsertSiteSettingSql, returningId } = require('../lib/db-dialect');
@@ -981,7 +982,9 @@ router.put('/settings', requireAdmin, async (req, res) => {
   try {
     const settings = req.body.settings || req.body;
     for (const [key, value] of Object.entries(settings)) {
-      await query(upsertSiteSettingSql(), [key, String(value)]);
+      let next = String(value);
+      if (key === 'site_url') next = normalizeSiteBaseUrl(next);
+      await query(upsertSiteSettingSql(), [key, next]);
     }
     clearSiteSettingsCache();
     clearStoreBootstrapCache();

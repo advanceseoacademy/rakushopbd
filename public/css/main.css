@@ -1318,6 +1318,9 @@
     gap: 14px;
     border: 1px solid var(--border);
   }
+  .stat-card--colored {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  }
   .stat-icon {
     width: 44px;
     height: 44px;
@@ -1953,6 +1956,19 @@
   @media (max-width: 768px) {
     .category-scroll-wrap--home #home-category-track {
       justify-content: flex-start;
+      padding-left: 0;
+      padding-right: 0;
+      scroll-padding-left: 0;
+      scroll-padding-right: 0;
+      gap: 12px;
+    }
+
+    .category-scroll-wrap--home #home-category-track .cat-card {
+      flex: 0 0 calc((100% - 24px) / 3) !important;
+      width: calc((100% - 24px) / 3) !important;
+      min-width: calc((100% - 24px) / 3) !important;
+      max-width: calc((100% - 24px) / 3) !important;
+      box-sizing: border-box;
     }
 
     .category-scroll-wrap--home .cat-icon i {

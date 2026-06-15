@@ -159,15 +159,15 @@
       return `${x}+`;
     };
     const items = [
-      { icon: 'ti-box', bg: '#e8f5e8', color: '#2d8a2d', num: `${stats.productCount}+`, label: 'Total Products' },
-      { icon: 'ti-users', bg: '#e8f5e8', color: '#2d8a2d', num: '500+', label: 'Happy Customers' },
-      { icon: 'ti-truck', bg: '#faf3e0', color: '#8a6914', num: `${stats.districts} Districts`, label: 'Delivery Coverage' },
-      { icon: 'ti-star', bg: '#fce8ec', color: '#9e5568', num: `${stats.avgRating} ⭐`, label: 'Average Rating' },
+      { icon: 'ti-box', bg: '#b8dfc0', color: '#1b6b1b', num: `${stats.productCount}+`, label: 'Total Products' },
+      { icon: 'ti-users', bg: '#a8d4f5', color: '#0d47a1', num: '500+', label: 'Happy Customers' },
+      { icon: 'ti-truck', bg: '#f5d98a', color: '#7a5a00', num: `${stats.districts} Districts`, label: 'Delivery Coverage' },
+      { icon: 'ti-star', bg: '#f5b8c8', color: '#8b2e4a', num: `${stats.avgRating} ⭐`, label: 'Average Rating' },
     ];
     grid.innerHTML = items
       .map(
-        (s) => `<div class="stat-card">
-      <div class="stat-icon" style="background:${s.bg};"><i class="ti ${s.icon}" style="color:${s.color};"></i></div>
+        (s) => `<div class="stat-card stat-card--colored" style="background:${s.bg};border-color:${s.bg};">
+      <div class="stat-icon" style="background:rgba(255,255,255,0.82);"><i class="ti ${s.icon}" style="color:${s.color};"></i></div>
       <div><div class="stat-num">${escapeHtml(s.num)}</div><div class="stat-label">${escapeHtml(s.label)}</div></div>
     </div>`
       )
@@ -210,19 +210,13 @@
       return;
     }
 
-    const styles = getComputedStyle(track);
-    const gapRaw = styles.columnGap && styles.columnGap !== 'normal' ? styles.columnGap : styles.gap;
-    const gap = Number.parseFloat(gapRaw) || 12;
-    const trackWidth = track.getBoundingClientRect().width;
-    if (trackWidth < 40) return;
-
-    const size = Math.max(72, Math.floor((trackWidth - gap * (visible - 1)) / visible));
+    /* Mobile: exactly 3 cards visible — sizing handled in main.css */
     cards.forEach((card) => {
-      card.style.flex = '0 0 auto';
-      card.style.width = `${size}px`;
-      card.style.minWidth = `${size}px`;
-      card.style.maxWidth = `${size}px`;
-      card.style.height = 'auto';
+      card.style.flex = '';
+      card.style.width = '';
+      card.style.minWidth = '';
+      card.style.maxWidth = '';
+      card.style.height = '';
     });
   }
 

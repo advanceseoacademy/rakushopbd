@@ -1,11 +1,31 @@
-/* Homepage hero — full-width banner slider */
-.hero-main.hero-main--slider {
+/* Homepage hero — banner slider (max 1200×900) */
+.hero-grid:has(.hero-main--slider) {
+  width: 100%;
+  max-width: 1200px;
+}
+
+.hero-main:not(.hero-main--slider):empty {
+  min-height: 0;
+  padding: 0;
+  background: transparent;
+  animation: none;
+}
+
+.hero-main:not(.hero-main--slider):empty::before,
+.hero-main:not(.hero-main--slider):empty::after {
+  display: none;
+}
+
+.hero-main.hero-main--slider,
+.hero-main.hero-main--slider.hero-main--has-bg-photo {
   padding: 0;
   min-height: 0;
   display: block;
   background: transparent;
   animation: none;
   overflow: hidden;
+  width: 100%;
+  max-width: 1200px;
 }
 
 .hero-main.hero-main--slider::before,
@@ -16,15 +36,21 @@
 .hero-banner-slider {
   position: relative;
   width: 100%;
+  max-width: 1200px;
+  max-height: 900px;
+  height: auto;
+  line-height: 0;
   border-radius: var(--radius-xl);
   overflow: hidden;
   background: #f4fbf4;
+  transition: height 0.35s ease;
 }
 
 .hero-banner-slider-track {
   display: flex;
   width: 100%;
-  min-height: 320px;
+  height: auto;
+  align-items: flex-start;
   transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
 }
@@ -33,22 +59,20 @@
   flex: 0 0 100%;
   width: 100%;
   min-width: 100%;
-  height: 100%;
-  min-height: 320px;
+  height: auto;
   display: block;
   text-decoration: none;
   color: inherit;
-  position: relative;
-  overflow: hidden;
+  line-height: 0;
 }
 
 .hero-banner-slide-photo {
   width: 100%;
-  height: 100%;
-  min-height: 320px;
-  object-fit: cover;
-  object-position: center;
+  max-width: 1200px;
+  height: auto;
+  max-height: 900px;
   display: block;
+  vertical-align: top;
 }
 
 .hero-banner-slider-nav {
@@ -125,21 +149,7 @@
   transform: scale(1.25);
 }
 
-@media (min-width: 901px) {
-  .hero-banner-slider-track,
-  .hero-banner-slide,
-  .hero-banner-slide-photo {
-    min-height: 380px;
-  }
-}
-
 @media (max-width: 900px) {
-  .hero-banner-slider-track,
-  .hero-banner-slide,
-  .hero-banner-slide-photo {
-    min-height: 220px;
-  }
-
   .hero-banner-slider-nav {
     opacity: 1;
     width: 34px;
@@ -158,13 +168,5 @@
     height: 8px;
     min-width: 8px;
     min-height: 8px;
-  }
-}
-
-@media (max-width: 480px) {
-  .hero-banner-slider-track,
-  .hero-banner-slide,
-  .hero-banner-slide-photo {
-    min-height: 180px;
   }
 }

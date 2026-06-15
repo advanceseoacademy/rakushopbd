@@ -77,6 +77,34 @@
     return document.getElementById('hero-banner-slider-dots');
   }
 
+  function getActiveSlideEl(track) {
+    if (!track) return null;
+    return track.querySelector(`.hero-banner-slide[data-slide-index="${index}"]`) || track.children[index] || null;
+  }
+
+  function syncSliderHeight() {
+    if (!sliderRoot) return;
+    const track = getTrack();
+    const slide = getActiveSlideEl(track);
+    const img = slide?.querySelector('.hero-banner-slide-photo');
+    if (!img) return;
+
+    const apply = () => {
+      const measured = Math.round(img.getBoundingClientRect().height || img.offsetHeight || 0);
+      const h = Math.min(900, measured);
+      if (h > 0) {
+        sliderRoot.style.height = `${h}px`;
+        if (track) track.style.height = `${h}px`;
+      } else {
+        sliderRoot.style.height = '';
+        if (track) track.style.height = '';
+      }
+    };
+
+    if (img.complete && img.naturalWidth) apply();
+    else img.addEventListener('load', apply, { once: true });
+  }
+
   function showSlide(nextIndex) {
     const track = getTrack();
     const dots = getDots();
@@ -92,6 +120,8 @@
       dot.classList.toggle('is-active', i === index);
       dot.setAttribute('aria-selected', i === index ? 'true' : 'false');
     });
+
+    syncSliderHeight();
   }
 
   function stopAuto() {
@@ -163,6 +193,21 @@
     bindSlideLinks(track);
     bindSliderControls(sliderRoot);
 
+    track.querySelectorAll('.hero-banner-slide-photo').forEach((img) => {
+      img.addEventListener('load', () => {
+        if (Number(img.closest('.hero-banner-slide')?.dataset.slideIndex) === index) syncSliderHeight();
+      });
+    });
+
+    if (!window._rakuHeroSliderResizeBound) {
+      window._rakuHeroSliderResizeBound = true;
+      let resizeTimer;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(syncSliderHeight, 120);
+      });
+    }
+
     dotsEl.querySelectorAll('.hero-banner-slider-dot').forEach((dot) => {
       dot.addEventListener('click', () => {
         showSlide(Number(dot.dataset.slide));
@@ -171,6 +216,7 @@
     });
 
     showSlide(0);
+    requestAnimationFrame(syncSliderHeight);
     startAuto();
   };
 })();

@@ -29,7 +29,7 @@
 <div class="maint-bg" aria-hidden="true"></div>
 <div class="maint-wrap">
   <div class="maint-card">
-    <img src="/images/rakushopbd-logo.png" alt="${siteName}" class="maint-logo" width="240" height="62">
+    <img src="/images/rakushopbd-logo.png?v=6" alt="${siteName}" class="maint-logo" width="240" height="62">
     <div class="maint-icon-ring"><i class="ti ti-tools"></i></div>
     <h1 class="maint-title">We'll be back soon</h1>
     <p class="maint-sub">${message}</p>

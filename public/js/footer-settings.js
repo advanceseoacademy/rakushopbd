@@ -172,11 +172,22 @@
     return `<li><a href="${href}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
   }
 
+  const DEFAULT_LOGO_URL = '/images/rakushopbd-logo.png?v=6';
+
+  function normalizeLogoUrl(url) {
+    const u = String(url || '').trim();
+    if (!u) return DEFAULT_LOGO_URL;
+    if (u === '/images/rakushopbd-logo.png' || /^\/images\/rakushopbd-logo\.png\?v=\d+$/.test(u)) {
+      return DEFAULT_LOGO_URL;
+    }
+    return u;
+  }
+
   function applyFooterSettings(settings) {
     if (!settings) return;
     const name = settings.site_name || 'RakuShopBD';
 
-    const logoUrl = (settings.site_logo_url || '').trim() || '/images/rakushopbd-logo.png?v=5';
+    const logoUrl = normalizeLogoUrl(settings.site_logo_url);
     document.querySelectorAll('.site-logo-img').forEach((img) => {
       if (img.getAttribute('src') !== logoUrl) img.setAttribute('src', logoUrl);
     });

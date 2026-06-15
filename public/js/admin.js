@@ -3029,7 +3029,7 @@
     const sh = document.getElementById('set-store-hours');
     if (sh) sh.value = s.store_hours || '';
     const lu = document.getElementById('set-logo-url');
-    if (lu) lu.value = s.site_logo_url || '/images/rakushopbd-logo.png';
+    if (lu) lu.value = s.site_logo_url || '/images/rakushopbd-logo.png?v=6';
     const sf = document.getElementById('set-social-facebook');
     if (sf) sf.value = s.social_facebook || '';
     const si = document.getElementById('set-social-instagram');

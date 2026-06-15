@@ -2725,10 +2725,15 @@
   }
 
   function refreshHeroSideSlider(boot) {
-    if (!window.applyHeroSideSliderData) return;
-    if (boot?.heroSideSlider) {
-      window.applyHeroSideSliderData(boot.heroSideSlider);
-    }
+    if (!boot?.heroSideSlider) return;
+    const run = (left) => {
+      if (window.applyHeroSideSliderData) {
+        window.applyHeroSideSliderData(boot.heroSideSlider);
+        return;
+      }
+      if (left > 0) setTimeout(() => run(left - 1), 50);
+    };
+    run(40);
   }
 
   async function refreshHeroSideSliderFromApi(boot) {

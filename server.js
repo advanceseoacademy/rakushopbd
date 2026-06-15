@@ -210,15 +210,16 @@ async function renderStorefront(req, res) {
     }
     const seo = await buildPageSeo(req, { bootstrap, product, category });
     const trackingScripts = buildTrackingScripts(bootstrap.settings || {});
+    const heroSideSlider = bootstrap?.heroSideSlider || null;
     const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
     const productJson = product
       ? JSON.stringify({ ok: true, product }).replace(/</g, '\\u003c')
       : null;
     const seoJson = JSON.stringify(seo).replace(/</g, '\\u003c');
-    res.render('index', { bootstrapJson, productJson, seoJson, seo, trackingScripts });
+    res.render('index', { bootstrapJson, productJson, seoJson, seo, trackingScripts, heroSideSlider });
   } catch (err) {
     console.error('renderStorefront', err);
-    res.render('index', { bootstrapJson: null, productJson: null, seoJson: null, seo: null, trackingScripts: null });
+    res.render('index', { bootstrapJson: null, productJson: null, seoJson: null, seo: null, trackingScripts: null, heroSideSlider: null });
   }
 }
 

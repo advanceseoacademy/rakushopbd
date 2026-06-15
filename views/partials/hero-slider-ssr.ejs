@@ -1,0 +1,37 @@
+<% if (heroSideSlider && heroSideSlider.enabled && heroSideSlider.slides && heroSideSlider.slides.length) { %>
+<div class="hero-main hero-main--slider" id="hero-main" aria-label="Home banner">
+  <div class="hero-banner-slider">
+    <div class="hero-banner-slider-track" id="hero-banner-slider-track">
+      <% heroSideSlider.slides.forEach(function (slide, i) {
+        var src = String(slide.image || '').trim();
+        if (src && src.charAt(0) !== '/' && !/^https?:\/\//i.test(src)) src = '/' + src;
+        var alt = slide.alt || 'Homepage banner';
+        var link = String(slide.link || '').trim();
+      %>
+      <% if (link && link !== '#') {
+        var href = link.charAt(0) === '/' || /^https?:\/\//i.test(link) ? link : '/' + link;
+      %>
+      <a href="<%= href %>" class="hero-banner-slide<%= i === 0 ? ' is-active' : '' %>" data-slide-index="<%= i %>">
+        <img class="hero-banner-slide-photo" src="<%= src %>" alt="<%= alt %>" loading="<%= i === 0 ? 'eager' : 'lazy' %>" decoding="async">
+      </a>
+      <% } else { %>
+      <div class="hero-banner-slide<%= i === 0 ? ' is-active' : '' %>" data-slide-index="<%= i %>">
+        <img class="hero-banner-slide-photo" src="<%= src %>" alt="<%= alt %>" loading="<%= i === 0 ? 'eager' : 'lazy' %>" decoding="async">
+      </div>
+      <% } %>
+      <% }); %>
+    </div>
+    <% if (heroSideSlider.slides.length > 1) { %>
+    <button type="button" class="hero-banner-slider-nav hero-banner-slider-nav--prev" aria-label="Previous slide"><i class="ti ti-chevron-left"></i></button>
+    <button type="button" class="hero-banner-slider-nav hero-banner-slider-nav--next" aria-label="Next slide"><i class="ti ti-chevron-right"></i></button>
+    <div class="hero-banner-slider-dots" id="hero-banner-slider-dots">
+      <% heroSideSlider.slides.forEach(function (_slide, i) { %>
+      <button type="button" class="hero-banner-slider-dot<%= i === 0 ? ' is-active' : '' %>" data-slide="<%= i %>" aria-label="Slide <%= i + 1 %>" aria-selected="<%= i === 0 ? 'true' : 'false' %>"></button>
+      <% }); %>
+    </div>
+    <% } %>
+  </div>
+</div>
+<% } else { %>
+<div class="hero-main" id="hero-main" aria-label="Home banner"></div>
+<% } %>

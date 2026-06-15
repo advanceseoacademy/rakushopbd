@@ -972,6 +972,48 @@ svg {
     font-size: 14px;
   }
 
+  .today-deals-scroll-track .today-deals-card-foot {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .today-deals-scroll-track .today-deals-card-foot > div:first-child {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .today-deals-scroll-track .prod-price,
+  .today-deals-scroll-track .today-deals-card-price {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .today-deals-scroll-track .prod-old,
+  .today-deals-scroll-track .today-deals-card-old {
+    display: block;
+    margin-left: 0;
+    margin-top: 2px;
+    font-size: 10px;
+  }
+
+  .today-deals-scroll-track .add-cart-btn,
+  .today-deals-scroll-track .preorder-btn {
+    width: 100%;
+    min-height: 34px;
+    padding: 7px 8px;
+    font-size: 10px;
+    gap: 4px;
+    border-radius: 8px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .today-deals-scroll-track .add-cart-btn .ti,
+  .today-deals-scroll-track .preorder-btn .ti {
+    font-size: 14px;
+  }
+
   /* Customer reviews — 2 cards visible */
   .home-reviews-track .home-review-card {
     flex: 0 0 calc((100vw - 48px) / 2) !important;

@@ -3,34 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<%- include('partials/hero-lcp-preload') %>
 <%- include('partials/seo-head', { seo: typeof seo !== 'undefined' ? seo : null }) %>
-<link rel="icon" href="/images/rakushopbd-logo-280.webp" type="image/webp">
-<link rel="preload" href="/images/rakushopbd-logo-280.webp" as="image" type="image/webp" fetchpriority="low">
+<link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
+<link rel="preload" href="/images/rakushopbd-logo.png" as="image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<%- include('partials/tabler-icons') %>
-<link rel="preload" href="/css/main.css?v=84" as="style">
-<link rel="stylesheet" href="/css/main.css?v=84">
-<link rel="preload" href="/css/responsive.css?v=37" as="style">
-<link rel="stylesheet" href="/css/responsive.css?v=37">
-<link rel="preload" href="/css/home-hero-slider.css?v=2" as="style">
-<link rel="stylesheet" href="/css/home-hero-slider.css?v=2">
-<%- include('partials/defer-css', { cssHref: '/css/category.css?v=4' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/account.css?v=6' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/cart.css?v=5' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/checkout-modal.css?v=14' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/reviews.css?v=3' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/wishlist.css?v=3' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/home-marketing.css?v=4' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/home-today-deals.css?v=3' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/appointment.css?v=2' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/face-analyzer.css?v=9' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/pages.css?v=4' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/rewards.css?v=1' }) %>
-<%- include('partials/defer-css', { cssHref: '/css/tawk-widget.css?v=1' }) %>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
+<link rel="stylesheet" href="/css/main.css?v=83">
+<link rel="stylesheet" href="/css/category.css?v=4">
+<link rel="stylesheet" href="/css/account.css?v=7">
+<link rel="stylesheet" href="/css/cart.css?v=5">
+<link rel="stylesheet" href="/css/checkout-modal.css?v=15">
+<link rel="stylesheet" href="/css/reviews.css?v=3">
+<link rel="stylesheet" href="/css/wishlist.css?v=3">
+<link rel="stylesheet" href="/css/responsive.css?v=36">
+<link rel="stylesheet" href="/css/home-marketing.css?v=4">
+<link rel="stylesheet" href="/css/home-hero-slider.css?v=3">
+<link rel="stylesheet" href="/css/home-today-deals.css?v=2">
+<link rel="stylesheet" href="/css/appointment.css?v=2">
+<link rel="stylesheet" href="/css/face-analyzer.css?v=9">
+<link rel="stylesheet" href="/css/pages.css?v=4">
+<link rel="stylesheet" href="/css/rewards.css?v=1">
 <%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </head>
 <body>
@@ -43,7 +39,7 @@
 
  <!-- Hero Section -->
  <div class="hero-grid" id="hero-grid">
- <%- include('partials/hero-lcp-ssr') %>
+ <div class="hero-main" id="hero-main" aria-label="Home banner"></div>
  </div>
 
  <!-- Stats (loaded from API) -->
@@ -276,9 +272,7 @@
 
 /* Info */
 .pv-info { min-width: 0; }
-.pv-cat { font-size:11px; color:var(--text-light); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:6px; }
 .pv-title { font-size:22px; font-weight:700; color:var(--text); line-height:1.35; margin-bottom:10px; word-break:break-word; }
-.pv-summary { font-size:14px; color:var(--text-muted); line-height:1.55; margin:0 0 12px; }
 .pv-rating-row { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
 .pv-stars { color:#EF9F27; font-size:16px; }
 .pv-rating-num { font-size:14px; font-weight:600; }
@@ -328,7 +322,15 @@
 }
 .pv-price { font-size:26px; font-weight:700; color:var(--accent); line-height:1.1; }
 .pv-old-price { font-size:14px; color:var(--text-light); text-decoration:line-through; }
-.pv-discount-badge { background:var(--accent-light); color:var(--accent-dark); font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; }
+ .pv-discount-badge { background:var(--accent-light); color:var(--accent-dark); font-size:11px; font-weight:700; padding:3px 8px; border-radius:20px; }
+.pv-reward-points {
+ display:flex; align-items:center; gap:8px; margin:0 0 14px; padding:10px 14px;
+ background:#fef9e7; border:1px solid #fde68a; border-radius:var(--radius-md);
+ font-size:13px; color:#92400e; line-height:1.4;
+}
+.pv-reward-points[hidden] { display:none !important; }
+.pv-reward-points i { color:#d97706; font-size:18px; flex-shrink:0; }
+.pv-reward-points strong { color:#b45309; font-weight:700; }
 
 .variant-label { font-size:12px; font-weight:600; color:var(--text-muted); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.3px; }
 
@@ -426,9 +428,7 @@
 
  <!-- Info -->
  <div class="pv-info">
- <div class="pv-cat">Electronics › Smartwatch</div>
  <h1 class="pv-title">Smartwatch Pro — Health Tracker, GPS, AMOLED Display</h1>
- <p class="pv-summary" id="pv-summary" hidden></p>
  <div class="pv-rating-row">
  <span class="pv-stars">★★★★★</span>
  <span class="pv-rating-num">4.9</span>
@@ -439,6 +439,10 @@
  <span class="pv-price">৳3,999</span>
  <span class="pv-old-price">৳5,000</span>
  <span class="pv-discount-badge">20% saved</span>
+ </div>
+ <div class="pv-reward-points" id="pv-reward-points" hidden>
+   <i class="ti ti-award"></i>
+   <span>Earn <strong id="pv-reward-points-num">0</strong> Reward Points <small style="font-weight:500;opacity:.85;">(after delivery)</small></span>
  </div>
 
  <!-- Qty -->
@@ -912,6 +916,10 @@
       <div class="cm-summary-rows">
         <div class="cm-summary-row"><span>Subtotal</span><span class="summary-subtotal">৳0</span></div>
         <div class="cm-summary-row"><span>Delivery</span><span class="summary-delivery">Free</span></div>
+        <div class="cm-summary-row cm-reward-points-row" id="checkout-reward-points-row" hidden>
+          <span><i class="ti ti-award"></i> Reward points <small style="font-weight:500;opacity:.85;">(after delivery)</small></span>
+          <span class="summary-reward-points" id="checkout-reward-points">0</span>
+        </div>
         <div class="c-coupon-row cm-coupon-row">
           <input class="c-coupon-input js-coupon-input" type="text" placeholder="Coupon code" autocomplete="off">
           <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
@@ -1053,7 +1061,7 @@
     <div class="acc-auth-shell">
       <div class="acc-auth-brand">
         <div class="acc-brand-logo">
-          <%- include('partials/site-logo', { logoClass: 'site-logo-img site-logo-img--account', logoWidth: 280, logoHeight: 72 }) %>
+          <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--account" width="280" height="72">
         </div>
         <h2 class="acc-brand-title">Shop smarter with your account</h2>
         <p class="acc-brand-text">Track orders, save addresses, and checkout faster — all in one place.</p>
@@ -1178,6 +1186,13 @@
             <div class="acc-stat-body">
               <div class="acc-stat-num" id="acc-stat-delivered">0</div>
               <div class="acc-stat-label">Delivered</div>
+            </div>
+          </div>
+          <div class="acc-stat-card acc-stat-rewards">
+            <div class="acc-stat-icon"><i class="ti ti-award"></i></div>
+            <div class="acc-stat-body">
+              <div class="acc-stat-num" id="acc-stat-points">0</div>
+              <div class="acc-stat-label">Reward Points</div>
             </div>
           </div>
         </div>
@@ -1513,9 +1528,9 @@
     img.decoding = 'async';
     main.appendChild(img);
   }
-  if (url.charAt(0) === '/') img.src = url.indexOf('/uploads/') === 0 ? '/media/w800' + url : url;
+  if (url.charAt(0) === '/') img.src = url;
   else if (/^https?:\/\//i.test(url)) img.src = url;
-  else img.src = '/media/w800/' + url;
+  else img.src = '/' + url;
   img.alt = String(p.image_alt || p.imageAlt || p.name_bn || p.nameBn || 'Product').trim();
   var bg = p.bg_color || p.bgColor;
   if (bg) main.style.background = bg;
@@ -1527,22 +1542,28 @@
 <% } %>
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/maintenance-view.js?v=3" defer></script>
-<script src="/js/seo.js?v=8" defer></script>
+<script src="/js/seo.js?v=7" defer></script>
 <script src="/js/mobile-menu.js?v=1" defer></script>
 <script src="/js/app.js?v=30" defer></script>
-<script src="/js/route-scripts.js?v=1" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
-<script src="/js/responsive-image.js?v=1" defer></script>
-<script src="/js/home-hero-slider.js?v=5" defer></script>
-<script src="/js/home-today-deals.js?v=5" defer></script>
+<script src="/js/home-hero-slider.js?v=2" defer></script>
+<script src="/js/home-today-deals.js?v=3" defer></script>
 <script src="/js/storefront-dynamic.js?v=45" defer></script>
-<script src="/js/api.js?v=93" defer></script>
-<script src="/js/home-recommendations.js?v=7" defer></script>
-<script src="/js/home-messenger-chats.js?v=3" defer></script>
-<script src="/js/home-customer-reviews.js?v=6" defer></script>
+<script src="/js/api.js?v=94" defer></script>
+<script src="/js/home-recommendations.js?v=4" defer></script>
+<script src="/js/home-messenger-chats.js?v=2" defer></script>
+<script src="/js/home-customer-reviews.js?v=4" defer></script>
 <script src="/js/home-marketing.js?v=3" defer></script>
-<script src="/js/search.js?v=7" defer></script>
-<script src="/js/account.js?v=9" defer></script>
+<script src="/js/appointment.js?v=4" defer></script>
+<script src="/js/face-analyzer.js?v=10" defer></script>
+<script src="/js/footer-settings.js?v=6" defer></script>
+<script src="/js/search.js?v=6" defer></script>
+<script src="/js/account.js?v=10" defer></script>
+<script src="/js/legal-pages.js?v=2" defer></script>
+<script src="/js/faq.js?v=4" defer></script>
+<script src="/js/rewards.js?v=3" defer></script>
+<script src="/js/contact.js?v=3" defer></script>
+<script src="/js/track.js?v=2" defer></script>
 <%- include('partials/tawk-widget') %>
 <%- include('partials/tracking-footer', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </body>

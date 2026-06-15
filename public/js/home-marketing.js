@@ -4,6 +4,29 @@
 (function () {
   const API = (window.RAKU_API_BASE || '') + '/api';
 
+  const MARKETING_DEFAULTS = {
+    marketing_enabled: '1',
+    marketing_card1_title: 'Save More with Group Shopping!',
+    marketing_card1_desc:
+      'Join friends and family to unlock amazing discounts on our selected popular products. Our group shopping feature lets you enjoy bulk savings while shopping together.',
+    marketing_card1_btn: 'Start Group Shopping',
+    marketing_card1_link: '#products',
+    marketing_card1_image: '/uploads/1780840201419-groupshopping.webp',
+    marketing_card1_bg: '#fce4ec',
+    marketing_card2_title: 'Get Surprise gift',
+    marketing_card2_desc:
+      'Subscribe with your phone number to get new gifts and updates about our new products and offers',
+    marketing_card2_btn: 'Submit',
+    marketing_card2_image: '/uploads/1780840201433-surprise-banner.webp',
+    marketing_card2_bg: '#ede7f6',
+  };
+
+  function marketingValue(settings, key) {
+    const raw = settings?.[key];
+    if (String(raw ?? '').trim()) return raw;
+    return MARKETING_DEFAULTS[key] ?? '';
+  }
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, '&amp;')
@@ -16,19 +39,7 @@
     if (!el) return;
     const src = String(url || '').trim();
     if (src) {
-      if (window._rakuResponsiveImgHtml) {
-        el.innerHTML = window._rakuResponsiveImgHtml(src, {
-          alt: '',
-          widths: [400, 800],
-          sizes: '(max-width: 768px) 44vw, 385px',
-          width: 385,
-          height: 385,
-          loading: 'lazy',
-          decoding: 'async',
-        });
-      } else {
-        el.innerHTML = `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async" width="385" height="385">`;
-      }
+      el.innerHTML = `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async">`;
     } else {
       el.innerHTML = '<i class="ti ti-photo"></i>';
     }
@@ -47,29 +58,29 @@
 
     const card1 = document.getElementById('marketing-card-1');
     const card2 = document.getElementById('marketing-card-2');
-    if (card1) card1.style.background = settings.marketing_card1_bg || '#fce4ec';
-    if (card2) card2.style.background = settings.marketing_card2_bg || '#ede7f6';
+    if (card1) card1.style.background = marketingValue(settings, 'marketing_card1_bg');
+    if (card2) card2.style.background = marketingValue(settings, 'marketing_card2_bg');
 
     const t1 = document.getElementById('marketing-title-1');
     const d1 = document.getElementById('marketing-desc-1');
     const b1 = document.getElementById('marketing-btn-1');
-    if (t1) t1.textContent = settings.marketing_card1_title || '';
-    if (d1) d1.textContent = settings.marketing_card1_desc || '';
+    if (t1) t1.textContent = marketingValue(settings, 'marketing_card1_title');
+    if (d1) d1.textContent = marketingValue(settings, 'marketing_card1_desc');
     if (b1) {
-      b1.textContent = settings.marketing_card1_btn || 'Learn more';
-      b1.href = settings.marketing_card1_link || '#products';
+      b1.textContent = marketingValue(settings, 'marketing_card1_btn');
+      b1.href = marketingValue(settings, 'marketing_card1_link') || '#products';
     }
 
-    paintImage(document.getElementById('marketing-img-1'), settings.marketing_card1_image);
+    paintImage(document.getElementById('marketing-img-1'), marketingValue(settings, 'marketing_card1_image'));
 
     const t2 = document.getElementById('marketing-title-2');
     const d2 = document.getElementById('marketing-desc-2');
     const b2 = document.getElementById('marketing-btn-2');
-    if (t2) t2.textContent = settings.marketing_card2_title || '';
-    if (d2) d2.textContent = settings.marketing_card2_desc || '';
-    if (b2) b2.textContent = settings.marketing_card2_btn || 'Submit';
+    if (t2) t2.textContent = marketingValue(settings, 'marketing_card2_title');
+    if (d2) d2.textContent = marketingValue(settings, 'marketing_card2_desc');
+    if (b2) b2.textContent = marketingValue(settings, 'marketing_card2_btn');
 
-    paintImage(document.getElementById('marketing-img-2'), settings.marketing_card2_image);
+    paintImage(document.getElementById('marketing-img-2'), marketingValue(settings, 'marketing_card2_image'));
   }
 
   async function submitPhone(e) {

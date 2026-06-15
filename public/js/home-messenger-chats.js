@@ -125,9 +125,7 @@
   }
 
   document.addEventListener('raku:ready', () => {
-    const run = () => void refreshMessengerSection();
-    if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 3500 });
-    else setTimeout(run, 1500);
+    void refreshMessengerSection();
   });
   document.addEventListener('raku:bootstrap', (e) => {
     const boot = e.detail;

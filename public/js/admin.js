@@ -61,6 +61,7 @@
   let messengerChats = [];
   let faqs = [];
   let currentOrderId = null;
+  const selectedOrderIds = new Set();
 
   let ordersPage = 1;
   let dashRecentOrdersPage = 1;
@@ -758,11 +759,38 @@
   }
 
   // ——— Orders ———
+  function updateOrdersSelectionUi() {
+    const count = selectedOrderIds.size;
+    const bulkBtn = document.getElementById('orders-bulk-delete-btn');
+    const clearBtn = document.getElementById('orders-clear-selection-btn');
+    const countEl = document.getElementById('orders-selected-count');
+    if (countEl) countEl.textContent = String(count);
+    if (bulkBtn) bulkBtn.hidden = count === 0;
+    if (clearBtn) clearBtn.hidden = count === 0;
+    syncOrdersSelectAllCheckbox();
+  }
+
+  function syncOrdersSelectAllCheckbox() {
+    const selectAll = document.getElementById('orders-select-all');
+    const checks = [...document.querySelectorAll('#orders-tbody .order-row-check')];
+    if (!selectAll) return;
+    if (!checks.length) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      return;
+    }
+    const checkedOnPage = checks.filter((c) => c.checked).length;
+    selectAll.checked = checkedOnPage === checks.length;
+    selectAll.indeterminate = checkedOnPage > 0 && checkedOnPage < checks.length;
+  }
+
   async function deleteOrder(id) {
     if (!confirm('Delete this order permanently? This cannot be undone.')) return;
     const data = await api('/orders/' + id, { method: 'DELETE' });
     if (data.ok) {
       toast('Order deleted');
+      selectedOrderIds.delete(Number(id));
+      updateOrdersSelectionUi();
       if (String(currentOrderId) === String(id)) {
         document.getElementById('order-modal')?.classList.remove('open');
         currentOrderId = null;
@@ -771,6 +799,26 @@
       loadDashboard();
     } else {
       toast(data.error || 'Could not delete order', 'error');
+    }
+  }
+
+  async function deleteSelectedOrders() {
+    const ids = [...selectedOrderIds];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected order(s) permanently? This cannot be undone.`)) return;
+    const data = await api('/orders/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
+    if (data.ok) {
+      toast(`${data.deleted || ids.length} order(s) deleted`);
+      if (currentOrderId && selectedOrderIds.has(Number(currentOrderId))) {
+        document.getElementById('order-modal')?.classList.remove('open');
+        currentOrderId = null;
+      }
+      selectedOrderIds.clear();
+      updateOrdersSelectionUi();
+      loadOrders();
+      loadDashboard();
+    } else {
+      toast(data.error || 'Could not delete selected orders', 'error');
     }
   }
 
@@ -786,18 +834,24 @@
     const data = await api('/orders?' + q.toString());
     if (!data.ok) return;
     if (data.totalOrders != null) setOrderBadge(data.totalOrders);
-    document.getElementById('orders-tbody').innerHTML = data.orders
-      .map(
-        (o) => `<tr>
-        <td><b>${o.orderNumber}</b></td><td>${o.customerName}<br><small style="color:#94a3b8">${o.customerPhone}</small></td>
-        <td>${o.itemsPreview}</td><td>${o.paymentMethod}</td><td>${fmtDate(o.createdAt)}</td>
-        <td>${o.totalFormatted}</td><td>${statusBadgeHtml(o.status)}</td>
+    document.getElementById('orders-tbody').innerHTML = data.orders.length
+      ? data.orders
+          .map((o) => {
+            const checked = selectedOrderIds.has(Number(o.id)) ? ' checked' : '';
+            const rowClass = checked ? ' class="row-selected"' : '';
+            return `<tr${rowClass}>
+        <td class="tbl-check-col"><input type="checkbox" class="order-row-check" data-order-id="${o.id}" aria-label="Select order ${escHtml(o.orderNumber)}"${checked}></td>
+        <td><b>${escHtml(o.orderNumber)}</b></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
+        <td>${escHtml(o.itemsPreview)}</td><td>${escHtml(o.paymentMethod)}</td><td>${fmtDate(o.createdAt)}</td>
+        <td>${escHtml(o.totalFormatted)}</td><td>${statusBadgeHtml(o.status)}</td>
         <td class="tbl-actions">
           <button type="button" class="btn btn-outline btn-xs" data-order-details="${o.id}">Details</button>
           <button type="button" class="btn btn-danger btn-xs" data-del-order="${o.id}" title="Delete order"><i class="ti ti-trash"></i> Delete</button>
-        </td></tr>`
-      )
-      .join('');
+        </td></tr>`;
+          })
+          .join('')
+      : '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:20px;">No orders found</td></tr>';
+    updateOrdersSelectionUi();
 
     const pag = data.pagination;
     const pagEl = document.getElementById('orders-pagination');
@@ -815,10 +869,45 @@
   document.getElementById('orders-payment-filter')?.addEventListener('change', () => loadOrders(1));
   document.getElementById('orders-search').oninput = debounce(() => loadOrders(1), 400);
 
+  document.getElementById('orders-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#orders-tbody .order-row-check').forEach((box) => {
+      box.checked = checked;
+      const id = Number(box.dataset.orderId);
+      if (checked) selectedOrderIds.add(id);
+      else selectedOrderIds.delete(id);
+      box.closest('tr')?.classList.toggle('row-selected', checked);
+    });
+    e.target.indeterminate = false;
+    updateOrdersSelectionUi();
+  });
+
+  document.getElementById('orders-bulk-delete-btn')?.addEventListener('click', () => {
+    void deleteSelectedOrders();
+  });
+
+  document.getElementById('orders-clear-selection-btn')?.addEventListener('click', () => {
+    selectedOrderIds.clear();
+    document.querySelectorAll('#orders-tbody .order-row-check').forEach((box) => {
+      box.checked = false;
+      box.closest('tr')?.classList.remove('row-selected');
+    });
+    updateOrdersSelectionUi();
+  });
+
   const ordersTbody = document.getElementById('orders-tbody');
   if (ordersTbody && !ordersTbody._rakuOrderActionsBound) {
     ordersTbody._rakuOrderActionsBound = true;
     ordersTbody.addEventListener('click', (e) => {
+      const check = e.target.closest('.order-row-check');
+      if (check) {
+        const id = Number(check.dataset.orderId);
+        if (check.checked) selectedOrderIds.add(id);
+        else selectedOrderIds.delete(id);
+        check.closest('tr')?.classList.toggle('row-selected', check.checked);
+        updateOrdersSelectionUi();
+        return;
+      }
       const delBtn = e.target.closest('[data-del-order]');
       if (delBtn) {
         e.preventDefault();
@@ -1508,7 +1597,7 @@
     const f2 = document.getElementById('mkt2-file')?.files?.[0];
 
     if (f1) {
-      const up = await uploadProductImage(f1, 800);
+      const up = await uploadProductImage(f1);
       if (!up.ok) {
         toast(up.error || 'Left card image upload failed', 'error');
         return;
@@ -1519,7 +1608,7 @@
       setMktImagePreview('mkt1-preview-wrap', 'mkt1-preview', img1);
     }
     if (f2) {
-      const up = await uploadProductImage(f2, 800);
+      const up = await uploadProductImage(f2);
       if (!up.ok) {
         toast(up.error || 'Right card image upload failed', 'error');
         return;
@@ -1770,11 +1859,10 @@
     return item.preview || item.url;
   }
 
-  async function uploadProductImage(file, maxWidth) {
+  async function uploadProductImage(file) {
     const fd = new FormData();
     fd.append('image', file);
-    const q = maxWidth ? `?maxWidth=${encodeURIComponent(maxWidth)}` : '';
-    const up = await fetch(API + '/upload' + q, { method: 'POST', credentials: 'same-origin', body: fd });
+    const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
     return up.json();
   }
 
@@ -3493,27 +3581,8 @@
   });
 
   function collectSeoSettings() {
-    const rawSiteUrl = document.getElementById('set-site-url')?.value?.trim() || '';
-    let siteUrl = rawSiteUrl;
-    if (siteUrl.includes(',')) {
-      const parts = siteUrl
-        .split(',')
-        .map((part) => part.trim())
-        .filter(Boolean);
-      siteUrl = parts.find((part) => /^https?:\/\//i.test(part)) || parts[parts.length - 1];
-    }
-    if (siteUrl && !/^https?:\/\//i.test(siteUrl)) {
-      siteUrl = `https://${siteUrl.replace(/^\/+/, '')}`;
-    }
-    try {
-      if (siteUrl) {
-        const parsed = new URL(siteUrl);
-        siteUrl = `${parsed.protocol}//${parsed.host}`;
-      }
-    } catch (_) {}
-
     return {
-      site_url: siteUrl,
+      site_url: document.getElementById('set-site-url')?.value?.trim() || '',
       seo_home_title: document.getElementById('set-seo-home-title')?.value?.trim() || '',
       seo_meta_description: document.getElementById('set-seo-description')?.value?.trim() || '',
       seo_meta_keywords: document.getElementById('set-seo-keywords')?.value?.trim() || '',

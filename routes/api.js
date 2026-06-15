@@ -9,6 +9,7 @@ const { getTodayDealsProducts, getTodayDealsMeta } = require('../lib/todayDeals'
 const { getRecommendedProducts } = require('../lib/productRecommendations');
 const { stripInternalProductFields, stripInternalProductList } = require('../lib/productPublic');
 const { parseRewardsContent } = require('../lib/rewardsPage');
+const { pointsFromCartItems } = require('../lib/rewardPoints');
 const { getAdminIdFromRequest } = require('../lib/adminToken');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
@@ -811,6 +812,7 @@ router.post('/orders', async (req, res) => {
       subtotalFormatted: formatPrice(subtotal),
       deliveryFormatted: delivery === 0 ? 'Free' : formatPrice(delivery),
       items: orderItems,
+      pointsPending: userId ? pointsFromCartItems(cart) : 0,
     });
   } catch (err) {
     console.error(err);

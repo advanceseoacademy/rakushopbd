@@ -706,7 +706,7 @@
 /* Stats */
 .acc-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: 16px;
   margin-bottom: 24px;
 }
@@ -752,6 +752,11 @@
 .acc-stat-delivered .acc-stat-icon {
   background: var(--green-pale);
   color: var(--green);
+}
+
+.acc-stat-rewards .acc-stat-icon {
+  background: #fef9c3;
+  color: #a16207;
 }
 
 .acc-stat-num {

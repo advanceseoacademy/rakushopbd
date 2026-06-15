@@ -164,6 +164,7 @@
     set('acc-sidebar-name', user.fullName);
     set('acc-sidebar-email', user.email);
     set('acc-dash-name', user.fullName.split(' ')[0]);
+    set('acc-stat-points', String(user.rewardPoints || 0));
 
     fillProfileForm(user);
     loadOrders();
@@ -558,6 +559,13 @@
       return;
     }
     openTrackPanel(orderNumber || '');
+  };
+
+  window._rakuUpdateUserRewardPoints = function (balance) {
+    const pts = Number(balance) || 0;
+    if (currentUser) currentUser.rewardPoints = pts;
+    const el = document.getElementById('acc-stat-points');
+    if (el) el.textContent = String(pts);
   };
 
   function bootAccountUi() {

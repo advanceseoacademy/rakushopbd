@@ -528,6 +528,32 @@
   color: var(--accent);
 }
 
+.cm-summary-row.cm-reward-points-row {
+  color: #92400e;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.cm-summary-row.cm-reward-points-row span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cm-summary-row.cm-reward-points-row span:first-child i {
+  color: #d97706;
+  font-size: 16px;
+}
+
+.cm-summary-row.cm-reward-points-row .summary-reward-points {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.cm-summary-row.cm-reward-points-row[hidden] {
+  display: none !important;
+}
+
 .btn-place-order-modal {
   width: 100%;
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);

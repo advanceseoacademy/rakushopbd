@@ -91,15 +91,9 @@
     if (!settings) return;
     const name = settings.site_name || 'RakuShopBD';
 
-    const logoUrl = (settings.site_logo_url || '').trim() || '/images/rakushopbd-logo-280.webp';
+    const logoUrl = (settings.site_logo_url || '').trim() || '/images/rakushopbd-logo.png';
     document.querySelectorAll('.site-logo-img').forEach((img) => {
-      let next = logoUrl;
-      if (window._rakuMediaUrl && next.startsWith('/uploads/')) {
-        next = window._rakuMediaUrl(next, 560);
-      } else if (next.endsWith('rakushopbd-logo.png')) {
-        next = '/images/rakushopbd-logo-280.webp';
-      }
-      if (img.getAttribute('src') !== next) img.setAttribute('src', next);
+      if (img.getAttribute('src') !== logoUrl) img.setAttribute('src', logoUrl);
     });
 
     const fd = document.querySelector('.footer-desc');

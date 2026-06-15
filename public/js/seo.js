@@ -10,24 +10,7 @@
 
   function baseUrl() {
     const s = settings();
-    const raw = s.site_url ? String(s.site_url).trim() : '';
-    if (raw) {
-      let siteUrl = raw;
-      if (siteUrl.includes(',')) {
-        const parts = siteUrl
-          .split(',')
-          .map((part) => part.trim())
-          .filter(Boolean);
-        siteUrl = parts.find((part) => /^https?:\/\//i.test(part)) || parts[parts.length - 1];
-      }
-      if (!/^https?:\/\//i.test(siteUrl)) siteUrl = `https://${siteUrl.replace(/^\/+/, '')}`;
-      try {
-        const parsed = new URL(siteUrl);
-        return `${parsed.protocol}//${parsed.host}`;
-      } catch (_) {
-        return siteUrl.replace(/\/$/, '');
-      }
-    }
+    if (s.site_url) return String(s.site_url).replace(/\/$/, '');
     return `${location.origin}`;
   }
 

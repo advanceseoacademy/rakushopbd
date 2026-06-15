@@ -115,7 +115,16 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function runPageHooks(name) {
+  function showPage(name, opts) {
+    if (typeof opts !== 'object' || opts === null) opts = {};
+    window._rakuVisiblePage = name;
+    if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
+    Object.values(pages).forEach((p) => {
+      if (p) p.style.display = 'none';
+    });
+    if (pages[name]) pages[name].style.display = 'block';
+    const catNav = document.getElementById('global-cat-nav');
+    if (catNav) catNav.style.display = 'none';
     if (name === 'appointment' && window._rakuInitAppointmentPage) {
       window._rakuInitAppointmentPage();
     }
@@ -146,18 +155,6 @@ document.addEventListener('DOMContentLoaded', function() {
     if (name === 'home' && window._rakuRefreshHomeRecommendations) {
       window._rakuRefreshHomeRecommendations();
     }
-  }
-
-  function showPage(name, opts) {
-    if (typeof opts !== 'object' || opts === null) opts = {};
-    window._rakuVisiblePage = name;
-    if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
-    Object.values(pages).forEach((p) => {
-      if (p) p.style.display = 'none';
-    });
-    if (pages[name]) pages[name].style.display = 'block';
-    const catNav = document.getElementById('global-cat-nav');
-    if (catNav) catNav.style.display = 'none';
     updateHeaderNavActive(name);
     const skipUrl = opts.skipHash || opts.skipUrl;
     if (!skipUrl) {
@@ -177,13 +174,6 @@ document.addEventListener('DOMContentLoaded', function() {
       void window.renderCheckout();
     }
     document.dispatchEvent(new CustomEvent('raku:navigate', { detail: { page: name } }));
-
-    const finish = () => runPageHooks(name);
-    if (window._rakuEnsureRouteScript) {
-      window._rakuEnsureRouteScript(name).then(finish).catch(finish);
-    } else {
-      finish();
-    }
   }
 
   async function restoreFromUrl() {
@@ -193,9 +183,6 @@ document.addEventListener('DOMContentLoaded', function() {
     routeRestoring = false;
 
     try {
-      if (window._rakuEnsureRouteScript) {
-        await window._rakuEnsureRouteScript(route.page);
-      }
       if (route.page === 'product' && window.openProduct) {
         if (route.productSlug) await window.openProduct(route.productSlug, { skipUrl: true });
         else if (route.productId) await window.openProduct(route.productId, { skipUrl: true });
@@ -351,6 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
       if (this.dataset.dir === 'up') v = Math.min(v + 1, 99);
       else v = Math.max(v - 1, 1);
       input.value = v;
+      if (window._rakuUpdateProductRewardPoints) window._rakuUpdateProductRewardPoints(v);
     });
   });
 

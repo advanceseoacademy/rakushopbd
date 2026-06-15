@@ -19,20 +19,14 @@
   function imgSrc(url) {
     const u = String(url || '').trim();
     if (!u) return '';
-    const path = u.startsWith('/') ? u : `/${u}`;
-    if (window._rakuMediaUrl && (path.startsWith('/uploads/') || path.startsWith('/images/'))) {
-      return window._rakuMediaUrl(path, 1200);
-    }
-    if (window.productImageSrc) return window.productImageSrc(u);
-    return path;
+    return window.productImageSrc ? window.productImageSrc(u) : u;
   }
 
   function slideHtml(slide, i) {
     const src = esc(imgSrc(slide.image));
     const alt = esc(slide.alt || 'Homepage banner');
     const link = String(slide.link || '').trim();
-    const priority = i === 0 ? ' fetchpriority="high"' : '';
-    const inner = `<img class="hero-banner-slide-photo" src="${src}" alt="${alt}" width="1200" height="400" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async"${priority}>`;
+    const inner = `<img class="hero-banner-slide-photo" src="${src}" alt="${alt}" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async">`;
     if (link && link !== '#') {
       const href = link.startsWith('/') || /^https?:\/\//i.test(link) ? link : `/${link}`;
       return `<a href="${esc(href)}" class="hero-banner-slide" data-slide-index="${i}">${inner}</a>`;
@@ -45,7 +39,7 @@
       <div class="hero-banner-slider-track" id="hero-banner-slider-track"></div>
       <button type="button" class="hero-banner-slider-nav hero-banner-slider-nav--prev" aria-label="Previous slide"><i class="ti ti-chevron-left"></i></button>
       <button type="button" class="hero-banner-slider-nav hero-banner-slider-nav--next" aria-label="Next slide"><i class="ti ti-chevron-right"></i></button>
-      <div class="hero-banner-slider-dots" id="hero-banner-slider-dots" role="tablist" aria-label="Banner slides"></div>
+      <div class="hero-banner-slider-dots" id="hero-banner-slider-dots"></div>
     </div>`;
   }
 
@@ -130,40 +124,6 @@
     root.addEventListener('mouseleave', startAuto);
   }
 
-  function bindSliderDots(dotsEl) {
-    if (!dotsEl) return;
-    dotsEl.setAttribute('role', 'tablist');
-    dotsEl.setAttribute('aria-label', 'Banner slides');
-    dotsEl.innerHTML = slides
-      .map(
-        (_, i) =>
-          `<button type="button" class="hero-banner-slider-dot${i === 0 ? ' is-active' : ''}" role="tab" data-slide="${i}" aria-label="Slide ${i + 1}" aria-selected="${i === 0 ? 'true' : 'false'}"></button>`
-      )
-      .join('');
-    dotsEl.querySelectorAll('.hero-banner-slider-dot').forEach((dot) => {
-      dot.addEventListener('click', () => {
-        showSlide(Number(dot.dataset.slide));
-        startAuto();
-      });
-    });
-  }
-
-  function toggleSliderNav(show) {
-    sliderRoot?.querySelector('.hero-banner-slider-nav--prev')?.toggleAttribute('hidden', !show);
-    sliderRoot?.querySelector('.hero-banner-slider-nav--next')?.toggleAttribute('hidden', !show);
-  }
-
-  function finishSliderInit(track) {
-    const heroMain = document.getElementById('hero-main');
-    bindSlideLinks(track);
-    bindSliderControls(sliderRoot);
-    bindSliderDots(getDots());
-    toggleSliderNav(slides.length > 1);
-    showSlide(0);
-    startAuto();
-    if (heroMain) heroMain.dataset.heroReady = '1';
-  }
-
   window.syncHeroSideHeight = function syncHeroSideHeight() {};
 
   window.applyHeroSideSliderData = function applyHeroSideSliderData(payload) {
@@ -179,28 +139,6 @@
 
     if (!enabled || !slides.length) {
       sliderRoot = null;
-      delete heroMain.dataset.heroReady;
-      return;
-    }
-
-    if (heroMain.dataset.heroReady === '1') return;
-
-    if (
-      !heroMain.dataset.heroSsr &&
-      heroMain.querySelector('.hero-banner-slide-photo[fetchpriority="high"]')
-    ) {
-      heroMain.dataset.heroSsr = '1';
-    }
-
-    if (heroMain.dataset.heroSsr === '1') {
-      delete heroMain.dataset.heroSsr;
-      sliderRoot = heroMain.querySelector('.hero-banner-slider');
-      const track = getTrack();
-      if (!track || !sliderRoot) return;
-      if (slides.length > 1) {
-        track.insertAdjacentHTML('beforeend', slides.slice(1).map((s, i) => slideHtml(s, i + 1)).join(''));
-      }
-      finishSliderInit(track);
       return;
     }
 
@@ -211,14 +149,28 @@
     sliderRoot = heroMain.querySelector('.hero-banner-slider');
 
     const track = getTrack();
-    if (!track || !sliderRoot) return;
+    const dotsEl = getDots();
+    if (!track || !dotsEl || !sliderRoot) return;
 
     track.innerHTML = slides.map((s, i) => slideHtml(s, i)).join('');
-    finishSliderInit(track);
-  };
+    dotsEl.innerHTML = slides
+      .map(
+        (_, i) =>
+          `<button type="button" class="hero-banner-slider-dot${i === 0 ? ' is-active' : ''}" data-slide="${i}" aria-label="Slide ${i + 1}" aria-selected="${i === 0 ? 'true' : 'false'}"></button>`
+      )
+      .join('');
 
-  const heroBoot = window.__RAKU_BOOTSTRAP?.heroSideSlider;
-  if (heroBoot?.enabled !== false && heroBoot?.slides?.length) {
-    window.applyHeroSideSliderData(heroBoot);
-  }
+    bindSlideLinks(track);
+    bindSliderControls(sliderRoot);
+
+    dotsEl.querySelectorAll('.hero-banner-slider-dot').forEach((dot) => {
+      dot.addEventListener('click', () => {
+        showSlide(Number(dot.dataset.slide));
+        startAuto();
+      });
+    });
+
+    showSlide(0);
+    startAuto();
+  };
 })();

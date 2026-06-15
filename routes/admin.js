@@ -19,6 +19,7 @@ const {
 } = require('../lib/categoryHelpers');
 const { setProductTodaySellingSlot, setTodaySellingProducts, normalizeSlot } = require('../lib/todaySellingSlots');
 const { parseRewardsContent } = require('../lib/rewardsPage');
+const { awardOrderPointsOnDelivery } = require('../lib/rewardPoints');
 
 const router = express.Router();
 
@@ -355,8 +356,19 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
     if (!allowed.includes(status)) {
       return res.status(400).json({ ok: false, error: 'Invalid status' });
     }
-    await query('UPDATE orders SET status = ? WHERE id = ?', [status, req.params.id]);
-    res.json({ ok: true });
+    const id = Number(req.params.id);
+    const rows = await query('SELECT id, user_id, status FROM orders WHERE id = ?', [id]);
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Order not found' });
+    const prevStatus = String(rows[0].status || '').toLowerCase();
+    await query('UPDATE orders SET status = ? WHERE id = ?', [status, id]);
+
+    let pointsAwarded = 0;
+    if (status === 'delivered' && prevStatus !== 'delivered') {
+      const award = await awardOrderPointsOnDelivery(query, id);
+      pointsAwarded = award.earned || 0;
+    }
+
+    res.json({ ok: true, pointsAwarded });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not update order' });
@@ -375,6 +387,20 @@ router.delete('/orders/:id', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not delete order' });
+  }
+});
+
+router.post('/orders/bulk-delete', requireAdmin, async (req, res) => {
+  try {
+    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+    if (!ids.length) return res.status(400).json({ ok: false, error: 'No orders selected' });
+    const placeholders = ids.map(() => '?').join(',');
+    await query(`DELETE FROM order_items WHERE order_id IN (${placeholders})`, ids);
+    await query(`DELETE FROM orders WHERE id IN (${placeholders})`, ids);
+    res.json({ ok: true, deleted: ids.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not delete selected orders' });
   }
 });
 

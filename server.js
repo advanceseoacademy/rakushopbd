@@ -30,6 +30,7 @@ const { ensureContactMessagesTable } = require('./lib/ensureContactMessagesTable
 const { ensurePhoneSubscribersTable } = require('./lib/ensurePhoneSubscribersTable');
 const { ensureMarketingSettings } = require('./lib/ensureMarketingSettings');
 const { ensureRewardsSettings } = require('./lib/ensureRewardsSettings');
+const { ensureRewardPointsColumn } = require('./lib/ensureRewardPointsColumn');
 const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
 const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
@@ -40,15 +41,13 @@ const { ensureCategoryParent } = require('./lib/ensureCategoryParent');
 const { ensureCategoryIconUrl } = require('./lib/ensureCategoryIconUrl');
 const { buildTrackingScripts } = require('./lib/trackingScripts');
 const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug } = require('./lib/seo');
-const { buildHeroLcp } = require('./lib/heroLcp');
 const { getSiteSettings } = require('./lib/siteSettings');
 const faceAnalyzerRoutes = require('./routes/faceAnalyzer');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
-const { legacyUploadWebpFallback, uploadMissingFallback } = require('./lib/legacyUploadWebp');
-const { expressStaticCache } = require('./lib/staticCache');
-const { mediaResizeMiddleware } = require('./lib/imageResize');
+const { legacyUploadWebpFallback } = require('./lib/legacyUploadWebp');
+const isProduction = process.env.NODE_ENV === 'production';
 
 process.on('uncaughtException', (err) => {
   console.error('uncaughtException:', err);
@@ -79,8 +78,6 @@ app.use(express.urlencoded({ extended: true }));
 
 const publicDir = path.join(__dirname, 'public');
 
-app.use(mediaResizeMiddleware());
-
 // SEO — before static files so /robots.txt and /sitemap.xml are always dynamic
 app.get('/robots.txt', async (req, res) => {
   try {
@@ -102,17 +99,17 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-app.use('/js', express.static(path.join(publicDir, 'js'), expressStaticCache('365d')));
-app.use('/css', express.static(path.join(publicDir, 'css'), expressStaticCache('365d')));
-app.use('/vendor', express.static(path.join(publicDir, 'vendor'), expressStaticCache('365d')));
-app.use('/images', express.static(path.join(publicDir, 'images'), expressStaticCache('365d')));
+const staticCache = (maxAge) => ({
+  maxAge: isProduction ? maxAge : 0,
+  etag: true,
+  immutable: Boolean(isProduction && maxAge),
+});
+app.use('/js', express.static(path.join(publicDir, 'js'), staticCache('365d')));
+app.use('/css', express.static(path.join(publicDir, 'css'), staticCache('365d')));
+app.use('/images', express.static(path.join(publicDir, 'images'), staticCache('30d')));
 app.use('/uploads', legacyUploadWebpFallback);
-app.use('/uploads', uploadMissingFallback);
-app.use(
-  '/uploads',
-  express.static(path.join(publicDir, 'uploads'), expressStaticCache('365d', { immutable: false }))
-);
-app.use(express.static(publicDir, expressStaticCache(0, { immutable: false })));
+app.use('/uploads', express.static(path.join(publicDir, 'uploads'), staticCache('7d')));
+app.use(express.static(publicDir, staticCache(0)));
 
 const sessionMaxAge = 7 * 24 * 60 * 60 * 1000;
 const sessionSecret = process.env.SESSION_SECRET || 'rakushopbd-dev-secret-change-me';
@@ -213,26 +210,15 @@ async function renderStorefront(req, res) {
     }
     const seo = await buildPageSeo(req, { bootstrap, product, category });
     const trackingScripts = buildTrackingScripts(bootstrap.settings || {});
-    const pathParts = (req.path || '/').split('/').filter(Boolean);
-    const isHome = pathParts.length === 0;
-    const heroLcp = buildHeroLcp(bootstrap, isHome);
     const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
     const productJson = product
       ? JSON.stringify({ ok: true, product }).replace(/</g, '\\u003c')
       : null;
     const seoJson = JSON.stringify(seo).replace(/</g, '\\u003c');
-    res.render('index', { bootstrapJson, productJson, seoJson, seo, trackingScripts, heroLcp, isHome });
+    res.render('index', { bootstrapJson, productJson, seoJson, seo, trackingScripts });
   } catch (err) {
     console.error('renderStorefront', err);
-    res.render('index', {
-      bootstrapJson: null,
-      productJson: null,
-      seoJson: null,
-      seo: null,
-      trackingScripts: null,
-      heroLcp: null,
-      isHome: true,
-    });
+    res.render('index', { bootstrapJson: null, productJson: null, seoJson: null, seo: null, trackingScripts: null });
   }
 }
 
@@ -319,6 +305,7 @@ app.listen(PORT, () => {
   ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
   ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
   ensureRewardsSettings().catch((err) => console.warn('rewards settings:', err.message));
+  ensureRewardPointsColumn().catch((err) => console.warn('reward_points column:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
   ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));

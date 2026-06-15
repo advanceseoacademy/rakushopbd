@@ -14,7 +14,6 @@ git fetch origin main
 # Keep VPS upload files — never git clean public/uploads (deletes product/banner images).
 git reset --hard origin/main
 npm install
-node scripts/fix-seo-site-url.js 2>/dev/null || true
 node scripts/seed-messenger-chats.js 2>/dev/null || true
 pm2 restart rakushopbd
 sleep 3

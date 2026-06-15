@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>RakuShopBD — Admin Panel</title>
-<link rel="icon" href="/images/rakushopbd-logo-280.webp" type="image/webp">
+<link rel="icon" href="/images/rakushopbd-logo.png" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<%- include('partials/tabler-icons-sync') %>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
 <link rel="stylesheet" href="/css/admin.css?v=17">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
@@ -18,7 +18,7 @@
 <div id="login-page">
   <div class="login-card">
     <div class="login-logo">
-      <%- include('partials/site-logo', { logoClass: 'site-logo-img site-logo-img--admin-login', logoWidth: 300, logoHeight: 80 }) %>
+      <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-login" width="300" height="80">
     </div>
     <div class="login-tagline">Admin Dashboard — Sign in to manage your store</div>
     <div class="login-error" id="login-error"><i class="ti ti-alert-circle"></i> <span>Invalid username or password</span></div>
@@ -40,7 +40,7 @@
   <div class="adm-sidebar-overlay" id="adm-sidebar-overlay" aria-hidden="true"></div>
   <aside class="sidebar" id="adm-sidebar">
     <div class="sidebar-logo">
-      <%- include('partials/site-logo', { logoClass: 'site-logo-img site-logo-img--admin-sidebar', logoWidth: 240, logoHeight: 58 }) %>
+      <img src="/images/rakushopbd-logo.png" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-sidebar" width="240" height="58">
       <div class="sidebar-version">Admin Panel</div>
     </div>
     <div class="sidebar-section">Main</div>
@@ -149,10 +149,16 @@
                 <option value="nagad">Nagad</option>
                 <option value="card">Card</option>
               </select>
+              <button type="button" class="btn btn-danger btn-sm" id="orders-bulk-delete-btn" hidden>
+                <i class="ti ti-trash"></i> Delete selected (<span id="orders-selected-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="orders-clear-selection-btn" hidden>Clear</button>
               <a href="/api/admin/orders/export" class="btn btn-primary btn-sm" id="orders-export-btn" target="_blank"><i class="ti ti-download"></i> Export</a>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Payment</th><th>Date</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
+          <table class="tbl"><thead><tr>
+            <th class="tbl-check-col"><input type="checkbox" id="orders-select-all" title="Select all on this page" aria-label="Select all orders on this page"></th>
+            <th>Order ID</th><th>Customer</th><th>Items</th><th>Payment</th><th>Date</th><th>Total</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="orders-tbody"></tbody></table>
           <div class="pagination-bar" id="orders-pagination"></div>
         </div>
@@ -867,7 +873,7 @@
         <div class="category-parent-preview" id="cf-parent-preview" hidden></div>
       </div>
       <div class="form-group"><label class="form-label">Name *</label><input class="form-input" id="cf-name" required></div>
-      <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="cf-slug" placeholder="auto from name, e.g. electronics"><small class="form-hint">Store link: /category/your-slug</small></div>
+      <div class="form-group"><label class="form-label">URL slug / external link</label><input class="form-input" id="cf-slug" placeholder="electronics or https://facebook.com/groups/..."><small class="form-hint">Normal category: short slug (e.g. electronics). External link: full https:// URL — opens in new tab.</small></div>
       <div class="form-group">
         <label class="form-label">Category icon / image</label>
         <div class="cf-icon-upload">

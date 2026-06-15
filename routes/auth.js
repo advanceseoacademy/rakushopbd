@@ -15,6 +15,7 @@ function sanitizeUser(row) {
     fullName: row.full_name,
     email: row.email,
     phone: row.phone,
+    rewardPoints: Number(row.reward_points ?? row.rewardPoints) || 0,
     createdAt: row.created_at,
   };
 }
@@ -31,9 +32,10 @@ router.get('/me', async (req, res) => {
     if (!req.session.userId) {
       return res.json({ ok: true, user: null });
     }
-    const rows = await query('SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?', [
-      req.session.userId,
-    ]);
+    const rows = await query(
+      'SELECT id, full_name, email, phone, reward_points, created_at FROM users WHERE id = ?',
+      [req.session.userId]
+    );
     if (!rows.length) {
       req.session = null;
       return res.json({ ok: true, user: null });
@@ -68,7 +70,10 @@ router.post('/register', async (req, res) => {
 
     const userId = firstInsertId(result) ?? (await query('SELECT id FROM users WHERE email = ?', [email.trim().toLowerCase()]))[0]?.id;
     req.session.userId = userId;
-    const rows = await query('SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?', [userId]);
+    const rows = await query(
+      'SELECT id, full_name, email, phone, reward_points, created_at FROM users WHERE id = ?',
+      [userId]
+    );
     saveSession(req, (saveErr) => {
       if (saveErr) {
         console.error(saveErr);
@@ -132,9 +137,10 @@ router.put('/profile', requireAuth, async (req, res) => {
       req.session.userId,
     ]);
 
-    const rows = await query('SELECT id, full_name, email, phone, created_at FROM users WHERE id = ?', [
-      req.session.userId,
-    ]);
+    const rows = await query(
+      'SELECT id, full_name, email, phone, reward_points, created_at FROM users WHERE id = ?',
+      [req.session.userId]
+    );
     res.json({ ok: true, user: sanitizeUser(rows[0]) });
   } catch (err) {
     console.error(err);

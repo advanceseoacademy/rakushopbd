@@ -536,16 +536,8 @@
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', scheduleInit, { once: true });
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    scheduleInit();
-  }
-
-  function scheduleInit() {
-    if (window.requestIdleCallback) {
-      requestIdleCallback(() => void init(), { timeout: 6000 });
-    } else {
-      setTimeout(() => void init(), 3000);
-    }
+    init();
   }
 })();

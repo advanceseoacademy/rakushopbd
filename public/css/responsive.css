@@ -887,9 +887,6 @@ svg {
   .home-scroll-track .product-card {
     flex: 0 0 auto;
     flex-shrink: 0;
-    width: calc((100% - 12px) / 2);
-    min-width: calc((100% - 12px) / 2);
-    max-width: calc((100% - 12px) / 2);
     box-sizing: border-box;
   }
 

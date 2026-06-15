@@ -24,13 +24,19 @@
       .replace(/"/g, '&quot;');
   }
 
+  function catLinkAttrs(slug) {
+    const ext = /^https?:\/\//i.test(String(slug || '').trim());
+    const href = ext ? slug : `/category/${encodeURIComponent(slug)}`;
+    const extAttrs = ext ? ' target="_blank" rel="noopener noreferrer"' : '';
+    return { href: escapeHtml(href), extAttrs };
+  }
+
   function categoryIconHtml(c, pal) {
     const paletteItem = pal || palette(0);
     const url = c?.icon_url || c?.iconUrl;
     if (url) {
-      const src = window.productImageSrc ? window.productImageSrc(url, 128) : url;
-      const onerror = 'this.hidden=true;this.nextElementSibling.hidden=false;';
-      return `<div class="cat-icon cat-icon--img" style="background:${paletteItem.bg};"><img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async" onerror="${onerror}"><i class="ti ${escapeHtml(c.icon || 'ti-category')}" style="color:${paletteItem.color};" hidden></i></div>`;
+      const src = window.productImageSrc ? window.productImageSrc(url) : url;
+      return `<div class="cat-icon cat-icon--img" style="background:${paletteItem.bg};"><img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"><i class="ti ${escapeHtml(c.icon || 'ti-category')}" style="color:${paletteItem.color};" hidden></i></div>`;
     }
     return `<div class="cat-icon" style="background:${paletteItem.bg};"><i class="ti ${escapeHtml(c.icon || 'ti-category')}" style="color:${paletteItem.color};"></i></div>`;
   }
@@ -38,8 +44,8 @@
   function categoryNavIconHtml(c) {
     const url = c?.icon_url || c?.iconUrl;
     if (url) {
-      const src = window.productImageSrc ? window.productImageSrc(url, 96) : url;
-      return `<img class="cat-nav-icon-img" src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async" onerror="this.remove();">`;
+      const src = window.productImageSrc ? window.productImageSrc(url) : url;
+      return `<img class="cat-nav-icon-img" src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async">`;
     }
     return `<i class="ti ${escapeHtml(c.icon || 'ti-category')}"></i>`;
   }
@@ -181,6 +187,45 @@
     return out;
   }
 
+  function visibleHomeCategoryCards() {
+    if (window.matchMedia('(max-width: 768px)').matches) return 3;
+    return 0;
+  }
+
+  function syncHomeCategoryCardWidths() {
+    const track = document.getElementById('home-category-track');
+    if (!track) return;
+    const cards = track.querySelectorAll('.cat-card');
+    if (!cards.length) return;
+
+    const visible = visibleHomeCategoryCards();
+    if (!visible) {
+      cards.forEach((card) => {
+        card.style.flex = '';
+        card.style.width = '';
+        card.style.minWidth = '';
+        card.style.maxWidth = '';
+        card.style.height = '';
+      });
+      return;
+    }
+
+    const styles = getComputedStyle(track);
+    const gapRaw = styles.columnGap && styles.columnGap !== 'normal' ? styles.columnGap : styles.gap;
+    const gap = Number.parseFloat(gapRaw) || 12;
+    const trackWidth = track.getBoundingClientRect().width;
+    if (trackWidth < 40) return;
+
+    const size = Math.max(72, Math.floor((trackWidth - gap * (visible - 1)) / visible));
+    cards.forEach((card) => {
+      card.style.flex = '0 0 auto';
+      card.style.width = `${size}px`;
+      card.style.minWidth = `${size}px`;
+      card.style.maxWidth = `${size}px`;
+      card.style.height = 'auto';
+    });
+  }
+
   function syncCategoryAutoScroll(itemCount) {
     const stop = window._rakuStopHomeScrollAuto;
     const start = window._rakuInitHomeScrollAuto;
@@ -191,9 +236,18 @@
       return;
     }
 
-    const run = () => start('home-category-track', 3400);
-    if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 3500 });
-    else setTimeout(run, 600);
+    const bootAuto = (attempt) => {
+      const track = document.getElementById('home-category-track');
+      if (!track) return;
+      const canScroll = track.scrollWidth > track.clientWidth + 4;
+      if (canScroll || attempt >= 10) {
+        start('home-category-track', 3400);
+        return;
+      }
+      requestAnimationFrame(() => bootAuto(attempt + 1));
+    };
+
+    requestAnimationFrame(() => bootAuto(0));
   }
 
   function renderCategoryGridHome(categories, opts = {}) {
@@ -210,7 +264,8 @@
           .map((c, i) => {
             const pal = palette(i);
             const count = Number(c.product_count) || 0;
-            return `<a href="/category/${encodeURIComponent(c.slug)}" class="cat-card" data-cat-slug="${escapeHtml(c.slug)}">
+            const a = catLinkAttrs(c.slug);
+            return `<a href="${a.href}" class="cat-card" data-cat-slug="${escapeHtml(c.slug)}"${a.extAttrs}>
         ${categoryIconHtml(c, pal)}
         <div class="cat-card-label">
           <div class="cat-name">${escapeHtml(c.name_bn)}</div>
@@ -229,7 +284,11 @@
       };
     });
 
-    syncCategoryAutoScroll(show.length);
+    syncHomeCategoryCardWidths();
+    requestAnimationFrame(() => {
+      syncHomeCategoryCardWidths();
+      syncCategoryAutoScroll(show.length);
+    });
 
     const titleEl = document.getElementById('categories-section-title');
     if (titleEl) {
@@ -260,6 +319,7 @@
     window.addEventListener('resize', () => {
       clearTimeout(catResizeTimer);
       catResizeTimer = setTimeout(() => {
+        syncHomeCategoryCardWidths();
         const track = document.getElementById('home-category-track');
         const count = track?.querySelectorAll('.cat-card').length || 0;
         if (count) syncCategoryAutoScroll(count);
@@ -297,9 +357,11 @@
     const { topLevel, childrenOf } = partitionCategories(categories);
     let html = `<a href="/" class="cat-link" data-nav="home"><i class="ti ti-home"></i> Home</a>`;
     topLevel.forEach((c) => {
-      html += `<a href="/category/${encodeURIComponent(c.slug)}" class="cat-link" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
+      const a = catLinkAttrs(c.slug);
+      html += `<a href="${a.href}" class="cat-link" data-nav-slug="${escapeHtml(c.slug)}"${a.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
       childrenOf(c.id).forEach((sub) => {
-        html += `<a href="/category/${encodeURIComponent(sub.slug)}" class="cat-link cat-link--sub" data-nav-slug="${escapeHtml(sub.slug)}"><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
+        const sa = catLinkAttrs(sub.slug);
+        html += `<a href="${sa.href}" class="cat-link cat-link--sub" data-nav-slug="${escapeHtml(sub.slug)}"${sa.extAttrs}><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
       });
     });
     html += `<a href="/" class="cat-link" data-nav="sale"><i class="ti ti-discount"></i> Sale & Offers</a>`;
@@ -335,14 +397,17 @@
             <span><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</span>
             <i class="ti ti-chevron-down"></i>
           </button>
-          <div class="mobile-menu-sub">
-            <a href="/category/${encodeURIComponent(c.slug)}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> All ${escapeHtml(c.name_bn)}</a>`;
+          <div class="mobile-menu-sub">`;
+        const ca = catLinkAttrs(c.slug);
+        html += `<a href="${ca.href}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${escapeHtml(c.slug)}"${ca.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> All ${escapeHtml(c.name_bn)}</a>`;
         subs.forEach((sub) => {
-          html += `<a href="/category/${encodeURIComponent(sub.slug)}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${escapeHtml(sub.slug)}"><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
+          const sa = catLinkAttrs(sub.slug);
+          html += `<a href="${sa.href}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${escapeHtml(sub.slug)}"${sa.extAttrs}><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
         });
         html += `</div></div>`;
       } else {
-        html += `<a href="/category/${encodeURIComponent(c.slug)}" class="mobile-cat-link" data-nav-slug="${escapeHtml(c.slug)}"><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
+        const a = catLinkAttrs(c.slug);
+        html += `<a href="${a.href}" class="mobile-cat-link" data-nav-slug="${escapeHtml(c.slug)}"${a.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
       }
     });
     html += `<a href="/" class="mobile-cat-link" data-nav="sale"><i class="ti ti-discount"></i> Sale & Offers</a>`;
@@ -631,25 +696,6 @@
     return renderDescriptionBlock(shortRaw);
   }
 
-  function productShortDescription(p) {
-    const shortPlain = plainTextContent(p?.short_description || p?.shortDescription);
-    if (!shortPlain) return '';
-
-    const { specs, prose } = parseProductDescription(shortPlain, { loose: true });
-    if (prose.length) {
-      const line = prose[0];
-      return line.length > 240 ? `${line.slice(0, 237)}…` : line;
-    }
-    if (specs.length) {
-      const preview = specs
-        .slice(0, 3)
-        .map((row) => `${row.label}: ${row.value}`)
-        .join(' · ');
-      return preview.length > 240 ? `${preview.slice(0, 237)}…` : preview;
-    }
-    return shortPlain.length > 240 ? `${shortPlain.slice(0, 237)}…` : shortPlain;
-  }
-
   function renderSpecTable(specs) {
     if (!specs.length) return '';
     const rows = specs
@@ -698,18 +744,6 @@
       bcCat.onclick = () => catSlug && window.openCategory && window.openCategory(catSlug);
     }
     if (bcName) bcName.textContent = p.name_bn || p.nameBn;
-
-    const summaryEl = document.getElementById('pv-summary');
-    if (summaryEl) {
-      const summary = productShortDescription(p);
-      if (summary) {
-        summaryEl.textContent = summary;
-        summaryEl.hidden = false;
-      } else {
-        summaryEl.textContent = '';
-        summaryEl.hidden = true;
-      }
-    }
 
     const stars = document.querySelector('#page-product .pv-stars');
     if (stars) stars.textContent = starsHtml(p.rating);

@@ -32,7 +32,6 @@
   function hideSuggest() {
     dropdown.hidden = true;
     input.setAttribute('aria-expanded', 'false');
-    input.removeAttribute('aria-activedescendant');
     activeIndex = -1;
   }
 
@@ -78,7 +77,7 @@
       <div class="search-suggest-list">
         ${list
           .map(
-            (p, i) => `<div class="search-suggest-item" id="search-opt-${i}" role="option" tabindex="0" data-index="${i}" data-id="${p.id}">
+            (p, i) => `<div class="search-suggest-item" role="option" tabindex="0" data-index="${i}" data-id="${p.id}">
           <div class="search-suggest-thumb" style="background:${escapeHtml(p.image_url ? '#fff' : p.bg_color)};">${suggestThumbHtml(p)}</div>
           <div class="search-suggest-info">
             <span class="search-suggest-name">${escapeHtml(p.name_bn)}</span>
@@ -189,11 +188,6 @@
   function setActiveItem(idx) {
     const items = dropdown.querySelectorAll('.search-suggest-item');
     items.forEach((el, i) => el.classList.toggle('active', i === idx));
-    if (idx >= 0 && items[idx]) {
-      input.setAttribute('aria-activedescendant', items[idx].id);
-    } else {
-      input.removeAttribute('aria-activedescendant');
-    }
     activeIndex = idx;
   }
 

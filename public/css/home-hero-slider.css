@@ -109,6 +109,9 @@
 .hero-banner-slider-dot {
   width: 8px;
   height: 8px;
+  min-width: 8px;
+  min-height: 8px;
+  flex-shrink: 0;
   border-radius: 50%;
   border: none;
   padding: 0;
@@ -141,6 +144,20 @@
     opacity: 1;
     width: 34px;
     height: 34px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero-banner-slider-dots {
+    gap: 10px;
+    padding: 8px 12px;
+  }
+
+  .hero-banner-slider-dot {
+    width: 8px;
+    height: 8px;
+    min-width: 8px;
+    min-height: 8px;
   }
 }
 

@@ -5,7 +5,7 @@
   let countdownTimer = null;
   let endsAtMs = null;
   let autoScrollTimer = null;
-  let autoScrollIndex = 0;
+  let resizeObserver = null;
 
   function esc(s) {
     return String(s ?? '')
@@ -94,12 +94,33 @@
     return 4;
   }
 
+  function syncTodayDealsCardWidths() {
+    const track = document.getElementById('today-deals-grid');
+    if (!track) return;
+    const cards = track.querySelectorAll('.today-deals-card');
+    if (!cards.length) return;
+
+    const styles = getComputedStyle(track);
+    const gapRaw = styles.columnGap && styles.columnGap !== 'normal' ? styles.columnGap : styles.gap;
+    const gap = Number.parseFloat(gapRaw) || 16;
+    const visible = visibleTodayDealsCards();
+    const trackWidth = track.getBoundingClientRect().width;
+    if (trackWidth < 40) return;
+
+    const width = Math.max(120, Math.floor((trackWidth - gap * (visible - 1)) / visible));
+    cards.forEach((card) => {
+      card.style.flex = '0 0 auto';
+      card.style.width = `${width}px`;
+      card.style.minWidth = `${width}px`;
+      card.style.maxWidth = `${width}px`;
+    });
+  }
+
   function stopTodayDealsAutoScroll() {
     if (autoScrollTimer) {
       clearInterval(autoScrollTimer);
       autoScrollTimer = null;
     }
-    autoScrollIndex = 0;
   }
 
   function initTodayDealsAutoScroll() {
@@ -156,17 +177,53 @@
       const list = cards();
       if (list.length <= visibleTodayDealsCards()) return;
 
-      autoScrollIndex = (autoScrollIndex + 1) % list.length;
-      list[autoScrollIndex].scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+      const styles = getComputedStyle(track);
+      const gapRaw = styles.columnGap && styles.columnGap !== 'normal' ? styles.columnGap : styles.gap;
+      const gap = Number.parseFloat(gapRaw) || 16;
+      const stepPx = list[0].offsetWidth + gap;
+      const maxScroll = track.scrollWidth - track.clientWidth;
+      if (maxScroll <= 4) return;
+
+      const next = track.scrollLeft + stepPx;
+      if (next >= maxScroll - 4) {
+        track.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        track.scrollTo({ left: next, behavior: 'smooth' });
+      }
     }
 
     autoScrollTimer = setInterval(scrollStep, 3200);
   }
 
   function bindTodayDealsScrollLayout() {
-    const run = () => initTodayDealsAutoScroll();
-    if (window.requestIdleCallback) requestIdleCallback(run, { timeout: 3500 });
-    else setTimeout(run, 600);
+    const track = document.getElementById('today-deals-grid');
+    if (!track) return;
+
+    requestAnimationFrame(() => {
+      syncTodayDealsCardWidths();
+      setTimeout(() => {
+        syncTodayDealsCardWidths();
+        initTodayDealsAutoScroll();
+      }, 50);
+    });
+
+    if (!window._rakuTodayDealsResizeBound) {
+      window._rakuTodayDealsResizeBound = true;
+      let timer;
+      window.addEventListener('resize', () => {
+        clearTimeout(timer);
+        timer = setTimeout(() => {
+          syncTodayDealsCardWidths();
+          initTodayDealsAutoScroll();
+        }, 100);
+      });
+    }
+
+    if (typeof ResizeObserver === 'function') {
+      resizeObserver?.disconnect();
+      resizeObserver = new ResizeObserver(() => syncTodayDealsCardWidths());
+      resizeObserver.observe(track);
+    }
   }
 
   function pad2(n) {

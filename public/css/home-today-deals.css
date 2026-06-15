@@ -33,14 +33,14 @@
 }
 
 .today-deals-countdown-sep {
-  color: var(--accent-dark);
+  color: var(--accent);
   font-weight: 700;
   font-size: 14px;
   line-height: 1;
 }
 
 .today-deals-countdown-part {
-  background: var(--accent-dark);
+  background: var(--accent);
   color: #fff;
   border-radius: 8px;
   padding: 6px 10px;
@@ -58,9 +58,9 @@
 .today-deals-countdown-part small {
   display: block;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 500;
   line-height: 1.2;
-  color: #fff;
+  opacity: 0.95;
 }
 
 .today-deals-view-all {

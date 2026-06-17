@@ -9,8 +9,15 @@ const { getTodayDealsProducts, getTodayDealsMeta } = require('../lib/todayDeals'
 const { getRecommendedProducts } = require('../lib/productRecommendations');
 const { attachMergedReviewStatsToProducts } = require('../lib/productReviews');
 const { stripInternalProductFields, stripInternalProductList } = require('../lib/productPublic');
-const { parseRewardsContent } = require('../lib/rewardsPage');
-const { pointsFromCartItems } = require('../lib/rewardPoints');
+const { pointsFromCartItems, awardApprovedReviewPoints, getRewardPointConfig } = require('../lib/rewardPoints');
+const {
+  fireAdminEmail,
+  notifyNewOrder,
+  notifyContactMessage,
+  notifyAppointment,
+} = require('../lib/emailNotify');
+const { upload } = require('../lib/upload');
+const { optimizeAndSaveImage } = require('../lib/imageOptimize');
 const { getAdminIdFromRequest } = require('../lib/adminToken');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
@@ -208,11 +215,31 @@ router.get('/products/:id/reviews', async (req, res) => {
   }
 });
 
+router.post('/reviews/upload-image', async (req, res) => {
+  if (!req.session?.userId) {
+    return res.status(401).json({ ok: false, error: 'Please log in to upload a review photo' });
+  }
+  upload.single('image')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ ok: false, error: err.message || 'Invalid image upload' });
+    }
+    try {
+      if (!req.file) return res.status(400).json({ ok: false, error: 'No image uploaded' });
+      const saved = await optimizeAndSaveImage(req.file);
+      res.json({ ok: true, url: saved.url });
+    } catch (uploadErr) {
+      console.error('review upload', uploadErr);
+      res.status(500).json({ ok: false, error: 'Could not upload image' });
+    }
+  });
+});
+
 router.post('/products/:id/reviews', async (req, res) => {
   try {
     const productId = Number(req.params.id);
     const rating = Math.min(5, Math.max(1, Number(req.body.rating) || 0));
     const comment = (req.body.comment || '').trim();
+    const imageUrl = String(req.body.imageUrl || '').trim() || null;
     let customerName = (req.body.customerName || '').trim();
     let userId = null;
 
@@ -233,24 +260,37 @@ router.post('/products/:id/reviews', async (req, res) => {
     const settings = await getSiteSettings(query);
     const status = settings.feature_review_approval === '1' ? 'pending' : 'approved';
 
-    await query(
-      `INSERT INTO product_reviews (product_id, user_id, customer_name, rating, comment, status)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [productId, userId, customerName, rating, comment || null, status]
+    const result = await query(
+      `INSERT INTO product_reviews (product_id, user_id, customer_name, rating, comment, image_url, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [productId, userId, customerName, rating, comment || null, imageUrl, status]
     );
+
+    const reviewId = firstInsertId(result);
+    let pointsAwarded = 0;
 
     if (status === 'approved') {
       const { syncProductReviewStats } = require('../lib/productReviews');
       await syncProductReviewStats(query, productId);
+      if (reviewId && userId) {
+        const award = await awardApprovedReviewPoints(query, { id: reviewId, user_id: userId, image_url: imageUrl });
+        pointsAwarded = award.awarded || 0;
+      }
+    }
+
+    let publishedMsg = 'Thank you! Your review has been published.';
+    if (status === 'approved' && userId && pointsAwarded > 0) {
+      publishedMsg = `Thank you! Your review has been published. You earned ${pointsAwarded} reward points.`;
     }
 
     res.json({
       ok: true,
       status,
+      pointsAwarded,
       message:
         status === 'pending'
-          ? 'Thank you! Your review is awaiting approval.'
-          : 'Thank you! Your review has been published.',
+          ? 'Thank you! Your review is awaiting approval. Points will be added after approval.'
+          : publishedMsg,
     });
   } catch (err) {
     console.error(err);
@@ -403,7 +443,6 @@ router.get('/bootstrap', async (req, res) => {
 router.get('/settings', async (req, res) => {
   try {
     const settings = await getSiteSettings(query);
-    settings.rewards_page_content = JSON.stringify(parseRewardsContent(settings));
     cachePublic(res, 300);
     const maintenance = settings.maintenance_mode === '1' && !getAdminIdFromRequest(req);
     res.json({ ok: true, settings, maintenance });
@@ -476,21 +515,12 @@ router.get('/products', async (req, res) => {
         .filter(Boolean)
         .slice(0, 8);
 
-      // Any typed word matching name, slug, sku, description, or category (case-insensitive).
+      // Every search word must appear in the product title (name_bn).
       if (tokens.length) {
-        const tokenClauses = tokens.map(
-          () => `(
-            ${likeFragment('p.name_bn')}
-            OR ${likeFragment('p.slug')}
-            OR ${likeFragment('COALESCE(p.sku, \'\')')}
-            OR ${likeFragment('COALESCE(p.description_bn, \'\')')}
-            OR ${likeFragment('c.name_bn')}
-          )`
-        );
-        where.push(`(${tokenClauses.join(' OR ')})`);
+        const tokenClauses = tokens.map(() => `${likeFragment('p.name_bn')}`);
+        where.push(`(${tokenClauses.join(' AND ')})`);
         tokens.forEach((tok) => {
-          const like = `%${tok}%`;
-          params.push(like, like, like, like, like);
+          params.push(`%${tok}%`);
         });
       }
     }
@@ -844,6 +874,24 @@ router.post('/orders', async (req, res) => {
 
     req.session.cart = [];
     req.session.checkoutDistrict = null;
+    const pointCfg = userId ? await getRewardPointConfig(query) : null;
+
+    const notifySettings = await getSiteSettings(query);
+    fireAdminEmail(notifyNewOrder, notifySettings, {
+      orderNumber,
+      customerName: name,
+      customerPhone: phone,
+      customerEmail: email || null,
+      address,
+      district: orderDistrict,
+      paymentMethod,
+      subtotal,
+      delivery,
+      total,
+      notes: orderNotes,
+      items: orderItems,
+    });
+
     res.json({
       ok: true,
       cartCleared: true,
@@ -855,7 +903,8 @@ router.post('/orders', async (req, res) => {
       subtotalFormatted: formatPrice(subtotal),
       deliveryFormatted: delivery === 0 ? 'Free' : formatPrice(delivery),
       items: orderItems,
-      pointsPending: userId ? pointsFromCartItems(cart) : 0,
+      pointsPending:
+        userId && pointCfg?.enabled ? pointsFromCartItems(cart, pointCfg) : 0,
     });
   } catch (err) {
     console.error(err);
@@ -992,6 +1041,19 @@ router.post('/appointments', async (req, res) => {
       ]
     );
 
+    const notifySettings = await getSiteSettings(query);
+    fireAdminEmail(notifyAppointment, notifySettings, {
+      referenceNumber,
+      customerName,
+      customerPhone,
+      customerEmail: email ? String(email).trim().slice(0, 120) : null,
+      appointmentDate,
+      appointmentTime,
+      serviceType: service,
+      serviceLabel: serviceLabel(service),
+      notes: notes ? String(notes).trim().slice(0, 500) : null,
+    });
+
     res.json({
       ok: true,
       referenceNumber,
@@ -1101,6 +1163,15 @@ router.post('/contact', async (req, res) => {
        ) VALUES (?, ?, ?, ?, ?, 'new')${returningId()}`,
       [customerName, customerPhone, email, subject, message]
     );
+
+    const notifySettings = await getSiteSettings(query);
+    fireAdminEmail(notifyContactMessage, notifySettings, {
+      customerName,
+      customerPhone,
+      customerEmail: email,
+      subject,
+      message,
+    });
 
     res.json({
       ok: true,

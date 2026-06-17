@@ -5,6 +5,13 @@ const { formatPrice } = require('../lib/format');
 const { saveSession } = require('../lib/sessionSave');
 const { returningId } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
+const { getSiteSettings } = require('../lib/siteSettings');
+const { normalizeSiteBaseUrl } = require('../lib/seo');
+const {
+  processNewUserRewards,
+  assignReferralCode,
+  getRewardPointConfig,
+} = require('../lib/rewardPoints');
 
 const router = express.Router();
 
@@ -16,8 +23,17 @@ function sanitizeUser(row) {
     email: row.email,
     phone: row.phone,
     rewardPoints: Number(row.reward_points ?? row.rewardPoints) || 0,
+    referralCode: row.referral_code || null,
     createdAt: row.created_at,
   };
+}
+
+async function loadUserById(userId) {
+  const rows = await query(
+    'SELECT id, full_name, email, phone, reward_points, referral_code, created_at FROM users WHERE id = ?',
+    [userId]
+  );
+  return rows[0] || null;
 }
 
 function requireAuth(req, res, next) {
@@ -32,15 +48,12 @@ router.get('/me', async (req, res) => {
     if (!req.session.userId) {
       return res.json({ ok: true, user: null });
     }
-    const rows = await query(
-      'SELECT id, full_name, email, phone, reward_points, created_at FROM users WHERE id = ?',
-      [req.session.userId]
-    );
-    if (!rows.length) {
+    const rows = await loadUserById(req.session.userId);
+    if (!rows) {
       req.session = null;
       return res.json({ ok: true, user: null });
     }
-    res.json({ ok: true, user: sanitizeUser(rows[0]) });
+    res.json({ ok: true, user: sanitizeUser(rows) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not load account' });
@@ -49,7 +62,7 @@ router.get('/me', async (req, res) => {
 
 router.post('/register', async (req, res) => {
   try {
-    const { fullName, email, phone, password } = req.body;
+    const { fullName, email, phone, password, referralCode } = req.body;
     if (!fullName || !email || !password) {
       return res.status(400).json({ ok: false, error: 'Name, email and password are required' });
     }
@@ -70,16 +83,26 @@ router.post('/register', async (req, res) => {
 
     const userId = firstInsertId(result) ?? (await query('SELECT id FROM users WHERE email = ?', [email.trim().toLowerCase()]))[0]?.id;
     req.session.userId = userId;
-    const rows = await query(
-      'SELECT id, full_name, email, phone, reward_points, created_at FROM users WHERE id = ?',
-      [userId]
-    );
+    const rewards = await processNewUserRewards(query, userId, { referralCode });
+    const rows = await loadUserById(userId);
     saveSession(req, (saveErr) => {
       if (saveErr) {
         console.error(saveErr);
         return res.status(500).json({ ok: false, error: 'Session save failed' });
       }
-      res.json({ ok: true, user: sanitizeUser(rows[0]) });
+      const pts = rewards.welcomePoints || rewards.registrationAwarded || 0;
+      res.json({
+        ok: true,
+        user: sanitizeUser(rows),
+        welcomePoints: pts,
+        referralBonus: rewards.referralSignupAwarded || 0,
+        message:
+          pts > 0
+            ? rewards.referralSignupAwarded
+              ? `Welcome! You earned ${pts} reward points (${rewards.registrationAwarded} signup + ${rewards.referralSignupAwarded} referral bonus).`
+              : `Welcome! You earned ${pts} reward points for joining Raku Shop BD.`
+            : 'Welcome to Raku Shop BD!',
+      });
     });
   } catch (err) {
     console.error(err);
@@ -106,12 +129,14 @@ router.post('/login', async (req, res) => {
     }
 
     req.session.userId = user.id;
+    await assignReferralCode(query, user.id);
+    const fresh = await loadUserById(user.id);
     saveSession(req, (saveErr) => {
       if (saveErr) {
         console.error(saveErr);
         return res.status(500).json({ ok: false, error: 'Session save failed' });
       }
-      res.json({ ok: true, user: sanitizeUser(user) });
+      res.json({ ok: true, user: sanitizeUser(fresh || user) });
     });
   } catch (err) {
     console.error(err);
@@ -122,6 +147,43 @@ router.post('/login', async (req, res) => {
 router.post('/logout', (req, res) => {
   req.session = null;
   res.json({ ok: true });
+});
+
+router.get('/referral', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    await assignReferralCode(query, userId);
+    const row = await loadUserById(userId);
+    if (!row) return res.status(404).json({ ok: false, error: 'Account not found' });
+
+    const [settings, cfg, countRows] = await Promise.all([
+      getSiteSettings(query),
+      getRewardPointConfig(query),
+      query('SELECT COUNT(*) AS cnt FROM users WHERE referred_by_user_id = ?', [userId]),
+    ]);
+
+    const code = row.referral_code || null;
+    const siteBase = normalizeSiteBaseUrl(settings.site_url || '');
+    const link = code
+      ? (siteBase ? `${siteBase}/?ref=${encodeURIComponent(code)}` : `/?ref=${encodeURIComponent(code)}`)
+      : null;
+
+    res.json({
+      ok: true,
+      referral: {
+        code,
+        link,
+        referralCount: Number(countRows[0]?.cnt ?? countRows[0]?.count) || 0,
+        registrationBonus: cfg.registration,
+        referralSignupBonus: cfg.referralSignup,
+        referrerBonus: cfg.referral,
+        newUserTotalWithReferral: cfg.registration + cfg.referralSignup,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load referral info' });
+  }
 });
 
 router.put('/profile', requireAuth, async (req, res) => {
@@ -137,11 +199,8 @@ router.put('/profile', requireAuth, async (req, res) => {
       req.session.userId,
     ]);
 
-    const rows = await query(
-      'SELECT id, full_name, email, phone, reward_points, created_at FROM users WHERE id = ?',
-      [req.session.userId]
-    );
-    res.json({ ok: true, user: sanitizeUser(rows[0]) });
+    const rows = await loadUserById(req.session.userId);
+    res.json({ ok: true, user: sanitizeUser(rows) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not update profile' });

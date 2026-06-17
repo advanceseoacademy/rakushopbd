@@ -1246,17 +1246,41 @@
     });
   }
 
+  function rewardPointsEnabled() {
+    const s = window._rakuStoreSettings || {};
+    return s.reward_points_enabled !== '0';
+  }
+
+  function rewardPointsPerTaka() {
+    if (!rewardPointsEnabled()) return 0;
+    const s = window._rakuStoreSettings || {};
+    const n = Number(s.reward_points_per_taka);
+    return Number.isFinite(n) && n > 0 ? n : 100;
+  }
+
+  function pointsForAmount(amount) {
+    const perTaka = rewardPointsPerTaka();
+    if (!perTaka) return 0;
+    const n = Number(amount);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    return Math.floor(n / perTaka);
+  }
+
   function paintProductRewardPoints(qty) {
     const wrap = document.getElementById('pv-reward-points');
     const numEl = document.getElementById('pv-reward-points-num');
     if (!wrap || !numEl) return;
+    if (!rewardPointsEnabled()) {
+      wrap.hidden = true;
+      return;
+    }
     const price = Number(currentProduct?.price);
     if (!Number.isFinite(price) || price <= 0) {
       wrap.hidden = true;
       return;
     }
     const q = Math.max(1, Number(qty) || 1);
-    const points = Math.floor((price * q) / 100);
+    const points = pointsForAmount(price * q);
     if (points > 0) {
       numEl.textContent = String(points);
       wrap.hidden = false;
@@ -1574,21 +1598,51 @@
       const rating = Number(document.getElementById('review-rating')?.value) || 5;
       const customerName = document.getElementById('review-name')?.value?.trim();
       const comment = document.getElementById('review-comment')?.value?.trim();
+      const photoInput = document.getElementById('review-photo');
       if (!comment) {
         showReviewMsg('Please write a few words about the product.', 'error');
         return;
       }
       btn.disabled = true;
+      let imageUrl = null;
+      const photoFile = photoInput?.files?.[0];
+      if (photoFile) {
+        try {
+          const fd = new FormData();
+          fd.append('image', photoFile);
+          const upRes = await fetch((window.RAKU_API_BASE || '') + '/api/reviews/upload-image', {
+            method: 'POST',
+            credentials: 'same-origin',
+            body: fd,
+          });
+          const upData = await upRes.json();
+          if (!upData.ok) {
+            btn.disabled = false;
+            showReviewMsg(upData.error || 'Could not upload photo', 'error');
+            return;
+          }
+          imageUrl = upData.url;
+        } catch (_) {
+          btn.disabled = false;
+          showReviewMsg('Could not upload photo', 'error');
+          return;
+        }
+      }
       const data = await apiFetch(`/products/${productId}/reviews`, {
         method: 'POST',
-        body: JSON.stringify({ rating, customerName, comment }),
+        body: JSON.stringify({ rating, customerName, comment, imageUrl }),
       });
       btn.disabled = false;
-      if (data.ok) {
-        showReviewMsg(data.message, 'success');
-        document.getElementById('review-comment').value = '';
-        setReviewRating(5);
-        if (data.status === 'approved') loadProductReviews(productId);
+        if (data.ok) {
+          showReviewMsg(data.message, 'success');
+          document.getElementById('review-comment').value = '';
+          if (photoInput) photoInput.value = '';
+          setReviewRating(5);
+          if (data.pointsAwarded && window._rakuUpdateUserRewardPoints && data.pointsAwarded > 0) {
+            const cur = Number(document.getElementById('acc-stat-points')?.textContent) || 0;
+            window._rakuUpdateUserRewardPoints(cur + Number(data.pointsAwarded));
+          }
+          if (data.status === 'approved') loadProductReviews(productId);
       } else {
         showReviewMsg(data.error || 'Could not submit', 'error');
       }
@@ -1929,9 +1983,9 @@
   }
 
   function pointsFromCart(cart) {
-    if (!Array.isArray(cart)) return 0;
+    if (!Array.isArray(cart) || !rewardPointsEnabled()) return 0;
     return cart.reduce(
-      (sum, item) => sum + Math.floor((Number(item.price) * Number(item.qty || 1)) / 100),
+      (sum, item) => sum + pointsForAmount(Number(item.price) * Number(item.qty || 1)),
       0
     );
   }
@@ -1940,6 +1994,10 @@
     const row = document.getElementById('checkout-reward-points-row');
     const el = document.getElementById('checkout-reward-points');
     if (!row || !el) return;
+    if (!rewardPointsEnabled()) {
+      row.hidden = true;
+      return;
+    }
     const points = pointsFromCart(cart);
     if (points > 0) {
       el.textContent = String(points);

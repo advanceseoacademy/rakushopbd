@@ -193,13 +193,17 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       if (!['approved', 'rejected', 'pending'].includes(status)) {
         return res.status(400).json({ ok: false, error: 'Invalid status' });
       }
-      const rows = await query('SELECT product_id FROM product_reviews WHERE id = ? LIMIT 1', [
-        req.params.id,
-      ]);
+      const rows = await query('SELECT * FROM product_reviews WHERE id = ? LIMIT 1', [req.params.id]);
+      if (!rows.length) return res.status(404).json({ ok: false, error: 'Review not found' });
+      const prev = rows[0];
       await query('UPDATE product_reviews SET status = ? WHERE id = ?', [status, req.params.id]);
       if (rows.length) {
         const { syncProductReviewStats } = require('../lib/productReviews');
         await syncProductReviewStats(query, rows[0].product_id);
+      }
+      if (status === 'approved' && String(prev.status).toLowerCase() !== 'approved') {
+        const { awardApprovedReviewPoints } = require('../lib/rewardPoints');
+        await awardApprovedReviewPoints(query, prev);
       }
       res.json({ ok: true });
     } catch (err) {

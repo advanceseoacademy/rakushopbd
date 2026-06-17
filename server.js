@@ -29,13 +29,15 @@ const { ensureFooterSettings } = require('./lib/ensureFooterSettings');
 const { ensureContactMessagesTable } = require('./lib/ensureContactMessagesTable');
 const { ensurePhoneSubscribersTable } = require('./lib/ensurePhoneSubscribersTable');
 const { ensureMarketingSettings } = require('./lib/ensureMarketingSettings');
-const { ensureRewardsSettings } = require('./lib/ensureRewardsSettings');
 const { ensureRewardPointsColumn } = require('./lib/ensureRewardPointsColumn');
+const { ensureRewardPointEvents } = require('./lib/ensureRewardPointEvents');
+const { ensureRewardPointSettings } = require('./lib/ensureRewardPointSettings');
 const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
 const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
 const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
 const { ensureTrackingSettings } = require('./lib/ensureTrackingSettings');
+const { ensureNotifyEmailSettings } = require('./lib/ensureNotifyEmailSettings');
 const { ensureLegalPages } = require('./lib/ensureLegalPages');
 const { ensureCategoryParent } = require('./lib/ensureCategoryParent');
 const { ensureCategoryIconUrl } = require('./lib/ensureCategoryIconUrl');
@@ -225,25 +227,9 @@ async function renderStorefront(req, res) {
 
 app.get('/', (req, res) => renderStorefront(req, res));
 
-app.get('/admin', async (req, res) => {
+app.get('/admin', (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
-  try {
-    await ensureRewardsSettings();
-    const { parseRewardsContent } = require('./lib/rewardsPage');
-    const { query } = require('./config/db');
-    const rows = await query(
-      'SELECT setting_value FROM site_settings WHERE setting_key = ? LIMIT 1',
-      ['rewards_page_content']
-    );
-    const rewardsContent = parseRewardsContent({
-      rewards_page_content: rows[0]?.setting_value,
-    });
-    res.render('admin', { rewardsContent });
-  } catch (err) {
-    console.warn('admin render:', err.message);
-    const { getDefaultRewardsContent } = require('./lib/rewardsPage');
-    res.render('admin', { rewardsContent: getDefaultRewardsContent() });
-  }
+  res.render('admin');
 });
 
 app.use('/api', apiRoutes);
@@ -253,7 +239,7 @@ app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/rewards', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy', '/reward-point-policy'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy', '/reward-point-policy'],
   (req, res) => renderStorefront(req, res)
 );
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));
@@ -305,12 +291,14 @@ app.listen(PORT, () => {
   ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));
   ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
   ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
-  ensureRewardsSettings().catch((err) => console.warn('rewards settings:', err.message));
   ensureRewardPointsColumn().catch((err) => console.warn('reward_points column:', err.message));
+  ensureRewardPointEvents().catch((err) => console.warn('reward point events:', err.message));
+  ensureRewardPointSettings().catch((err) => console.warn('reward point settings:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
   ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
   ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
+  ensureNotifyEmailSettings().catch((err) => console.warn('Notify email settings:', err.message));
   ensureLegalPages().catch((err) => console.warn('Legal pages:', err.message));
 });

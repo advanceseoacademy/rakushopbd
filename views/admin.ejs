@@ -337,7 +337,7 @@
               <a href="/api/admin/customers/export" class="btn btn-primary btn-sm" target="_blank"><i class="ti ti-download"></i> Export CSV</a>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Orders</th><th>Total spent</th><th>Joined</th></tr></thead>
+          <table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Points</th><th>Orders</th><th>Total spent</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody id="customers-tbody"></tbody></table>
         </div>
       </div>
@@ -420,7 +420,7 @@
         </div>
       </div>
 
-      <%- include('partials/admin-marketing-section', { rewardsContent: typeof rewardsContent !== 'undefined' ? rewardsContent : null }) %>
+      <%- include('partials/admin-marketing-section') %>
 
       <div class="adm-section" id="sec-messenger">
         <div class="card" style="margin-bottom:20px;">
@@ -597,6 +597,7 @@
             <button type="button" class="settings-tab" data-settings-tab="delivery" role="tab"><i class="ti ti-truck-delivery"></i><span>Delivery</span></button>
             <button type="button" class="settings-tab" data-settings-tab="seo" role="tab"><i class="ti ti-world"></i><span>SEO</span></button>
             <button type="button" class="settings-tab" data-settings-tab="tracking" role="tab"><i class="ti ti-chart-dots-3"></i><span>Analytics</span></button>
+            <button type="button" class="settings-tab" data-settings-tab="rewardpoints" role="tab"><i class="ti ti-award"></i><span>Reward Points</span></button>
           </nav>
 
           <form id="settings-form" class="settings-form-wrap">
@@ -697,6 +698,47 @@
             <form id="delivery-form">
               <div class="settings-card">
                 <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--blue"><i class="ti ti-mail"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Email notifications (SMTP)</h3>
+                    <p class="settings-card-desc">Get alerts for new orders, contact messages, and appointments. Gmail App Password recommended.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="form-group">
+                    <label class="form-label">Notification email (receive alerts)</label>
+                    <input class="form-input" id="set-notify-email" type="email" placeholder="diderjp@gmail.com">
+                  </div>
+                  <div class="form-2col">
+                    <div class="form-group">
+                      <label class="form-label">SMTP host</label>
+                      <input class="form-input" id="set-smtp-host" placeholder="smtp.gmail.com">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">SMTP port</label>
+                      <input class="form-input" id="set-smtp-port" type="number" min="1" placeholder="587">
+                    </div>
+                  </div>
+                  <div class="form-2col">
+                    <div class="form-group">
+                      <label class="form-label">SMTP user (Gmail address)</label>
+                      <input class="form-input" id="set-smtp-user" type="email" placeholder="diderjp@gmail.com">
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">SMTP App Password</label>
+                      <input class="form-input" id="set-smtp-pass" type="password" autocomplete="new-password" placeholder="16-character app password">
+                      <small class="form-hint" id="set-smtp-pass-hint">Leave blank to keep the saved password.</small>
+                    </div>
+                  </div>
+                  <div class="settings-toggle-card" style="margin:12px 0;">
+                    <div class="settings-toggle-card-text"><strong>Email notifications</strong><span>Orders, contact form &amp; appointments</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-email-notify"><span class="toggle-slider"></span></label>
+                  </div>
+                  <button type="button" class="btn btn-outline btn-sm" id="set-smtp-test-btn"><i class="ti ti-send"></i> Send test email</button>
+                </div>
+              </div>
+              <div class="settings-card">
+                <div class="settings-card-head">
                   <div class="settings-card-icon settings-card-icon--amber"><i class="ti ti-truck-delivery"></i></div>
                   <div>
                     <h3 class="settings-card-title">Delivery fees</h3>
@@ -743,10 +785,6 @@
                   <div class="settings-toggle-card">
                     <div class="settings-toggle-card-text"><strong>Review approval</strong><span>Reviews need admin approval</span></div>
                     <label class="toggle"><input type="checkbox" id="set-review-approval"><span class="toggle-slider"></span></label>
-                  </div>
-                  <div class="settings-toggle-card">
-                    <div class="settings-toggle-card-text"><strong>Email notifications</strong><span>Order email alerts</span></div>
-                    <label class="toggle"><input type="checkbox" id="set-email-notify"><span class="toggle-slider"></span></label>
                   </div>
                   <div class="settings-toggle-card">
                     <div class="settings-toggle-card-text"><strong>SMS notifications</strong><span>Order SMS alerts</span></div>
@@ -847,6 +885,53 @@
                 </div>
                 <div class="settings-card-foot">
                   <button type="submit" class="btn btn-primary"><i class="ti ti-code"></i> Save Analytics Settings</button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <div class="settings-panel" id="settings-panel-rewardpoints" role="tabpanel">
+            <form id="reward-points-form">
+              <div class="settings-card">
+                <div class="settings-card-head">
+                  <div class="settings-card-icon settings-card-icon--amber"><i class="ti ti-award"></i></div>
+                  <div>
+                    <h3 class="settings-card-title">Reward points program</h3>
+                    <p class="settings-card-desc">Control how customers earn points. Policy text is edited under <strong>Legal → Points</strong>.</p>
+                  </div>
+                </div>
+                <div class="settings-card-body">
+                  <div class="settings-toggle-card" style="margin-bottom:20px;">
+                    <div class="settings-toggle-card-text"><strong>Enable reward points</strong><span>Turn off to stop all new point awards</span></div>
+                    <label class="toggle"><input type="checkbox" id="set-rp-enabled" checked><span class="toggle-slider"></span></label>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Spend rate (৳ per 1 point)</label>
+                    <input class="form-input" id="set-rp-per-taka" type="number" min="1" placeholder="100">
+                    <small class="form-hint">Example: <code>100</code> = 1 point per ৳100 spent on delivered orders.</small>
+                  </div>
+                  <div class="settings-subsection">
+                    <div class="settings-subsection-label"><i class="ti ti-gift"></i> Bonus points</div>
+                    <div class="form-3col">
+                      <div class="form-group"><label class="form-label">Registration</label><input class="form-input" id="set-rp-registration" type="number" min="0"></div>
+                      <div class="form-group"><label class="form-label">First order</label><input class="form-input" id="set-rp-first-order" type="number" min="0"></div>
+                      <div class="form-group"><label class="form-label">Product review</label><input class="form-input" id="set-rp-review" type="number" min="0"></div>
+                      <div class="form-group"><label class="form-label">Photo review (+)</label><input class="form-input" id="set-rp-photo-review" type="number" min="0"></div>
+                      <div class="form-group"><label class="form-label">Friend referral (you earn)</label><input class="form-input" id="set-rp-referral" type="number" min="0"></div>
+                      <div class="form-group"><label class="form-label">Referral signup bonus (friend)</label><input class="form-input" id="set-rp-referral-signup" type="number" min="0"></div>
+                    </div>
+                  </div>
+                  <div class="settings-subsection">
+                    <div class="settings-subsection-label"><i class="ti ti-shopping-cart"></i> Redeem rules (checkout)</div>
+                    <div class="form-2col">
+                      <div class="form-group"><label class="form-label">Minimum points to redeem</label><input class="form-input" id="set-rp-min-redeem" type="number" min="1"></div>
+                      <div class="form-group"><label class="form-label">Max % of order payable with points</label><input class="form-input" id="set-rp-max-percent" type="number" min="0" max="100"></div>
+                    </div>
+                    <small class="form-hint">Redeem-at-checkout uses these limits when that feature is enabled on the storefront.</small>
+                  </div>
+                </div>
+                <div class="settings-card-foot">
+                  <button type="submit" class="btn btn-primary"><i class="ti ti-award"></i> Save Reward Point Rules</button>
                 </div>
               </div>
             </form>
@@ -1059,6 +1144,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/admin-rich-editor.js?v=4"></script>
-<script src="/js/admin.js?v=74"></script>
+<script src="/js/admin.js?v=80"></script>
 </body>
 </html>

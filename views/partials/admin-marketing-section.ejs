@@ -3,14 +3,13 @@
           <div class="settings-page-head">
             <div>
               <h2 class="settings-page-title">Marketing &amp; Homepage</h2>
-              <p class="settings-page-desc">Homepage hero, deals, rewards page, promo cards, and phone subscribers — organized by tab. Each area has its own save button.</p>
+              <p class="settings-page-desc">Homepage hero, deals, promo cards, and phone subscribers — organized by tab. Each area has its own save button.</p>
             </div>
           </div>
 
           <nav class="settings-tabs" role="tablist" aria-label="Marketing sections">
             <button type="button" class="settings-tab active" data-marketing-tab="hero" role="tab"><i class="ti ti-photo"></i><span>Hero Slider</span></button>
             <button type="button" class="settings-tab" data-marketing-tab="deals" role="tab"><i class="ti ti-flame"></i><span>Today Deals</span></button>
-            <button type="button" class="settings-tab" data-marketing-tab="rewards" role="tab"><i class="ti ti-award"></i><span>Rewards Page</span></button>
             <button type="button" class="settings-tab" data-marketing-tab="promo" role="tab"><i class="ti ti-layout-cards"></i><span>Promo Cards</span></button>
             <button type="button" class="settings-tab" data-marketing-tab="subscribers" role="tab"><i class="ti ti-phone"></i><span>Subscribers</span></button>
           </nav>
@@ -76,109 +75,6 @@
               </div>
               <div class="settings-card-foot">
                 <button type="button" class="btn btn-primary" id="today-deals-save-btn"><i class="ti ti-device-floppy"></i> Save Today Deals</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Rewards page -->
-          <% 
-            const rc = rewardsContent || {};
-            const rwTier = (idx) => (rc.tiers && rc.tiers[idx]) ? rc.tiers[idx] : {};
-            const rwExtra = (idx) => {
-              const items = rc.extra && rc.extra.items;
-              if (!items || !items[idx]) return '';
-              const it = items[idx];
-              return typeof it === 'string' ? it : (it.text || '');
-            };
-            const rwRedeem = (idx) => (rc.redeem && rc.redeem.items && rc.redeem.items[idx]) ? rc.redeem.items[idx] : '';
-          %>
-          <div class="settings-panel" id="marketing-panel-rewards" role="tabpanel">
-            <div class="settings-card" id="rewards-page-admin">
-              <div class="settings-card-head">
-                <div class="settings-card-icon settings-card-icon--purple"><i class="ti ti-award"></i></div>
-                <div>
-                  <h3 class="settings-card-title">Raku Rewards page</h3>
-                  <p class="settings-card-desc">Edit text at <code>/rewards</code> — page layout stays the same.</p>
-                </div>
-              </div>
-              <div class="settings-card-body">
-                <div class="settings-subsection-label"><i class="ti ti-text-size"></i> Page header</div>
-                <div class="form-group"><label class="form-label">Eyebrow text</label><input class="form-input" id="rw-eyebrow" value="<%= rc.eyebrow || 'Earn More as You Shop!' %>" placeholder="Earn More as You Shop!"></div>
-                <div class="form-2col">
-                  <div class="form-group"><label class="form-label">Page title</label><input class="form-input" id="rw-title" value="<%= rc.title || 'Raku Rewards Program' %>" placeholder="Raku Rewards Program"></div>
-                  <div class="form-group"><label class="form-label">Intro</label><textarea class="form-input form-textarea" id="rw-intro" rows="3"><%= rc.intro || '' %></textarea></div>
-                </div>
-
-                <div class="settings-subsection">
-                  <div class="settings-subsection-label"><i class="ti ti-medal"></i> Membership tiers</div>
-                  <div class="marketing-tier-grid">
-                    <div class="form-seo-panel marketing-tier-panel">
-                      <div class="form-seo-summary marketing-tier-head"><i class="ti ti-award"></i> Silver</div>
-                      <div class="form-seo-body">
-                        <div class="form-group"><label class="form-label">Name</label><input class="form-input rw-tier-field" data-tier="silver" data-field="name" value="<%= rwTier(0).name || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Intro</label><input class="form-input rw-tier-field" data-tier="silver" data-field="intro" value="<%= rwTier(0).intro || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Points line</label><input class="form-input rw-tier-field" data-tier="silver" data-field="pointsLine" value="<%= rwTier(0).pointsLine || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Value line</label><input class="form-input rw-tier-field" data-tier="silver" data-field="valueLine" value="<%= rwTier(0).valueLine || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Note</label><input class="form-input rw-tier-field" data-tier="silver" data-field="note" value="<%= rwTier(0).note || '' %>"></div>
-                      </div>
-                    </div>
-                    <div class="form-seo-panel marketing-tier-panel">
-                      <div class="form-seo-summary marketing-tier-head"><i class="ti ti-award"></i> Gold</div>
-                      <div class="form-seo-body">
-                        <div class="form-group"><label class="form-label">Name</label><input class="form-input rw-tier-field" data-tier="gold" data-field="name" value="<%= rwTier(1).name || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Intro</label><input class="form-input rw-tier-field" data-tier="gold" data-field="intro" value="<%= rwTier(1).intro || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Points line</label><input class="form-input rw-tier-field" data-tier="gold" data-field="pointsLine" value="<%= rwTier(1).pointsLine || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Value line</label><input class="form-input rw-tier-field" data-tier="gold" data-field="valueLine" value="<%= rwTier(1).valueLine || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Note</label><input class="form-input rw-tier-field" data-tier="gold" data-field="note" value="<%= rwTier(1).note || '' %>"></div>
-                      </div>
-                    </div>
-                    <div class="form-seo-panel marketing-tier-panel">
-                      <div class="form-seo-summary marketing-tier-head"><i class="ti ti-award"></i> Platinum</div>
-                      <div class="form-seo-body">
-                        <div class="form-group"><label class="form-label">Name</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="name" value="<%= rwTier(2).name || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Intro</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="intro" value="<%= rwTier(2).intro || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Points line</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="pointsLine" value="<%= rwTier(2).pointsLine || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Value line</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="valueLine" value="<%= rwTier(2).valueLine || '' %>"></div>
-                        <div class="form-group"><label class="form-label">Note</label><input class="form-input rw-tier-field" data-tier="platinum" data-field="note" value="<%= rwTier(2).note || '' %>"></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="settings-subsection">
-                  <div class="settings-subsection-label"><i class="ti ti-sparkles"></i> Extra ways to earn</div>
-                  <div class="form-2col">
-                    <div class="form-group"><label class="form-label">Section title</label><input class="form-input" id="rw-extra-title" value="<%= rc.extra && rc.extra.title ? rc.extra.title : '' %>"></div>
-                    <div class="form-group"><label class="form-label">Subtitle</label><input class="form-input" id="rw-extra-sub" value="<%= rc.extra && rc.extra.subtitle ? rc.extra.subtitle : '' %>"></div>
-                  </div>
-                  <div class="form-group"><label class="form-label">Item 1</label><input class="form-input" id="rw-extra-1" value="<%= rwExtra(0) %>"></div>
-                  <div class="form-group"><label class="form-label">Item 2</label><input class="form-input" id="rw-extra-2" value="<%= rwExtra(1) %>"></div>
-                  <div class="form-group"><label class="form-label">Item 3</label><input class="form-input" id="rw-extra-3" value="<%= rwExtra(2) %>"></div>
-                </div>
-
-                <div class="settings-subsection">
-                  <div class="settings-subsection-label"><i class="ti ti-gift"></i> Redeem rules</div>
-                  <div class="form-group"><label class="form-label">Section title</label><input class="form-input" id="rw-redeem-title" value="<%= rc.redeem && rc.redeem.title ? rc.redeem.title : '' %>"></div>
-                  <div class="form-2col">
-                    <div class="form-group"><label class="form-label">Rule 1</label><input class="form-input" id="rw-redeem-1" value="<%= rwRedeem(0) %>"></div>
-                    <div class="form-group"><label class="form-label">Rule 2</label><input class="form-input" id="rw-redeem-2" value="<%= rwRedeem(1) %>"></div>
-                    <div class="form-group"><label class="form-label">Rule 3</label><input class="form-input" id="rw-redeem-3" value="<%= rwRedeem(2) %>"></div>
-                    <div class="form-group"><label class="form-label">Rule 4</label><input class="form-input" id="rw-redeem-4" value="<%= rwRedeem(3) %>"></div>
-                  </div>
-                </div>
-
-                <div class="settings-subsection">
-                  <div class="settings-subsection-label"><i class="ti ti-click"></i> Bottom call-to-action</div>
-                  <div class="form-group"><label class="form-label">CTA title</label><input class="form-input" id="rw-cta-title" value="<%= rc.cta && rc.cta.title ? rc.cta.title : '' %>"></div>
-                  <div class="form-group"><label class="form-label">CTA text</label><textarea class="form-input form-textarea" id="rw-cta-text" rows="2"><%= rc.cta && rc.cta.text ? rc.cta.text : '' %></textarea></div>
-                  <div class="form-2col">
-                    <div class="form-group"><label class="form-label">Shop button</label><input class="form-input" id="rw-cta-shop" value="<%= rc.cta && rc.cta.shopLabel ? rc.cta.shopLabel : '' %>"></div>
-                    <div class="form-group"><label class="form-label">Account button</label><input class="form-input" id="rw-cta-account" value="<%= rc.cta && rc.cta.accountLabel ? rc.cta.accountLabel : '' %>"></div>
-                  </div>
-                </div>
-              </div>
-              <div class="settings-card-foot">
-                <button type="button" class="btn btn-primary" id="rewards-page-save-btn"><i class="ti ti-device-floppy"></i> Save Rewards Page</button>
               </div>
             </div>
           </div>

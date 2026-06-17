@@ -136,6 +136,111 @@
     form.phone.value = user.phone || '';
   }
 
+  const REFERRAL_STORAGE_KEY = 'raku_referral_code';
+
+  function storeReferralCode(code) {
+    const normalized = String(code || '').trim().toUpperCase();
+    if (!normalized) return;
+    try {
+      localStorage.setItem(REFERRAL_STORAGE_KEY, normalized);
+    } catch (_) {}
+    applyStoredReferral();
+  }
+
+  function applyStoredReferral() {
+    let stored = '';
+    try {
+      stored = localStorage.getItem(REFERRAL_STORAGE_KEY) || '';
+    } catch (_) {}
+    const input = document.querySelector('#acc-register-form input[name="referralCode"]');
+    if (input && stored && !input.value.trim()) input.value = stored;
+    const hint = document.getElementById('acc-referral-hint');
+    if (hint) hint.hidden = !(stored || (input && input.value.trim()));
+  }
+
+  function captureReferralFromUrl() {
+    try {
+      const ref = new URLSearchParams(window.location.search).get('ref');
+      if (!ref) return;
+      storeReferralCode(ref);
+      if (window.history?.replaceState) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('ref');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+      if (window.showPage && !window.RAKU_STANDALONE) {
+        window.showPage('account');
+        setAuthTab('register');
+      }
+    } catch (_) {}
+  }
+
+  async function copyText(value, btn) {
+    const text = String(value || '').trim();
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    if (btn) {
+      const prev = btn.innerHTML;
+      btn.innerHTML = '<i class="ti ti-check"></i> Copied';
+      setTimeout(() => {
+        btn.innerHTML = prev;
+      }, 1600);
+    }
+  }
+
+  function paintReferralPanel(info) {
+    if (!info) return;
+    const origin = window.location.origin.replace(/\/$/, '');
+    const link = info.link && /^https?:\/\//i.test(info.link) ? info.link : `${origin}${info.link || '/'}`;
+    const linkEl = document.getElementById('acc-ref-link');
+    const codeEl = document.getElementById('acc-ref-code');
+    if (linkEl) linkEl.value = link;
+    if (codeEl) codeEl.value = info.code || '—';
+
+    const setNum = (id, n) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = String(n);
+    };
+    setNum('acc-ref-count', info.referralCount || 0);
+    setNum('acc-ref-you-earn', info.referrerBonus || 0);
+    setNum('acc-ref-friend-earn', info.newUserTotalWithReferral || 0);
+    setNum('acc-ref-step-friend', info.newUserTotalWithReferral || 0);
+    setNum('acc-ref-step-you', info.referrerBonus || 0);
+
+    const breakdown = document.getElementById('acc-ref-step-breakdown');
+    if (breakdown) {
+      breakdown.textContent = `${info.registrationBonus || 100} registration + ${info.referralSignupBonus || 50} referral bonus`;
+    }
+  }
+
+  async function loadReferralPanel() {
+    if (!currentUser) return;
+    const data = await authFetch('/referral');
+    if (data.ok && data.referral) paintReferralPanel(data.referral);
+  }
+
+  function bindReferralPanel() {
+    const copyLink = document.getElementById('acc-ref-copy-link');
+    const copyCode = document.getElementById('acc-ref-copy-code');
+    if (copyLink && !copyLink.dataset.bound) {
+      copyLink.dataset.bound = '1';
+      copyLink.onclick = () => copyText(document.getElementById('acc-ref-link')?.value, copyLink);
+    }
+    if (copyCode && !copyCode.dataset.bound) {
+      copyCode.dataset.bound = '1';
+      copyCode.onclick = () => copyText(document.getElementById('acc-ref-code')?.value, copyCode);
+    }
+  }
+
   function updateNavAccountLabel() {
     const label = document.getElementById('nav-account-label');
     if (label) label.textContent = currentUser ? 'My Account' : 'Login / Register';
@@ -169,6 +274,7 @@
     fillProfileForm(user);
     loadOrders();
     loadAddresses();
+    loadReferralPanel();
   }
 
   function setLoggedOutUI() {
@@ -211,6 +317,7 @@
     document.querySelectorAll('.acc-panel').forEach((p) => {
       p.classList.toggle('active', p === target);
     });
+    if (panelId === 'referral') loadReferralPanel();
     return true;
   }
 
@@ -360,7 +467,7 @@
     },
     register: {
       heading: 'Create your account',
-      subheading: 'Join RakuShopBD — it only takes a minute',
+      subheading: 'Join Raku Shop BD — get 100 reward points (150 with a referral link)',
     },
   };
 
@@ -380,6 +487,7 @@
     if (sub) sub.textContent = copy.subheading;
     const alert = document.getElementById('acc-auth-alert');
     if (alert) alert.innerHTML = '';
+    if (!isLogin) applyStoredReferral();
   }
 
   function bindAuthTabs() {
@@ -421,11 +529,18 @@
             fullName: fd.get('fullName'),
             email: fd.get('email'),
             password: fd.get('password'),
+            referralCode: fd.get('referralCode'),
           }),
         });
         if (data.ok) {
+          try {
+            localStorage.removeItem(REFERRAL_STORAGE_KEY);
+          } catch (_) {}
           setLoggedInUI(data.user);
           switchPanel('dashboard');
+          if (data.message) {
+            showAlert(document.getElementById('acc-profile-alert'), data.message, 'success');
+          }
         } else {
           showAlert(document.getElementById('acc-auth-alert'), data.error || 'Registration failed');
         }
@@ -561,6 +676,8 @@
     openTrackPanel(orderNumber || '');
   };
 
+  window._rakuStoreReferralCode = storeReferralCode;
+
   window._rakuUpdateUserRewardPoints = function (balance) {
     const pts = Number(balance) || 0;
     if (currentUser) currentUser.rewardPoints = pts;
@@ -574,6 +691,9 @@
     initPasswordToggles();
     bindTrackPanel();
     bindNav();
+    bindReferralPanel();
+    captureReferralFromUrl();
+    applyStoredReferral();
   }
 
   initPasswordToggles();

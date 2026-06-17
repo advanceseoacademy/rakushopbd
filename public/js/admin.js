@@ -1246,184 +1246,6 @@
     };
   }
 
-  const RW_TIER_ORDER = ['silver', 'gold', 'platinum'];
-  const RW_EXTRA_ICONS = ['ti-message-circle', 'ti-users', 'ti-shopping-bag'];
-
-  const REWARDS_PAGE_DEFAULTS = {
-    eyebrow: 'Earn More as You Shop!',
-    title: 'Raku Rewards Program',
-    intro:
-      'We reward loyal customers for shopping and engaging with RakuShopBD. The more you shop, the more benefits you unlock — earn points on every order and redeem them on future purchases.',
-    tiers: [
-      {
-        key: 'silver',
-        name: 'Raku Silver',
-        intro: 'Become a Raku Silver member with just one successful order!',
-        pointsLine: 'Earn 1 point for every ৳100 spent',
-        valueLine: '1 point = ৳1',
-        note: 'Start earning points right away and redeem them on your next purchase.',
-      },
-      {
-        key: 'gold',
-        name: 'Raku Gold',
-        intro: 'Earn 100 points within the last 6 months to reach Gold status.',
-        pointsLine: 'Earn 1.5 points for every ৳100 spent',
-        valueLine: '1 point = ৳1',
-        note: 'Exclusive benefits: special discounts on selected products and early access to offers.',
-      },
-      {
-        key: 'platinum',
-        name: 'Raku Platinum',
-        intro: 'Achieve Platinum by earning 300 points in the last 6 months.',
-        pointsLine: 'Earn 2 points for every ৳100 spent',
-        valueLine: '1 point = ৳1',
-        note: 'Platinum perks: exclusive discounts, special gifts, and first access to promotions.',
-      },
-    ],
-    extra: {
-      title: 'Extra Ways to Earn Points',
-      subtitle: 'Not only shopping — we also reward your activity on our site.',
-      items: [
-        'Product reviews: Earn 5 points per approved review',
-        'Community engagement: Earn bonus points on selected campaigns',
-        'Every purchase: Keep earning points on all eligible orders',
-      ],
-    },
-    redeem: {
-      title: 'How to Redeem Points',
-      items: [
-        'Minimum 100 points required to redeem',
-        'After 100 points, redeem in multiples of 50',
-        'Apply points at checkout on your RakuShopBD account',
-        'Points cannot be exchanged for cash',
-      ],
-    },
-    cta: {
-      title: 'Unlock Rewards with Ease',
-      text: 'Whether you are buying skincare favourites or leaving a helpful review, points add up quickly. Join today and start collecting rewards!',
-      shopLabel: 'Start Shopping',
-      accountLabel: 'My Account',
-    },
-  };
-
-  function parseRewardsAdminContent(raw) {
-    const defaults = REWARDS_PAGE_DEFAULTS;
-    let data = null;
-    try {
-      if (typeof raw === 'string' && raw.trim()) data = JSON.parse(raw);
-      else if (raw && typeof raw === 'object') data = raw;
-    } catch (_) {}
-    if (!data) return defaults;
-
-    const tiersIn = Array.isArray(data.tiers) ? data.tiers : [];
-    const tiers = defaults.tiers.map((def, i) => {
-      const t = tiersIn[i] || {};
-      return {
-        key: def.key,
-        name: String(t.name || def.name).trim() || def.name,
-        intro: String(t.intro || def.intro).trim() || def.intro,
-        pointsLine: String(t.pointsLine || t.points || def.pointsLine).trim() || def.pointsLine,
-        valueLine: String(t.valueLine || t.value || def.valueLine).trim() || def.valueLine,
-        note: String(t.note || def.note).trim() || def.note,
-      };
-    });
-
-    const extraItems = Array.isArray(data.extra?.items) ? data.extra.items : [];
-    const extra = {
-      title: String(data.extra?.title || defaults.extra.title).trim() || defaults.extra.title,
-      subtitle: String(data.extra?.subtitle || defaults.extra.subtitle).trim() || defaults.extra.subtitle,
-      items: defaults.extra.items.map((def, i) => String(extraItems[i]?.text || extraItems[i] || def).trim() || def),
-    };
-
-    const redeemItems = Array.isArray(data.redeem?.items) ? data.redeem.items : [];
-    const redeem = {
-      title: String(data.redeem?.title || defaults.redeem.title).trim() || defaults.redeem.title,
-      items: defaults.redeem.items.map((def, i) => String(redeemItems[i] || def).trim() || def),
-    };
-
-    const cta = {
-      title: String(data.cta?.title || defaults.cta.title).trim() || defaults.cta.title,
-      text: String(data.cta?.text || defaults.cta.text).trim() || defaults.cta.text,
-      shopLabel: String(data.cta?.shopLabel || defaults.cta.shopLabel).trim() || defaults.cta.shopLabel,
-      accountLabel: String(data.cta?.accountLabel || defaults.cta.accountLabel).trim() || defaults.cta.accountLabel,
-    };
-
-    return {
-      eyebrow: String(data.eyebrow || defaults.eyebrow).trim() || defaults.eyebrow,
-      title: String(data.title || defaults.title).trim() || defaults.title,
-      intro: String(data.intro || defaults.intro).trim() || defaults.intro,
-      tiers,
-      extra,
-      redeem,
-      cta,
-    };
-  }
-
-  function fillRewardsPageForm(s) {
-    const c = parseRewardsAdminContent(s?.rewards_page_content);
-    const set = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.value = val ?? '';
-    };
-    set('rw-eyebrow', c.eyebrow);
-    set('rw-title', c.title);
-    set('rw-intro', c.intro);
-    c.tiers.forEach((tier) => {
-      document.querySelectorAll(`.rw-tier-field[data-tier="${tier.key}"]`).forEach((el) => {
-        el.value = tier[el.dataset.field] || '';
-      });
-    });
-    set('rw-extra-title', c.extra.title);
-    set('rw-extra-sub', c.extra.subtitle);
-    set('rw-extra-1', c.extra.items[0]);
-    set('rw-extra-2', c.extra.items[1]);
-    set('rw-extra-3', c.extra.items[2]);
-    set('rw-redeem-title', c.redeem.title);
-    set('rw-redeem-1', c.redeem.items[0]);
-    set('rw-redeem-2', c.redeem.items[1]);
-    set('rw-redeem-3', c.redeem.items[2]);
-    set('rw-redeem-4', c.redeem.items[3]);
-    set('rw-cta-title', c.cta.title);
-    set('rw-cta-text', c.cta.text);
-    set('rw-cta-shop', c.cta.shopLabel);
-    set('rw-cta-account', c.cta.accountLabel);
-  }
-
-  function collectRewardsPageContent() {
-    const tierData = (key) => {
-      const row = { key, name: '', intro: '', pointsLine: '', valueLine: '', note: '' };
-      document.querySelectorAll(`.rw-tier-field[data-tier="${key}"]`).forEach((el) => {
-        row[el.dataset.field] = el.value.trim();
-      });
-      return row;
-    };
-    const raw = {
-      eyebrow: document.getElementById('rw-eyebrow')?.value.trim() || '',
-      title: document.getElementById('rw-title')?.value.trim() || '',
-      intro: document.getElementById('rw-intro')?.value.trim() || '',
-      tiers: RW_TIER_ORDER.map(tierData),
-      extra: {
-        title: document.getElementById('rw-extra-title')?.value.trim() || '',
-        subtitle: document.getElementById('rw-extra-sub')?.value.trim() || '',
-        items: RW_EXTRA_ICONS.map((icon, i) => ({
-          icon,
-          text: document.getElementById(`rw-extra-${i + 1}`)?.value.trim() || '',
-        })),
-      },
-      redeem: {
-        title: document.getElementById('rw-redeem-title')?.value.trim() || '',
-        items: [1, 2, 3, 4].map((n) => document.getElementById(`rw-redeem-${n}`)?.value.trim() || ''),
-      },
-      cta: {
-        title: document.getElementById('rw-cta-title')?.value.trim() || '',
-        text: document.getElementById('rw-cta-text')?.value.trim() || '',
-        shopLabel: document.getElementById('rw-cta-shop')?.value.trim() || '',
-        accountLabel: document.getElementById('rw-cta-account')?.value.trim() || '',
-      },
-    };
-    return parseRewardsAdminContent(JSON.stringify(raw));
-  }
-
   function collectMarketingSettings() {
     return {
       marketing_enabled: document.getElementById('mkt-enabled')?.checked ? '1' : '0',
@@ -1448,7 +1270,6 @@
       window._lastSettingsCache = { ...(window._lastSettingsCache || {}), ...s };
       loadHeroSliderFromSettings(s);
       await loadTodayDealsFromSettings(s);
-      fillRewardsPageForm(s);
       const en = document.getElementById('mkt-enabled');
       if (en) en.checked = s.marketing_enabled !== '0';
       document.getElementById('mkt1-title').value = s.marketing_card1_title || '';
@@ -1469,7 +1290,7 @@
       const mkt2File = document.getElementById('mkt2-file');
       if (mkt2File) mkt2File.value = '';
     } else {
-      fillRewardsPageForm({});
+      loadHeroSliderFromSettings({});
     }
     await loadPhoneSubscribers();
   }
@@ -1563,20 +1384,6 @@
     if (data.ok) {
       toast('Hero slider saved');
       renderHeroSliderSlides();
-    } else toast(data.error || 'Save failed', 'error');
-  });
-
-  document.getElementById('rewards-page-save-btn')?.addEventListener('click', async () => {
-    const content = collectRewardsPageContent();
-    const data = await api('/settings', {
-      method: 'PUT',
-      body: JSON.stringify({ rewards_page_content: JSON.stringify(content) }),
-    });
-    if (data.ok) {
-      if (window._lastSettingsCache) {
-        window._lastSettingsCache.rewards_page_content = JSON.stringify(content);
-      }
-      toast('Rewards page saved');
     } else toast(data.error || 'Save failed', 'error');
   });
 
@@ -2427,12 +2234,50 @@
     const data = await api('/customers' + q);
     if (!data.ok) return;
     document.getElementById('customers-tbody').innerHTML = data.customers
-      .map(
-        (c) => `<tr>
-        <td>${c.fullName}</td><td>${c.email}</td><td>${c.phone}</td>
-        <td>${c.orderCount}</td><td>${c.totalSpentFormatted}</td><td>${fmtDate(c.createdAt)}</td></tr>`
-      )
+      .map((c) => {
+        const safeName = escHtml(c.fullName || 'Customer');
+        return `<tr>
+        <td>${safeName}</td><td>${escHtml(c.email || '')}</td><td>${escHtml(c.phone || '')}</td>
+        <td><button type="button" class="btn btn-outline btn-sm customer-points-btn" data-id="${c.id}" data-points="${c.rewardPoints}" title="Edit points">${c.rewardPoints}</button></td>
+        <td>${c.orderCount}</td><td>${c.totalSpentFormatted}</td><td>${fmtDate(c.createdAt)}</td>
+        <td><button type="button" class="btn btn-danger btn-xs customer-del-btn" data-id="${c.id}" data-name="${safeName.replace(/"/g, '&quot;')}" data-orders="${c.orderCount}" title="Delete account"><i class="ti ti-trash"></i> Delete</button></td></tr>`;
+      })
       .join('');
+    document.querySelectorAll('.customer-points-btn').forEach((btn) => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        const current = Number(btn.dataset.points) || 0;
+        const raw = window.prompt('Set reward points for this customer:', String(current));
+        if (raw == null) return;
+        const next = Math.max(0, Math.floor(Number(raw) || 0));
+        const res = await api(`/customers/${id}/points`, {
+          method: 'PATCH',
+          body: JSON.stringify({ points: next }),
+        });
+        if (res.ok) {
+          toast('Points updated');
+          loadCustomers();
+        } else toast(res.error || 'Failed to update points', 'error');
+      };
+    });
+    document.querySelectorAll('.customer-del-btn').forEach((btn) => {
+      btn.onclick = async () => {
+        const id = btn.dataset.id;
+        const name = btn.dataset.name || 'this customer';
+        const orders = Number(btn.dataset.orders) || 0;
+        let msg = `Delete customer account "${name}" permanently?`;
+        if (orders > 0) {
+          msg += ` They have ${orders} order(s) — orders will stay in the store but will no longer be linked to this account.`;
+        }
+        msg += ' This cannot be undone.';
+        if (!confirm(msg)) return;
+        const res = await api(`/customers/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          toast('Customer deleted');
+          loadCustomers();
+        } else toast(res.error || 'Failed to delete customer', 'error');
+      };
+    });
   }
   document.getElementById('customers-search').oninput = debounce(loadCustomers, 400);
 
@@ -2866,7 +2711,6 @@
     { value: 'appointment', label: 'Book Appointment' },
     { value: 'track', label: 'Track Order' },
     { value: 'faq', label: 'FAQ' },
-    { value: 'rewards', label: 'Raku Rewards' },
     { value: 'contact', label: 'Contact Us' },
     { value: 'privacy', label: 'Privacy Policy' },
     { value: 'terms', label: 'Terms & Conditions' },
@@ -2881,7 +2725,6 @@
     '/appointment': 'appointment',
     '/track': 'track',
     '/faq': 'faq',
-    '/rewards': 'rewards',
     '/contact': 'contact',
     '/privacy-policy': 'privacy',
     '/terms-and-conditions': 'terms',
@@ -3055,6 +2898,9 @@
     if (rev) rev.checked = s.feature_review_approval !== '0';
     const em = document.getElementById('set-email-notify');
     if (em) em.checked = s.feature_email_notify !== '0';
+    const notifyEmail = document.getElementById('set-notify-email');
+    if (notifyEmail) notifyEmail.value = s.notify_email || 'diderjp@gmail.com';
+    fillSmtpSettings(s);
     const sms = document.getElementById('set-sms');
     if (sms) sms.checked = s.feature_sms_notify === '1';
     const siteUrl = document.getElementById('set-site-url');
@@ -3083,7 +2929,76 @@
     if (trBody) trBody.value = s.tracking_scripts_body || '';
     const trFooter = document.getElementById('set-tracking-footer');
     if (trFooter) trFooter.value = s.tracking_scripts_footer || '';
+    fillRewardPointSettings(s);
     fillLegalForm(s);
+  }
+
+  function fillSmtpSettings(s) {
+    if (!s) return;
+    const host = document.getElementById('set-smtp-host');
+    if (host) host.value = s.smtp_host || 'smtp.gmail.com';
+    const port = document.getElementById('set-smtp-port');
+    if (port) port.value = s.smtp_port || '587';
+    const user = document.getElementById('set-smtp-user');
+    if (user) user.value = s.smtp_user || '';
+    const pass = document.getElementById('set-smtp-pass');
+    if (pass) pass.value = '';
+    const hint = document.getElementById('set-smtp-pass-hint');
+    if (hint) {
+      hint.textContent =
+        s.smtp_pass_set === '1'
+          ? 'Password is saved. Enter a new one only to change it.'
+          : 'Gmail: create an App Password at myaccount.google.com/apppasswords';
+    }
+  }
+
+  function collectSmtpSettings() {
+    const pass = document.getElementById('set-smtp-pass')?.value || '';
+    const out = {
+      notify_email: document.getElementById('set-notify-email')?.value?.trim() || 'diderjp@gmail.com',
+      smtp_host: document.getElementById('set-smtp-host')?.value?.trim() || 'smtp.gmail.com',
+      smtp_port: document.getElementById('set-smtp-port')?.value?.trim() || '587',
+      smtp_user: document.getElementById('set-smtp-user')?.value?.trim() || '',
+      feature_email_notify: document.getElementById('set-email-notify')?.checked ? '1' : '0',
+    };
+    if (pass.trim()) out.smtp_pass = pass.trim();
+    return out;
+  }
+
+  function fillRewardPointSettings(s) {
+    if (!s) return;
+    const en = document.getElementById('set-rp-enabled');
+    if (en) en.checked = s.reward_points_enabled !== '0';
+    const map = [
+      ['set-rp-per-taka', 'reward_points_per_taka', '100'],
+      ['set-rp-registration', 'reward_points_registration', '100'],
+      ['set-rp-first-order', 'reward_points_first_order', '20'],
+      ['set-rp-review', 'reward_points_review', '10'],
+      ['set-rp-photo-review', 'reward_points_photo_review', '10'],
+      ['set-rp-referral', 'reward_points_referral', '50'],
+      ['set-rp-referral-signup', 'reward_points_referral_signup', '50'],
+      ['set-rp-min-redeem', 'reward_points_min_redeem', '100'],
+      ['set-rp-max-percent', 'reward_points_max_order_percent', '50'],
+    ];
+    map.forEach(([id, key, fallback]) => {
+      const el = document.getElementById(id);
+      if (el) el.value = s[key] != null && s[key] !== '' ? s[key] : fallback;
+    });
+  }
+
+  function collectRewardPointSettings() {
+    return {
+      reward_points_enabled: document.getElementById('set-rp-enabled')?.checked ? '1' : '0',
+      reward_points_per_taka: document.getElementById('set-rp-per-taka')?.value || '100',
+      reward_points_registration: document.getElementById('set-rp-registration')?.value || '0',
+      reward_points_first_order: document.getElementById('set-rp-first-order')?.value || '0',
+      reward_points_review: document.getElementById('set-rp-review')?.value || '0',
+      reward_points_photo_review: document.getElementById('set-rp-photo-review')?.value || '0',
+      reward_points_referral: document.getElementById('set-rp-referral')?.value || '0',
+      reward_points_referral_signup: document.getElementById('set-rp-referral-signup')?.value || '0',
+      reward_points_min_redeem: document.getElementById('set-rp-min-redeem')?.value || '100',
+      reward_points_max_order_percent: document.getElementById('set-rp-max-percent')?.value || '50',
+    };
   }
 
   function loadLegalPages() {
@@ -3175,9 +3090,6 @@
     root.querySelectorAll('.settings-panel').forEach((p) => {
       p.classList.toggle('active', p.id === `marketing-panel-${tabId}`);
     });
-    if (tabId === 'rewards') {
-      fillRewardsPageForm(window._lastSettingsCache || {});
-    }
   }
 
   function initMarketingTabs() {
@@ -3191,7 +3103,6 @@
 
   initLegalTabs();
   initMarketingTabs();
-  fillRewardsPageForm({});
 
   async function loadAnalytics() {
     const data = await api('/analytics');
@@ -3638,8 +3549,8 @@
       feature_cod: document.getElementById('set-cod').checked ? '1' : '0',
       feature_flash_sale: document.getElementById('set-flash')?.checked ? '1' : '0',
       feature_review_approval: document.getElementById('set-review-approval')?.checked ? '1' : '0',
-      feature_email_notify: document.getElementById('set-email-notify')?.checked ? '1' : '0',
       feature_sms_notify: document.getElementById('set-sms')?.checked ? '1' : '0',
+      ...collectSmtpSettings(),
       ...collectSeoSettings(),
     };
   }
@@ -3697,9 +3608,25 @@
   document.getElementById('delivery-form').onsubmit = async (e) => {
     e.preventDefault();
     const data = await api('/settings', { method: 'PUT', body: JSON.stringify({ settings: collectSettings() }) });
-    if (data.ok) toast('Delivery settings saved');
-    else toast(data.error || 'Failed to save delivery settings', 'error');
+    if (data.ok) {
+      toast('Delivery & email settings saved');
+      const pass = document.getElementById('set-smtp-pass');
+      if (pass) pass.value = '';
+      loadSettings();
+    } else toast(data.error || 'Failed to save delivery settings', 'error');
   };
+
+  document.getElementById('set-smtp-test-btn')?.addEventListener('click', async () => {
+    const btn = document.getElementById('set-smtp-test-btn');
+    if (btn) btn.disabled = true;
+    const data = await api('/settings/test-email', {
+      method: 'POST',
+      body: JSON.stringify({ settings: collectSmtpSettings() }),
+    });
+    if (btn) btn.disabled = false;
+    if (data.ok) toast(data.message || 'Test email sent');
+    else toast(data.error || 'Test email failed', 'error');
+  });
 
   document.getElementById('seo-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -3732,6 +3659,18 @@
       toast('Legal pages saved');
       if (window._lastSettingsCache) Object.assign(window._lastSettingsCache, collectLegalSettings());
     } else toast(data.error || 'Failed to save legal pages', 'error');
+  });
+
+  document.getElementById('reward-points-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings: collectRewardPointSettings() }),
+    });
+    if (data.ok) {
+      toast('Reward point rules saved');
+      if (window._lastSettingsCache) Object.assign(window._lastSettingsCache, collectRewardPointSettings());
+    } else toast(data.error || 'Failed to save reward point rules', 'error');
   });
 
   function debounce(fn, ms) {

@@ -30,6 +30,11 @@ SESSION_SECRET=${get('SESSION_SECRET') || 'rakushopbd-live-secret-change-me-32ch
 ADMIN_USERNAME=${get('ADMIN_USERNAME')}
 ADMIN_EMAIL=${get('ADMIN_EMAIL')}
 ADMIN_PASSWORD=${get('ADMIN_PASSWORD')}
+NOTIFY_EMAIL=${get('NOTIFY_EMAIL') || 'diderjp@gmail.com'}
+SMTP_HOST=${get('SMTP_HOST') || 'smtp.gmail.com'}
+SMTP_PORT=${get('SMTP_PORT') || '587'}
+SMTP_USER=${get('SMTP_USER')}
+SMTP_PASS=${get('SMTP_PASS')}
 `;
 
 fs.writeFileSync(outPath, content, 'utf8');

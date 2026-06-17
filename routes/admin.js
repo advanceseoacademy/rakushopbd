@@ -6,6 +6,9 @@ const { slugify } = require('../lib/slugify');
 const { clearSiteSettingsCache } = require('../lib/siteSettings');
 const { normalizeSiteBaseUrl } = require('../lib/seo');
 const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+const { setUserRewardPoints } = require('../lib/rewardPoints');
+const { sendAdminEmail } = require('../lib/emailNotify');
+const { sanitizeSmtpForAdminResponse } = require('../lib/smtpSettings');
 const { requireAdmin } = require('../middleware/requireAdmin');
 const { sql: sqlDialect, upsertSiteSettingSql, returningId } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
@@ -19,7 +22,6 @@ const {
   normalizeCategoryId,
 } = require('../lib/categoryHelpers');
 const { setProductTodaySellingSlot, setTodaySellingProducts, normalizeSlot } = require('../lib/todaySellingSlots');
-const { parseRewardsContent } = require('../lib/rewardsPage');
 const { awardOrderPointsOnDelivery } = require('../lib/rewardPoints');
 
 const router = express.Router();
@@ -364,12 +366,14 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
     await query('UPDATE orders SET status = ? WHERE id = ?', [status, id]);
 
     let pointsAwarded = 0;
+    let bonusPoints = 0;
     if (status === 'delivered' && prevStatus !== 'delivered') {
       const award = await awardOrderPointsOnDelivery(query, id);
       pointsAwarded = award.earned || 0;
+      bonusPoints = award.bonus || 0;
     }
 
-    res.json({ ok: true, pointsAwarded });
+    res.json({ ok: true, pointsAwarded, bonusPoints });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not update order' });
@@ -797,6 +801,7 @@ router.get('/customers', requireAdmin, async (req, res) => {
     const { search } = req.query;
     let sql = `
       SELECT u.id, u.full_name, u.email, u.phone, u.created_at,
+        COALESCE(u.reward_points, 0) AS reward_points,
         COUNT(DISTINCT o.id) AS order_count,
         COALESCE(SUM(CASE WHEN o.status != 'cancelled' THEN o.total ELSE 0 END), 0) AS total_spent
       FROM users u
@@ -816,6 +821,7 @@ router.get('/customers', requireAdmin, async (req, res) => {
         fullName: c.full_name,
         email: c.email,
         phone: c.phone,
+        rewardPoints: Number(c.reward_points) || 0,
         orderCount: c.order_count,
         totalSpent: Number(c.total_spent),
         totalSpentFormatted: formatPrice(c.total_spent),
@@ -825,6 +831,42 @@ router.get('/customers', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not load customers' });
+  }
+});
+
+router.patch('/customers/:id/points', requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    if (!userId) return res.status(400).json({ ok: false, error: 'Invalid customer' });
+    const points = await setUserRewardPoints(query, userId, req.body.points);
+    res.json({ ok: true, points });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update points' });
+  }
+});
+
+router.delete('/customers/:id', requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    if (!userId) return res.status(400).json({ ok: false, error: 'Invalid customer' });
+
+    const rows = await query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId]);
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Customer not found' });
+
+    await query('UPDATE orders SET user_id = NULL WHERE user_id = ?', [userId]).catch(() => {});
+    await query('UPDATE product_reviews SET user_id = NULL WHERE user_id = ?', [userId]).catch(() => {});
+    await query('UPDATE users SET referred_by_user_id = NULL WHERE referred_by_user_id = ?', [userId]).catch(
+      () => {}
+    );
+    await query('DELETE FROM reward_point_events WHERE user_id = ?', [userId]).catch(() => {});
+    await query('DELETE FROM user_addresses WHERE user_id = ?', [userId]).catch(() => {});
+    await query('DELETE FROM users WHERE id = ?', [userId]);
+
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not delete customer' });
   }
 });
 
@@ -969,8 +1011,7 @@ router.put('/today-selling', requireAdmin, async (req, res) => {
 // ——— Settings ———
 router.get('/settings', requireAdmin, async (req, res) => {
   try {
-    const settings = await getSettingsMap();
-    settings.rewards_page_content = JSON.stringify(parseRewardsContent(settings));
+    const settings = sanitizeSmtpForAdminResponse(await getSettingsMap());
     res.json({ ok: true, settings });
   } catch (err) {
     console.error(err);
@@ -982,6 +1023,8 @@ router.put('/settings', requireAdmin, async (req, res) => {
   try {
     const settings = req.body.settings || req.body;
     for (const [key, value] of Object.entries(settings)) {
+      if (key === 'smtp_pass_set') continue;
+      if (key === 'smtp_pass' && !String(value).trim()) continue;
       let next = String(value);
       if (key === 'site_url') next = normalizeSiteBaseUrl(next);
       await query(upsertSiteSettingSql(), [key, next]);
@@ -992,6 +1035,37 @@ router.put('/settings', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not save settings' });
+  }
+});
+
+router.post('/settings/test-email', requireAdmin, async (req, res) => {
+  try {
+    const saved = await getSettingsMap();
+    const incoming = req.body?.settings || {};
+    const merged = { ...saved, ...incoming };
+    if (!String(incoming.smtp_pass || '').trim() && saved.smtp_pass) {
+      merged.smtp_pass = saved.smtp_pass;
+    }
+
+    const siteName = merged.site_name || 'RakuShopBD';
+    const result = await sendAdminEmail(merged, {
+      subject: `[${siteName}] Test email notification`,
+      text: `This is a test email from ${siteName} admin panel.\n\nIf you received this, SMTP is configured correctly.`,
+      html: `<p>This is a test email from <strong>${siteName}</strong> admin panel.</p><p>If you received this, SMTP is configured correctly.</p>`,
+    });
+
+    if (result.skipped) {
+      const msg =
+        result.reason === 'disabled'
+          ? 'Email notifications are turned off. Enable "Email notifications" first.'
+          : 'SMTP is not configured. Enter SMTP user and App Password, then save.';
+      return res.status(400).json({ ok: false, error: msg });
+    }
+
+    res.json({ ok: true, to: result.to, message: `Test email sent to ${result.to}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: err.message || 'Could not send test email' });
   }
 });
 

@@ -9,7 +9,7 @@
     const activeHref =
       path === '/'
         ? '/'
-        : ['/appointment', '/track', '/rewards', '/faq', '/contact'].includes(path)
+        : ['/appointment', '/track', '/faq', '/contact'].includes(path)
           ? path
           : null;
 

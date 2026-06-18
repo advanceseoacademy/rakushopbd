@@ -170,15 +170,37 @@
     return `<li><a href="${href}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
   }
 
-  const DEFAULT_LOGO_URL = '/images/rakushopbd-logo.png?v=9';
+  const DEFAULT_LOGO_PATH = '/images/rakushopbd-logo.png';
+  const DEFAULT_LOGO_URL = `${DEFAULT_LOGO_PATH}?v=10`;
+
+  function logoUrlVersion(url) {
+    const m = String(url || '').match(/\?v=(\d+)$/);
+    return m ? Number(m[1]) || 0 : 0;
+  }
+
+  function isBundledLogoUrl(url) {
+    const u = String(url || '').trim();
+    return u === DEFAULT_LOGO_PATH || /^\/images\/rakushopbd-logo\.png(\?v=\d+)?$/.test(u);
+  }
+
+  function isLegacyUploadedLogo(url) {
+    const u = String(url || '').trim();
+    return /\/uploads\//i.test(u) && /(logo|rakushop|brand)/i.test(u);
+  }
 
   function normalizeLogoUrl(url) {
     const u = String(url || '').trim();
-    if (!u) return DEFAULT_LOGO_URL;
-    if (u === '/images/rakushopbd-logo.png' || /^\/images\/rakushopbd-logo\.png\?v=\d+$/.test(u)) {
-      return DEFAULT_LOGO_URL;
-    }
+    if (!u || isLegacyUploadedLogo(u)) return DEFAULT_LOGO_URL;
+    if (isBundledLogoUrl(u)) return DEFAULT_LOGO_URL;
     return u;
+  }
+
+  function shouldApplyLogoSrc(current, next) {
+    if (!next || current === next) return false;
+    if (isBundledLogoUrl(current) && isBundledLogoUrl(next)) {
+      return logoUrlVersion(next) > logoUrlVersion(current);
+    }
+    return true;
   }
 
   function applyFooterSettings(settings) {
@@ -187,7 +209,8 @@
 
     const logoUrl = normalizeLogoUrl(settings.site_logo_url);
     document.querySelectorAll('.site-logo-img').forEach((img) => {
-      if (img.getAttribute('src') !== logoUrl) img.setAttribute('src', logoUrl);
+      const current = img.getAttribute('src') || '';
+      if (shouldApplyLogoSrc(current, logoUrl)) img.setAttribute('src', logoUrl);
     });
 
     const fd = document.querySelector('.footer-desc');

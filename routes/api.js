@@ -240,6 +240,7 @@ router.post('/products/:id/reviews', async (req, res) => {
     const rating = Math.min(5, Math.max(1, Number(req.body.rating) || 0));
     const comment = (req.body.comment || '').trim();
     const imageUrl = String(req.body.imageUrl || '').trim() || null;
+    const avatarUrl = String(req.body.avatarUrl || '').trim() || null;
     let customerName = (req.body.customerName || '').trim();
     let userId = null;
 
@@ -261,9 +262,9 @@ router.post('/products/:id/reviews', async (req, res) => {
     const status = settings.feature_review_approval === '1' ? 'pending' : 'approved';
 
     const result = await query(
-      `INSERT INTO product_reviews (product_id, user_id, customer_name, rating, comment, image_url, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [productId, userId, customerName, rating, comment || null, imageUrl, status]
+      `INSERT INTO product_reviews (product_id, user_id, customer_name, rating, comment, image_url, reviewer_avatar_url, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [productId, userId, customerName, rating, comment || null, imageUrl, avatarUrl, status]
     );
 
     const reviewId = firstInsertId(result);
@@ -336,6 +337,19 @@ function cachePublic(res, seconds) {
   }
 }
 
+router.get('/reviews/home', async (req, res) => {
+  try {
+    const limit = Math.min(30, Math.max(1, Number(req.query.limit) || 25));
+    const { getHomepageReviews } = require('../lib/productReviews');
+    const reviews = await getHomepageReviews(query, limit);
+    cachePublic(res, 120);
+    res.json({ ok: true, reviews });
+  } catch (err) {
+    console.error('reviews/home', err);
+    res.json({ ok: true, reviews: [] });
+  }
+});
+
 async function publicProductList(products, pool) {
   const list = stripInternalProductList(products);
   return attachMergedReviewStatsToProducts(query, list, pool ? { pool } : undefined);
@@ -367,8 +381,9 @@ router.get('/products/review-pool', async (req, res) => {
   try {
     const { getReviewProductPool } = require('../lib/productReviews');
     const products = await getReviewProductPool(query);
+    const eligible = products.filter((p) => p.allow_synthetic_reviews !== 0 && p.allow_synthetic_reviews !== '0');
     cachePublic(res, 300);
-    res.json({ ok: true, products });
+    res.json({ ok: true, products: eligible.length ? eligible : products });
   } catch (err) {
     console.error('review-pool', err);
     res.status(500).json({ ok: false, error: 'Could not load review products' });
@@ -876,8 +891,7 @@ router.post('/orders', async (req, res) => {
     req.session.checkoutDistrict = null;
     const pointCfg = userId ? await getRewardPointConfig(query) : null;
 
-    const notifySettings = await getSiteSettings(query);
-    fireAdminEmail(notifyNewOrder, notifySettings, {
+    await fireAdminEmail(query, notifyNewOrder, {
       orderNumber,
       customerName: name,
       customerPhone: phone,
@@ -1041,8 +1055,7 @@ router.post('/appointments', async (req, res) => {
       ]
     );
 
-    const notifySettings = await getSiteSettings(query);
-    fireAdminEmail(notifyAppointment, notifySettings, {
+    await fireAdminEmail(query, notifyAppointment, {
       referenceNumber,
       customerName,
       customerPhone,
@@ -1164,8 +1177,7 @@ router.post('/contact', async (req, res) => {
       [customerName, customerPhone, email, subject, message]
     );
 
-    const notifySettings = await getSiteSettings(query);
-    fireAdminEmail(notifyContactMessage, notifySettings, {
+    await fireAdminEmail(query, notifyContactMessage, {
       customerName,
       customerPhone,
       customerEmail: email,

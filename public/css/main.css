@@ -1548,7 +1548,15 @@
     padding-top: 4px;
   }
 
-  .home-review-avatar {
+  .home-review-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+  }
+
+  .home-review-avatar,
+  .home-review-avatar-img {
     flex-shrink: 0;
     width: 52px;
     height: 52px;
@@ -1561,6 +1569,7 @@
     color: #fff;
     box-shadow: 0 3px 10px rgba(32, 96, 32, 0.25);
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+    object-fit: cover;
   }
 
   .home-review-avatar.accent {

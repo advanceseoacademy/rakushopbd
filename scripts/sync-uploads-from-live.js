@@ -17,24 +17,38 @@ const SOURCE_URL = (process.env.SOURCE_URL || 'https://rakushopbd.com').replace(
 const DRY_RUN = process.argv.includes('--dry-run');
 
 function publicPathFromUrl(url) {
-  if (!url || !String(url).startsWith('/uploads/')) return null;
-  const rel = String(url).replace(/^\//, '');
+  if (!url || typeof url !== 'string') return null;
+  const s = url.trim();
+  if (!s.startsWith('/uploads/') && !s.startsWith('/images/')) return null;
+  const rel = s.replace(/^\//, '');
   if (rel.includes('..')) return null;
   return path.join(__dirname, '../public', rel);
 }
 
 function localExists(url) {
-  const rel = String(url || '').replace(/^\//, '');
-  const abs = path.join(uploadDir, rel);
+  const abs = publicPathFromUrl(url);
+  if (!abs) return false;
   if (fs.existsSync(abs)) return true;
-  return Boolean(findAlternateUpload(rel));
+  const rel = String(url || '').replace(/^\//, '');
+  return Boolean(findAlternateUpload(rel.replace(/^uploads\//, '')));
 }
 
 async function collectDbUploadUrls() {
   const urls = new Set();
   const add = (v) => {
-    const s = String(v || '').trim();
-    if (s.includes('/uploads/')) urls.add(s.startsWith('/') ? s : `/${s}`);
+    if (v == null) return;
+    if (typeof v === 'string') {
+      const matches = v.match(/\/(?:uploads|images)\/[^\s"'<>]+/g);
+      if (matches) matches.forEach((m) => urls.add(m.split(/[?#]/)[0]));
+      return;
+    }
+    if (Array.isArray(v)) {
+      v.forEach(add);
+      return;
+    }
+    if (typeof v === 'object') {
+      Object.values(v).forEach(add);
+    }
   };
 
   for (const row of await query(
@@ -64,9 +78,19 @@ async function collectDbUploadUrls() {
     add(row.icon_url);
   }
   for (const row of await query(
-    `SELECT setting_value FROM site_settings WHERE setting_value LIKE '%/uploads/%'`
+    `SELECT image_url, reviewer_avatar_url FROM product_reviews WHERE image_url IS NOT NULL OR reviewer_avatar_url IS NOT NULL`
   )) {
-    add(row.setting_value);
+    add(row.image_url);
+    add(row.reviewer_avatar_url);
+  }
+  for (const row of await query(`SELECT setting_value FROM site_settings`)) {
+    const val = row.setting_value;
+    add(val);
+    if (typeof val === 'string' && (val.startsWith('[') || val.startsWith('{'))) {
+      try {
+        add(JSON.parse(val));
+      } catch (_) {}
+    }
   }
 
   return urls;

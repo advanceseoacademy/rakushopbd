@@ -4,15 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <%- include('partials/seo-head', { seo: typeof seo !== 'undefined' ? seo : null }) %>
-<link rel="icon" href="/images/rakushopbd-logo.png?v=6" type="image/png">
-<link rel="preload" href="/images/rakushopbd-logo.png?v=6" as="image">
+<link rel="icon" href="/images/rakushopbd-logo.png?v=8" type="image/png">
+<link rel="preload" href="/images/rakushopbd-logo.png?v=8" as="image">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/main.css?v=90">
+<link rel="stylesheet" href="/css/main.css?v=91">
 <link rel="stylesheet" href="/css/category.css?v=4">
 <link rel="stylesheet" href="/css/account.css?v=10">
 <link rel="stylesheet" href="/css/cart.css?v=5">
@@ -20,7 +20,8 @@
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
 <link rel="stylesheet" href="/css/responsive.css?v=37">
-<link rel="stylesheet" href="/css/home-marketing.css?v=7">
+<link rel="stylesheet" href="/css/home-marketing.css?v=8">
+<link rel="stylesheet" href="/css/popup-themes.css?v=1">
 <link rel="stylesheet" href="/css/home-hero-slider.css?v=10">
 <link rel="stylesheet" href="/css/home-today-deals.css?v=4">
 <link rel="stylesheet" href="/css/appointment.css?v=2">
@@ -1080,7 +1081,7 @@
     <div class="acc-auth-shell">
       <div class="acc-auth-brand">
         <div class="acc-brand-logo">
-          <img src="/images/rakushopbd-logo.png?v=6" alt="RakuShopBD" class="site-logo-img site-logo-img--account" width="280" height="72">
+          <img src="/images/rakushopbd-logo.png?v=8" alt="RakuShopBD" class="site-logo-img site-logo-img--account" width="280" height="72">
         </div>
         <h2 class="acc-brand-title">Shop smarter with your account</h2>
         <p class="acc-brand-text">Track orders, save addresses, and checkout faster — all in one place.</p>
@@ -1642,32 +1643,33 @@
 <script src="/js/home-hero-slider.js?v=4" defer></script>
 <script src="/js/home-today-deals.js?v=4" defer></script>
 <script src="/js/storefront-dynamic.js?v=55" defer></script>
-<script src="/js/api.js?v=102" defer></script>
+<script src="/js/api.js?v=103" defer></script>
 <script src="/js/home-recommendations.js?v=4" defer></script>
 <script src="/js/home-messenger-chats.js?v=2" defer></script>
-<script src="/js/home-customer-reviews.js?v=5" defer></script>
-<script src="/js/home-marketing.js?v=7" defer></script>
+<script src="/js/home-customer-reviews.js?v=10" defer></script>
+<script src="/js/home-marketing.js?v=11" defer></script>
 <script src="/js/appointment.js?v=4" defer></script>
 <script src="/js/face-analyzer.js?v=10" defer></script>
 <script src="/js/footer-settings.js?v=11" defer></script>
 <script src="/js/search.js?v=6" defer></script>
-<script src="/js/account.js?v=13" defer></script>
+<script src="/js/account.js?v=14" defer></script>
 <script src="/js/legal-pages.js?v=4" defer></script>
 <script src="/js/faq.js?v=4" defer></script>
 <script src="/js/contact.js?v=3" defer></script>
 <script src="/js/track.js?v=2" defer></script>
-<div class="gift-popup" id="gift-popup" hidden aria-hidden="true">
+<div class="gift-popup" id="gift-popup" hidden aria-hidden="true" data-popup-theme="gift">
   <div class="gift-popup-backdrop" data-gift-popup-close></div>
   <div class="gift-popup-dialog" role="dialog" aria-modal="true" aria-labelledby="gift-popup-title">
-    <article class="gift-popup-card" id="gift-popup-card">
+    <article class="gift-popup-card" id="gift-popup-card" data-popup-theme="gift">
       <button type="button" class="gift-popup-close" data-gift-popup-close aria-label="Close"><i class="ti ti-x"></i></button>
       <div class="gift-popup-grid">
         <div class="gift-popup-visual">
           <div class="gift-popup-img" id="gift-popup-img"><i class="ti ti-photo"></i></div>
-          <div class="gift-popup-badge"><i class="ti ti-gift"></i> Surprise gift</div>
+          <div class="gift-popup-badge"><i class="ti ti-gift" id="gift-popup-badge-icon"></i> <span id="gift-popup-badge">Surprise gift</span></div>
         </div>
         <div class="gift-popup-content">
-          <span class="gift-popup-kicker">Exclusive offer</span>
+          <div class="gift-popup-theme-icon" id="gift-popup-theme-icon" hidden aria-hidden="true"></div>
+          <span class="gift-popup-kicker" id="gift-popup-kicker">Exclusive offer</span>
           <h3 class="gift-popup-title" id="gift-popup-title">Get Surprise gift</h3>
           <p class="gift-popup-desc" id="gift-popup-desc"></p>
           <form class="gift-popup-form" id="gift-popup-form">

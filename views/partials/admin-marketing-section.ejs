@@ -11,6 +11,7 @@
             <button type="button" class="settings-tab active" data-marketing-tab="hero" role="tab"><i class="ti ti-photo"></i><span>Hero Slider</span></button>
             <button type="button" class="settings-tab" data-marketing-tab="deals" role="tab"><i class="ti ti-flame"></i><span>Today Deals</span></button>
             <button type="button" class="settings-tab" data-marketing-tab="promo" role="tab"><i class="ti ti-layout-cards"></i><span>Promo Cards</span></button>
+            <button type="button" class="settings-tab" data-marketing-tab="popups" role="tab"><i class="ti ti-layout"></i><span>Popups</span></button>
             <button type="button" class="settings-tab" data-marketing-tab="subscribers" role="tab"><i class="ti ti-phone"></i><span>Subscribers</span></button>
           </nav>
 
@@ -142,6 +143,158 @@
               </div>
               <div class="settings-card-foot">
                 <button type="button" class="btn btn-primary" id="marketing-save-btn"><i class="ti ti-device-floppy"></i> Save Promo Cards</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Popups -->
+          <div class="settings-panel" id="marketing-panel-popups" role="tabpanel">
+            <div class="settings-card">
+              <div class="settings-card-head">
+                <div class="settings-card-icon settings-card-icon--purple"><i class="ti ti-layout"></i></div>
+                <div>
+                  <h3 class="settings-card-title">Popup templates</h3>
+                  <p class="settings-card-desc">5 ready-made popup templates — edit text and images, no code required.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="settings-row" style="margin-bottom:16px;">
+                  <div><div>Enable popups</div><div class="settings-row-info">Popups appear on homepage only</div></div>
+                  <label class="toggle"><input type="checkbox" id="popup-enabled" checked><span class="toggle-slider"></span></label>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Show popup every (hours)</label>
+                  <input class="form-input" id="popup-interval-hours" type="number" min="1" max="168" value="24" style="max-width:180px;">
+                  <small class="form-hint">Example: 24 = once per day. This applies per browser/device.</small>
+                </div>
+
+                <div class="popup-live-preview-section">
+                  <div class="popup-live-preview-head">
+                    <div>
+                      <h4 class="popup-live-preview-title"><i class="ti ti-eye"></i> Live preview</h4>
+                      <p class="form-hint" style="margin:0;">Changes update instantly as you edit the active template.</p>
+                    </div>
+                    <div class="popup-live-preview-actions">
+                      <button type="button" class="btn btn-outline btn-sm" id="popup-fullscreen-preview-btn"><i class="ti ti-arrows-maximize"></i> Full screen</button>
+                      <button type="button" class="btn btn-primary btn-sm" id="popup-site-preview-btn"><i class="ti ti-external-link"></i> Preview on homepage</button>
+                    </div>
+                  </div>
+                  <div class="popup-live-preview-stage" id="popup-live-preview-stage" aria-label="Popup preview">
+                    <article class="popup-prev-card" id="popup-prev-card" data-popup-theme="gift">
+                      <button type="button" class="popup-prev-close" tabindex="-1" aria-hidden="true"><i class="ti ti-x"></i></button>
+                      <div class="popup-prev-grid">
+                        <div class="popup-prev-visual">
+                          <div class="popup-prev-img" id="popup-prev-img"><i class="ti ti-photo"></i></div>
+                          <div class="popup-prev-badge"><i class="ti ti-gift" id="popup-prev-badge-icon"></i> <span id="popup-prev-badge">Surprise gift</span></div>
+                        </div>
+                        <div class="popup-prev-content">
+                          <div class="popup-prev-theme-icon" id="popup-prev-theme-icon" hidden aria-hidden="true"></div>
+                          <span class="popup-prev-kicker" id="popup-prev-kicker">Exclusive offer</span>
+                          <h3 class="popup-prev-title" id="popup-prev-title">Get Surprise gift</h3>
+                          <p class="popup-prev-desc" id="popup-prev-desc">Subscribe with your phone number…</p>
+                          <div class="popup-prev-form" id="popup-prev-form">
+                            <div class="popup-prev-field"><i class="ti ti-phone"></i><span>01XXXXXXXXX</span></div>
+                            <button type="button" class="popup-prev-submit" tabindex="-1"><span id="popup-prev-button">Submit</span><i class="ti ti-arrow-right"></i></button>
+                          </div>
+                          <p class="popup-prev-note" id="popup-prev-note"><i class="ti ti-shield-check"></i> Your number is safe — no spam, ever.</p>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+
+                <div class="popup-preview-modal" id="popup-preview-modal" hidden aria-hidden="true">
+                  <div class="popup-preview-modal-backdrop" data-close-popup-preview></div>
+                  <div class="popup-preview-modal-dialog" role="dialog" aria-modal="true" aria-label="Popup full preview">
+                    <button type="button" class="popup-preview-modal-close" data-close-popup-preview aria-label="Close preview"><i class="ti ti-x"></i></button>
+                    <div class="popup-live-preview-stage popup-live-preview-stage--modal" id="popup-preview-modal-stage"></div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Edit templates</label>
+                  <p class="form-hint" style="margin-bottom:12px;">5 templates are pre-made — pick a tab, edit fields, and check the live preview above.</p>
+                  <div class="popup-template-tabs" id="popup-template-tabs" role="tablist">
+                    <% const popupTabLabels = [
+                      { id: 'gift', label: 'Gift', icon: 'ti-gift' },
+                      { id: 'points', label: 'Points', icon: 'ti-award' },
+                      { id: 'delivery', label: 'Delivery', icon: 'ti-truck-delivery' },
+                      { id: 'new', label: 'New', icon: 'ti-sparkles' },
+                      { id: 'support', label: 'Support', icon: 'ti-message-circle-2' },
+                    ]; %>
+                    <% popupTabLabels.forEach((tab, i) => { %>
+                    <button type="button" class="popup-template-tab<%= i === 0 ? ' active' : '' %>" data-popup-tab="<%= i %>" role="tab" aria-selected="<%= i === 0 ? 'true' : 'false' %>">
+                      <i class="ti <%= tab.icon %>"></i> <%= tab.label %>
+                    </button>
+                    <% }); %>
+                  </div>
+                  <div id="popup-templates-editor">
+                    <% popupTabLabels.forEach((tab, i) => { %>
+                    <div class="popup-template-panel<%= i === 0 ? ' active' : '' %>" id="popup-tpl-panel-<%= i %>" data-popup-panel="<%= i %>" role="tabpanel">
+                      <div class="popup-template-panel-head">
+                        <div>
+                          <strong><%= tab.label %> popup</strong>
+                          <small>ID: <code><%= tab.id %></code></small>
+                        </div>
+                        <label class="toggle popup-tpl-enabled-wrap" title="Show this template in rotation">
+                          <span class="popup-tpl-enabled-label">Active</span>
+                          <input type="checkbox" id="popup-tpl-<%= i %>-enabled" checked>
+                          <span class="toggle-slider"></span>
+                        </label>
+                      </div>
+                      <input type="hidden" id="popup-tpl-<%= i %>-id" value="<%= tab.id %>">
+                      <div class="form-2col">
+                        <div class="form-group"><label class="form-label">Kicker (small label)</label><input class="form-input" id="popup-tpl-<%= i %>-kicker" placeholder="Exclusive offer"></div>
+                        <div class="form-group"><label class="form-label">Badge</label><input class="form-input" id="popup-tpl-<%= i %>-badge" placeholder="Surprise gift"></div>
+                      </div>
+                      <div class="form-2col">
+                        <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="popup-tpl-<%= i %>-title" placeholder="Popup headline"></div>
+                        <div class="form-group"><label class="form-label">Button text</label><input class="form-input" id="popup-tpl-<%= i %>-button" placeholder="Submit"></div>
+                      </div>
+                      <div class="form-group"><label class="form-label">Description</label><textarea class="form-input form-textarea" id="popup-tpl-<%= i %>-desc" rows="3" placeholder="Short message for visitors"></textarea></div>
+                      <div class="form-2col">
+                        <div class="form-group">
+                          <label class="form-label">Action</label>
+                          <select class="form-input form-select" id="popup-tpl-<%= i %>-mode"<%= tab.id === 'points' ? ' disabled title="Reward points popup always uses a signup button"' : '' %>>
+                            <option value="subscribe">Phone subscribe form</option>
+                            <option value="link">Go to link (button)</option>
+                          </select>
+                          <% if (tab.id === 'points') { %><small class="form-hint">Signup button only — no phone field on this popup.</small><% } %>
+                        </div>
+                        <div class="form-group popup-tpl-link-wrap" id="popup-tpl-<%= i %>-link-wrap">
+                          <label class="form-label">Link URL</label>
+                          <input class="form-input" id="popup-tpl-<%= i %>-link" placeholder="/account or /track">
+                        </div>
+                      </div>
+                      <div class="form-2col">
+                        <div class="form-group"><label class="form-label">Badge icon</label>
+                          <select class="form-input form-select" id="popup-tpl-<%= i %>-icon">
+                            <option value="ti-gift">Gift</option>
+                            <option value="ti-award">Award</option>
+                            <option value="ti-truck-delivery">Delivery</option>
+                            <option value="ti-sparkles">Sparkles</option>
+                            <option value="ti-message-circle-2">Message</option>
+                            <option value="ti-discount-2">Discount</option>
+                            <option value="ti-shopping-bag">Shopping</option>
+                          </select>
+                        </div>
+                        <div class="form-group"><label class="form-label">Image URL</label><input class="form-input popup-tpl-image" id="popup-tpl-<%= i %>-image" data-popup-idx="<%= i %>" placeholder="/uploads/... (optional)"></div>
+                      </div>
+                      <div class="form-group"><label class="form-label">Upload image</label><input class="form-input" type="file" id="popup-tpl-<%= i %>-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
+                      <div class="popup-tpl-preview-wrap" id="popup-tpl-<%= i %>-preview-wrap" hidden>
+                        <img id="popup-tpl-<%= i %>-preview" alt="" class="popup-tpl-preview">
+                      </div>
+                    </div>
+                    <% }); %>
+                  </div>
+                </div>
+
+                <div class="form-group" style="margin-top:8px;">
+                  <button type="button" class="btn btn-outline" id="popup-reset-btn"><i class="ti ti-refresh"></i> Reset all to defaults</button>
+                </div>
+              </div>
+              <div class="settings-card-foot">
+                <button type="button" class="btn btn-primary" id="popup-save-btn"><i class="ti ti-device-floppy"></i> Save Popups</button>
               </div>
             </div>
           </div>

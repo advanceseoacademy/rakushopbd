@@ -62,6 +62,12 @@
   let faqs = [];
   let currentOrderId = null;
   const selectedOrderIds = new Set();
+  const selectedContactIds = new Set();
+  const selectedAppointmentIds = new Set();
+  const selectedProductIds = new Set();
+  const selectedCustomerIds = new Set();
+  const selectedCouponIds = new Set();
+  const selectedReviewIds = new Set();
 
   let ordersPage = 1;
   let dashRecentOrdersPage = 1;
@@ -69,6 +75,7 @@
   let contactsPage = 1;
   let subscribersPage = 1;
   let productsPage = 1;
+  let galleryPage = 1;
   let authRedirectHold = false;
 
   const pageTitles = {
@@ -77,6 +84,7 @@
     appointments: 'Appointments',
     contacts: 'Contact Messages',
     products: 'Products',
+    gallery: 'Image Gallery',
     'product-form': 'Add Product',
     customers: 'Customers',
     analytics: 'Analytics',
@@ -213,6 +221,7 @@
     if (page === 'appointments') loadAppointments();
     if (page === 'contacts') loadContactMessages();
     if (page === 'products') loadProducts();
+    if (page === 'gallery') loadImageGallery();
     if (page === 'customers') loadCustomers();
     if (page === 'categories') loadCategories();
     if (page === 'faq') loadFaqs();
@@ -969,14 +978,23 @@
     if (data.pendingCount != null) setAppointmentBadge(data.pendingCount);
     const tbody = document.getElementById('appointments-tbody');
     if (!tbody) return;
-    tbody.innerHTML = (data.appointments || [])
-      .map(
-        (a) => {
-          const notesRaw = String(a.notes || '').trim();
-          const notesHtml = notesRaw
-            ? `<span title="${escHtml(notesRaw)}">${escHtml(notesRaw.length > 100 ? notesRaw.slice(0, 100) + '…' : notesRaw)}</span>`
-            : '<span style="color:#94a3b8">—</span>';
-          return `<tr>
+
+    if (!data.appointments?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No appointments yet.</td></tr>';
+      updateAppointmentsSelectionUi();
+    } else {
+      tbody.innerHTML = (data.appointments || [])
+        .map(
+          (a) => {
+            const notesRaw = String(a.notes || '').trim();
+            const notesHtml = notesRaw
+              ? `<span title="${escHtml(notesRaw)}">${escHtml(notesRaw.length > 100 ? notesRaw.slice(0, 100) + '…' : notesRaw)}</span>`
+              : '<span style="color:#94a3b8">—</span>';
+            const checked = selectedAppointmentIds.has(Number(a.id)) ? ' checked' : '';
+            const rowClass = checked ? ' class="row-selected"' : '';
+            return `<tr${rowClass}>
+        <td class="tbl-check-col"><input type="checkbox" class="appointment-row-check" data-appointment-id="${a.id}" aria-label="Select appointment ${escHtml(a.referenceNumber)}"${checked}></td>
         <td><b>${a.referenceNumber}</b><br><small style="color:#94a3b8">${fmtDate(a.createdAt)}</small></td>
         <td>${escHtml(a.customerName)}<br><small style="color:#94a3b8">${escHtml(a.customerPhone)}</small>${a.customerEmail ? `<br><small style="color:#94a3b8">${escHtml(a.customerEmail)}</small>` : ''}</td>
         <td>${escHtml(a.serviceLabel || a.serviceType)}</td>
@@ -990,10 +1008,13 @@
             <option value="completed" ${a.status === 'completed' ? 'selected' : ''}>Completed</option>
             <option value="cancelled" ${a.status === 'cancelled' ? 'selected' : ''}>Cancelled</option>
           </select>
+          <button type="button" class="btn btn-danger btn-xs" data-del-appointment="${a.id}" style="margin-top:6px;"><i class="ti ti-trash"></i> Delete</button>
         </td></tr>`;
-        }
-      )
-      .join('');
+          }
+        )
+        .join('');
+      updateAppointmentsSelectionUi();
+    }
 
     tbody.querySelectorAll('[data-appt-status]').forEach((sel) => {
       sel.onchange = async () => {
@@ -1009,6 +1030,20 @@
       };
     });
 
+    tbody.querySelectorAll('[data-del-appointment]').forEach((btn) => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this appointment?')) return;
+        const id = Number(btn.dataset.delAppointment);
+        const res = await api('/appointments/' + id, { method: 'DELETE' });
+        if (res.ok) {
+          toast('Appointment deleted');
+          selectedAppointmentIds.delete(id);
+          updateAppointmentsSelectionUi();
+          loadAppointments();
+        } else toast(res.error || 'Delete failed', 'error');
+      };
+    });
+
     const pag = data.pagination;
     const pagEl = document.getElementById('appointments-pagination');
     if (pagEl && pag) {
@@ -1021,8 +1056,141 @@
     }
   }
 
+  function updateAppointmentsSelectionUi() {
+    const count = selectedAppointmentIds.size;
+    const bulkBtn = document.getElementById('appointments-bulk-delete-btn');
+    const clearBtn = document.getElementById('appointments-clear-selection-btn');
+    const countEl = document.getElementById('appointments-selected-count');
+    if (countEl) countEl.textContent = String(count);
+    if (bulkBtn) bulkBtn.hidden = count === 0;
+    if (clearBtn) clearBtn.hidden = count === 0;
+    syncAppointmentsSelectAllCheckbox();
+  }
+
+  function syncAppointmentsSelectAllCheckbox() {
+    const selectAll = document.getElementById('appointments-select-all');
+    const checks = [...document.querySelectorAll('#appointments-tbody .appointment-row-check')];
+    if (!selectAll) return;
+    if (!checks.length) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      return;
+    }
+    const checkedOnPage = checks.filter((c) => c.checked).length;
+    selectAll.checked = checkedOnPage === checks.length;
+    selectAll.indeterminate = checkedOnPage > 0 && checkedOnPage < checks.length;
+  }
+
+  async function deleteSelectedAppointments() {
+    const ids = [...selectedAppointmentIds];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected appointment(s) permanently? This cannot be undone.`)) return;
+    const data = await api('/appointments/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
+    if (data.ok) {
+      toast(`${data.deleted || ids.length} appointment(s) deleted`);
+      selectedAppointmentIds.clear();
+      updateAppointmentsSelectionUi();
+      loadAppointments();
+    } else {
+      toast(data.error || 'Could not delete selected appointments', 'error');
+    }
+  }
+
+  document.getElementById('appointments-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#appointments-tbody .appointment-row-check').forEach((box) => {
+      box.checked = checked;
+      const id = Number(box.dataset.appointmentId);
+      if (checked) selectedAppointmentIds.add(id);
+      else selectedAppointmentIds.delete(id);
+      box.closest('tr')?.classList.toggle('row-selected', checked);
+    });
+    e.target.indeterminate = false;
+    updateAppointmentsSelectionUi();
+  });
+
+  document.getElementById('appointments-bulk-delete-btn')?.addEventListener('click', () => {
+    void deleteSelectedAppointments();
+  });
+
+  document.getElementById('appointments-clear-selection-btn')?.addEventListener('click', () => {
+    selectedAppointmentIds.clear();
+    document.querySelectorAll('#appointments-tbody .appointment-row-check').forEach((box) => {
+      box.checked = false;
+      box.closest('tr')?.classList.remove('row-selected');
+    });
+    updateAppointmentsSelectionUi();
+  });
+
+  const appointmentsTbody = document.getElementById('appointments-tbody');
+  if (appointmentsTbody && !appointmentsTbody._rakuAppointmentActionsBound) {
+    appointmentsTbody._rakuAppointmentActionsBound = true;
+    appointmentsTbody.addEventListener('click', (e) => {
+      const check = e.target.closest('.appointment-row-check');
+      if (!check) return;
+      const id = Number(check.dataset.appointmentId);
+      if (check.checked) selectedAppointmentIds.add(id);
+      else selectedAppointmentIds.delete(id);
+      check.closest('tr')?.classList.toggle('row-selected', check.checked);
+      updateAppointmentsSelectionUi();
+    });
+  }
+
   document.getElementById('appointments-status-filter')?.addEventListener('change', () => loadAppointments(1));
   document.getElementById('appointments-search')?.addEventListener('input', debounce(() => loadAppointments(1), 400));
+
+  function updateContactsSelectionUi() {
+    const count = selectedContactIds.size;
+    const bulkBtn = document.getElementById('contacts-bulk-delete-btn');
+    const clearBtn = document.getElementById('contacts-clear-selection-btn');
+    const countEl = document.getElementById('contacts-selected-count');
+    if (countEl) countEl.textContent = String(count);
+    if (bulkBtn) bulkBtn.hidden = count === 0;
+    if (clearBtn) clearBtn.hidden = count === 0;
+    syncContactsSelectAllCheckbox();
+  }
+
+  function syncContactsSelectAllCheckbox() {
+    const selectAll = document.getElementById('contacts-select-all');
+    const checks = [...document.querySelectorAll('#contacts-tbody .contact-row-check')];
+    if (!selectAll) return;
+    if (!checks.length) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      return;
+    }
+    const checkedOnPage = checks.filter((c) => c.checked).length;
+    selectAll.checked = checkedOnPage === checks.length;
+    selectAll.indeterminate = checkedOnPage > 0 && checkedOnPage < checks.length;
+  }
+
+  async function deleteContactMessage(id) {
+    if (!confirm('Delete this message permanently?')) return;
+    const data = await api('/contact-messages/' + id, { method: 'DELETE' });
+    if (data.ok) {
+      toast('Message deleted');
+      selectedContactIds.delete(Number(id));
+      updateContactsSelectionUi();
+      loadContactMessages();
+    } else {
+      toast(data.error || 'Could not delete message', 'error');
+    }
+  }
+
+  async function deleteSelectedContactMessages() {
+    const ids = [...selectedContactIds];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected message(s) permanently? This cannot be undone.`)) return;
+    const data = await api('/contact-messages/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
+    if (data.ok) {
+      toast(`${data.deleted || ids.length} message(s) deleted`);
+      selectedContactIds.clear();
+      updateContactsSelectionUi();
+      loadContactMessages();
+    } else {
+      toast(data.error || 'Could not delete selected messages', 'error');
+    }
+  }
 
   async function loadContactMessages(page) {
     if (page) contactsPage = page;
@@ -1039,7 +1207,7 @@
 
     if (!data.messages?.length) {
       tbody.innerHTML =
-        '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:24px;">No contact messages yet.</td></tr>';
+        '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">No contact messages yet.</td></tr>';
     } else {
       tbody.innerHTML = data.messages
         .map((m) => {
@@ -1048,15 +1216,22 @@
           const emailLine = m.customerEmail
             ? `<br><small style="color:#94a3b8">${escHtml(m.customerEmail)}</small>`
             : '';
-          return `<tr>
+          const checked = selectedContactIds.has(Number(m.id)) ? ' checked' : '';
+          const rowClass = checked ? ' class="row-selected"' : '';
+          return `<tr${rowClass}>
+        <td class="tbl-check-col"><input type="checkbox" class="contact-row-check" data-contact-id="${m.id}" aria-label="Select message from ${escHtml(m.customerName)}"${checked}></td>
         <td><b>${escHtml(m.customerName)}</b><br><small style="color:#94a3b8">${escHtml(m.customerPhone)}</small>${emailLine}</td>
         <td>${escHtml(m.subjectLabel || m.subject)}</td>
         <td><span title="${full}">${preview}${String(m.message || '').length > 120 ? '…' : ''}</span></td>
         <td>${fmtDate(m.createdAt)}</td>
-        <td>${contactStatusBadge(m.status)}</td></tr>`;
+        <td>${contactStatusBadge(m.status)}</td>
+        <td class="tbl-actions">
+          <button type="button" class="btn btn-danger btn-xs" data-del-contact="${m.id}" title="Delete message"><i class="ti ti-trash"></i> Delete</button>
+        </td></tr>`;
         })
         .join('');
     }
+    updateContactsSelectionUi();
 
     const pag = data.pagination;
     const pagEl = document.getElementById('contacts-pagination');
@@ -1068,6 +1243,53 @@
         b.onclick = () => loadContactMessages(contactsPage + Number(b.dataset.cp));
       });
     }
+  }
+
+  document.getElementById('contacts-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#contacts-tbody .contact-row-check').forEach((box) => {
+      box.checked = checked;
+      const id = Number(box.dataset.contactId);
+      if (checked) selectedContactIds.add(id);
+      else selectedContactIds.delete(id);
+      box.closest('tr')?.classList.toggle('row-selected', checked);
+    });
+    e.target.indeterminate = false;
+    updateContactsSelectionUi();
+  });
+
+  document.getElementById('contacts-bulk-delete-btn')?.addEventListener('click', () => {
+    void deleteSelectedContactMessages();
+  });
+
+  document.getElementById('contacts-clear-selection-btn')?.addEventListener('click', () => {
+    selectedContactIds.clear();
+    document.querySelectorAll('#contacts-tbody .contact-row-check').forEach((box) => {
+      box.checked = false;
+      box.closest('tr')?.classList.remove('row-selected');
+    });
+    updateContactsSelectionUi();
+  });
+
+  const contactsTbody = document.getElementById('contacts-tbody');
+  if (contactsTbody && !contactsTbody._rakuContactActionsBound) {
+    contactsTbody._rakuContactActionsBound = true;
+    contactsTbody.addEventListener('click', (e) => {
+      const check = e.target.closest('.contact-row-check');
+      if (check) {
+        const id = Number(check.dataset.contactId);
+        if (check.checked) selectedContactIds.add(id);
+        else selectedContactIds.delete(id);
+        check.closest('tr')?.classList.toggle('row-selected', check.checked);
+        updateContactsSelectionUi();
+        return;
+      }
+      const delBtn = e.target.closest('[data-del-contact]');
+      if (delBtn) {
+        e.preventDefault();
+        void deleteContactMessage(delBtn.dataset.delContact);
+      }
+    });
   }
 
   document.getElementById('contacts-status-filter')?.addEventListener('change', () => loadContactMessages(1));
@@ -1263,6 +1485,355 @@
     };
   }
 
+  const POPUP_DEFAULT_TEMPLATES = [
+    {
+      id: 'gift',
+      enabled: true,
+      kicker: 'Exclusive offer',
+      badge: 'Surprise gift',
+      icon: 'ti-gift',
+      title: 'Get Surprise gift',
+      desc: 'Subscribe with your phone number to get new gifts and updates about our new products and offers',
+      button: 'Submit',
+      image: '/uploads/1780840201433-surprise-banner.webp',
+      mode: 'subscribe',
+      link: '',
+    },
+    {
+      id: 'points',
+      enabled: true,
+      kicker: 'Reward points',
+      badge: 'Earn points',
+      icon: 'ti-award',
+      title: 'Reward Points is live',
+      desc: 'Earn points on signup, first order, and approved reviews. Use your points to save on future orders.',
+      button: 'Sign up now',
+      image: '',
+      mode: 'link',
+      link: '/account?signup=1',
+    },
+    {
+      id: 'delivery',
+      enabled: true,
+      kicker: 'Delivery update',
+      badge: 'Fast delivery',
+      icon: 'ti-truck-delivery',
+      title: 'We deliver all over Bangladesh',
+      desc: 'Track your order any time and get support on WhatsApp.',
+      button: 'Track order',
+      image: '',
+      mode: 'link',
+      link: '/track',
+    },
+    {
+      id: 'new',
+      enabled: false,
+      kicker: 'New arrivals',
+      badge: 'Just dropped',
+      icon: 'ti-sparkles',
+      title: 'New products every week',
+      desc: 'Check our latest arrivals and limited deals on the homepage.',
+      button: 'Browse',
+      image: '',
+      mode: 'link',
+      link: '/#products',
+    },
+    {
+      id: 'support',
+      enabled: false,
+      kicker: 'Need help?',
+      badge: 'Customer care',
+      icon: 'ti-message-circle-2',
+      title: 'Ask anything before you buy',
+      desc: 'We reply fast on Messenger and WhatsApp for product questions.',
+      button: 'Contact us',
+      image: '',
+      mode: 'link',
+      link: '/contact',
+    },
+  ];
+
+  const POPUP_TEMPLATE_COUNT = POPUP_DEFAULT_TEMPLATES.length;
+
+  function parsePopupTemplates(raw) {
+    try {
+      if (typeof raw === 'string' && raw.trim()) return JSON.parse(raw);
+      if (Array.isArray(raw)) return raw;
+    } catch (_) {}
+    return [];
+  }
+
+  function popupTemplateIsLinkMode(tpl) {
+    if (!tpl) return false;
+    if (String(tpl.id) === 'points') return true;
+    return String(tpl.mode) === 'link';
+  }
+
+  function normalizePopupTemplates(raw) {
+    const saved = parsePopupTemplates(raw);
+    return POPUP_DEFAULT_TEMPLATES.map((def, i) => {
+      const found = saved.find((t) => t && t.id === def.id) || saved[i];
+      if (!found || typeof found !== 'object') return { ...def };
+      const merged = { ...def, ...found, id: def.id };
+      if (merged.id === 'points') {
+        merged.mode = 'link';
+        merged.link = String(merged.link || def.link || '/account?signup=1').trim() || '/account?signup=1';
+        merged.button = String(merged.button || def.button || 'Sign up now').trim() || 'Sign up now';
+      }
+      return merged;
+    });
+  }
+
+  function syncPopupTemplateModeFields() {
+    for (let i = 0; i < POPUP_TEMPLATE_COUNT; i++) {
+      const mode = document.getElementById(`popup-tpl-${i}-mode`)?.value || 'subscribe';
+      const linkWrap = document.getElementById(`popup-tpl-${i}-link-wrap`);
+      if (linkWrap) linkWrap.hidden = mode !== 'link';
+    }
+  }
+
+  function fillPopupTemplateForm(i, t) {
+    const tpl = t || POPUP_DEFAULT_TEMPLATES[i];
+    const en = document.getElementById(`popup-tpl-${i}-enabled`);
+    if (en) en.checked = tpl.enabled !== false;
+    const set = (suffix, val) => {
+      const el = document.getElementById(`popup-tpl-${i}-${suffix}`);
+      if (el) el.value = String(val ?? '');
+    };
+    set('kicker', tpl.kicker);
+    set('badge', tpl.badge);
+    set('title', tpl.title);
+    set('desc', tpl.desc);
+    set('button', tpl.button);
+    set('image', tpl.image);
+    set('link', tpl.link);
+    const modeEl = document.getElementById(`popup-tpl-${i}-mode`);
+    if (modeEl) {
+      const linkMode = tpl.id === 'points' || tpl.mode === 'link';
+      modeEl.value = linkMode ? 'link' : 'subscribe';
+      if (tpl.id === 'points') modeEl.disabled = true;
+      else modeEl.disabled = false;
+    }
+    const iconEl = document.getElementById(`popup-tpl-${i}-icon`);
+    if (iconEl) iconEl.value = tpl.icon || POPUP_DEFAULT_TEMPLATES[i].icon;
+    setMktImagePreview(`popup-tpl-${i}-preview-wrap`, `popup-tpl-${i}-preview`, tpl.image);
+    const fileEl = document.getElementById(`popup-tpl-${i}-file`);
+    if (fileEl) fileEl.value = '';
+  }
+
+  function popupDefaultsFromSettings(s) {
+    return {
+      popup_enabled: s?.popup_enabled ?? '1',
+      popup_interval_hours: s?.popup_interval_hours ?? '24',
+      popup_templates: s?.popup_templates ?? '[]',
+    };
+  }
+
+  function fillPopupSettings(s) {
+    const d = popupDefaultsFromSettings(s);
+    const en = document.getElementById('popup-enabled');
+    if (en) en.checked = String(d.popup_enabled ?? '1') !== '0';
+    const interval = document.getElementById('popup-interval-hours');
+    if (interval) interval.value = String(Number(d.popup_interval_hours || 24) || 24);
+    const templates = normalizePopupTemplates(d.popup_templates);
+    templates.forEach((t, i) => fillPopupTemplateForm(i, t));
+    syncPopupTemplateModeFields();
+    updatePopupLivePreview();
+  }
+
+  function collectPopupTemplateFromForm(i) {
+    const def = POPUP_DEFAULT_TEMPLATES[i];
+    let mode = document.getElementById(`popup-tpl-${i}-mode`)?.value === 'link' ? 'link' : 'subscribe';
+    if (def.id === 'points') mode = 'link';
+    const tpl = {
+      id: def.id,
+      enabled: document.getElementById(`popup-tpl-${i}-enabled`)?.checked !== false,
+      kicker: document.getElementById(`popup-tpl-${i}-kicker`)?.value.trim() || def.kicker,
+      badge: document.getElementById(`popup-tpl-${i}-badge`)?.value.trim() || def.badge,
+      icon: document.getElementById(`popup-tpl-${i}-icon`)?.value.trim() || def.icon,
+      title: document.getElementById(`popup-tpl-${i}-title`)?.value.trim() || def.title,
+      desc: document.getElementById(`popup-tpl-${i}-desc`)?.value.trim() || def.desc,
+      button: document.getElementById(`popup-tpl-${i}-button`)?.value.trim() || def.button,
+      image: document.getElementById(`popup-tpl-${i}-image`)?.value.trim() || '',
+      mode,
+    };
+    if (mode === 'link') {
+      tpl.link = document.getElementById(`popup-tpl-${i}-link`)?.value.trim() || def.link || '/';
+    }
+    return tpl;
+  }
+
+  function collectPopupSettings() {
+    const templates = [];
+    for (let i = 0; i < POPUP_TEMPLATE_COUNT; i++) {
+      templates.push(collectPopupTemplateFromForm(i));
+    }
+    return {
+      popup_enabled: document.getElementById('popup-enabled')?.checked ? '1' : '0',
+      popup_interval_hours: String(Number(document.getElementById('popup-interval-hours')?.value || 24) || 24),
+      popup_templates: JSON.stringify(templates),
+    };
+  }
+
+  let activePopupTabIdx = 0;
+
+  function popupIconClass(icon) {
+    const raw = String(icon || 'ti-gift').trim();
+    return raw.startsWith('ti ') ? raw : `ti ${raw}`;
+  }
+
+  function applyPopupPreviewTheme(tpl) {
+    const themeId = String(tpl?.id || 'gift').trim() || 'gift';
+    const card = document.getElementById('popup-prev-card');
+    const stage = document.getElementById('popup-live-preview-stage');
+    if (card) card.dataset.popupTheme = themeId;
+    if (stage) stage.dataset.popupTheme = themeId;
+
+    const iconClass = popupIconClass(tpl?.icon);
+    const src = String(tpl?.image || '').trim();
+    const showHero = themeId === 'points' || themeId === 'support';
+    const themeIcon = document.getElementById('popup-prev-theme-icon');
+    if (themeIcon) {
+      themeIcon.hidden = !showHero;
+      if (showHero) themeIcon.innerHTML = `<i class="${iconClass}"></i>`;
+    }
+
+    const img = document.getElementById('popup-prev-img');
+    if (img && !src && (themeId === 'delivery' || themeId === 'new')) {
+      img.innerHTML = `<i class="${iconClass}"></i>`;
+    }
+  }
+
+  function paintPopupLivePreview(tpl) {
+    const kicker = document.getElementById('popup-prev-kicker');
+    const badge = document.getElementById('popup-prev-badge');
+    const badgeIcon = document.getElementById('popup-prev-badge-icon');
+    const title = document.getElementById('popup-prev-title');
+    const desc = document.getElementById('popup-prev-desc');
+    const button = document.getElementById('popup-prev-button');
+    const img = document.getElementById('popup-prev-img');
+    const form = document.getElementById('popup-prev-form');
+    const phoneField = form?.querySelector('.popup-prev-field');
+
+    if (kicker) kicker.textContent = tpl.kicker || '';
+    if (badge) badge.textContent = tpl.badge || '';
+    if (badgeIcon) {
+      const icon = String(tpl.icon || 'ti-gift').trim();
+      badgeIcon.className = icon.startsWith('ti ') ? icon : `ti ${icon}`;
+    }
+    if (title) title.textContent = tpl.title || '';
+    if (desc) desc.textContent = tpl.desc || '';
+    if (button) button.textContent = tpl.button || 'Submit';
+
+    const src = String(tpl.image || '').trim();
+    if (img) {
+      if (src) img.innerHTML = `<img src="${src.replace(/"/g, '&quot;')}" alt="">`;
+      else img.innerHTML = '<i class="ti ti-photo"></i>';
+    }
+
+    const isSubscribe = !popupTemplateIsLinkMode(tpl);
+    if (phoneField) {
+      phoneField.hidden = !isSubscribe;
+      phoneField.style.display = isSubscribe ? '' : 'none';
+      phoneField.classList.toggle('popup-prev-field--hidden', !isSubscribe);
+    }
+    if (form) form.style.display = '';
+    const note = document.getElementById('popup-prev-note');
+    if (note) {
+      note.hidden = !isSubscribe;
+      note.style.display = isSubscribe ? '' : 'none';
+    }
+    applyPopupPreviewTheme(tpl);
+  }
+
+  function updatePopupLivePreview() {
+    const tpl = collectPopupTemplateFromForm(activePopupTabIdx);
+    const fileEl = document.getElementById(`popup-tpl-${activePopupTabIdx}-file`);
+    const pending = fileEl?.files?.[0];
+    if (pending && !tpl.image) tpl.image = URL.createObjectURL(pending);
+    paintPopupLivePreview(tpl);
+  }
+
+  function openPopupFullscreenPreview() {
+    updatePopupLivePreview();
+    const modal = document.getElementById('popup-preview-modal');
+    const modalStage = document.getElementById('popup-preview-modal-stage');
+    const stage = document.getElementById('popup-live-preview-stage');
+    if (modalStage && stage) modalStage.innerHTML = stage.innerHTML;
+    if (!modal) return;
+    modal.hidden = false;
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('popup-preview-modal-open');
+  }
+
+  function closePopupFullscreenPreview() {
+    const modal = document.getElementById('popup-preview-modal');
+    if (!modal) return;
+    modal.hidden = true;
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('popup-preview-modal-open');
+  }
+
+  function openPopupSitePreview() {
+    const id = POPUP_DEFAULT_TEMPLATES[activePopupTabIdx]?.id || 'gift';
+    window.open(`/?popup_preview=1&popup_template=${encodeURIComponent(id)}`, '_blank', 'noopener');
+  }
+
+  const POPUP_PREVIEW_FIELD_SUFFIXES = ['kicker', 'badge', 'title', 'desc', 'button', 'image', 'link', 'icon'];
+
+  function initPopupTemplateEditor() {
+    document.getElementById('popup-template-tabs')?.addEventListener('click', (e) => {
+      const tab = e.target.closest('.popup-template-tab');
+      if (!tab) return;
+      activePopupTabIdx = Number(tab.dataset.popupTab) || 0;
+      document.querySelectorAll('.popup-template-tab').forEach((el) => {
+        const on = el.dataset.popupTab === tab.dataset.popupTab;
+        el.classList.toggle('active', on);
+        el.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      document.querySelectorAll('.popup-template-panel').forEach((el) => {
+        el.classList.toggle('active', el.dataset.popupPanel === tab.dataset.popupTab);
+      });
+      updatePopupLivePreview();
+    });
+
+    for (let i = 0; i < POPUP_TEMPLATE_COUNT; i++) {
+      const onFieldChange = () => {
+        if (activePopupTabIdx === i) updatePopupLivePreview();
+      };
+      document.getElementById(`popup-tpl-${i}-mode`)?.addEventListener('change', () => {
+        syncPopupTemplateModeFields();
+        onFieldChange();
+      });
+      document.getElementById(`popup-tpl-${i}-enabled`)?.addEventListener('change', onFieldChange);
+      POPUP_PREVIEW_FIELD_SUFFIXES.forEach((suffix) => {
+        document.getElementById(`popup-tpl-${i}-${suffix}`)?.addEventListener('input', onFieldChange);
+        document.getElementById(`popup-tpl-${i}-${suffix}`)?.addEventListener('change', onFieldChange);
+      });
+      document.getElementById(`popup-tpl-${i}-image`)?.addEventListener('input', (e) => {
+        setMktImagePreview(`popup-tpl-${i}-preview-wrap`, `popup-tpl-${i}-preview`, e.target.value);
+        onFieldChange();
+      });
+      document.getElementById(`popup-tpl-${i}-file`)?.addEventListener('change', (e) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        setMktImagePreview(`popup-tpl-${i}-preview-wrap`, `popup-tpl-${i}-preview`, URL.createObjectURL(f));
+        onFieldChange();
+      });
+    }
+
+    document.getElementById('popup-fullscreen-preview-btn')?.addEventListener('click', openPopupFullscreenPreview);
+    document.getElementById('popup-site-preview-btn')?.addEventListener('click', openPopupSitePreview);
+    document.querySelectorAll('[data-close-popup-preview]').forEach((el) => {
+      el.addEventListener('click', closePopupFullscreenPreview);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closePopupFullscreenPreview();
+    });
+  }
+
+  initPopupTemplateEditor();
+
   async function loadMarketing() {
     const data = await api('/settings');
     if (data.ok && data.settings) {
@@ -1289,6 +1860,7 @@
       setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', s.marketing_card2_image);
       const mkt2File = document.getElementById('mkt2-file');
       if (mkt2File) mkt2File.value = '';
+      fillPopupSettings(s);
     } else {
       loadHeroSliderFromSettings({});
     }
@@ -1436,6 +2008,41 @@
     });
     if (data.ok) toast('Marketing cards saved');
     else toast(data.error || 'Save failed', 'error');
+  });
+
+  document.getElementById('popup-save-btn')?.addEventListener('click', async () => {
+    try {
+      for (let i = 0; i < POPUP_TEMPLATE_COUNT; i++) {
+        const f = document.getElementById(`popup-tpl-${i}-file`)?.files?.[0];
+        if (!f) continue;
+        const up = await uploadProductImage(f);
+        if (!up.ok) {
+          toast(up.error || `Template ${i + 1} image upload failed`, 'error');
+          return;
+        }
+        const imgInput = document.getElementById(`popup-tpl-${i}-image`);
+        if (imgInput) imgInput.value = up.url;
+        document.getElementById(`popup-tpl-${i}-file`).value = '';
+        setMktImagePreview(`popup-tpl-${i}-preview-wrap`, `popup-tpl-${i}-preview`, up.url);
+      }
+
+      const settings = collectPopupSettings();
+      const data = await api('/settings', {
+        method: 'PUT',
+        body: JSON.stringify({ settings }),
+      });
+      if (data.ok) toast('Popups saved');
+      else toast(data.error || 'Save failed', 'error');
+    } catch (err) {
+      toast(err.message || 'Could not save popups', 'error');
+    }
+  });
+
+  document.getElementById('popup-reset-btn')?.addEventListener('click', () => {
+    POPUP_DEFAULT_TEMPLATES.forEach((t, i) => fillPopupTemplateForm(i, t));
+    syncPopupTemplateModeFields();
+    updatePopupLivePreview();
+    toast('Defaults restored — click Save to apply');
   });
 
   async function loadPhoneSubscribers(page) {
@@ -1784,6 +2391,8 @@
     updateSubCategorySelect(categories, mainVal, subVal);
     syncPfCategoryHidden();
     document.getElementById('products-cat-filter').innerHTML = buildCategoryFilterOptions(categories);
+    const galleryCat = document.getElementById('gallery-cat-filter');
+    if (galleryCat) galleryCat.innerHTML = buildCategoryFilterOptions(categories);
   }
 
   function populateMainCategorySelect(list) {
@@ -2020,14 +2629,24 @@
     if (search) q.set('search', search);
     const data = await api('/products?' + q.toString());
     if (!data.ok) return;
-    document.getElementById('products-tbody').innerHTML = data.products
-      .map((p) => {
-        const stockCls = p.stock <= 0 ? 'badge-red' : p.stock <= 5 ? 'badge-amber' : 'badge-green';
-        const stockLbl = p.stock <= 0 ? 'Out of stock' : p.stock <= 5 ? 'Low' : 'Active';
-        return `<tr>
+
+    const tbody = document.getElementById('products-tbody');
+    if (!data.products?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No products found.</td></tr>';
+      updateProductsSelectionUi();
+    } else {
+      tbody.innerHTML = data.products
+        .map((p) => {
+          const stockCls = p.stock <= 0 ? 'badge-red' : p.stock <= 5 ? 'badge-amber' : 'badge-green';
+          const stockLbl = p.stock <= 0 ? 'Out of stock' : p.stock <= 5 ? 'Low' : 'Active';
+          const checked = selectedProductIds.has(Number(p.id)) ? ' checked' : '';
+          const rowClass = checked ? ' class="row-selected"' : '';
+          return `<tr${rowClass}>
+          <td class="tbl-check-col"><input type="checkbox" class="product-row-check" data-product-id="${p.id}" aria-label="Select ${escHtml(p.name_bn)}"${checked}></td>
           <td><div style="display:flex;align-items:center;gap:10px;">
             ${productThumbHtml(p)}
-            <div><div style="font-weight:600;">${p.name_bn}</div><small style="color:#94a3b8">${p.slug}</small></div></div></td>
+            <div><div style="font-weight:600;">${escHtml(p.name_bn)}</div><small style="color:#94a3b8">${escHtml(p.slug)}</small></div></div></td>
           <td>${formatProductCategoryLabel(p)}</td><td>৳${Number(p.price).toLocaleString()}</td>
           <td>${p.buy_price != null && p.buy_price !== '' ? '৳' + Number(p.buy_price).toLocaleString() : '<span style="color:#94a3b8">—</span>'}</td>
           <td>${p.stock}</td>
@@ -2037,8 +2656,10 @@
             <button type="button" class="btn btn-outline btn-xs" data-edit-product="${p.id}">Edit</button>
             <button type="button" class="btn btn-danger btn-xs" data-del-product="${p.id}">Delete</button>
           </td></tr>`;
-      })
-      .join('');
+        })
+        .join('');
+      updateProductsSelectionUi();
+    }
 
     document.querySelectorAll('[data-edit-product]').forEach((btn) => {
       btn.onclick = () => {
@@ -2054,6 +2675,8 @@
         const r = await api('/products/' + btn.dataset.delProduct, { method: 'DELETE' });
         if (r.ok) {
           toast('Product deleted');
+          selectedProductIds.delete(Number(btn.dataset.delProduct));
+          updateProductsSelectionUi();
           loadProducts();
         } else toast(r.error || 'Failed', 'error');
       };
@@ -2071,8 +2694,227 @@
     }
   }
 
+  let galleryLightboxItem = null;
+
+  function closeGalleryLightbox() {
+    const lb = document.getElementById('gallery-lightbox');
+    if (!lb) return;
+    lb.classList.remove('open');
+    lb.setAttribute('aria-hidden', 'true');
+    galleryLightboxItem = null;
+  }
+
+  function openGalleryLightbox(item) {
+    galleryLightboxItem = item;
+    const lb = document.getElementById('gallery-lightbox');
+    const img = document.getElementById('gallery-lightbox-img');
+    const title = document.getElementById('gallery-lightbox-title');
+    const sub = document.getElementById('gallery-lightbox-sub');
+    const view = document.getElementById('gallery-lightbox-view');
+    if (!lb || !img || !title || !sub) return;
+    img.src = item.imageUrl;
+    img.alt = item.productName || 'Product image';
+    title.textContent = item.productName || 'Product';
+    const bits = [item.categoryName || ''];
+    if (item.isMain) bits.push('Main image');
+    else bits.push(`Gallery #${(item.sortOrder || 0) + 1}`);
+    sub.textContent = bits.filter(Boolean).join(' · ');
+    if (view) {
+      const slug = item.productSlug || item.productId;
+      view.href = `/product/${encodeURIComponent(slug)}`;
+    }
+    lb.classList.add('open');
+    lb.setAttribute('aria-hidden', 'false');
+  }
+
+  async function loadImageGallery(page = galleryPage) {
+    galleryPage = page;
+    const grid = document.getElementById('gallery-grid');
+    const statsEl = document.getElementById('gallery-stats');
+    if (!grid) return;
+
+    if (!categories.length) await loadCategoriesList();
+
+    const catEl = document.getElementById('gallery-cat-filter');
+    const searchEl = document.getElementById('gallery-search');
+    const cat = catEl?.value || 'all';
+    const search = searchEl?.value.trim() || '';
+
+    grid.innerHTML = '<div class="gallery-loading"><i class="ti ti-loader"></i> Loading images...</div>';
+    if (statsEl) statsEl.textContent = '';
+
+    const q = new URLSearchParams({ page: String(page), limit: '48' });
+    if (cat && cat !== 'all') q.set('category', cat);
+    if (search) q.set('search', search);
+
+    const data = await api('/product-images?' + q.toString());
+    if (!data.ok) {
+      grid.innerHTML = `<div class="gallery-empty">${escHtml(data.error || 'Could not load images')}</div>`;
+      return;
+    }
+
+    const images = data.images || [];
+    if (statsEl && data.stats) {
+      statsEl.textContent = `${data.stats.totalImages} image${data.stats.totalImages === 1 ? '' : 's'} total`;
+    }
+
+    if (!images.length) {
+      grid.innerHTML = '<div class="gallery-empty">No product images found.</div>';
+      const pagEl = document.getElementById('gallery-pagination');
+      if (pagEl) pagEl.innerHTML = '';
+      return;
+    }
+
+    grid.innerHTML = images
+      .map((img, idx) => {
+        const url = escHtml(img.imageUrl);
+        const name = escHtml(img.productName || 'Product');
+        const catLabel = escHtml(img.categoryName || '');
+        const mainBadge = img.isMain ? '<span class="gallery-card-badge">Main</span>' : '';
+        return `<button type="button" class="gallery-card" data-gallery-idx="${idx}" title="${name}">
+          <span class="gallery-card-img-wrap">
+            <img src="${url}" alt="${name}" loading="lazy" decoding="async" onerror="this.closest('.gallery-card').classList.add('gallery-card--broken')">
+            ${mainBadge}
+          </span>
+          <span class="gallery-card-meta">
+            <span class="gallery-card-name">${name}</span>
+            ${catLabel ? `<span class="gallery-card-cat">${catLabel}</span>` : ''}
+          </span>
+        </button>`;
+      })
+      .join('');
+
+    grid.querySelectorAll('[data-gallery-idx]').forEach((btn) => {
+      btn.onclick = () => {
+        const idx = Number(btn.dataset.galleryIdx);
+        const item = images[idx];
+        if (item) openGalleryLightbox(item);
+      };
+    });
+
+    const pag = data.pagination;
+    const pagEl = document.getElementById('gallery-pagination');
+    if (pagEl && pag) {
+      pagEl.innerHTML = `<span>Page ${pag.page} of ${pag.pages} (${pag.total} images)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} data-gp="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page >= pag.pages ? 'disabled' : ''} data-gp="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-gp]').forEach((b) => {
+        b.onclick = () => loadImageGallery(galleryPage + Number(b.dataset.gp));
+      });
+    }
+  }
+
+  function updateProductsSelectionUi() {
+    const count = selectedProductIds.size;
+    const bulkBtn = document.getElementById('products-bulk-delete-btn');
+    const clearBtn = document.getElementById('products-clear-selection-btn');
+    const countEl = document.getElementById('products-selected-count');
+    if (countEl) countEl.textContent = String(count);
+    if (bulkBtn) bulkBtn.hidden = count === 0;
+    if (clearBtn) clearBtn.hidden = count === 0;
+    syncProductsSelectAllCheckbox();
+  }
+
+  function syncProductsSelectAllCheckbox() {
+    const selectAll = document.getElementById('products-select-all');
+    const checks = [...document.querySelectorAll('#products-tbody .product-row-check')];
+    if (!selectAll) return;
+    if (!checks.length) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      return;
+    }
+    const checkedOnPage = checks.filter((c) => c.checked).length;
+    selectAll.checked = checkedOnPage === checks.length;
+    selectAll.indeterminate = checkedOnPage > 0 && checkedOnPage < checks.length;
+  }
+
+  async function deleteSelectedProducts() {
+    const ids = [...selectedProductIds];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected product(s)? Products with existing orders will be skipped.`)) return;
+    const data = await api('/products/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
+    if (data.ok) {
+      let msg = `${data.deleted || ids.length} product(s) deleted`;
+      if (data.skipped) msg += ` — ${data.skipped} skipped (have orders)`;
+      toast(msg);
+      if (data.skippedIds?.length) {
+        data.skippedIds.forEach((id) => selectedProductIds.delete(Number(id)));
+      }
+      selectedProductIds.clear();
+      updateProductsSelectionUi();
+      loadProducts();
+    } else {
+      toast(data.error || 'Could not delete selected products', 'error');
+    }
+  }
+
+  document.getElementById('products-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#products-tbody .product-row-check').forEach((box) => {
+      box.checked = checked;
+      const id = Number(box.dataset.productId);
+      if (checked) selectedProductIds.add(id);
+      else selectedProductIds.delete(id);
+      box.closest('tr')?.classList.toggle('row-selected', checked);
+    });
+    e.target.indeterminate = false;
+    updateProductsSelectionUi();
+  });
+
+  document.getElementById('products-bulk-delete-btn')?.addEventListener('click', () => {
+    void deleteSelectedProducts();
+  });
+
+  document.getElementById('products-clear-selection-btn')?.addEventListener('click', () => {
+    selectedProductIds.clear();
+    document.querySelectorAll('#products-tbody .product-row-check').forEach((box) => {
+      box.checked = false;
+      box.closest('tr')?.classList.remove('row-selected');
+    });
+    updateProductsSelectionUi();
+  });
+
+  const productsTbody = document.getElementById('products-tbody');
+  if (productsTbody && !productsTbody._rakuProductActionsBound) {
+    productsTbody._rakuProductActionsBound = true;
+    productsTbody.addEventListener('click', (e) => {
+      const check = e.target.closest('.product-row-check');
+      if (!check) return;
+      const id = Number(check.dataset.productId);
+      if (check.checked) selectedProductIds.add(id);
+      else selectedProductIds.delete(id);
+      check.closest('tr')?.classList.toggle('row-selected', check.checked);
+      updateProductsSelectionUi();
+    });
+  }
+
   document.getElementById('products-cat-filter').onchange = () => loadProducts(1);
   document.getElementById('products-search').oninput = debounce(() => loadProducts(1), 400);
+
+  const galleryCatFilter = document.getElementById('gallery-cat-filter');
+  const gallerySearch = document.getElementById('gallery-search');
+  if (galleryCatFilter) galleryCatFilter.onchange = () => loadImageGallery(1);
+  if (gallerySearch) gallerySearch.oninput = debounce(() => loadImageGallery(1), 400);
+
+  document.getElementById('gallery-lightbox-close')?.addEventListener('click', closeGalleryLightbox);
+  document.getElementById('gallery-lightbox')?.addEventListener('click', (e) => {
+    if (e.target.id === 'gallery-lightbox') closeGalleryLightbox();
+  });
+  document.getElementById('gallery-lightbox-copy')?.addEventListener('click', async () => {
+    if (!galleryLightboxItem?.imageUrl) return;
+    try {
+      await navigator.clipboard.writeText(galleryLightboxItem.imageUrl);
+      toast('Image URL copied');
+    } catch (_) {
+      toast('Could not copy URL', 'error');
+    }
+  });
+  document.getElementById('gallery-lightbox-edit')?.addEventListener('click', async () => {
+    if (!galleryLightboxItem?.productId) return;
+    closeGalleryLightbox();
+    await openProductForm({ id: galleryLightboxItem.productId });
+  });
 
   document.getElementById('pf-reset').onclick = resetProductForm;
   function resetProductForm() {
@@ -2220,6 +3062,54 @@
   };
 
   // ——— Customers ———
+  function updateCustomersSelectionUi() {
+    const count = selectedCustomerIds.size;
+    const bulkBtn = document.getElementById('customers-bulk-delete-btn');
+    const clearBtn = document.getElementById('customers-clear-selection-btn');
+    const countEl = document.getElementById('customers-selected-count');
+    if (countEl) countEl.textContent = String(count);
+    if (bulkBtn) bulkBtn.hidden = count === 0;
+    if (clearBtn) clearBtn.hidden = count === 0;
+    syncCustomersSelectAllCheckbox();
+  }
+
+  function syncCustomersSelectAllCheckbox() {
+    const selectAll = document.getElementById('customers-select-all');
+    const checks = [...document.querySelectorAll('#customers-tbody .customer-row-check')];
+    if (!selectAll) return;
+    if (!checks.length) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      return;
+    }
+    const checkedOnPage = checks.filter((c) => c.checked).length;
+    selectAll.checked = checkedOnPage === checks.length;
+    selectAll.indeterminate = checkedOnPage > 0 && checkedOnPage < checks.length;
+  }
+
+  async function deleteSelectedCustomers() {
+    const ids = [...selectedCustomerIds];
+    if (!ids.length) return;
+    if (
+      !confirm(
+        `Delete ${ids.length} selected customer account(s) permanently? Their orders will stay in the store but will no longer be linked to these accounts. This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    const data = await api('/customers/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
+    if (data.ok) {
+      let msg = `${data.deleted || ids.length} customer(s) deleted`;
+      if (data.notFound) msg += ` — ${data.notFound} not found`;
+      toast(msg);
+      selectedCustomerIds.clear();
+      updateCustomersSelectionUi();
+      loadCustomers();
+    } else {
+      toast(data.error || 'Could not delete selected customers', 'error');
+    }
+  }
+
   async function loadCustomers() {
     const statsData = await api('/customers/stats');
     if (statsData.ok) {
@@ -2233,16 +3123,30 @@
     const q = search ? '?search=' + encodeURIComponent(search) : '';
     const data = await api('/customers' + q);
     if (!data.ok) return;
-    document.getElementById('customers-tbody').innerHTML = data.customers
+
+    const tbody = document.getElementById('customers-tbody');
+    if (!data.customers?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px;">No customers found.</td></tr>';
+      updateCustomersSelectionUi();
+      return;
+    }
+
+    tbody.innerHTML = data.customers
       .map((c) => {
         const safeName = escHtml(c.fullName || 'Customer');
-        return `<tr>
+        const checked = selectedCustomerIds.has(Number(c.id)) ? ' checked' : '';
+        const rowClass = checked ? ' class="row-selected"' : '';
+        return `<tr${rowClass}>
+        <td class="tbl-check-col"><input type="checkbox" class="customer-row-check" data-customer-id="${c.id}" aria-label="Select ${safeName}"${checked}></td>
         <td>${safeName}</td><td>${escHtml(c.email || '')}</td><td>${escHtml(c.phone || '')}</td>
         <td><button type="button" class="btn btn-outline btn-sm customer-points-btn" data-id="${c.id}" data-points="${c.rewardPoints}" title="Edit points">${c.rewardPoints}</button></td>
         <td>${c.orderCount}</td><td>${c.totalSpentFormatted}</td><td>${fmtDate(c.createdAt)}</td>
         <td><button type="button" class="btn btn-danger btn-xs customer-del-btn" data-id="${c.id}" data-name="${safeName.replace(/"/g, '&quot;')}" data-orders="${c.orderCount}" title="Delete account"><i class="ti ti-trash"></i> Delete</button></td></tr>`;
       })
       .join('');
+    updateCustomersSelectionUi();
+
     document.querySelectorAll('.customer-points-btn').forEach((btn) => {
       btn.onclick = async () => {
         const id = btn.dataset.id;
@@ -2274,11 +3178,54 @@
         const res = await api(`/customers/${id}`, { method: 'DELETE' });
         if (res.ok) {
           toast('Customer deleted');
+          selectedCustomerIds.delete(Number(id));
+          updateCustomersSelectionUi();
           loadCustomers();
         } else toast(res.error || 'Failed to delete customer', 'error');
       };
     });
   }
+
+  document.getElementById('customers-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#customers-tbody .customer-row-check').forEach((box) => {
+      box.checked = checked;
+      const id = Number(box.dataset.customerId);
+      if (checked) selectedCustomerIds.add(id);
+      else selectedCustomerIds.delete(id);
+      box.closest('tr')?.classList.toggle('row-selected', checked);
+    });
+    e.target.indeterminate = false;
+    updateCustomersSelectionUi();
+  });
+
+  document.getElementById('customers-bulk-delete-btn')?.addEventListener('click', () => {
+    void deleteSelectedCustomers();
+  });
+
+  document.getElementById('customers-clear-selection-btn')?.addEventListener('click', () => {
+    selectedCustomerIds.clear();
+    document.querySelectorAll('#customers-tbody .customer-row-check').forEach((box) => {
+      box.checked = false;
+      box.closest('tr')?.classList.remove('row-selected');
+    });
+    updateCustomersSelectionUi();
+  });
+
+  const customersTbody = document.getElementById('customers-tbody');
+  if (customersTbody && !customersTbody._rakuCustomerActionsBound) {
+    customersTbody._rakuCustomerActionsBound = true;
+    customersTbody.addEventListener('click', (e) => {
+      const check = e.target.closest('.customer-row-check');
+      if (!check) return;
+      const id = Number(check.dataset.customerId);
+      if (check.checked) selectedCustomerIds.add(id);
+      else selectedCustomerIds.delete(id);
+      check.closest('tr')?.classList.toggle('row-selected', check.checked);
+      updateCustomersSelectionUi();
+    });
+  }
+
   document.getElementById('customers-search').oninput = debounce(loadCustomers, 400);
 
   // ——— Categories ———
@@ -2603,6 +3550,46 @@
   };
 
   // ——— Coupons ———
+  function updateCouponsSelectionUi() {
+    const count = selectedCouponIds.size;
+    const bulkBtn = document.getElementById('coupons-bulk-delete-btn');
+    const clearBtn = document.getElementById('coupons-clear-selection-btn');
+    const countEl = document.getElementById('coupons-selected-count');
+    if (countEl) countEl.textContent = String(count);
+    if (bulkBtn) bulkBtn.hidden = count === 0;
+    if (clearBtn) clearBtn.hidden = count === 0;
+    syncCouponsSelectAllCheckbox();
+  }
+
+  function syncCouponsSelectAllCheckbox() {
+    const selectAll = document.getElementById('coupons-select-all');
+    const checks = [...document.querySelectorAll('#coupons-tbody .coupon-row-check')];
+    if (!selectAll) return;
+    if (!checks.length) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      return;
+    }
+    const checkedOnPage = checks.filter((c) => c.checked).length;
+    selectAll.checked = checkedOnPage === checks.length;
+    selectAll.indeterminate = checkedOnPage > 0 && checkedOnPage < checks.length;
+  }
+
+  async function deleteSelectedCoupons() {
+    const ids = [...selectedCouponIds];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected coupon(s) permanently? This cannot be undone.`)) return;
+    const data = await api('/coupons/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
+    if (data.ok) {
+      toast(`${data.deleted || ids.length} coupon(s) deleted`);
+      selectedCouponIds.clear();
+      updateCouponsSelectionUi();
+      loadCoupons();
+    } else {
+      toast(data.error || 'Could not delete selected coupons', 'error');
+    }
+  }
+
   function resetCouponForm() {
     document.getElementById('coupon-form-title').textContent = 'New Coupon';
     document.getElementById('cp-id').value = '';
@@ -2616,18 +3603,29 @@
     const data = await api('/coupons');
     if (!data.ok) return;
     coupons = data.coupons;
-    document.getElementById('coupons-tbody').innerHTML = coupons
-      .map(
-        (c) => `<tr>
-        <td><code style="background:#E8F3EA;padding:3px 8px;border-radius:4px;font-weight:700;">${c.code}</code></td>
-        <td>${c.discount_type}</td><td>${c.discount_type === 'percent' ? c.discount_value + '%' : '৳' + c.discount_value}</td>
+    const tbody = document.getElementById('coupons-tbody');
+    if (!coupons?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No coupons yet.</td></tr>';
+      updateCouponsSelectionUi();
+      return;
+    }
+    tbody.innerHTML = coupons
+      .map((c) => {
+        const checked = selectedCouponIds.has(Number(c.id)) ? ' checked' : '';
+        const rowClass = checked ? ' class="row-selected"' : '';
+        return `<tr${rowClass}>
+        <td class="tbl-check-col"><input type="checkbox" class="coupon-row-check" data-coupon-id="${c.id}" aria-label="Select coupon ${escHtml(c.code)}"${checked}></td>
+        <td><code style="background:#E8F3EA;padding:3px 8px;border-radius:4px;font-weight:700;">${escHtml(c.code)}</code></td>
+        <td>${escHtml(c.discount_type)}</td><td>${c.discount_type === 'percent' ? c.discount_value + '%' : '৳' + c.discount_value}</td>
         <td>৳${Number(c.min_order).toLocaleString()}</td>
         <td>${c.used_count}${c.usage_limit ? '/' + c.usage_limit : ''}</td>
         <td>${c.expires_at ? String(c.expires_at).slice(0, 10) : '—'}</td>
         <td><button type="button" class="btn btn-outline btn-xs" data-edit-cp="${c.id}">Edit</button>
-        <button type="button" class="btn btn-danger btn-xs" data-del-coupon="${c.id}">Delete</button></td></tr>`
-      )
+        <button type="button" class="btn btn-danger btn-xs" data-del-coupon="${c.id}">Delete</button></td></tr>`;
+      })
       .join('');
+    updateCouponsSelectionUi();
     document.querySelectorAll('[data-edit-cp]').forEach((btn) => {
       btn.onclick = () => {
         const c = coupons.find((x) => x.id === Number(btn.dataset.editCp));
@@ -2649,9 +3647,51 @@
         const r = await api('/coupons/' + btn.dataset.delCoupon, { method: 'DELETE' });
         if (r.ok) {
           toast('Coupon deleted');
+          selectedCouponIds.delete(Number(btn.dataset.delCoupon));
+          updateCouponsSelectionUi();
           loadCoupons();
         } else toast(r.error || 'Failed', 'error');
       };
+    });
+  }
+
+  document.getElementById('coupons-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#coupons-tbody .coupon-row-check').forEach((box) => {
+      box.checked = checked;
+      const id = Number(box.dataset.couponId);
+      if (checked) selectedCouponIds.add(id);
+      else selectedCouponIds.delete(id);
+      box.closest('tr')?.classList.toggle('row-selected', checked);
+    });
+    e.target.indeterminate = false;
+    updateCouponsSelectionUi();
+  });
+
+  document.getElementById('coupons-bulk-delete-btn')?.addEventListener('click', () => {
+    void deleteSelectedCoupons();
+  });
+
+  document.getElementById('coupons-clear-selection-btn')?.addEventListener('click', () => {
+    selectedCouponIds.clear();
+    document.querySelectorAll('#coupons-tbody .coupon-row-check').forEach((box) => {
+      box.checked = false;
+      box.closest('tr')?.classList.remove('row-selected');
+    });
+    updateCouponsSelectionUi();
+  });
+
+  const couponsTbody = document.getElementById('coupons-tbody');
+  if (couponsTbody && !couponsTbody._rakuCouponActionsBound) {
+    couponsTbody._rakuCouponActionsBound = true;
+    couponsTbody.addEventListener('click', (e) => {
+      const check = e.target.closest('.coupon-row-check');
+      if (!check) return;
+      const id = Number(check.dataset.couponId);
+      if (check.checked) selectedCouponIds.add(id);
+      else selectedCouponIds.delete(id);
+      check.closest('tr')?.classList.toggle('row-selected', check.checked);
+      updateCouponsSelectionUi();
     });
   }
 
@@ -2872,7 +3912,7 @@
     const sh = document.getElementById('set-store-hours');
     if (sh) sh.value = s.store_hours || '';
     const lu = document.getElementById('set-logo-url');
-    if (lu) lu.value = s.site_logo_url || '/images/rakushopbd-logo.png?v=6';
+    if (lu) lu.value = s.site_logo_url || '/images/rakushopbd-logo.png?v=8';
     const sf = document.getElementById('set-social-facebook');
     if (sf) sf.value = s.social_facebook || '';
     const si = document.getElementById('set-social-instagram');
@@ -2942,14 +3982,28 @@
     const user = document.getElementById('set-smtp-user');
     if (user) user.value = s.smtp_user || '';
     const pass = document.getElementById('set-smtp-pass');
-    if (pass) pass.value = '';
+    const saved = String(s.smtp_pass_set ?? '') === '1';
+    if (pass) {
+      pass.value = '';
+      pass.placeholder = saved
+        ? 'Password saved (hidden) — type only to change'
+        : '16-character app password';
+      pass.classList.toggle('smtp-pass-input--saved', saved);
+    }
+    const status = document.getElementById('set-smtp-pass-status');
+    if (status) status.hidden = !saved;
     const hint = document.getElementById('set-smtp-pass-hint');
     if (hint) {
-      hint.textContent =
-        s.smtp_pass_set === '1'
-          ? 'Password is saved. Enter a new one only to change it.'
-          : 'Gmail: create an App Password at myaccount.google.com/apppasswords';
+      hint.textContent = saved
+        ? 'Your app password is stored securely. Leave this field empty unless you want to change it.'
+        : 'Gmail: create an App Password at myaccount.google.com/apppasswords';
     }
+  }
+
+  function applySettingsResponse(settings) {
+    if (!settings) return;
+    window._lastSettingsCache = { ...(window._lastSettingsCache || {}), ...settings };
+    fillSmtpSettings(settings);
   }
 
   function collectSmtpSettings() {
@@ -3118,22 +4172,79 @@
       .join('');
   }
 
+  function updateReviewsSelectionUi() {
+    const count = selectedReviewIds.size;
+    const bulkBtn = document.getElementById('reviews-bulk-delete-btn');
+    const clearBtn = document.getElementById('reviews-clear-selection-btn');
+    const countEl = document.getElementById('reviews-selected-count');
+    if (countEl) countEl.textContent = String(count);
+    if (bulkBtn) bulkBtn.hidden = count === 0;
+    if (clearBtn) clearBtn.hidden = count === 0;
+    syncReviewsSelectAllCheckbox();
+  }
+
+  function syncReviewsSelectAllCheckbox() {
+    const selectAll = document.getElementById('reviews-select-all');
+    const checks = [...document.querySelectorAll('#reviews-tbody .review-row-check')];
+    if (!selectAll) return;
+    if (!checks.length) {
+      selectAll.checked = false;
+      selectAll.indeterminate = false;
+      return;
+    }
+    const checkedOnPage = checks.filter((c) => c.checked).length;
+    selectAll.checked = checkedOnPage === checks.length;
+    selectAll.indeterminate = checkedOnPage > 0 && checkedOnPage < checks.length;
+  }
+
+  async function deleteSelectedReviews() {
+    const ids = [...selectedReviewIds];
+    if (!ids.length) return;
+    if (!confirm(`Delete ${ids.length} selected review(s) permanently? This cannot be undone.`)) return;
+    const data = await api('/reviews/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
+    if (data.ok) {
+      toast(`${data.deleted || ids.length} review(s) deleted`);
+      selectedReviewIds.clear();
+      updateReviewsSelectionUi();
+      loadReviews();
+    } else {
+      toast(data.error || 'Could not delete selected reviews', 'error');
+    }
+  }
+
   async function loadReviews() {
     const status = document.getElementById('reviews-filter').value;
     const data = await api('/reviews?status=' + status);
     if (!data.ok) return toast(data.error || 'Load failed', 'error');
     const rb = document.getElementById('review-badge');
     if (rb) rb.textContent = data.pendingCount || 0;
-    document.getElementById('reviews-tbody').innerHTML = data.reviews
+    const tbody = document.getElementById('reviews-tbody');
+    if (!data.reviews?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No reviews found.</td></tr>';
+      updateReviewsSelectionUi();
+      return;
+    }
+    tbody.innerHTML = data.reviews
       .map((r) => {
         const stars = '★'.repeat(r.rating) + '☆'.repeat(5 - r.rating);
-        return `<tr><td>${r.customer_name}</td><td>${r.product_name}</td><td style="color:#EF9F27;">${stars}</td>
-        <td>${(r.comment || '').slice(0, 40)}</td><td>${fmtDate(r.created_at)}</td>
-        <td><span class="badge badge-${r.status === 'approved' ? 'green' : r.status === 'pending' ? 'amber' : 'red'}">${r.status}</span></td>
+        const checked = selectedReviewIds.has(Number(r.id)) ? ' checked' : '';
+        const rowClass = checked ? ' class="row-selected"' : '';
+        const avatar = r.reviewer_avatar_url
+          ? `<img src="${escHtml(r.reviewer_avatar_url)}" alt="" class="tbl-avatar" loading="lazy" decoding="async" onerror="this.remove();">`
+          : `<div class="tbl-avatar-fallback">${escHtml(String(r.customer_name || 'C')[0] || 'C')}</div>`;
+        return `<tr${rowClass}>
+        <td class="tbl-check-col"><input type="checkbox" class="review-row-check" data-review-id="${r.id}" aria-label="Select review from ${escHtml(r.customer_name)}"${checked}></td>
+        <td>${avatar}</td>
+        <td>${escHtml(r.customer_name)}</td><td>${escHtml(r.product_name)}</td><td style="color:#EF9F27;">${stars}</td>
+        <td>${escHtml(String(r.comment || '').slice(0, 40))}</td><td>${fmtDate(r.created_at)}</td>
+        <td><span class="badge badge-${r.status === 'approved' ? 'green' : r.status === 'pending' ? 'amber' : 'red'}">${escHtml(r.status)}</span></td>
         <td>${r.status === 'pending' ? `<button class="btn btn-primary btn-xs" data-approve="${r.id}">Approve</button>` : ''}
+        <button class="btn btn-outline btn-xs" data-edit-review="${r.id}">Edit</button>
         <button class="btn btn-danger btn-xs" data-del-review="${r.id}">Delete</button></td></tr>`;
       })
       .join('');
+    updateReviewsSelectionUi();
     document.querySelectorAll('[data-approve]').forEach((b) => {
       b.onclick = async () => {
         await api('/reviews/' + b.dataset.approve, { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) });
@@ -3144,11 +4255,227 @@
       b.onclick = async () => {
         if (!confirm('Delete review?')) return;
         await api('/reviews/' + b.dataset.delReview, { method: 'DELETE' });
+        selectedReviewIds.delete(Number(b.dataset.delReview));
+        updateReviewsSelectionUi();
         loadReviews();
       };
     });
+
+    document.querySelectorAll('[data-edit-review]').forEach((b) => {
+      b.onclick = () => {
+        const id = Number(b.dataset.editReview);
+        const rev = data.reviews.find((x) => Number(x.id) === id);
+        if (rev) openReviewModal(rev);
+      };
+    });
   }
+
+  document.getElementById('reviews-select-all')?.addEventListener('change', (e) => {
+    const checked = e.target.checked;
+    document.querySelectorAll('#reviews-tbody .review-row-check').forEach((box) => {
+      box.checked = checked;
+      const id = Number(box.dataset.reviewId);
+      if (checked) selectedReviewIds.add(id);
+      else selectedReviewIds.delete(id);
+      box.closest('tr')?.classList.toggle('row-selected', checked);
+    });
+    e.target.indeterminate = false;
+    updateReviewsSelectionUi();
+  });
+
+  document.getElementById('reviews-bulk-delete-btn')?.addEventListener('click', () => {
+    void deleteSelectedReviews();
+  });
+
+  document.getElementById('reviews-clear-selection-btn')?.addEventListener('click', () => {
+    selectedReviewIds.clear();
+    document.querySelectorAll('#reviews-tbody .review-row-check').forEach((box) => {
+      box.checked = false;
+      box.closest('tr')?.classList.remove('row-selected');
+    });
+    updateReviewsSelectionUi();
+  });
+
+  const reviewsTbody = document.getElementById('reviews-tbody');
+  if (reviewsTbody && !reviewsTbody._rakuReviewActionsBound) {
+    reviewsTbody._rakuReviewActionsBound = true;
+    reviewsTbody.addEventListener('click', (e) => {
+      const check = e.target.closest('.review-row-check');
+      if (!check) return;
+      const id = Number(check.dataset.reviewId);
+      if (check.checked) selectedReviewIds.add(id);
+      else selectedReviewIds.delete(id);
+      check.closest('tr')?.classList.toggle('row-selected', check.checked);
+      updateReviewsSelectionUi();
+    });
+  }
+
   document.getElementById('reviews-filter').onchange = loadReviews;
+
+  // ——— Review modal (create/edit) ———
+  function closeReviewModal() {
+    const modal = document.getElementById('review-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.getElementById('rev-product-pick')?.setAttribute('hidden', 'true');
+  }
+
+  function openReviewModal(review) {
+    const modal = document.getElementById('review-modal');
+    if (!modal) return;
+    document.getElementById('review-form-title').textContent = review?.id ? 'Edit Review' : 'Add Review';
+    document.getElementById('rev-id').value = review?.id || '';
+    document.getElementById('rev-product-id').value = review?.product_id || review?.productId || '';
+    document.getElementById('rev-product-search').value = review?.product_name || '';
+    document.getElementById('rev-name').value = review?.customer_name || '';
+    document.getElementById('rev-city').value = review?.reviewer_city || '';
+    document.getElementById('rev-rating').value = String(review?.rating || 5);
+    document.getElementById('rev-comment').value = review?.comment || '';
+    document.getElementById('rev-status').value = review?.status || 'approved';
+    document.getElementById('rev-image').value = review?.image_url || '';
+    document.getElementById('rev-avatar').value = review?.reviewer_avatar_url || '';
+    const file = document.getElementById('rev-avatar-file');
+    if (file) file.value = '';
+    const wrap = document.getElementById('rev-avatar-preview-wrap');
+    const img = document.getElementById('rev-avatar-preview');
+    if (wrap && img) {
+      const url = (review?.reviewer_avatar_url || '').trim();
+      if (url) {
+        img.src = url;
+        wrap.hidden = false;
+      } else {
+        img.removeAttribute('src');
+        wrap.hidden = true;
+      }
+    }
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  document.getElementById('add-review-btn')?.addEventListener('click', () => openReviewModal(null));
+  document.getElementById('review-modal-close')?.addEventListener('click', closeReviewModal);
+  document.getElementById('review-modal-cancel')?.addEventListener('click', closeReviewModal);
+  document.getElementById('rev-reset')?.addEventListener('click', () => openReviewModal(null));
+
+  document.getElementById('review-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'review-modal') closeReviewModal();
+  });
+
+  // Product search picker inside review modal (uses existing admin products endpoint)
+  const revSearch = document.getElementById('rev-product-search');
+  const revPick = document.getElementById('rev-product-pick');
+  const revProdId = document.getElementById('rev-product-id');
+  const revPickedHint = document.getElementById('rev-product-picked-hint');
+  const revPickState = { items: [] };
+
+  async function searchReviewProducts(q) {
+    const data = await api('/products?limit=12&page=1&search=' + encodeURIComponent(q || ''));
+    if (!data.ok) return [];
+    return (data.products || []).map((p) => ({ id: p.id, name: p.name_bn || p.slug || `#${p.id}` }));
+  }
+
+  function renderReviewProductPick(items) {
+    if (!revPick) return;
+    revPickState.items = items || [];
+    if (!items?.length) {
+      revPick.hidden = true;
+      revPick.innerHTML = '';
+      return;
+    }
+    revPick.hidden = false;
+    revPick.innerHTML = items
+      .map((p) => `<button type="button" class="picker-item" data-pick-id="${p.id}">${escHtml(p.name)} <span class="muted">#${p.id}</span></button>`)
+      .join('');
+    revPick.querySelectorAll('[data-pick-id]').forEach((btn) => {
+      btn.onclick = () => {
+        const id = Number(btn.dataset.pickId);
+        const item = items.find((x) => Number(x.id) === id);
+        if (!item) return;
+        if (revProdId) revProdId.value = String(item.id);
+        if (revSearch) revSearch.value = item.name;
+        if (revPickedHint) revPickedHint.textContent = `Selected: ${item.name} (#${item.id})`;
+        renderReviewProductPick([]);
+      };
+    });
+  }
+
+  if (revSearch) {
+    revSearch.addEventListener(
+      'input',
+      debounce(async () => {
+        const q = revSearch.value.trim();
+        if (!q) return renderReviewProductPick([]);
+        const items = await searchReviewProducts(q);
+        renderReviewProductPick(items);
+      }, 250)
+    );
+    revSearch.addEventListener('focus', () => {
+      if (revPickState.items?.length) revPick.hidden = false;
+    });
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!revPick || revPick.hidden) return;
+    if (e.target.closest('#rev-product-pick') || e.target.closest('#rev-product-search')) return;
+    renderReviewProductPick([]);
+  });
+
+  // Avatar upload preview + upload
+  document.getElementById('rev-avatar-file')?.addEventListener('change', (e) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const wrap = document.getElementById('rev-avatar-preview-wrap');
+      const img = document.getElementById('rev-avatar-preview');
+      if (wrap && img) {
+        img.src = reader.result;
+        wrap.hidden = false;
+      }
+    };
+    reader.readAsDataURL(f);
+  });
+
+  document.getElementById('review-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = document.getElementById('rev-id')?.value || '';
+    const productId = Number(document.getElementById('rev-product-id')?.value || 0);
+    const customerName = document.getElementById('rev-name')?.value?.trim() || '';
+    const rating = Number(document.getElementById('rev-rating')?.value || 0);
+    const comment = document.getElementById('rev-comment')?.value?.trim() || '';
+    const status = document.getElementById('rev-status')?.value || 'approved';
+    const city = document.getElementById('rev-city')?.value?.trim() || '';
+    const imageUrl = document.getElementById('rev-image')?.value?.trim() || '';
+    let avatarUrl = document.getElementById('rev-avatar')?.value?.trim() || '';
+
+    if (!productId) return toast('Select a product', 'error');
+    if (!customerName) return toast('Customer name is required', 'error');
+    if (!rating) return toast('Rating is required', 'error');
+
+    const f = document.getElementById('rev-avatar-file');
+    if (f?.files?.[0]) {
+      const fd = new FormData();
+      fd.append('image', f.files[0]);
+      const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+      const upData = await up.json();
+      if (upData.ok) avatarUrl = upData.url;
+      else return toast(upData.error || 'Avatar upload failed', 'error');
+    }
+
+    const body = { productId, customerName, rating, comment, status, city: city || null, imageUrl: imageUrl || null, avatarUrl: avatarUrl || null };
+    const res = id
+      ? await api('/reviews/' + id, { method: 'PUT', body: JSON.stringify(body) })
+      : await api('/reviews', { method: 'POST', body: JSON.stringify(body) });
+
+    if (res.ok) {
+      toast(id ? 'Review updated' : 'Review added');
+      closeReviewModal();
+      loadReviews();
+    } else {
+      toast(res.error || 'Save failed', 'error');
+    }
+  });
 
   function syncBannerFormByPosition() {
     const pos = document.getElementById('bn-position')?.value || 'hero';
@@ -3601,18 +4928,32 @@
       }
     }
     const data = await api('/settings', { method: 'PUT', body: JSON.stringify({ settings: collectSettings() }) });
-    if (data.ok) toast('Settings saved');
-    else toast(data.error || 'Failed', 'error');
+    if (data.ok) {
+      toast('Settings saved');
+      applySettingsResponse(data.settings);
+    } else toast(data.error || 'Failed', 'error');
   };
+
+  document.getElementById('set-smtp-pass')?.addEventListener('input', (e) => {
+    const val = String(e.target.value || '');
+    if (val.trim()) {
+      const status = document.getElementById('set-smtp-pass-status');
+      if (status) status.hidden = true;
+      e.target.classList.remove('smtp-pass-input--saved');
+      e.target.placeholder = 'Enter new app password';
+      return;
+    }
+    if (String(window._lastSettingsCache?.smtp_pass_set ?? '') === '1') {
+      fillSmtpSettings(window._lastSettingsCache);
+    }
+  });
 
   document.getElementById('delivery-form').onsubmit = async (e) => {
     e.preventDefault();
     const data = await api('/settings', { method: 'PUT', body: JSON.stringify({ settings: collectSettings() }) });
     if (data.ok) {
       toast('Delivery & email settings saved');
-      const pass = document.getElementById('set-smtp-pass');
-      if (pass) pass.value = '';
-      loadSettings();
+      applySettingsResponse(data.settings);
     } else toast(data.error || 'Failed to save delivery settings', 'error');
   };
 
@@ -3624,8 +4965,10 @@
       body: JSON.stringify({ settings: collectSmtpSettings() }),
     });
     if (btn) btn.disabled = false;
-    if (data.ok) toast(data.message || 'Test email sent');
-    else toast(data.error || 'Test email failed', 'error');
+    if (data.ok) {
+      toast(data.message || 'Test email sent');
+      if (data.saved) applySettingsResponse(data.settings);
+    } else toast(data.error || 'Test email failed', 'error');
   });
 
   document.getElementById('seo-form')?.addEventListener('submit', async (e) => {

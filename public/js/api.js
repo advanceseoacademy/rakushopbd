@@ -224,13 +224,26 @@
     else products.push(p);
   }
 
+  function productGalleryFromApi(p) {
+    if (Array.isArray(p?.gallery_urls)) return p.gallery_urls.filter(Boolean);
+    if (Array.isArray(p?.gallery)) {
+      return p.gallery
+        .map((row) => row?.image_url || row?.imageUrl)
+        .filter(Boolean);
+    }
+    return null;
+  }
+
   async function fetchProductDetail(ref, opts = {}) {
     const raw = String(ref ?? '').trim();
     if (!raw) return null;
     const byId = /^\d+$/.test(raw);
     const cacheKey = byId ? Number(raw) : `slug:${raw}`;
     const bypassCache = Boolean(opts.bypassCache);
-    if (!bypassCache && productDetailCache.has(cacheKey)) return productDetailCache.get(cacheKey);
+    if (!bypassCache && productDetailCache.has(cacheKey)) {
+      const cached = productDetailCache.get(cacheKey);
+      if (productGalleryFromApi(cached) !== null) return cached;
+    }
     if (!bypassCache && productFetchInflight.has(cacheKey)) return productFetchInflight.get(cacheKey);
     const apiPath = byId ? `/products/${raw}` : `/products/${encodeURIComponent(raw)}`;
     const job = apiFetch(apiPath)
@@ -1429,7 +1442,8 @@
   function productNeedsDetailFetch(p) {
     if (!p) return true;
     if (!('stock' in p)) return true;
-    if (!productHasGallery(p)) return true;
+    // List/bootstrap cards only have image_url — need API detail for full gallery_urls.
+    if (productGalleryFromApi(p) === null) return true;
     const hasDesc = Boolean(String(p.description_bn || p.descriptionBn || '').trim());
     const hasShort = Boolean(String(p.short_description || p.shortDescription || '').trim());
     if (hasDesc || hasShort) return false;

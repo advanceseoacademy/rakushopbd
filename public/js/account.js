@@ -277,11 +277,21 @@
     loadReferralPanel();
   }
 
+  function applyAuthTabFromUrl() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('signup') === '1' || params.get('tab') === 'register') {
+        setAuthTab('register');
+      }
+    } catch (_) {}
+  }
+
   function setLoggedOutUI() {
     currentUser = null;
     const page = document.getElementById('page-account');
     if (page) page.classList.remove('logged-in');
     setAuthTab('login');
+    applyAuthTabFromUrl();
     updateNavAccountLabel();
   }
 

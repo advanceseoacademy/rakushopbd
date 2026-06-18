@@ -167,6 +167,8 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
   // ——— Reviews ———
   router.get('/reviews', requireAdmin, async (req, res) => {
     try {
+      const { ensureHomepageReviewsSeeded } = require('../lib/ensureHomepageReviewsSeeded');
+      await ensureHomepageReviewsSeeded();
       const { status } = req.query;
       let sql = `SELECT r.*, p.name_bn AS product_name FROM product_reviews r
         JOIN products p ON p.id = r.product_id WHERE 1=1`;
@@ -175,7 +177,7 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
         sql += ' AND r.status = ?';
         params.push(status);
       }
-      sql += ' ORDER BY r.created_at DESC LIMIT 200';
+      sql += ' ORDER BY COALESCE(r.homepage_sort_order, 9999) ASC, r.created_at DESC LIMIT 500';
       const reviews = await query(sql, params);
       const [{ pending }] = await query(
         "SELECT COUNT(*) AS pending FROM product_reviews WHERE status='pending'"
@@ -184,6 +186,93 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     } catch (err) {
       console.error(err);
       res.status(500).json({ ok: false, error: 'Reviews table missing — run db setup' });
+    }
+  });
+
+  router.post('/reviews', requireAdmin, async (req, res) => {
+    try {
+      const { ensureProductReviewAvatarColumn } = require('../lib/ensureProductReviewAvatarColumn');
+      await ensureProductReviewAvatarColumn();
+
+      const productId = Number(req.body.productId);
+      const customerName = String(req.body.customerName || '').trim();
+      const rating = Math.min(5, Math.max(1, Number(req.body.rating) || 0));
+      const comment = String(req.body.comment || '').trim() || null;
+      const imageUrl = String(req.body.imageUrl || '').trim() || null;
+      const avatarUrl = String(req.body.avatarUrl || '').trim() || null;
+      const city = String(req.body.city || '').trim() || null;
+      const status = ['approved', 'pending', 'rejected'].includes(String(req.body.status))
+        ? String(req.body.status)
+        : 'approved';
+
+      if (!productId) return res.status(400).json({ ok: false, error: 'Product is required' });
+      if (!customerName) return res.status(400).json({ ok: false, error: 'Customer name is required' });
+      if (!rating) return res.status(400).json({ ok: false, error: 'Rating is required' });
+
+      const products = await query('SELECT id FROM products WHERE id = ? LIMIT 1', [productId]);
+      if (!products.length) return res.status(404).json({ ok: false, error: 'Product not found' });
+
+      const result = await query(
+        `INSERT INTO product_reviews (product_id, user_id, customer_name, rating, comment, image_url, reviewer_avatar_url, reviewer_city, status)
+         VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?)`,
+        [productId, customerName, rating, comment, imageUrl, avatarUrl, city, status]
+      );
+
+      const id = result?.insertId || result?.[0]?.id;
+      const { syncProductReviewStats } = require('../lib/productReviews');
+      await syncProductReviewStats(query, productId);
+      res.json({ ok: true, id });
+    } catch (err) {
+      console.error('admin create review', err);
+      res.status(500).json({ ok: false, error: 'Could not create review' });
+    }
+  });
+
+  router.put('/reviews/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureProductReviewAvatarColumn } = require('../lib/ensureProductReviewAvatarColumn');
+      await ensureProductReviewAvatarColumn();
+
+      const id = Number(req.params.id);
+      const productId = Number(req.body.productId);
+      const customerName = String(req.body.customerName || '').trim();
+      const rating = Math.min(5, Math.max(1, Number(req.body.rating) || 0));
+      const comment = String(req.body.comment || '').trim() || null;
+      const imageUrl = String(req.body.imageUrl || '').trim() || null;
+      const avatarUrl = String(req.body.avatarUrl || '').trim() || null;
+      const city = String(req.body.city || '').trim() || null;
+      const status = ['approved', 'pending', 'rejected'].includes(String(req.body.status))
+        ? String(req.body.status)
+        : 'approved';
+
+      if (!id) return res.status(400).json({ ok: false, error: 'Invalid review id' });
+      if (!productId) return res.status(400).json({ ok: false, error: 'Product is required' });
+      if (!customerName) return res.status(400).json({ ok: false, error: 'Customer name is required' });
+      if (!rating) return res.status(400).json({ ok: false, error: 'Rating is required' });
+
+      const prev = await query('SELECT id, product_id FROM product_reviews WHERE id = ? LIMIT 1', [id]);
+      if (!prev.length) return res.status(404).json({ ok: false, error: 'Review not found' });
+
+      const products = await query('SELECT id FROM products WHERE id = ? LIMIT 1', [productId]);
+      if (!products.length) return res.status(404).json({ ok: false, error: 'Product not found' });
+
+      await query(
+        `UPDATE product_reviews
+         SET product_id=?, customer_name=?, rating=?, comment=?, image_url=?, reviewer_avatar_url=?, reviewer_city=?, status=?
+         WHERE id=?`,
+        [productId, customerName, rating, comment, imageUrl, avatarUrl, city, status, id]
+      );
+
+      const { syncProductReviewStats } = require('../lib/productReviews');
+      await syncProductReviewStats(query, productId);
+      if (Number(prev[0].product_id) !== productId) {
+        await syncProductReviewStats(query, prev[0].product_id);
+      }
+
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('admin update review', err);
+      res.status(500).json({ ok: false, error: 'Could not update review' });
     }
   });
 
@@ -208,6 +297,29 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ ok: false, error: 'Could not update review' });
+    }
+  });
+
+  router.post('/reviews/bulk-delete', requireAdmin, async (req, res) => {
+    try {
+      const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+      if (!ids.length) return res.status(400).json({ ok: false, error: 'No reviews selected' });
+      const placeholders = ids.map(() => '?').join(',');
+      const rows = await query(
+        `SELECT DISTINCT product_id FROM product_reviews WHERE id IN (${placeholders})`,
+        ids
+      );
+      await query(`DELETE FROM product_reviews WHERE id IN (${placeholders})`, ids);
+      if (rows.length) {
+        const { syncProductReviewStats } = require('../lib/productReviews');
+        for (const row of rows) {
+          await syncProductReviewStats(query, row.product_id);
+        }
+      }
+      res.json({ ok: true, deleted: ids.length });
+    } catch (err) {
+      console.error('admin reviews bulk delete', err);
+      res.status(500).json({ ok: false, error: 'Could not delete selected reviews' });
     }
   });
 
@@ -433,6 +545,21 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
+  router.post('/appointments/bulk-delete', requireAdmin, async (req, res) => {
+    try {
+      const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
+      await ensureAppointmentsTable();
+      const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+      if (!ids.length) return res.status(400).json({ ok: false, error: 'No appointments selected' });
+      const placeholders = ids.map(() => '?').join(',');
+      await query(`DELETE FROM appointments WHERE id IN (${placeholders})`, ids);
+      res.json({ ok: true, deleted: ids.length });
+    } catch (err) {
+      console.error('admin appointments bulk delete', err);
+      res.status(500).json({ ok: false, error: 'Could not delete selected appointments' });
+    }
+  });
+
   // ——— FAQ ———
   router.get('/faqs', requireAdmin, async (req, res) => {
     try {
@@ -573,6 +700,21 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     } catch (err) {
       console.error('admin contact message patch', err);
       res.status(500).json({ ok: false, error: 'Could not update message' });
+    }
+  });
+
+  router.post('/contact-messages/bulk-delete', requireAdmin, async (req, res) => {
+    try {
+      const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
+      await ensureContactMessagesTable();
+      const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+      if (!ids.length) return res.status(400).json({ ok: false, error: 'No messages selected' });
+      const placeholders = ids.map(() => '?').join(',');
+      await query(`DELETE FROM contact_messages WHERE id IN (${placeholders})`, ids);
+      res.json({ ok: true, deleted: ids.length });
+    } catch (err) {
+      console.error('admin contact messages bulk delete', err);
+      res.status(500).json({ ok: false, error: 'Could not delete selected messages' });
     }
   });
 

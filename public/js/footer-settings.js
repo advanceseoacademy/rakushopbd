@@ -170,7 +170,7 @@
     return `<li><a href="${href}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
   }
 
-  const DEFAULT_LOGO_URL = '/images/rakushopbd-logo.png?v=6';
+  const DEFAULT_LOGO_URL = '/images/rakushopbd-logo.png?v=8';
 
   function normalizeLogoUrl(url) {
     const u = String(url || '').trim();

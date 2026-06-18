@@ -7,7 +7,7 @@ const { clearSiteSettingsCache } = require('../lib/siteSettings');
 const { normalizeSiteBaseUrl } = require('../lib/seo');
 const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
 const { setUserRewardPoints } = require('../lib/rewardPoints');
-const { sendAdminEmail } = require('../lib/emailNotify');
+const { sendAdminEmail, loadNotifySettings } = require('../lib/emailNotify');
 const { sanitizeSmtpForAdminResponse } = require('../lib/smtpSettings');
 const { requireAdmin } = require('../middleware/requireAdmin');
 const { sql: sqlDialect, upsertSiteSettingSql, returningId } = require('../lib/db-dialect');
@@ -15,6 +15,8 @@ const { firstInsertId } = require('../config/db');
 const { saveSession } = require('../lib/sessionSave');
 const { signAdminToken, getAdminIdFromRequest, setAdminAuthCookie, clearAdminAuthCookie } = require('../lib/adminToken');
 const { attachGalleryToProduct, syncProductGallery } = require('../lib/productImages');
+const { ensureProductImagesTable } = require('../lib/ensureProductImagesTable');
+const { ensureProductSyntheticReviewsColumn } = require('../lib/ensureProductSyntheticReviewsColumn');
 const {
   listCategoriesWithCounts,
   resolveCategoryIdsBySlug,
@@ -409,6 +411,103 @@ router.post('/orders/bulk-delete', requireAdmin, async (req, res) => {
   }
 });
 
+// ——— Product image gallery ———
+router.get('/product-images', requireAdmin, async (req, res) => {
+  try {
+    await ensureProductImagesTable();
+    const { search, category, page = 1, limit = 48 } = req.query;
+    const p = Math.max(1, parseInt(page, 10) || 1);
+    const l = Math.min(96, Math.max(12, parseInt(limit, 10) || 48));
+    const offset = (p - 1) * l;
+
+    const where = ['TRIM(COALESCE(img.image_url, \'\')) != \'\''];
+    const params = [];
+
+    if (search && String(search).trim()) {
+      const q = `%${String(search).trim()}%`;
+      where.push('(p.name_bn LIKE ? OR p.slug LIKE ? OR img.image_url LIKE ?)');
+      params.push(q, q, q);
+    }
+    if (category && category !== 'all') {
+      const catIds = await resolveCategoryIdsBySlug(query, category);
+      if (catIds.length) {
+        const { clause, params: catParams } = categoryInClause(catIds);
+        where.push(clause);
+        params.push(...catParams);
+      } else {
+        where.push('1=0');
+      }
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const baseSql = `
+      FROM (
+        SELECT pi.id AS image_id, pi.product_id, p.name_bn AS product_name, p.slug AS product_slug,
+               pi.image_url, pi.sort_order,
+               CASE WHEN pi.sort_order = 0 THEN 1 ELSE 0 END AS is_main,
+               c.name_bn AS category_name, c.slug AS category_slug
+        FROM product_images pi
+        INNER JOIN products p ON p.id = pi.product_id
+        INNER JOIN categories c ON c.id = p.category_id
+        WHERE TRIM(COALESCE(pi.image_url, '')) != ''
+
+        UNION ALL
+
+        SELECT NULL AS image_id, p.id AS product_id, p.name_bn AS product_name, p.slug AS product_slug,
+               p.image_url, 0 AS sort_order, 1 AS is_main, c.name_bn AS category_name, c.slug AS category_slug
+        FROM products p
+        INNER JOIN categories c ON c.id = p.category_id
+        WHERE TRIM(COALESCE(p.image_url, '')) != ''
+          AND NOT EXISTS (SELECT 1 FROM product_images pi2 WHERE pi2.product_id = p.id)
+      ) img
+      INNER JOIN products p ON p.id = img.product_id
+    `;
+
+    const countRows = await query(`SELECT COUNT(*) AS total ${baseSql} ${whereSql}`, params);
+    const total = Number(countRows[0]?.total ?? Object.values(countRows[0] || {})[0]) || 0;
+
+    const rows = await query(
+      `SELECT img.image_id, img.product_id, img.product_name, img.product_slug, img.image_url,
+              img.sort_order, img.is_main, img.category_name, img.category_slug
+       ${baseSql}
+       ${whereSql}
+       ORDER BY img.product_id DESC, img.sort_order ASC, img.image_id ASC
+       LIMIT ? OFFSET ?`,
+      [...params, l, offset]
+    );
+
+    const productIds = new Set(rows.map((r) => Number(r.product_id)));
+    res.json({
+      ok: true,
+      images: rows.map((r) => ({
+        id: r.image_id,
+        productId: r.product_id,
+        productName: r.product_name,
+        productSlug: r.product_slug,
+        imageUrl: r.image_url,
+        sortOrder: Number(r.sort_order) || 0,
+        isMain: Boolean(Number(r.is_main)),
+        categoryName: r.category_name,
+        categorySlug: r.category_slug,
+      })),
+      stats: {
+        totalImages: total,
+        productsOnPage: productIds.size,
+      },
+      pagination: {
+        page: p,
+        limit: l,
+        total,
+        pages: Math.max(1, Math.ceil(total / l)),
+      },
+    });
+  } catch (err) {
+    console.error('admin product-images', err);
+    res.status(500).json({ ok: false, error: 'Could not load product images' });
+  }
+});
+
 // ——— Products ———
 router.get('/products', requireAdmin, async (req, res) => {
   try {
@@ -519,11 +618,13 @@ router.post('/products', requireAdmin, async (req, res) => {
     const existing = await query('SELECT id FROM products WHERE slug = ?', [slug]);
     if (existing.length) slug = `${slug}-${Date.now()}`;
 
+    await ensureProductSyntheticReviewsColumn();
+
     const result = await query(
       `INSERT INTO products (category_id, slug, sku, name_bn, description_bn, short_description, price, old_price, buy_price, stock,
         icon, icon_color, bg_color, image_url, tag_type, tag_text, discount_percent, is_featured,
-        seo_title, seo_description, seo_keywords, image_alt, og_image)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)${returningId()}`,
+        seo_title, seo_description, seo_keywords, image_alt, og_image, allow_synthetic_reviews)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)${returningId()}`,
       [
         categoryId,
         slug,
@@ -648,6 +749,44 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not update product' });
+  }
+});
+
+router.post('/products/bulk-delete', requireAdmin, async (req, res) => {
+  try {
+    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+    if (!ids.length) return res.status(400).json({ ok: false, error: 'No products selected' });
+
+    const placeholders = ids.map(() => '?').join(',');
+    const inOrders = await query(
+      `SELECT DISTINCT product_id FROM order_items WHERE product_id IN (${placeholders})`,
+      ids
+    );
+    const blocked = new Set(inOrders.map((r) => Number(r.product_id ?? r.productId)));
+    const toDelete = ids.filter((id) => !blocked.has(id));
+
+    if (!toDelete.length) {
+      return res.status(400).json({
+        ok: false,
+        error:
+          blocked.size === 1
+            ? 'Product has orders; cannot delete'
+            : `${blocked.size} selected product(s) have orders and cannot be deleted`,
+      });
+    }
+
+    const delPlaceholders = toDelete.map(() => '?').join(',');
+    await query(`DELETE FROM products WHERE id IN (${delPlaceholders})`, toDelete);
+    clearStoreBootstrapCache();
+    res.json({
+      ok: true,
+      deleted: toDelete.length,
+      skipped: blocked.size,
+      skippedIds: [...blocked],
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not delete selected products' });
   }
 });
 
@@ -846,22 +985,57 @@ router.patch('/customers/:id/points', requireAdmin, async (req, res) => {
   }
 });
 
+async function deleteCustomerAccount(userId) {
+  const rows = await query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId]);
+  if (!rows.length) return { ok: false, error: 'not_found' };
+
+  await query('UPDATE orders SET user_id = NULL WHERE user_id = ?', [userId]).catch(() => {});
+  await query('UPDATE product_reviews SET user_id = NULL WHERE user_id = ?', [userId]).catch(() => {});
+  await query('UPDATE users SET referred_by_user_id = NULL WHERE referred_by_user_id = ?', [userId]).catch(
+    () => {}
+  );
+  await query('DELETE FROM reward_point_events WHERE user_id = ?', [userId]).catch(() => {});
+  await query('DELETE FROM user_addresses WHERE user_id = ?', [userId]).catch(() => {});
+  await query('DELETE FROM users WHERE id = ?', [userId]);
+  return { ok: true };
+}
+
+router.post('/customers/bulk-delete', requireAdmin, async (req, res) => {
+  try {
+    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+    if (!ids.length) return res.status(400).json({ ok: false, error: 'No customers selected' });
+
+    let deleted = 0;
+    let notFound = 0;
+    for (const userId of ids) {
+      const result = await deleteCustomerAccount(userId);
+      if (result.ok) deleted += 1;
+      else if (result.error === 'not_found') notFound += 1;
+    }
+
+    if (!deleted) {
+      return res.status(400).json({
+        ok: false,
+        error: notFound ? 'Selected customers were not found' : 'Could not delete selected customers',
+      });
+    }
+
+    res.json({ ok: true, deleted, notFound });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not delete selected customers' });
+  }
+});
+
 router.delete('/customers/:id', requireAdmin, async (req, res) => {
   try {
     const userId = Number(req.params.id);
     if (!userId) return res.status(400).json({ ok: false, error: 'Invalid customer' });
 
-    const rows = await query('SELECT id FROM users WHERE id = ? LIMIT 1', [userId]);
-    if (!rows.length) return res.status(404).json({ ok: false, error: 'Customer not found' });
-
-    await query('UPDATE orders SET user_id = NULL WHERE user_id = ?', [userId]).catch(() => {});
-    await query('UPDATE product_reviews SET user_id = NULL WHERE user_id = ?', [userId]).catch(() => {});
-    await query('UPDATE users SET referred_by_user_id = NULL WHERE referred_by_user_id = ?', [userId]).catch(
-      () => {}
-    );
-    await query('DELETE FROM reward_point_events WHERE user_id = ?', [userId]).catch(() => {});
-    await query('DELETE FROM user_addresses WHERE user_id = ?', [userId]).catch(() => {});
-    await query('DELETE FROM users WHERE id = ?', [userId]);
+    const result = await deleteCustomerAccount(userId);
+    if (!result.ok) {
+      return res.status(404).json({ ok: false, error: 'Customer not found' });
+    }
 
     res.json({ ok: true });
   } catch (err) {
@@ -901,6 +1075,19 @@ router.post('/coupons', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not create coupon' });
+  }
+});
+
+router.post('/coupons/bulk-delete', requireAdmin, async (req, res) => {
+  try {
+    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+    if (!ids.length) return res.status(400).json({ ok: false, error: 'No coupons selected' });
+    const placeholders = ids.map(() => '?').join(',');
+    await query(`DELETE FROM coupons WHERE id IN (${placeholders})`, ids);
+    res.json({ ok: true, deleted: ids.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not delete selected coupons' });
   }
 });
 
@@ -1022,26 +1209,53 @@ router.get('/settings', requireAdmin, async (req, res) => {
 router.put('/settings', requireAdmin, async (req, res) => {
   try {
     const settings = req.body.settings || req.body;
+    let smtpPasswordSaved = false;
     for (const [key, value] of Object.entries(settings)) {
       if (key === 'smtp_pass_set') continue;
       if (key === 'smtp_pass' && !String(value).trim()) continue;
       let next = String(value);
       if (key === 'site_url') next = normalizeSiteBaseUrl(next);
       await query(upsertSiteSettingSql(), [key, next]);
+      if (key === 'smtp_pass') smtpPasswordSaved = true;
+    }
+    if (smtpPasswordSaved) {
+      await query(upsertSiteSettingSql(), ['smtp_pass_set', '1']);
     }
     clearSiteSettingsCache();
     clearStoreBootstrapCache();
-    res.json({ ok: true });
+    const updated = sanitizeSmtpForAdminResponse(await getSettingsMap());
+    res.json({ ok: true, settings: updated });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not save settings' });
   }
 });
 
+const SMTP_PERSIST_KEYS = [
+  'notify_email',
+  'smtp_host',
+  'smtp_port',
+  'smtp_user',
+  'smtp_pass',
+  'feature_email_notify',
+];
+
+async function persistSmtpSettings(settings) {
+  for (const key of SMTP_PERSIST_KEYS) {
+    if (key === 'smtp_pass' && !String(settings.smtp_pass || '').trim()) continue;
+    if (settings[key] == null) continue;
+    await query(upsertSiteSettingSql(), [key, String(settings[key])]);
+  }
+  if (String(settings.smtp_pass || '').trim()) {
+    await query(upsertSiteSettingSql(), ['smtp_pass_set', '1']);
+  }
+  clearSiteSettingsCache();
+}
+
 router.post('/settings/test-email', requireAdmin, async (req, res) => {
   try {
-    const saved = await getSettingsMap();
     const incoming = req.body?.settings || {};
+    const saved = await loadNotifySettings(query);
     const merged = { ...saved, ...incoming };
     if (!String(incoming.smtp_pass || '').trim() && saved.smtp_pass) {
       merged.smtp_pass = saved.smtp_pass;
@@ -1062,7 +1276,16 @@ router.post('/settings/test-email', requireAdmin, async (req, res) => {
       return res.status(400).json({ ok: false, error: msg });
     }
 
-    res.json({ ok: true, to: result.to, message: `Test email sent to ${result.to}` });
+    await persistSmtpSettings(merged);
+
+    const updated = sanitizeSmtpForAdminResponse(await getSettingsMap());
+    res.json({
+      ok: true,
+      to: result.to,
+      saved: true,
+      settings: updated,
+      message: `Test email sent to ${result.to}. SMTP settings saved — order alerts will work now.`,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: err.message || 'Could not send test email' });

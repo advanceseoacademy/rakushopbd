@@ -1,0 +1,430 @@
+/**
+ * Unique visual theme per popup template id (gift, points, delivery, new, support).
+ * Targets both storefront (.gift-popup-*) and admin preview (.popup-prev-*).
+ */
+
+/* ——— Shared theme icon (points, support, etc.) ——— */
+.gift-popup-theme-icon,
+.popup-prev-theme-icon {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+}
+
+.gift-popup-theme-icon[hidden],
+.popup-prev-theme-icon[hidden] {
+  display: none !important;
+}
+
+/* ═══════════════════════════════════════
+   GIFT — pink gift box, image + form
+   ═══════════════════════════════════════ */
+.gift-popup-card[data-popup-theme='gift'],
+.popup-prev-card[data-popup-theme='gift'] {
+  background: linear-gradient(135deg, #fff 0%, #fdf2f6 48%, #f3e8ff 100%);
+  border: 1px solid rgba(239, 122, 156, 0.18);
+  border-radius: 24px;
+}
+
+.gift-popup-card[data-popup-theme='gift']::before,
+.popup-prev-card[data-popup-theme='gift']::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(239, 122, 156, 0.22) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════
+   POINTS — gold rewards, centered card
+   ═══════════════════════════════════════ */
+.gift-popup-card[data-popup-theme='points'],
+.popup-prev-card[data-popup-theme='points'] {
+  background: linear-gradient(160deg, #fffbeb 0%, #fef3c7 35%, #fff 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 28px;
+  box-shadow: 0 24px 48px rgba(180, 83, 9, 0.18);
+}
+
+.gift-popup-card[data-popup-theme='points']::before,
+.popup-prev-card[data-popup-theme='points']::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(251, 191, 36, 0.25) 0%, transparent 45%),
+    radial-gradient(circle at 85% 80%, rgba(245, 158, 11, 0.15) 0%, transparent 40%);
+  pointer-events: none;
+}
+
+.gift-popup-card[data-popup-theme='points'] .gift-popup-grid,
+.popup-prev-card[data-popup-theme='points'] .popup-prev-grid {
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+
+.gift-popup-card[data-popup-theme='points'] .gift-popup-visual,
+.popup-prev-card[data-popup-theme='points'] .popup-prev-visual {
+  display: none;
+}
+
+.gift-popup-card[data-popup-theme='points'] .gift-popup-content,
+.popup-prev-card[data-popup-theme='points'] .popup-prev-content {
+  padding: 32px 28px 28px;
+  text-align: center;
+  align-items: center;
+}
+
+.gift-popup-card[data-popup-theme='points'] .gift-popup-theme-icon,
+.popup-prev-card[data-popup-theme='points'] .popup-prev-theme-icon {
+  display: flex;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #fcd34d 0%, #f59e0b 100%);
+  color: #fff;
+  font-size: 36px;
+  box-shadow: 0 12px 28px rgba(217, 119, 6, 0.35);
+}
+
+.gift-popup-card[data-popup-theme='points'] .gift-popup-kicker,
+.popup-prev-card[data-popup-theme='points'] .popup-prev-kicker {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.gift-popup-card[data-popup-theme='points'] .gift-popup-title,
+.popup-prev-card[data-popup-theme='points'] .popup-prev-title {
+  color: #92400e;
+  font-size: 26px;
+}
+
+.gift-popup-card[data-popup-theme='points'] .gift-popup-desc,
+.popup-prev-card[data-popup-theme='points'] .popup-prev-desc {
+  color: #a16207;
+  max-width: none;
+}
+
+.gift-popup-card[data-popup-theme='points'] .gift-popup-submit,
+.popup-prev-card[data-popup-theme='points'] .popup-prev-submit {
+  background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+  border-radius: 999px;
+  box-shadow: 0 10px 24px rgba(217, 119, 6, 0.35);
+  max-width: 280px;
+}
+
+.gift-popup[data-popup-theme='points'] .gift-popup-backdrop {
+  background: rgba(120, 53, 15, 0.4);
+}
+
+/* ═══════════════════════════════════════
+   DELIVERY — blue logistics, icon panel
+   ═══════════════════════════════════════ */
+.gift-popup-card[data-popup-theme='delivery'],
+.popup-prev-card[data-popup-theme='delivery'] {
+  background: #fff;
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(2, 132, 199, 0.22);
+  overflow: hidden;
+}
+
+.gift-popup-card[data-popup-theme='delivery']::before,
+.popup-prev-card[data-popup-theme='delivery']::before {
+  display: none;
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-grid,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-grid {
+  grid-template-columns: minmax(0, 38%) minmax(0, 62%);
+  min-height: 280px;
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-visual,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-visual {
+  padding: 0;
+  background: linear-gradient(180deg, #0ea5e9 0%, #0369a1 100%);
+  justify-content: center;
+  align-items: center;
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-img,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-img {
+  aspect-ratio: auto;
+  width: 100%;
+  height: 100%;
+  min-height: 200px;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-img i,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-img i {
+  font-size: 64px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-img img,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-img img {
+  border-radius: 0;
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-badge,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-badge {
+  left: 16px;
+  bottom: 16px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #0369a1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-content,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-content {
+  padding: 28px 24px;
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-kicker,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-kicker {
+  background: #e0f2fe;
+  color: #0369a1;
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-title,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-title {
+  color: #0c4a6e;
+  font-size: 24px;
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-submit,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-submit {
+  background: #0284c7;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(2, 132, 199, 0.35);
+}
+
+.gift-popup-card[data-popup-theme='delivery'] .gift-popup-field,
+.popup-prev-card[data-popup-theme='delivery'] .popup-prev-field {
+  border-color: #bae6fd;
+}
+
+.gift-popup[data-popup-theme='delivery'] .gift-popup-backdrop {
+  background: rgba(12, 74, 110, 0.45);
+}
+
+/* ═══════════════════════════════════════
+   NEW — dark neon, top banner strip
+   ═══════════════════════════════════════ */
+.gift-popup-card[data-popup-theme='new'],
+.popup-prev-card[data-popup-theme='new'] {
+  background: #0f172a;
+  border: 1px solid rgba(236, 72, 153, 0.35);
+  border-radius: 20px;
+  box-shadow:
+    0 32px 64px rgba(0, 0, 0, 0.45),
+    0 0 40px rgba(236, 72, 153, 0.12);
+}
+
+.gift-popup-card[data-popup-theme='new']::before,
+.popup-prev-card[data-popup-theme='new']::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ec4899, #a855f7, #6366f1);
+  border-radius: 20px 20px 0 0;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-grid,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-grid {
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-visual,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-visual {
+  padding: 0;
+  min-height: 0;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-img,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-img {
+  aspect-ratio: 2.4 / 1;
+  width: 100%;
+  border-radius: 0;
+  border: none;
+  background: linear-gradient(135deg, #4c1d95 0%, #831843 50%, #1e1b4b 100%);
+  max-height: 140px;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-img i,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-img i {
+  font-size: 40px;
+  color: rgba(236, 72, 153, 0.7);
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-badge,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-badge {
+  top: 12px;
+  bottom: auto;
+  left: 12px;
+  background: rgba(236, 72, 153, 0.9);
+  color: #fff;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-content,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-content {
+  padding: 24px 24px 28px;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-kicker,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-kicker {
+  background: transparent;
+  color: #f472b6;
+  border: 1px solid rgba(244, 114, 182, 0.5);
+  padding: 4px 12px;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-title,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-title {
+  color: #f8fafc;
+  font-size: 26px;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-desc,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-desc {
+  color: #94a3b8;
+  max-width: none;
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-submit,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-submit {
+  background: linear-gradient(135deg, #ec4899 0%, #a855f7 100%);
+  border-radius: 12px;
+  box-shadow: 0 0 24px rgba(236, 72, 153, 0.45);
+}
+
+.gift-popup-card[data-popup-theme='new'] .gift-popup-close,
+.popup-prev-card[data-popup-theme='new'] .popup-prev-close {
+  background: rgba(30, 41, 59, 0.9);
+  color: #e2e8f0;
+}
+
+.gift-popup[data-popup-theme='new'] .gift-popup-backdrop {
+  background: rgba(15, 23, 42, 0.8);
+}
+
+/* ═══════════════════════════════════════
+   SUPPORT — mint chat bubble
+   ═══════════════════════════════════════ */
+.gift-popup-card[data-popup-theme='support'],
+.popup-prev-card[data-popup-theme='support'] {
+  background: #ecfdf5;
+  border: 2px solid #6ee7b7;
+  border-radius: 32px 32px 32px 8px;
+  box-shadow: 0 16px 40px rgba(16, 185, 129, 0.15);
+}
+
+.gift-popup-card[data-popup-theme='support']::before,
+.popup-prev-card[data-popup-theme='support']::before {
+  display: none;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-grid,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-grid {
+  grid-template-columns: 1fr;
+  min-height: 0;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-visual,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-visual {
+  display: none;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-content,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-content {
+  padding: 28px 26px 26px;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-theme-icon,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-theme-icon {
+  display: flex;
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  background: #fff;
+  color: #059669;
+  font-size: 28px;
+  margin: 0 0 12px 0;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.2);
+  border: 2px solid #a7f3d0;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-kicker,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-kicker {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-title,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-title {
+  color: #064e3b;
+  font-size: 22px;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-desc,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-desc {
+  color: #047857;
+  max-width: none;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-submit,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-submit {
+  background: #fff;
+  color: #059669;
+  border: 2px solid #34d399;
+  border-radius: 14px;
+  box-shadow: none;
+}
+
+.gift-popup-card[data-popup-theme='support'] .gift-popup-note,
+.popup-prev-card[data-popup-theme='support'] .popup-prev-note {
+  color: #6ee7b7;
+}
+
+.gift-popup[data-popup-theme='support'] .gift-popup-backdrop {
+  background: rgba(6, 78, 59, 0.35);
+}
+
+/* ——— Mobile tweaks per theme ——— */
+@media (max-width: 720px) {
+  .gift-popup-card[data-popup-theme='delivery'] .gift-popup-grid,
+  .popup-prev-card[data-popup-theme='delivery'] .popup-prev-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gift-popup-card[data-popup-theme='delivery'] .gift-popup-visual,
+  .popup-prev-card[data-popup-theme='delivery'] .popup-prev-visual {
+    min-height: 120px;
+  }
+
+  .gift-popup-card[data-popup-theme='delivery'] .gift-popup-img,
+  .popup-prev-card[data-popup-theme='delivery'] .popup-prev-img {
+    min-height: 120px;
+    aspect-ratio: 3 / 1;
+  }
+
+  .gift-popup-card[data-popup-theme='points'] .gift-popup-content,
+  .popup-prev-card[data-popup-theme='points'] .popup-prev-content {
+    padding: 24px 20px;
+  }
+}

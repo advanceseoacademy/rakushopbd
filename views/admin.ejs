@@ -5,11 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>RakuShopBD — Admin Panel</title>
-<link rel="icon" href="/images/rakushopbd-logo.png?v=6" type="image/png">
+<link rel="icon" href="/images/rakushopbd-logo.png?v=8" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/admin.css?v=18">
+<link rel="stylesheet" href="/css/admin.css?v=22">
+<link rel="stylesheet" href="/css/popup-themes.css?v=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
 </head>
@@ -18,7 +19,7 @@
 <div id="login-page">
   <div class="login-card">
     <div class="login-logo">
-      <img src="/images/rakushopbd-logo.png?v=6" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-login" width="300" height="80">
+      <img src="/images/rakushopbd-logo.png?v=8" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-login" width="300" height="80">
     </div>
     <div class="login-tagline">Admin Dashboard — Sign in to manage your store</div>
     <div class="login-error" id="login-error"><i class="ti ti-alert-circle"></i> <span>Invalid username or password</span></div>
@@ -40,7 +41,7 @@
   <div class="adm-sidebar-overlay" id="adm-sidebar-overlay" aria-hidden="true"></div>
   <aside class="sidebar" id="adm-sidebar">
     <div class="sidebar-logo">
-      <img src="/images/rakushopbd-logo.png?v=6" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-sidebar" width="240" height="58">
+      <img src="/images/rakushopbd-logo.png?v=8" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-sidebar" width="240" height="58">
       <div class="sidebar-version">Admin Panel</div>
     </div>
     <div class="sidebar-section">Main</div>
@@ -49,12 +50,13 @@
     <div class="nav-item" data-page="appointments"><i class="ti ti-calendar"></i> Appointments <span class="nav-badge nav-badge-amber" id="appointment-badge">0</span></div>
     <div class="nav-item" data-page="contacts"><i class="ti ti-mail"></i> Contact Messages <span class="nav-badge nav-badge-amber" id="contact-badge">0</span></div>
     <div class="nav-item" data-page="products"><i class="ti ti-box"></i> Products</div>
+    <div class="nav-item" data-page="gallery"><i class="ti ti-photo"></i> Image Gallery</div>
     <div class="nav-item" data-page="customers"><i class="ti ti-users"></i> Customers</div>
     <div class="nav-item" data-page="analytics"><i class="ti ti-chart-bar"></i> Analytics</div>
     <div class="sidebar-section">Manage</div>
     <div class="nav-item" data-page="categories"><i class="ti ti-category"></i> Categories</div>
-    <div class="nav-group open" id="nav-group-pages">
-      <button type="button" class="nav-group-toggle" id="nav-pages-toggle" aria-expanded="true">
+    <div class="nav-group" id="nav-group-pages">
+      <button type="button" class="nav-group-toggle" id="nav-pages-toggle" aria-expanded="false">
         <span class="nav-group-label"><i class="ti ti-files"></i> Pages</span>
         <i class="ti ti-chevron-down nav-group-chevron"></i>
       </button>
@@ -178,9 +180,15 @@
                 <option value="completed">Completed</option>
                 <option value="cancelled">Cancelled</option>
               </select>
+              <button type="button" class="btn btn-danger btn-sm" id="appointments-bulk-delete-btn" hidden>
+                <i class="ti ti-trash"></i> Delete selected (<span id="appointments-selected-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="appointments-clear-selection-btn" hidden>Clear</button>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Reference</th><th>Customer</th><th>Service</th><th>Date & time</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>
+          <table class="tbl"><thead><tr>
+            <th class="tbl-check-col"><input type="checkbox" id="appointments-select-all" title="Select all on this page" aria-label="Select all appointments on this page"></th>
+            <th>Reference</th><th>Customer</th><th>Service</th><th>Date & time</th><th>Notes</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="appointments-tbody"></tbody></table>
           <div class="pagination-bar" id="appointments-pagination"></div>
         </div>
@@ -199,9 +207,15 @@
                 <option value="replied">Replied</option>
                 <option value="archived">Archived</option>
               </select>
+              <button type="button" class="btn btn-danger btn-sm" id="contacts-bulk-delete-btn" hidden>
+                <i class="ti ti-trash"></i> Delete selected (<span id="contacts-selected-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="contacts-clear-selection-btn" hidden>Clear</button>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Customer</th><th>Subject</th><th>Message</th><th>Date</th><th>Status</th></tr></thead>
+          <table class="tbl"><thead><tr>
+            <th class="tbl-check-col"><input type="checkbox" id="contacts-select-all" title="Select all on this page" aria-label="Select all contact messages on this page"></th>
+            <th>Customer</th><th>Subject</th><th>Message</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="contacts-tbody"></tbody></table>
           <div class="pagination-bar" id="contacts-pagination"></div>
         </div>
@@ -214,12 +228,33 @@
             <div class="table-actions">
               <input class="tbl-search" id="products-search" type="text" placeholder="Search products...">
               <select class="tbl-select" id="products-cat-filter"><option value="all">All categories</option></select>
+              <button type="button" class="btn btn-danger btn-sm" id="products-bulk-delete-btn" hidden>
+                <i class="ti ti-trash"></i> Delete selected (<span id="products-selected-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="products-clear-selection-btn" hidden>Clear</button>
               <button type="button" class="btn btn-primary btn-sm" id="add-product-btn"><i class="ti ti-plus"></i> Add Product</button>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Product</th><th>Category</th><th>Sale price</th><th>Buy price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
+          <table class="tbl"><thead><tr>
+            <th class="tbl-check-col"><input type="checkbox" id="products-select-all" title="Select all on this page" aria-label="Select all products on this page"></th>
+            <th>Product</th><th>Category</th><th>Sale price</th><th>Buy price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
           <tbody id="products-tbody"></tbody></table>
           <div class="pagination-bar" id="products-pagination"></div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-gallery">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Product Image Gallery</h3>
+            <div class="table-actions">
+              <input class="tbl-search" id="gallery-search" type="text" placeholder="Search product or image URL...">
+              <select class="tbl-select" id="gallery-cat-filter"><option value="all">All categories</option></select>
+            </div>
+          </div>
+          <div class="gallery-stats" id="gallery-stats"></div>
+          <div class="gallery-grid" id="gallery-grid"></div>
+          <div class="pagination-bar" id="gallery-pagination"></div>
         </div>
       </div>
 
@@ -334,10 +369,16 @@
             <h3>Customers</h3>
             <div class="table-actions">
               <input class="tbl-search" id="customers-search" type="text" placeholder="Search customers...">
+              <button type="button" class="btn btn-danger btn-sm" id="customers-bulk-delete-btn" hidden>
+                <i class="ti ti-trash"></i> Delete selected (<span id="customers-selected-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="customers-clear-selection-btn" hidden>Clear</button>
               <a href="/api/admin/customers/export" class="btn btn-primary btn-sm" target="_blank"><i class="ti ti-download"></i> Export CSV</a>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Points</th><th>Orders</th><th>Total spent</th><th>Joined</th><th>Actions</th></tr></thead>
+          <table class="tbl"><thead><tr>
+            <th class="tbl-check-col"><input type="checkbox" id="customers-select-all" title="Select all on this page" aria-label="Select all customers on this page"></th>
+            <th>Name</th><th>Email</th><th>Phone</th><th>Points</th><th>Orders</th><th>Total spent</th><th>Joined</th><th>Actions</th></tr></thead>
           <tbody id="customers-tbody"></tbody></table>
         </div>
       </div>
@@ -384,12 +425,21 @@
         <div class="table-wrap" style="margin:0;">
           <div class="table-header">
             <h3>Customer Reviews</h3>
-            <select class="tbl-select" id="reviews-filter">
-              <option value="all">All</option><option value="pending">Pending</option>
-              <option value="approved">Approved</option><option value="rejected">Rejected</option>
-            </select>
+            <div class="table-actions">
+              <select class="tbl-select" id="reviews-filter">
+                <option value="all">All</option><option value="pending">Pending</option>
+                <option value="approved">Approved</option><option value="rejected">Rejected</option>
+              </select>
+              <button type="button" class="btn btn-primary btn-sm" id="add-review-btn"><i class="ti ti-plus"></i> Add Review</button>
+              <button type="button" class="btn btn-danger btn-sm" id="reviews-bulk-delete-btn" hidden>
+                <i class="ti ti-trash"></i> Delete selected (<span id="reviews-selected-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="reviews-clear-selection-btn" hidden>Clear</button>
+            </div>
           </div>
-          <table class="tbl"><thead><tr><th>Customer</th><th>Product</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+          <table class="tbl"><thead><tr>
+            <th class="tbl-check-col"><input type="checkbox" id="reviews-select-all" title="Select all on this page" aria-label="Select all reviews on this page"></th>
+            <th>Avatar</th><th>Customer</th><th>Product</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="reviews-tbody"></tbody></table>
         </div>
       </div>
@@ -412,10 +462,16 @@
           <div class="table-header">
             <h3>Coupons</h3>
             <div class="table-actions">
+              <button type="button" class="btn btn-danger btn-sm" id="coupons-bulk-delete-btn" hidden>
+                <i class="ti ti-trash"></i> Delete selected (<span id="coupons-selected-count">0</span>)
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="coupons-clear-selection-btn" hidden>Clear</button>
               <button type="button" class="btn btn-primary btn-sm" id="add-coupon-btn"><i class="ti ti-plus"></i> Add Coupon</button>
             </div>
           </div>
-          <table class="tbl"><thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min order</th><th>Used</th><th>Expires</th><th>Actions</th></tr></thead>
+          <table class="tbl"><thead><tr>
+            <th class="tbl-check-col"><input type="checkbox" id="coupons-select-all" title="Select all on this page" aria-label="Select all coupons on this page"></th>
+            <th>Code</th><th>Type</th><th>Value</th><th>Min order</th><th>Used</th><th>Expires</th><th>Actions</th></tr></thead>
           <tbody id="coupons-tbody"></tbody></table>
         </div>
       </div>
@@ -660,7 +716,7 @@
                   <div class="form-group"><label class="form-label">Footer description</label><textarea class="form-input form-textarea" id="set-footer-desc" rows="2" placeholder="Short about text under logo"></textarea></div>
                   <div class="form-2col">
                     <div class="form-group"><label class="form-label">Store hours</label><input class="form-input" id="set-store-hours" placeholder="9 AM — 10 PM"></div>
-                    <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png?v=6"></div>
+                    <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png?v=8"></div>
                   </div>
                   <div class="form-group"><label class="form-label">Upload logo</label><input class="form-input form-input-file" type="file" id="set-logo-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
                   <div class="settings-subsection">
@@ -726,7 +782,10 @@
                     </div>
                     <div class="form-group">
                       <label class="form-label">SMTP App Password</label>
-                      <input class="form-input" id="set-smtp-pass" type="password" autocomplete="new-password" placeholder="16-character app password">
+                      <div class="smtp-pass-field-wrap">
+                        <input class="form-input" id="set-smtp-pass" type="password" autocomplete="off" placeholder="16-character app password">
+                        <span class="smtp-pass-saved-badge" id="set-smtp-pass-status" hidden><i class="ti ti-lock-check"></i> Saved</span>
+                      </div>
                       <small class="form-hint" id="set-smtp-pass-hint">Leave blank to keep the saved password.</small>
                     </div>
                   </div>
@@ -735,6 +794,7 @@
                     <label class="toggle"><input type="checkbox" id="set-email-notify"><span class="toggle-slider"></span></label>
                   </div>
                   <button type="button" class="btn btn-outline btn-sm" id="set-smtp-test-btn"><i class="ti ti-send"></i> Send test email</button>
+                  <small class="form-hint" style="display:block;margin-top:10px;">Send test email saves SMTP settings automatically. Order alerts only work after a successful test (or Save).</small>
                 </div>
               </div>
               <div class="settings-card">
@@ -1124,6 +1184,71 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="review-modal" aria-hidden="true">
+  <div class="modal-box modal-box--product" role="dialog" aria-labelledby="review-form-title">
+    <div class="modal-box-head">
+      <h3 id="review-form-title">Add Review</h3>
+      <button type="button" class="modal-box-close" id="review-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="review-form">
+      <input type="hidden" id="rev-id" value="">
+      <input type="hidden" id="rev-product-id" value="">
+      <div class="form-group">
+        <label class="form-label">Product (search) *</label>
+        <input class="form-input" id="rev-product-search" placeholder="Type product name…" autocomplete="off">
+        <div class="picker-list" id="rev-product-pick" hidden></div>
+        <small class="form-hint" id="rev-product-picked-hint">Select a product from search results.</small>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Customer name *</label><input class="form-input" id="rev-name" required placeholder="e.g. Rafi Ahmed"></div>
+        <div class="form-group"><label class="form-label">City</label><input class="form-input" id="rev-city" placeholder="e.g. Dhaka"></div>
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Rating *</label>
+          <select class="form-input form-select" id="rev-rating" required>
+            <option value="5">5</option><option value="4">4</option><option value="3">3</option><option value="2">2</option><option value="1">1</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">Status</label>
+          <select class="form-input form-select" id="rev-status">
+            <option value="approved">Approved</option>
+            <option value="pending">Pending</option>
+            <option value="rejected">Rejected</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Comment</label><textarea class="form-input form-textarea" id="rev-comment" rows="4" placeholder="Write customer feedback…"></textarea></div>
+      <div class="form-group"><label class="form-label">Review photo (optional)</label><input class="form-input" id="rev-image" placeholder="/uploads/... or https://..."></div>
+      <div class="form-group"><label class="form-label">Reviewer profile image (avatar)</label><input class="form-input" id="rev-avatar" placeholder="/uploads/... or https://..."></div>
+      <div class="form-group"><label class="form-label">Upload avatar image</label><input class="form-input" type="file" id="rev-avatar-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
+      <div id="rev-avatar-preview-wrap" hidden style="margin-bottom:12px;">
+        <img id="rev-avatar-preview" alt="Avatar preview" style="max-width:120px;max-height:120px;border-radius:999px;border:1px solid var(--border);object-fit:cover;">
+      </div>
+      <div class="modal-form-actions">
+        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save</button>
+        <button type="button" class="btn btn-outline" id="rev-reset">Clear</button>
+        <button type="button" class="btn btn-outline" id="review-modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="gallery-lightbox" aria-hidden="true">
+  <div class="gallery-lightbox-dialog" role="dialog" aria-modal="true" aria-labelledby="gallery-lightbox-title">
+    <button type="button" class="gallery-lightbox-close" id="gallery-lightbox-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    <img id="gallery-lightbox-img" alt="">
+    <div class="gallery-lightbox-meta">
+      <h3 id="gallery-lightbox-title"></h3>
+      <p id="gallery-lightbox-sub"></p>
+      <div class="gallery-lightbox-actions">
+        <button type="button" class="btn btn-outline btn-sm" id="gallery-lightbox-copy"><i class="ti ti-copy"></i> Copy URL</button>
+        <button type="button" class="btn btn-primary btn-sm" id="gallery-lightbox-edit"><i class="ti ti-pencil"></i> Edit product</button>
+        <a href="#" class="btn btn-outline btn-sm" id="gallery-lightbox-view" target="_blank" rel="noopener"><i class="ti ti-external-link"></i> View on store</a>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="order-modal">
   <div class="modal-box">
     <h3>Order Details</h3>
@@ -1144,6 +1269,6 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/admin-rich-editor.js?v=4"></script>
-<script src="/js/admin.js?v=80"></script>
+<script src="/js/admin.js?v=95"></script>
 </body>
 </html>

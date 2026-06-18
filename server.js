@@ -24,6 +24,9 @@ const { ensureAppointmentsTable } = require('./lib/ensureAppointmentsTable');
 const { ensureProductSeoColumns } = require('./lib/ensureProductSeoColumns');
 const { ensureTodaySellingColumn } = require('./lib/ensureTodaySellingColumn');
 const { ensureProductBuyPrice } = require('./lib/ensureProductBuyPrice');
+const { ensureProductSyntheticReviewsColumn } = require('./lib/ensureProductSyntheticReviewsColumn');
+const { ensureProductReviewAvatarColumn } = require('./lib/ensureProductReviewAvatarColumn');
+const { ensureHomepageReviewsSeeded } = require('./lib/ensureHomepageReviewsSeeded');
 const { ensureProductImagesTable } = require('./lib/ensureProductImagesTable');
 const { ensureFooterSettings } = require('./lib/ensureFooterSettings');
 const { ensureContactMessagesTable } = require('./lib/ensureContactMessagesTable');
@@ -286,6 +289,15 @@ app.listen(PORT, () => {
   ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
   ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
   ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
+  ensureProductSyntheticReviewsColumn().catch((err) =>
+    console.warn('product allow_synthetic_reviews column:', err.message)
+  );
+  ensureProductReviewAvatarColumn().catch((err) =>
+    console.warn('product_reviews reviewer_avatar_url column:', err.message)
+  );
+  ensureHomepageReviewsSeeded()
+    .then(() => console.log('homepage reviews seeded in database'))
+    .catch((err) => console.warn('homepage reviews seed:', err.message));
   ensureTodaySellingColumn().catch((err) => console.warn('today_selling_slot column:', err.message));
   ensureFooterSettings().catch((err) => console.warn('footer settings:', err.message));
   ensureContactMessagesTable().catch((err) => console.warn('contact messages table:', err.message));

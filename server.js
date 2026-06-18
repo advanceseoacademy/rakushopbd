@@ -112,6 +112,10 @@ const staticCache = (maxAge) => ({
 app.use('/js', express.static(path.join(publicDir, 'js'), staticCache('365d')));
 app.use('/css', express.static(path.join(publicDir, 'css'), staticCache('365d')));
 app.use('/images', express.static(path.join(publicDir, 'images'), staticCache('30d')));
+app.get('/images/rakushopbd-logo.png', (_req, res) => {
+  res.set('Cache-Control', isProduction ? 'public, max-age=3600, must-revalidate' : 'no-cache');
+  res.sendFile(path.join(publicDir, 'images', 'rakushopbd-logo.png'));
+});
 app.use('/uploads', legacyUploadWebpFallback);
 app.use('/uploads', express.static(path.join(publicDir, 'uploads'), staticCache('7d')));
 app.use(express.static(publicDir, staticCache(0)));

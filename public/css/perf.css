@@ -1,0 +1,86 @@
+/**
+ * Performance + CLS stability.
+ * https://developer.chrome.com/docs/performance/insights/cls-culprit/
+ */
+[inert] {
+  content-visibility: hidden;
+  contain: strict;
+}
+
+/* content-visibility:auto shrinks then expands → CLS when sections hydrate */
+.raku-below-fold {
+  content-visibility: visible;
+  contain-intrinsic-size: auto;
+}
+
+#categories .category-scroll-wrap--home {
+  min-height: 158px;
+}
+
+#section-messenger-reviews .home-scroll-wrap {
+  min-height: 380px;
+}
+
+#section-customer-reviews .home-scroll-wrap {
+  min-height: 220px;
+}
+
+#section-best-selling .home-scroll-wrap,
+#section-new-arrivals .home-scroll-wrap {
+  min-height: 280px;
+}
+
+.home-messenger-card--skeleton {
+  pointer-events: none;
+}
+
+.home-messenger-card--skeleton .home-messenger-phone {
+  background: #fff;
+}
+
+.home-messenger-card--skeleton .home-messenger-header {
+  background: rgba(0, 132, 255, 0.15);
+}
+
+.home-messenger-card--skeleton .home-messenger-header-icon.skeleton-block {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+
+.home-messenger-card--skeleton .home-messenger-screen {
+  min-height: 280px;
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.home-review-card--skeleton {
+  flex: 0 0 280px;
+  min-width: 280px;
+  max-width: 280px;
+  min-height: 180px;
+  padding: 16px;
+  border-radius: var(--radius-md, 12px);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.1));
+  background: var(--surface, #fff);
+  box-sizing: border-box;
+}
+
+.home-review-card--skeleton .skeleton-block--avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.home-review-card--skeleton .home-review-skeleton-top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none !important;
+  }
+}

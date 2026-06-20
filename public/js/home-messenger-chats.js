@@ -10,6 +10,23 @@
       .replace(/"/g, '&quot;');
   }
 
+  function chatImgHtml(src, alt) {
+    const url = String(src || '').trim();
+    if (!url) return '';
+    let imgSrc = url;
+    let srcset = '';
+    if (window.rakuImageAttrs && url.startsWith('/uploads/')) {
+      const attrs = window.rakuImageAttrs(url, {
+        widths: [320, 480],
+        sizes: '(max-width: 480px) 80vw, 220px',
+        srcWidth: 320,
+      });
+      imgSrc = attrs.src || url;
+      if (attrs.srcset) srcset = ` srcset="${escapeHtml(attrs.srcset)}" sizes="${escapeHtml(attrs.sizes)}"`;
+    }
+    return `<img src="${escapeHtml(imgSrc)}"${srcset} alt="${escapeHtml(alt)}" width="220" height="390" loading="lazy" decoding="async">`;
+  }
+
   function chatCardHtml(chat) {
     const name = String(chat.customer_name || chat.customerName || '').trim() || 'Happy Customer';
     const caption = String(chat.caption || '').trim();
@@ -26,7 +43,7 @@
           <span class="home-messenger-header-label">Messenger</span>
         </div>
         <div class="home-messenger-screen">
-          <img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" loading="lazy" decoding="async">
+          ${chatImgHtml(src, alt)}
         </div>
       </div>
       <div class="home-messenger-meta">
@@ -68,16 +85,18 @@
 
     if (!enabled || !list.length) {
       section.hidden = true;
+      section.removeAttribute('data-cls-placeholder');
       track.innerHTML = '';
       return;
     }
 
     section.hidden = false;
+    section.removeAttribute('data-cls-placeholder');
     track.innerHTML = list.map(chatCardHtml).join('');
 
     function startMessengerScroll() {
-      if (window._rakuSyncHomeCarouselCardWidths) {
-        window._rakuSyncHomeCarouselCardWidths('track-messenger-reviews', '.home-messenger-card', 220);
+      if (window._rakuSyncHomeScrollCardWidths) {
+        window._rakuSyncHomeScrollCardWidths('track-messenger-reviews', '.home-messenger-card', 220);
       }
       if (window._rakuStopHomeScrollAuto) window._rakuStopHomeScrollAuto('track-messenger-reviews');
       if (window._rakuInitHomeScrollAuto) {
@@ -127,12 +146,26 @@
     paintMessengerChats(chats, settings);
   }
 
+  function scheduleMessengerPaint(boot) {
+    const run = () => paintMessengerChats(boot?.messengerChats, boot?.settings);
+    if (window.rakuWhenVisible) {
+      window.rakuWhenVisible('section-messenger-reviews', run, { rootMargin: '240px' });
+    } else if (window.rakuScheduleIdle) {
+      window.rakuScheduleIdle(run, { timeout: 3000 });
+    } else {
+      run();
+    }
+  }
+
   document.addEventListener('raku:ready', () => {
-    void refreshMessengerSection();
+    if (window.rakuWhenVisible) {
+      window.rakuWhenVisible('section-messenger-reviews', () => void refreshMessengerSection(), { rootMargin: '240px' });
+    } else {
+      void refreshMessengerSection();
+    }
   });
   document.addEventListener('raku:bootstrap', (e) => {
-    const boot = e.detail;
-    paintMessengerChats(boot?.messengerChats, boot?.settings);
+    scheduleMessengerPaint(e.detail);
   });
 
   window._rakuPaintMessengerChats = paintMessengerChats;

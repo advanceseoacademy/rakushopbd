@@ -13,12 +13,17 @@
   function normalizeFooterLink(link) {
     if (!link) return link;
     const label = String(link.label || '').trim();
-    if (label === 'FAQ' && (!link.href || link.href === '#')) {
+    const href = link.href
+      ? window.rakuNormalizeStoreUrl
+        ? window.rakuNormalizeStoreUrl(link.href)
+        : link.href
+      : link.href;
+    if (label === 'FAQ' && (!href || href === '#')) {
       return { label: 'FAQ', href: '/faq' };
     }
     if (
       (label === 'Contact Us' || label === 'Contact / Appointment') &&
-      (link.page === 'appointment' || !link.href || link.href === '#')
+      (link.page === 'appointment' || !href || href === '#')
     ) {
       return { label: 'Contact Us', href: '/contact' };
     }
@@ -28,6 +33,7 @@
     if (link.page === 'terms') return { label: label || 'Terms & Conditions', href: '/terms-and-conditions' };
     if (link.page === 'return') return { label: label || 'Return Policy', href: '/return-policy' };
     if (link.page === 'points') return { label: label || 'Reward Point Policy', href: '/reward-point-policy' };
+    if (href && href !== link.href) return { ...link, href };
     return link;
   }
 
@@ -170,8 +176,9 @@
     return `<li><a href="${href}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
   }
 
+  const DEFAULT_LOGO_WEBP = '/images/rakushopbd-logo-280.webp?v=1';
   const DEFAULT_LOGO_PATH = '/images/rakushopbd-logo.png';
-  const DEFAULT_LOGO_URL = `${DEFAULT_LOGO_PATH}?v=10`;
+  const DEFAULT_LOGO_URL = `${DEFAULT_LOGO_PATH}?v=11`;
 
   function logoUrlVersion(url) {
     const m = String(url || '').match(/\?v=(\d+)$/);
@@ -180,19 +187,22 @@
 
   function isBundledLogoUrl(url) {
     const u = String(url || '').trim();
-    return u === DEFAULT_LOGO_PATH || /^\/images\/rakushopbd-logo\.png(\?v=\d+)?$/.test(u);
+    return (
+      u === DEFAULT_LOGO_PATH ||
+      u === DEFAULT_LOGO_WEBP ||
+      /^\/images\/rakushopbd-logo(?:-280)?\.(?:png|webp)(\?v=\d+)?$/.test(u)
+    );
+  }
+
+  function bundledLogoWebp(url, img) {
+    if (!isBundledLogoUrl(url)) return null;
+    if (img?.classList?.contains('site-logo-img--footer')) return '/images/rakushopbd-logo.webp?v=1';
+    return DEFAULT_LOGO_WEBP;
   }
 
   function isLegacyUploadedLogo(url) {
     const u = String(url || '').trim();
     return /\/uploads\//i.test(u) && /(logo|rakushop|brand)/i.test(u);
-  }
-
-  function normalizeLogoUrl(url) {
-    const u = String(url || '').trim();
-    if (!u || isLegacyUploadedLogo(u)) return DEFAULT_LOGO_URL;
-    if (isBundledLogoUrl(u)) return DEFAULT_LOGO_URL;
-    return u;
   }
 
   function shouldApplyLogoSrc(current, next) {
@@ -203,15 +213,35 @@
     return true;
   }
 
+  function normalizeLogoUrl(url) {
+    const u = String(url || '').trim();
+    if (!u || isLegacyUploadedLogo(u)) return DEFAULT_LOGO_WEBP;
+    if (isBundledLogoUrl(u)) return DEFAULT_LOGO_WEBP;
+    return u;
+  }
+
+  function applyLogoToImg(img, logoUrl) {
+    const current = img.getAttribute('src') || '';
+    const picture = img.closest('picture');
+    const webp = bundledLogoWebp(logoUrl, img);
+    if (picture && webp) {
+      const source = picture.querySelector('source[type="image/webp"]');
+      if (source) source.setAttribute('srcset', webp);
+      if (isBundledLogoUrl(logoUrl) && shouldApplyLogoSrc(current, DEFAULT_LOGO_URL)) {
+        img.setAttribute('src', DEFAULT_LOGO_URL);
+      }
+      return;
+    }
+    const nextSrc = webp || logoUrl;
+    if (shouldApplyLogoSrc(current, nextSrc)) img.setAttribute('src', nextSrc);
+  }
+
   function applyFooterSettings(settings) {
     if (!settings) return;
     const name = settings.site_name || 'RakuShopBD';
 
     const logoUrl = normalizeLogoUrl(settings.site_logo_url);
-    document.querySelectorAll('.site-logo-img').forEach((img) => {
-      const current = img.getAttribute('src') || '';
-      if (shouldApplyLogoSrc(current, logoUrl)) img.setAttribute('src', logoUrl);
-    });
+    document.querySelectorAll('.site-logo-img').forEach((img) => applyLogoToImg(img, logoUrl));
 
     const fd = document.querySelector('.footer-desc');
     if (fd) {

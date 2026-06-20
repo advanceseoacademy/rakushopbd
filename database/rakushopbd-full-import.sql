@@ -216,7 +216,7 @@ INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES
 ('site_name', 'RakuShopBD'),
 ('site_tagline', 'Best products, best prices!'),
 ('contact_email', 'support@rakushopbd.com'),
-('contact_phone', '+880 1700-000000'),
+('contact_phone', '+880 1339-411587'),
 ('payment_bkash', '01712-345678'),
 ('payment_nagad', '01712-345678'),
 ('payment_rocket', '01712-345678'),

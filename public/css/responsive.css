@@ -25,8 +25,8 @@ svg {
   --safe-left: env(safe-area-inset-left, 0px);
 }
 
-/* ——— Touch targets ——— */
-@media (max-width: 768px) {
+/* ——— Touch targets (48×48px per Lighthouse / web.dev guidance) ——— */
+@media (any-pointer: coarse), (max-width: 768px) {
   button,
   .btn-primary,
   .btn-outline,
@@ -35,8 +35,21 @@ svg {
   .preorder-btn,
   .header-icon-btn,
   .navbar-hamburger,
-  a.header-icon-btn {
-    min-height: 44px;
+  a.header-icon-btn,
+  .search-btn,
+  .search-clear,
+  .prod-wish,
+  .see-all,
+  .today-deals-view-all,
+  .social-btn {
+    min-height: 48px;
+    min-width: 48px;
+  }
+
+  .see-all,
+  .today-deals-view-all {
+    padding: 12px 8px;
+    margin: -12px -8px;
   }
 
   input,
@@ -288,6 +301,16 @@ svg {
     flex-wrap: wrap;
     justify-content: center;
     gap: 8px;
+  }
+
+  .footer-payment-img {
+    height: 30px;
+    max-width: min(200px, 100%);
+  }
+
+  .footer-links li a {
+    min-height: 44px;
+    padding: 10px 0;
   }
 }
 
@@ -767,10 +790,6 @@ svg {
     grid-template-columns: 1fr;
   }
 
-  body.checkout-modal-open .face-analyzer-fab {
-    visibility: hidden;
-    pointer-events: none;
-  }
 }
 
 /* ——— Track page ——— */
@@ -813,45 +832,6 @@ svg {
   .home-messenger-reviews {
     padding-left: max(0px, var(--safe-left));
     padding-right: max(0px, var(--safe-right));
-  }
-}
-
-/* ——— Face analyzer FAB ——— */
-@media (max-width: 768px) {
-  .face-analyzer-fab {
-    left: max(10px, var(--safe-left));
-    bottom: max(14px, calc(10px + var(--safe-bottom)));
-    transform: scale(0.92);
-    transform-origin: left bottom;
-  }
-
-  .face-analyzer-fab:hover {
-    transform: scale(0.94);
-  }
-
-  .face-analyzer-fab-bubble {
-    max-width: min(168px, calc(100vw - 100px));
-  }
-}
-
-@media (max-width: 480px) {
-  .face-analyzer-fab {
-    transform: scale(0.85);
-  }
-
-  .face-analyzer-fab-bubble {
-    min-width: 0;
-    max-width: 150px;
-    padding: 8px 12px;
-  }
-
-  .face-analyzer-fab-popup {
-    font-size: 12px;
-  }
-
-  .face-analyzer-fab-avatar {
-    width: 58px;
-    height: 58px;
   }
 }
 

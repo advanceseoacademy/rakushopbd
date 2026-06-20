@@ -46,7 +46,7 @@
     const avatarCls = avClass ? ` home-review-avatar ${avClass}` : ' home-review-avatar';
     const name = review.customer_name || review.customerName || 'Customer';
     if (url) {
-      return `<div class="home-review-avatar-wrap">${`<img class="home-review-avatar-img" src="${escapeHtml(url)}" alt="" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">`}<div class="${avatarCls.trim()}" hidden>${escapeHtml(initials(name))}</div></div>`;
+      return `<div class="home-review-avatar-wrap">${`<img class="home-review-avatar-img" src="${escapeHtml(url)}" alt="" width="52" height="52" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">`}<div class="${avatarCls.trim()}" hidden>${escapeHtml(initials(name))}</div></div>`;
     }
     return `<div class="${avatarCls.trim()}">${escapeHtml(initials(name))}</div>`;
   }
@@ -67,7 +67,7 @@
         </div>
         <span class="home-review-verified"><i class="ti ti-circle-check-filled"></i> Verified</span>
       </div>
-      <div class="home-review-stars" aria-label="${rating} out of 5 stars">${starsHtml(rating)}</div>
+      <div class="home-review-stars" role="img" aria-label="${rating} out of 5 stars">${starsHtml(rating)}</div>
       <p class="home-review-text">${escapeHtml(text)}</p>
     </article>`;
   }
@@ -117,25 +117,33 @@
     bindReviewProductClicks();
 
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        if (window._rakuSyncHomeCarouselCardWidths) {
-          window._rakuSyncHomeCarouselCardWidths('track-customer-reviews', '.home-review-card', 140);
-        }
-        if (window._rakuInitHomeScrollAuto) {
-          window._rakuInitHomeScrollAuto('track-customer-reviews', 3800);
-        }
-      }, 200);
+      if (window._rakuSyncHomeScrollCardWidths) {
+        window._rakuSyncHomeScrollCardWidths('track-customer-reviews', '.home-review-card', 140);
+      }
+      if (window._rakuInitHomeScrollAuto) {
+        window._rakuInitHomeScrollAuto('track-customer-reviews', 3800);
+      }
     });
   }
 
   document.addEventListener('raku:ready', () => {
-    void paintHomeCustomerReviews();
+    if (window.rakuWhenVisible) {
+      window.rakuWhenVisible('section-customer-reviews', () => void paintHomeCustomerReviews(), { rootMargin: '240px' });
+    } else {
+      void paintHomeCustomerReviews();
+    }
   });
   document.addEventListener('raku:bootstrap', () => {
-    void paintHomeCustomerReviews();
+    if (window.rakuWhenVisible) {
+      window.rakuWhenVisible('section-customer-reviews', () => void paintHomeCustomerReviews(), { rootMargin: '240px' });
+    } else if (window.rakuScheduleIdle) {
+      window.rakuScheduleIdle(() => void paintHomeCustomerReviews(), { timeout: 3000 });
+    } else {
+      void paintHomeCustomerReviews();
+    }
   });
 
-  if (document.readyState !== 'loading') {
+  if (document.readyState !== 'loading' && !window.rakuWhenVisible) {
     void paintHomeCustomerReviews();
   }
 })();

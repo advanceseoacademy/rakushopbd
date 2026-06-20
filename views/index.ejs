@@ -4,30 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <%- include('partials/seo-head', { seo: typeof seo !== 'undefined' ? seo : null }) %>
-<link rel="icon" href="/images/rakushopbd-logo.png?v=10" type="image/png">
-<link rel="preload" href="/images/rakushopbd-logo.png?v=10" as="image">
+<link rel="icon" href="/images/rakushopbd-logo-icon.png?v=1" type="image/png">
+<% if (typeof lcpHeroPreload !== 'undefined' && lcpHeroPreload && lcpHeroPreload.href) { %>
+<link rel="preload" as="image" href="<%= lcpHeroPreload.href %>"<% if (lcpHeroPreload.imagesrcset) { %> imagesrcset="<%= lcpHeroPreload.imagesrcset %>" imagesizes="<%= lcpHeroPreload.imagesizes %>"<% } %><% if (lcpHeroPreload.type) { %> type="<%= lcpHeroPreload.type %>"<% } %> fetchpriority="high">
+<% } %>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/brand-tokens.css?v=1">
-<link rel="stylesheet" href="/css/main.css?v=93">
-<link rel="stylesheet" href="/css/category.css?v=4">
-<link rel="stylesheet" href="/css/account.css?v=12">
-<link rel="stylesheet" href="/css/cart.css?v=5">
-<link rel="stylesheet" href="/css/checkout-modal.css?v=15">
-<link rel="stylesheet" href="/css/reviews.css?v=3">
-<link rel="stylesheet" href="/css/wishlist.css?v=3">
-<link rel="stylesheet" href="/css/responsive.css?v=38">
-<link rel="stylesheet" href="/css/home-marketing.css?v=8">
-<link rel="stylesheet" href="/css/popup-themes.css?v=1">
-<link rel="stylesheet" href="/css/home-hero-slider.css?v=10">
-<link rel="stylesheet" href="/css/home-today-deals.css?v=4">
-<link rel="stylesheet" href="/css/appointment.css?v=2">
-<link rel="stylesheet" href="/css/face-analyzer.css?v=9">
-<link rel="stylesheet" href="/css/pages.css?v=5">
+<link rel="preload" href="/css/home.bundle.css?v=6" as="style">
+<link rel="preload" href="/fonts/tabler-icons.woff2?v=3" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/css/home.bundle.css?v=6">
+<link rel="stylesheet" href="/css/home-marketing.css?v=8" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/css/home-marketing.css?v=8"></noscript>
+<link rel="stylesheet" href="/css/popup-themes.css?v=1" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/css/popup-themes.css?v=1"></noscript>
+<link rel="stylesheet" href="/css/home-today-deals.css?v=4" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/css/home-today-deals.css?v=4"></noscript>
 <%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </head>
 <body>
@@ -35,7 +28,9 @@
 <%- include('partials/storefront-header') %>
 
 <!-- PAGE CONTENT START -->
-<div id="page-home">
+<% const _initialPage = typeof initialPage !== 'undefined' ? initialPage : 'home'; const _pv = typeof productVm !== 'undefined' ? productVm : null; %>
+<% const _homeSsr = typeof homeSsr !== 'undefined' && homeSsr ? homeSsr : null; %>
+<div id="page-home" style="display:<%= _initialPage === 'home' ? 'block' : 'none' %>;">
 <main class="main">
 
  <!-- Hero Section -->
@@ -44,8 +39,15 @@
  </div>
 
  <!-- Stats (loaded from API) -->
- <div class="stats-grid" id="stats-grid">
- <div class="stat-card"><div class="stat-icon" style="background:#E8F3EA;"><i class="ti ti-loader" style="color:#2D6B32;"></i></div><div><div class="stat-num">…</div><div class="stat-label">Loading</div></div></div>
+ <div class="stats-grid" id="stats-grid"<% if (_homeSsr && _homeSsr.hasStats) { %> data-ssr-ready="1"<% } %>>
+ <% if (_homeSsr && _homeSsr.statsHtml) { %>
+ <%- _homeSsr.statsHtml %>
+ <% } else { %>
+ <div class="stat-card stat-card--skeleton"><div class="stat-icon skeleton-block"></div><div class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="stat-card stat-card--skeleton"><div class="stat-icon skeleton-block"></div><div class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="stat-card stat-card--skeleton"><div class="stat-icon skeleton-block"></div><div class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="stat-card stat-card--skeleton"><div class="stat-icon skeleton-block"></div><div class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <% } %>
  </div>
 
  <!-- Categories -->
@@ -55,15 +57,22 @@
  <a href="#" class="see-all" id="see-all-categories">All Categories <i class="ti ti-arrow-right"></i></a>
  </div>
  <div class="home-scroll-wrap category-scroll-wrap category-scroll-wrap--home">
- <div class="home-scroll-track category-scroll-track" id="home-category-track">
- <p class="category-scroll-empty">Loading categories…</p>
+ <div class="home-scroll-track category-scroll-track" id="home-category-track"<% if (_homeSsr && _homeSsr.hasCategories) { %> data-ssr-ready="1"<% } %>>
+ <% if (_homeSsr && _homeSsr.categoriesHtml) { %>
+ <%- _homeSsr.categoriesHtml %>
+ <% } else { %>
+ <div class="cat-card cat-card--skeleton"><div class="cat-icon skeleton-block"></div><div class="cat-card-label"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="cat-card cat-card--skeleton"><div class="cat-icon skeleton-block"></div><div class="cat-card-label"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="cat-card cat-card--skeleton"><div class="cat-icon skeleton-block"></div><div class="cat-card-label"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="cat-card cat-card--skeleton"><div class="cat-icon skeleton-block"></div><div class="cat-card-label"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <% } %>
  </div>
  </div>
  </div>
 
  <div id="products">
  <!-- Today Deals -->
- <section class="home-today-deals" id="section-today-deals" hidden>
+ <section class="home-today-deals raku-below-fold" id="section-today-deals" hidden>
   <div class="section-header today-deals-header">
    <div class="today-deals-header-left">
     <h2 class="section-title" id="today-deals-title">Today Deals</h2>
@@ -77,31 +86,42 @@
  </section>
 
  <!-- Our Customer Say (Messenger chats) -->
- <section class="home-messenger-reviews" id="section-messenger-reviews" hidden>
+ <section class="home-messenger-reviews" id="section-messenger-reviews"<% if (!_homeSsr || !_homeSsr.messengerEnabled || !_homeSsr.messengerHasChats) { %> hidden<% } else { %> data-cls-placeholder="1"<% } %>>
  <div class="section-header">
  <h2 class="section-title" id="messenger-reviews-title">Our Customer Say</h2>
  <p class="home-reviews-sub" id="messenger-reviews-sub">Real Facebook Messenger conversations with our happy customers</p>
  </div>
  <div class="home-scroll-wrap">
- <div class="home-scroll-track home-messenger-track" id="track-messenger-reviews"></div>
+ <div class="home-scroll-track home-messenger-track" id="track-messenger-reviews">
+ <article class="home-messenger-card home-messenger-card--skeleton" aria-hidden="true"><div class="home-messenger-phone"><div class="home-messenger-header"><span class="home-messenger-header-icon skeleton-block"></span><span class="skeleton-block skeleton-block--sm"></span></div><div class="home-messenger-screen"></div></div><div class="home-messenger-meta"><span class="skeleton-block skeleton-block--sm"></span></div></article>
+ <article class="home-messenger-card home-messenger-card--skeleton" aria-hidden="true"><div class="home-messenger-phone"><div class="home-messenger-header"><span class="home-messenger-header-icon skeleton-block"></span><span class="skeleton-block skeleton-block--sm"></span></div><div class="home-messenger-screen"></div></div><div class="home-messenger-meta"><span class="skeleton-block skeleton-block--sm"></span></div></article>
+ <article class="home-messenger-card home-messenger-card--skeleton" aria-hidden="true"><div class="home-messenger-phone"><div class="home-messenger-header"><span class="home-messenger-header-icon skeleton-block"></span><span class="skeleton-block skeleton-block--sm"></span></div><div class="home-messenger-screen"></div></div><div class="home-messenger-meta"><span class="skeleton-block skeleton-block--sm"></span></div></article>
+ </div>
  </div>
  </section>
 
  <!-- Best Selling Products -->
- <section class="home-product-section" id="section-best-selling">
+ <section class="home-product-section raku-below-fold" id="section-best-selling">
  <div class="section-header">
  <h2 class="section-title">Best Selling Products</h2>
  <a href="#" class="see-all" id="see-all-best-selling">View All <i class="ti ti-arrow-right"></i></a>
  </div>
  <div class="home-scroll-wrap">
- <div class="home-scroll-track" id="track-best-selling">
- <p class="home-scroll-loading">Loading products...</p>
+ <div class="home-scroll-track" id="track-best-selling"<% if (_homeSsr && _homeSsr.hasBestSelling) { %> data-ssr-ready="1"<% } %>>
+ <% if (_homeSsr && _homeSsr.bestSellingHtml) { %>
+ <%- _homeSsr.bestSellingHtml %>
+ <% } else { %>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <% } %>
  </div>
  </div>
  </section>
 
  <!-- Marketing cards (admin editable) -->
- <section class="home-marketing" id="home-marketing" hidden>
+ <section class="home-marketing raku-below-fold" id="home-marketing" hidden>
    <div class="home-marketing-grid">
      <article class="home-marketing-card" id="marketing-card-1">
        <div class="home-marketing-img" id="marketing-img-1"><i class="ti ti-photo"></i></div>
@@ -120,7 +140,7 @@
          <p class="home-marketing-desc" id="marketing-desc-2"></p>
          <div class="home-marketing-actions">
            <form class="home-marketing-form" id="marketing-subscribe-form">
-             <input type="tel" id="marketing-phone" name="phone" placeholder="Phone Number" inputmode="numeric" autocomplete="tel" maxlength="11" required>
+             <input type="tel" id="marketing-phone" name="phone" placeholder="Phone Number" inputmode="numeric" autocomplete="tel" maxlength="11" aria-label="Phone number" required>
              <button type="submit" class="home-marketing-btn" id="marketing-btn-2">Submit</button>
            </form>
            <p class="home-marketing-msg" id="marketing-subscribe-msg" hidden></p>
@@ -131,20 +151,27 @@
  </section>
 
  <!-- New Arrivals -->
- <section class="home-product-section" id="section-new-arrivals">
+ <section class="home-product-section raku-below-fold" id="section-new-arrivals">
  <div class="section-header">
  <h2 class="section-title">New Arrivals</h2>
  <a href="#" class="see-all" id="see-all-new-arrivals">View All <i class="ti ti-arrow-right"></i></a>
  </div>
  <div class="home-scroll-wrap">
- <div class="home-scroll-track" id="track-new-arrivals">
- <p class="home-scroll-loading">Loading products...</p>
+ <div class="home-scroll-track" id="track-new-arrivals"<% if (_homeSsr && _homeSsr.hasNewArrivals) { %> data-ssr-ready="1"<% } %>>
+ <% if (_homeSsr && _homeSsr.newArrivalsHtml) { %>
+ <%- _homeSsr.newArrivalsHtml %>
+ <% } else { %>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <% } %>
  </div>
  </div>
  </section>
 
  <!-- Recommended For You (behavior-based) -->
- <section class="home-product-section home-recommendations" id="section-recommended-for-you" hidden>
+ <section class="home-product-section home-recommendations raku-below-fold" id="section-recommended-for-you" hidden>
  <div class="section-header">
  <h2 class="section-title"><i class="ti ti-sparkles" style="color:var(--primary);font-size:20px;vertical-align:-2px;"></i> Recommended For You</h2>
  <p class="home-reviews-sub" id="recommended-subtitle">Picks based on your shopping activity</p>
@@ -163,14 +190,27 @@
  <p class="home-reviews-sub">Real feedback from shoppers across Bangladesh</p>
  </div>
  <div class="home-scroll-wrap">
- <div class="home-scroll-track home-reviews-track" id="track-customer-reviews"></div>
+ <div class="home-scroll-track home-reviews-track" id="track-customer-reviews">
+ <article class="home-review-card home-review-card--skeleton" aria-hidden="true"><div class="home-review-skeleton-top"><span class="skeleton-block skeleton-block--avatar"></span><span class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></span></div><span class="skeleton-block skeleton-block--md"></span></article>
+ <article class="home-review-card home-review-card--skeleton" aria-hidden="true"><div class="home-review-skeleton-top"><span class="skeleton-block skeleton-block--avatar"></span><span class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></span></div><span class="skeleton-block skeleton-block--md"></span></article>
+ <article class="home-review-card home-review-card--skeleton" aria-hidden="true"><div class="home-review-skeleton-top"><span class="skeleton-block skeleton-block--avatar"></span><span class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></span></div><span class="skeleton-block skeleton-block--md"></span></article>
+ </div>
  </div>
  </section>
  </div><!-- /products -->
 
  <!-- Trust Badges (from site settings) -->
- <div class="trust-bar-wrap">
- <div class="trust-bar" id="trust-bar"></div>
+ <div class="trust-bar-wrap raku-below-fold">
+ <div class="trust-bar" id="trust-bar"<% if (_homeSsr && _homeSsr.hasTrustBar) { %> data-ssr-ready="1"<% } %>>
+ <% if (_homeSsr && _homeSsr.trustBarHtml) { %>
+ <%- _homeSsr.trustBarHtml %>
+ <% } else { %>
+ <div class="trust-item trust-item--skeleton"><span class="skeleton-block skeleton-block--icon"></span><div class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="trust-item trust-item--skeleton"><span class="skeleton-block skeleton-block--icon"></span><div class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="trust-item trust-item--skeleton"><span class="skeleton-block skeleton-block--icon"></span><div class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="trust-item trust-item--skeleton"><span class="skeleton-block skeleton-block--icon"></span><div class="skeleton-lines"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <% } %>
+ </div>
  </div>
 
 </main>
@@ -180,7 +220,7 @@
 <!-- ===================================================
  CATEGORY LISTING PAGE
 =================================================== -->
-<div id="page-category" style="display:none;">
+<div id="page-category" style="display:<%= _initialPage === 'category' ? 'block' : 'none' %>;">
 <div class="cat-page-wrap">
   <nav class="cat-breadcrumb" id="cat-breadcrumb">
     <span class="link" data-page="home"><i class="ti ti-home"></i> Home</span>
@@ -239,7 +279,7 @@
 <!-- ===================================================
  PRODUCT VIEW PAGE
 =================================================== -->
-<div id="page-product" style="display:none;">
+<div id="page-product" style="display:<%= _initialPage === 'product' ? 'block' : 'none' %>;">
 <style>
 #page-product { padding-top: 4px; }
 .pv-breadcrumb { max-width:1200px; margin:0 auto; padding:12px 20px 0; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-muted); flex-wrap:wrap; }
@@ -353,7 +393,7 @@
 
 .pv-qty-row { display:flex; align-items:center; gap:12px; margin-bottom:18px; }
 .qty-control { display:flex; align-items:center; border:1.5px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
-.qty-btn { width:36px; height:36px; border:none; background:var(--surface2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
+.qty-btn { width:48px; height:48px; min-width:48px; min-height:48px; border:none; background:var(--surface2); cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center; transition:background 0.15s; touch-action:manipulation; }
 .qty-btn:hover { background:var(--primary-pale); color:var(--primary); }
 .qty-input { width:48px; height:36px; border:none; border-left:1.5px solid var(--border); border-right:1.5px solid var(--border); text-align:center; font-family:inherit; font-size:14px; font-weight:600; background:#fff; outline:none; }
 .pv-stock { font-size:12px; color:var(--green); display:flex; align-items:center; gap:4px; }
@@ -432,33 +472,37 @@
 <div class="pv-breadcrumb">
  <span onclick="showPage('home')" style="cursor:pointer; color:var(--primary);"><i class="ti ti-home"></i> Home</span>
  <i class="ti ti-chevron-right"></i>
- <span id="pv-breadcrumb-cat">Category</span>
+ <span id="pv-breadcrumb-cat"><%= _pv ? _pv.categoryName : 'Category' %></span>
  <i class="ti ti-chevron-right"></i>
- <span id="pv-breadcrumb-name" style="color:var(--text);">Product</span>
+ <span id="pv-breadcrumb-name" style="color:var(--text);"><%= _pv ? _pv.name : 'Product' %></span>
 </div>
 <div class="pv-wrap">
  <!-- Gallery -->
  <div class="pv-gallery">
- <div class="main-product-img" style="background:var(--primary-pale,#FDE8EF);">
- <div class="pv-badge-row" id="pv-badge-row"></div>
- <i class="ti ti-watch" style="color:var(--primary,#E91E8C);"></i>
+ <div class="main-product-img" style="background:<%= _pv ? _pv.bgColor : 'var(--primary-pale,#FDE8EF)' %>;">
+ <div class="pv-badge-row" id="pv-badge-row"><% if (_pv && _pv.discountPercent) { %><span class="pv-badge">-<%= _pv.discountPercent %>%</span><% } %></div>
+ <% if (_pv && _pv.imageUrl) { %>
+ <img class="product-photo" src="<%= _pv.imageUrl %>"<% if (_pv.imageSrcset) { %> srcset="<%= _pv.imageSrcset %>" sizes="<%= _pv.imageSizes %>"<% } %> alt="<%= _pv.imageAlt %>" width="600" height="600" style="width:100%;height:100%;object-fit:contain;padding:12px;box-sizing:border-box;" loading="eager" fetchpriority="high" decoding="async">
+ <% } else { %>
+ <i class="ti ti-clock" style="color:var(--primary,#E91E8C);"></i>
+ <% } %>
  </div>
  <div class="thumb-row" style="display:none;"></div>
  </div>
 
  <!-- Info -->
  <div class="pv-info">
- <h1 class="pv-title">Smartwatch Pro — Health Tracker, GPS, AMOLED Display</h1>
+ <h1 class="pv-title"><%= _pv ? _pv.name : 'Smartwatch Pro — Health Tracker, GPS, AMOLED Display' %></h1>
  <div class="pv-rating-row">
- <span class="pv-stars">★★★★★</span>
- <span class="pv-rating-num">4.9</span>
- <span class="pv-reviews">(897 Reviews)</span>
- <span class="pv-sold"><i class="ti ti-trending-up"></i> 12,500+ sold</span>
+ <span class="pv-stars"><%= _pv ? _pv.stars : '★★★★★' %></span>
+ <span class="pv-rating-num"<% if (_pv && !_pv.hasReviews) { %> style="display:none;"<% } %>><%= _pv ? _pv.rating : '4.9' %></span>
+ <span class="pv-reviews"><%= _pv ? _pv.reviewsLabel : '(897 Reviews)' %></span>
+ <span class="pv-sold" style="display:none;"><i class="ti ti-trending-up"></i> 12,500+ sold</span>
  </div>
  <div class="pv-price-row">
- <span class="pv-price">৳3,999</span>
- <span class="pv-old-price">৳5,000</span>
- <span class="pv-discount-badge">20% saved</span>
+ <span class="pv-price"><%= _pv ? _pv.price : '৳3,999' %></span>
+ <% if (_pv && _pv.oldPrice) { %><span class="pv-old-price"><%= _pv.oldPrice %></span><% } else if (!_pv) { %><span class="pv-old-price">৳5,000</span><% } %>
+ <span class="pv-discount-badge"<% if (!_pv || !_pv.discountPercent) { %> style="display:none;"<% } %>><%= _pv && _pv.discountLabel ? _pv.discountLabel : '20% saved' %></span>
  </div>
  <div class="pv-reward-points" id="pv-reward-points" hidden>
    <i class="ti ti-award"></i>
@@ -469,22 +513,22 @@
  <div class="pv-qty-row">
  <div class="variant-label" style="margin:0;">Quantity</div>
  <div class="qty-control">
- <button class="qty-btn" data-dir="down">−</button>
- <input class="qty-input" type="text" value="1" readonly>
- <button class="qty-btn" data-dir="up">+</button>
+ <button type="button" class="qty-btn" data-dir="down" aria-label="Decrease quantity">−</button>
+ <input class="qty-input" type="text" value="1" readonly aria-label="Quantity">
+ <button type="button" class="qty-btn" data-dir="up" aria-label="Increase quantity">+</button>
  </div>
- <span class="pv-stock"><i class="ti ti-circle-check-filled"></i> In stock (47 left)</span>
+ <span class="pv-stock"><i class="ti ti-circle-check-filled"></i> <%= _pv ? _pv.stockLabel : 'In stock (47 left)' %></span>
  </div>
 
  <div class="pv-specs-inline" id="pv-specs-inline" hidden></div>
 
  <!-- Meta -->
  <div class="pv-meta">
- <div class="pv-meta-row"><i class="ti ti-tag"></i><span class="pv-meta-label">SKU:</span><span class="pv-meta-val" id="pv-sku">—</span></div>
+ <div class="pv-meta-row"><i class="ti ti-tag"></i><span class="pv-meta-label">SKU:</span><span class="pv-meta-val" id="pv-sku"><%= _pv ? _pv.sku : '—' %></span></div>
  <div class="pv-meta-row"><i class="ti ti-share"></i><span class="pv-meta-label">Share:</span>
- <a href="#" style="color:#3b5998; font-size:18px;"><i class="ti ti-brand-facebook"></i></a>&nbsp;
- <a href="#" style="color:#E1306C; font-size:18px;"><i class="ti ti-brand-instagram"></i></a>&nbsp;
- <a href="#" style="color:#25D366; font-size:18px;"><i class="ti ti-brand-whatsapp"></i></a>
+ <a href="#" style="color:#3b5998; font-size:18px;" aria-label="Share on Facebook"><i class="ti ti-brand-facebook" aria-hidden="true"></i></a>&nbsp;
+ <a href="#" style="color:#E1306C; font-size:18px;" aria-label="Share on Instagram"><i class="ti ti-brand-instagram" aria-hidden="true"></i></a>&nbsp;
+ <a href="#" style="color:#25D366; font-size:18px;" aria-label="Share on WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></a>
  </div>
  </div>
 
@@ -499,28 +543,28 @@
  <button class="btn-add-cart" id="btn-add-to-cart-main"><i class="ti ti-shopping-cart-plus"></i> Add to Cart</button>
  <button class="btn-buy" id="btn-buy-now"><i class="ti ti-bolt"></i> Shop Now</button>
  <button class="btn-preorder" id="btn-pre-order" type="button" hidden><i class="ti ti-clock-hour-4"></i> Pre-order</button>
- <button class="btn-wish-lg"><i class="ti ti-heart"></i></button>
+ <button type="button" class="btn-wish-lg" aria-label="Add to wishlist"><i class="ti ti-heart" aria-hidden="true"></i></button>
  </div>
  </div>
 </div>
 
 <!-- Tabs Section -->
 <div class="pv-tabs-wrap">
- <div class="tabs-nav">
- <button class="tab-btn active" data-tab="tab-desc">Product details</button>
- <button class="tab-btn" data-tab="tab-spec">Specifications</button>
- <button class="tab-btn" data-tab="tab-reviews">Reviews (897)</button>
+ <div class="tabs-nav" role="tablist" aria-label="Product information">
+ <button type="button" class="tab-btn active" id="tab-btn-desc" role="tab" aria-selected="true" aria-controls="tab-desc" data-tab="tab-desc">Product details</button>
+ <button type="button" class="tab-btn" id="tab-btn-spec" role="tab" aria-selected="false" aria-controls="tab-spec" data-tab="tab-spec">Specifications</button>
+ <button type="button" class="tab-btn" id="tab-btn-reviews" role="tab" aria-selected="false" aria-controls="tab-reviews" data-tab="tab-reviews">Reviews<% if (_pv && _pv.reviewCount) { %> (<%= _pv.reviewCount %>)<% } else if (!_pv) { %> (897)<% } %></button>
  </div>
 
- <div id="tab-desc" class="tab-pane">
- <div id="tab-desc-content"><p style="color:var(--text-muted);">Loading product details…</p></div>
+ <div id="tab-desc" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-desc">
+ <div id="tab-desc-content"><%- _pv ? _pv.descriptionHtml : '<p style="color:var(--text-muted);">Loading product details…</p>' %></div>
  </div>
 
- <div id="tab-spec" class="tab-pane" style="display:none;">
+ <div id="tab-spec" class="tab-pane" role="tabpanel" aria-labelledby="tab-btn-spec" hidden>
  <div id="tab-spec-content"></div>
  </div>
 
- <div id="tab-reviews" class="tab-pane reviews-tab" style="display:none;">
+ <div id="tab-reviews" class="tab-pane reviews-tab" role="tabpanel" aria-labelledby="tab-btn-reviews" hidden>
  <div id="reviews-summary-panel"></div>
  <div class="reviews-write-card" id="review-submit-box">
  <div class="reviews-write-head">
@@ -615,10 +659,10 @@
    </div>
    <div class="appt-body">
     <div class="appt-tabs" role="tablist">
-     <button type="button" class="appt-tab active" data-appt-tab="book" role="tab" aria-selected="true">Book new</button>
-     <button type="button" class="appt-tab" data-appt-tab="lookup" role="tab" aria-selected="false">Check status</button>
+     <button type="button" class="appt-tab active" id="appt-tab-book" data-appt-tab="book" role="tab" aria-selected="true" aria-controls="appt-panel-book">Book new</button>
+     <button type="button" class="appt-tab" id="appt-tab-lookup" data-appt-tab="lookup" role="tab" aria-selected="false" aria-controls="appt-panel-lookup">Check status</button>
     </div>
-    <div class="appt-panel" id="appt-panel-book" role="tabpanel">
+    <div class="appt-panel" id="appt-panel-book" role="tabpanel" aria-labelledby="appt-tab-book">
      <form class="appt-form" id="appt-book-form" novalidate>
       <div class="appt-row">
        <div class="appt-field">
@@ -658,7 +702,7 @@
       <button type="submit" class="appt-btn" id="appt-book-btn"><i class="ti ti-calendar-check"></i> Book appointment</button>
      </form>
     </div>
-    <div class="appt-panel" id="appt-panel-lookup" role="tabpanel" hidden>
+    <div class="appt-panel" id="appt-panel-lookup" role="tabpanel" aria-labelledby="appt-tab-lookup" hidden>
      <form class="appt-form" id="appt-lookup-form" novalidate>
       <div class="appt-field">
        <label for="appt-lookup-ref">Reference number *</label>
@@ -828,7 +872,7 @@
 </div><!-- /page-cart -->
 
 <!-- Track Order modal -->
-<div class="trk-overlay" id="track-modal" aria-hidden="true">
+<div class="trk-overlay" id="track-modal" aria-hidden="true" inert>
   <div class="trk-modal" role="dialog" aria-labelledby="trk-title">
     <div class="trk-head">
       <div>
@@ -839,15 +883,15 @@
     </div>
 
     <div class="trk-body">
-      <form class="trk-form" id="trk-form" onsubmit="return false;">
+      <form class="trk-form" id="trk-modal-form" onsubmit="return false;">
         <div class="trk-input-wrap">
           <i class="ti ti-receipt"></i>
-          <input class="trk-input" id="trk-order-id" type="text" placeholder="RKS-2026-........" autocomplete="off" />
+          <input class="trk-input" id="trk-modal-order-id" type="text" placeholder="RKS-2026-........" autocomplete="off" aria-label="Order ID">
         </div>
-        <button type="button" class="trk-btn" id="trk-submit"><i class="ti ti-search"></i> Track</button>
+        <button type="button" class="trk-btn" id="trk-modal-submit"><i class="ti ti-search"></i> Track</button>
       </form>
 
-      <div class="trk-result" id="trk-result" hidden></div>
+      <div class="trk-result" id="trk-modal-result" hidden></div>
     </div>
   </div>
 </div>
@@ -1085,7 +1129,7 @@
     <div class="acc-auth-shell">
       <div class="acc-auth-brand">
         <div class="acc-brand-logo">
-          <img src="/images/rakushopbd-logo.png?v=10" alt="RakuShopBD" class="site-logo-img site-logo-img--account" width="280" height="72">
+          <img src="/images/rakushopbd-logo-280.webp?v=1" alt="RakuShopBD" class="site-logo-img site-logo-img--account" width="280" height="72">
         </div>
         <h2 class="acc-brand-title">Shop smarter with your account</h2>
         <p class="acc-brand-text">Track orders, save addresses, and checkout faster — all in one place.</p>
@@ -1502,118 +1546,6 @@
 </div>
 </div><!-- /page-account -->
 
-<!-- AI Skin Scan (YouCam) — Derma-style wizard -->
-<button type="button" class="face-analyzer-fab" id="face-analyzer-fab" aria-label="ফ্রি স্কিন টেস্ট" title="ফ্রি স্কিন টেস্ট" style="display:none">
- <span class="face-analyzer-fab-bubble" aria-hidden="true">
-  <span class="face-analyzer-fab-popup is-visible" id="fa-fab-popup">
-   <span class="face-analyzer-fab-emoji" id="fa-fab-emoji">👋</span>
-   <span class="face-analyzer-fab-msg" id="fa-fab-msg">ফ্রি স্কিন টেস্ট...</span>
-  </span>
- </span>
- <span class="face-analyzer-fab-avatar" aria-hidden="true">
-  <img class="face-analyzer-fab-avatar-img" id="fa-fab-avatar-img" src="/images/skin-scan-avatar-1.jpg" alt="" width="76" height="76" loading="lazy" decoding="async">
-  <span class="face-analyzer-fab-scan-ring"></span>
-  <span class="face-analyzer-fab-scan-grid"></span>
- </span>
-</button>
-<div class="face-analyzer-backdrop" id="face-analyzer-backdrop" aria-hidden="true"></div>
-<div class="fa-modal" id="fa-modal" role="dialog" aria-labelledby="fa-brand-title" aria-modal="true">
- <button type="button" class="fa-modal-close" id="face-analyzer-close" aria-label="Close"><i class="ti ti-x"></i></button>
-
- <!-- Step 1: Intro -->
- <div class="fa-step active" id="fa-step-intro" data-step="intro">
-  <div class="fa-brand" style="padding-top:28px;">
-   <div class="fa-brand-logo" id="fa-brand-title"><span>Raku</span> Scan</div>
-  </div>
-  <div class="fa-step-split">
-   <div class="fa-split-content">
-    <p class="fa-eyebrow">Personalized skincare</p>
-    <h2 class="fa-title">SKIN ANALYSIS</h2>
-    <p class="fa-desc">Analyze your skin concerns, and receive personalized skincare product recommendations.</p>
-    <button type="button" class="fa-btn-primary" id="fa-btn-start">START</button>
-   </div>
-   <div class="fa-split-visual">
-    <div class="fa-visual-bg" aria-hidden="true"></div>
-    <div class="fa-phone-mock" aria-hidden="true">
-     <div class="fa-phone-screen">
-      <span style="margin-top:12px;font-size:7px;letter-spacing:0.1em;">FACE SCAN IN PROGRESS</span>
-      <div class="scan-line"></div>
-      <div class="fa-phone-metrics">
-       <div>Skin Score <b>89</b> · Skin Age <b>30</b></div>
-       <div style="display:flex;justify-content:space-around;margin-top:6px;">
-        <span><b>86</b><br>Spots</span><span><b>76</b><br>Oil</span><span><b>95</b><br>Acne</span><span><b>79</b><br>Pores</span>
-       </div>
-      </div>
-     </div>
-    </div>
-   </div>
-  </div>
- </div>
-
- <!-- Step 2: Instructions -->
- <div class="fa-step" id="fa-step-instructions" data-step="instructions">
-  <div class="fa-brand" style="padding-top:20px;">
-   <div class="fa-brand-logo"><span>Raku</span> Scan</div>
-  </div>
-  <div class="fa-step-split">
-   <div class="fa-split-content">
-    <p class="fa-eyebrow">Get Ready to Start Skin Analysis</p>
-    <h2 class="fa-title dark">INSTRUCTIONS</h2>
-    <ul class="fa-instruction-list">
-     <li><span class="fa-instruction-icon"><i class="ti ti-glasses-off"></i></span><span>Take off your glasses and ensure there's no bangs on your forehead.</span></li>
-     <li><span class="fa-instruction-icon"><i class="ti ti-bulb"></i></span><span>Make sure that you're in a well-lighted environment.</span></li>
-     <li><span class="fa-instruction-icon"><i class="ti ti-lipstick"></i></span><span>Testing with no-makeup will get more accurate results.</span></li>
-     <li><span class="fa-instruction-icon"><i class="ti ti-user-circle"></i></span><span>Looking straight to the camera and keep your face in the circle.</span></li>
-    </ul>
-    <button type="button" class="fa-btn-primary" id="fa-btn-get-started" style="width:100%;max-width:280px;">GET STARTED</button>
-   </div>
-   <div class="fa-split-visual">
-    <div class="fa-visual-bg" aria-hidden="true"></div>
-    <div style="position:relative;z-index:2;text-align:center;color:#1e3a5f;font-size:13px;font-weight:600;padding:20px;">
-     <i class="ti ti-scan" style="font-size:48px;color:#5eb8d4;display:block;margin-bottom:12px;"></i>
-     Position your face in the guide during scan
-    </div>
-   </div>
-  </div>
- </div>
-
- <!-- Step 3: Loading -->
- <div class="fa-step fa-step-loading" id="fa-step-loading" data-step="loading">
-  <div class="fa-loading-logo"><span>Raku</span> Scan</div>
-  <p class="fa-loading-sub">AI SKIN ANALYZER</p>
-  <div class="fa-ai-chip">AI</div>
-  <p class="fa-powered">Powered by <b>PERFECT</b> <a href="https://yce.perfectcorp.com/" target="_blank" rel="noopener noreferrer" style="color:inherit;"><i class="ti ti-external-link"></i></a></p>
- </div>
-
- <!-- Step 4: Live scan -->
- <div class="fa-step fa-step-scan" id="fa-step-scan" data-step="scan">
-  <div class="fa-scan-video-wrap">
-   <video id="face-analyzer-video" playsinline autoplay muted aria-label="Live camera preview"></video>
-  </div>
-  <div class="fa-scan-overlay">
-   <div class="fa-scan-badge" id="fa-scan-badge">POSITION YOUR FACE IN THE CIRCLE</div>
-   <div class="fa-scan-face-guide" aria-hidden="true"></div>
-   <div class="fa-scan-line-live" aria-hidden="true"></div>
-   <div class="fa-scan-countdown" id="fa-scan-countdown" aria-live="polite" hidden></div>
-  </div>
-  <div class="fa-scan-actions">
-   <button type="button" class="fa-scan-btn fa-scan-btn-outline" id="fa-btn-upload-fallback">Upload photo</button>
-  </div>
-  <input type="file" id="face-analyzer-file" accept="image/jpeg,image/jpg,image/png" hidden>
- </div>
-
- <!-- Step 5: Results -->
- <div class="fa-step fa-step-results" id="fa-step-results" data-step="results">
-  <div class="fa-brand" style="padding-top:8px;margin-bottom:8px;">
-   <div class="fa-brand-logo" style="font-size:28px;"><span>Raku</span> Scan</div>
-  </div>
-  <h2 class="fa-title dark" style="font-size:18px;margin-bottom:8px;">YOUR ANALYSIS</h2>
-  <div class="fa-status-msg" id="face-analyzer-status"></div>
-  <div id="face-analyzer-results"></div>
-  <button type="button" class="fa-btn-primary" id="fa-btn-scan-again" style="margin-top:16px;">SCAN AGAIN</button>
- </div>
-</div>
-
 <%- include('partials/storefront-footer', { spaFooter: true }) %>
 <% if (typeof bootstrapJson !== 'undefined' && bootstrapJson) { %>
 <script>window.__RAKU_BOOTSTRAP=<%- bootstrapJson %>;</script>
@@ -1675,30 +1607,27 @@
 <% if (typeof seoJson !== 'undefined' && seoJson) { %>
 <script>window.__RAKU_SEO=<%- seoJson %>;</script>
 <% } %>
+<script>window.__RAKU_INITIAL_PAGE=<%- JSON.stringify(_initialPage) %>;</script>
 <script>window.RAKU_API_BASE = '';</script>
-<script src="/js/maintenance-view.js?v=3" defer></script>
-<script src="/js/seo.js?v=7" defer></script>
-<script src="/js/mobile-menu.js?v=1" defer></script>
-<script src="/js/app.js?v=37" defer></script>
+<script src="/js/lazy-route-assets.js?v=3" defer></script>
+<script src="/js/maintenance-view.js?v=4" defer></script>
+<script src="/js/seo.js?v=8" defer></script>
+<script src="/js/mobile-menu.js?v=2" defer></script>
+<script src="/js/store-url.js?v=1" defer></script>
+<script src="/js/app.js?v=40" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
-<script src="/js/home-hero-slider.js?v=4" defer></script>
-<script src="/js/home-today-deals.js?v=4" defer></script>
-<script src="/js/product-description-html.js?v=1"></script>
-<script src="/js/storefront-dynamic.js?v=57" defer></script>
-<script src="/js/api.js?v=105" defer></script>
-<script src="/js/home-recommendations.js?v=4" defer></script>
-<script src="/js/home-messenger-chats.js?v=3" defer></script>
-<script src="/js/home-customer-reviews.js?v=11" defer></script>
-<script src="/js/home-marketing.js?v=13" defer></script>
-<script src="/js/appointment.js?v=4" defer></script>
-<script src="/js/face-analyzer.js?v=10" defer></script>
-<script src="/js/footer-settings.js?v=12" defer></script>
-<script src="/js/search.js?v=6" defer></script>
-<script src="/js/account.js?v=15" defer></script>
-<script src="/js/legal-pages.js?v=4" defer></script>
-<script src="/js/faq.js?v=4" defer></script>
-<script src="/js/contact.js?v=3" defer></script>
-<script src="/js/track.js?v=2" defer></script>
+<script src="/js/home-hero-slider.js?v=10" defer></script>
+<script src="/js/home-today-deals.js?v=5" defer></script>
+<script src="/js/image-delivery.js?v=2" defer></script>
+<script src="/js/product-description-html.js?v=1" defer></script>
+<script src="/js/storefront-dynamic.js?v=65" defer></script>
+<script src="/js/api.js?v=116" defer></script>
+<script src="/js/home-recommendations.js?v=7" defer></script>
+<script src="/js/home-messenger-chats.js?v=6" defer></script>
+<script src="/js/home-customer-reviews.js?v=15" defer></script>
+<script src="/js/home-marketing.js?v=17" defer></script>
+<script src="/js/footer-settings.js?v=14" defer></script>
+<script src="/js/search.js?v=7" defer></script>
 <div class="gift-popup" id="gift-popup" hidden aria-hidden="true" data-popup-theme="gift">
   <div class="gift-popup-backdrop" data-gift-popup-close></div>
   <div class="gift-popup-dialog" role="dialog" aria-modal="true" aria-labelledby="gift-popup-title">

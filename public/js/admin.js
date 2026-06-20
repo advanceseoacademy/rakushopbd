@@ -3973,8 +3973,6 @@
     const outFee = document.getElementById('set-delivery-outside');
     if (outFee) outFee.value = s.delivery_fee_outside || '120';
     document.getElementById('set-maintenance').checked = s.maintenance_mode === '1';
-    const faceAnalyzer = document.getElementById('set-face-analyzer');
-    if (faceAnalyzer) faceAnalyzer.checked = s.face_analyzer_enabled !== '0';
     document.getElementById('set-guest').checked = s.feature_guest_checkout !== '0';
     document.getElementById('set-cod').checked = s.feature_cod !== '0';
     const flash = document.getElementById('set-flash');
@@ -4999,7 +4997,6 @@
       delivery_fee: document.getElementById('set-delivery-fee').value,
       delivery_fee_outside: document.getElementById('set-delivery-outside')?.value || '120',
       maintenance_mode: document.getElementById('set-maintenance').checked ? '1' : '0',
-      face_analyzer_enabled: document.getElementById('set-face-analyzer')?.checked ? '1' : '0',
       feature_guest_checkout: document.getElementById('set-guest').checked ? '1' : '0',
       feature_cod: document.getElementById('set-cod').checked ? '1' : '0',
       feature_flash_sale: document.getElementById('set-flash')?.checked ? '1' : '0',

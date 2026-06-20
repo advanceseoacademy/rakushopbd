@@ -32,7 +32,7 @@ INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES
 ('site_name', 'RakuShopBD'),
 ('site_tagline', 'Best products, best prices!'),
 ('contact_email', 'support@rakushopbd.com'),
-('contact_phone', '+880 1700-000000'),
+('contact_phone', '+880 1339-411587'),
 ('payment_bkash', '01712-345678'),
 ('payment_nagad', '01712-345678'),
 ('payment_rocket', '01712-345678'),
@@ -54,8 +54,7 @@ INSERT IGNORE INTO site_settings (setting_key, setting_value) VALUES
 ('trust_3_title', 'Easy returns policy'),
 ('trust_3_sub', 'No-questions return within 7 days'),
 ('trust_4_title', '24/7 customer support'),
-('trust_4_sub', 'We are here to help anytime'),
-('face_analyzer_enabled', '1');
+('trust_4_sub', 'We are here to help anytime');
 
 INSERT IGNORE INTO coupons (code, discount_type, discount_value, min_order, usage_limit, expires_at, is_active) VALUES
 ('RakuShopBD10', 'percent', 10, 1000, 500, '2026-12-31', 1);

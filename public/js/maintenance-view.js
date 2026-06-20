@@ -24,7 +24,7 @@
     document.title = siteName + ' — Under Maintenance';
     document.body.className = 'maint-body';
     document.body.innerHTML = `
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<link rel="stylesheet" href="/css/tabler-icons-subset.css?v=3">
 <link rel="stylesheet" href="/css/maintenance.css">
 <div class="maint-bg" aria-hidden="true"></div>
 <div class="maint-wrap">

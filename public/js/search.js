@@ -32,6 +32,7 @@
   function hideSuggest() {
     dropdown.hidden = true;
     input.setAttribute('aria-expanded', 'false');
+    input.removeAttribute('aria-activedescendant');
     activeIndex = -1;
   }
 
@@ -52,7 +53,7 @@
     if (p.image_url) {
       const alt = escapeHtml((p.image_alt || p.name_bn || 'Product').trim());
       const src = escapeHtml(p.image_url);
-      return `<img src="${src}" alt="${alt}" loading="lazy" decoding="async">`;
+      return `<img src="${src}" alt="${alt}" width="48" height="48" loading="lazy" decoding="async">`;
     }
     const raw = String(p.icon || 'ti-package').trim();
     const iconClass = raw.startsWith('ti ') ? raw : raw.startsWith('ti-') ? `ti ${raw}` : raw;
@@ -77,7 +78,7 @@
       <div class="search-suggest-list">
         ${list
           .map(
-            (p, i) => `<div class="search-suggest-item" role="option" tabindex="0" data-index="${i}" data-id="${p.id}">
+            (p, i) => `<div class="search-suggest-item" role="option" id="search-opt-${i}" aria-selected="false" data-index="${i}" data-id="${p.id}">
           <div class="search-suggest-thumb" style="background:${escapeHtml(p.image_url ? '#fff' : p.bg_color)};">${suggestThumbHtml(p)}</div>
           <div class="search-suggest-info">
             <span class="search-suggest-name">${escapeHtml(p.name_bn)}</span>
@@ -88,7 +89,7 @@
           )
           .join('')}
       </div>
-      <div class="search-suggest-footer" id="search-view-all" role="button" tabindex="0">View all results</div>`;
+      <button type="button" class="search-suggest-footer" id="search-view-all" aria-label="View all search results">View all results</button>`;
     dropdown.querySelectorAll('.search-suggest-item').forEach((el) => {
       el.addEventListener('mousedown', (e) => {
         e.preventDefault();
@@ -187,8 +188,17 @@
 
   function setActiveItem(idx) {
     const items = dropdown.querySelectorAll('.search-suggest-item');
-    items.forEach((el, i) => el.classList.toggle('active', i === idx));
+    items.forEach((el, i) => {
+      const active = i === idx;
+      el.classList.toggle('active', active);
+      el.setAttribute('aria-selected', active ? 'true' : 'false');
+    });
     activeIndex = idx;
+    if (idx >= 0 && items[idx]) {
+      input.setAttribute('aria-activedescendant', items[idx].id);
+    } else {
+      input.removeAttribute('aria-activedescendant');
+    }
   }
 
   input.addEventListener('input', () => {

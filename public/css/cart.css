@@ -131,7 +131,7 @@
 .c-item-cat {
   font-size: 11px;
   font-weight: 600;
-  color: var(--primary-light);
+  color: var(--primary-dark);
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: 4px;

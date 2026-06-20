@@ -25,18 +25,27 @@
   }
 
   function catLinkAttrs(slug) {
-    const ext = /^https?:\/\//i.test(String(slug || '').trim());
-    const href = ext ? slug : `/category/${encodeURIComponent(slug)}`;
+    const normalized = window.rakuNormalizeStoreUrl
+      ? window.rakuNormalizeStoreUrl(slug)
+      : String(slug || '').trim();
+    const href = window.rakuCategoryHref ? window.rakuCategoryHref(slug) : `/category/${encodeURIComponent(normalized)}`;
+    const ext = window.rakuIsExternalStoreUrl
+      ? window.rakuIsExternalStoreUrl(normalized)
+      : /^https?:\/\//i.test(normalized);
     const extAttrs = ext ? ' target="_blank" rel="noopener noreferrer"' : '';
-    return { href: escapeHtml(href), extAttrs };
+    return { href: escapeHtml(href), extAttrs, slug: escapeHtml(normalized) };
   }
 
   function categoryIconHtml(c, pal) {
     const paletteItem = pal || palette(0);
     const url = c?.icon_url || c?.iconUrl;
     if (url) {
-      const src = window.productImageSrc ? window.productImageSrc(url) : url;
-      return `<div class="cat-icon cat-icon--img" style="background:${paletteItem.bg};"><img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async"><i class="ti ${escapeHtml(c.icon || 'ti-category')}" style="color:${paletteItem.color};" hidden></i></div>`;
+      const src = window.rakuImageVariantUrl
+        ? window.rakuImageVariantUrl(url, 128)
+        : window.productImageSrc
+          ? window.productImageSrc(url)
+          : url;
+      return `<div class="cat-icon cat-icon--img" style="background:${paletteItem.bg};"><img src="${escapeHtml(src)}" alt="" width="64" height="64" loading="lazy" decoding="async"><i class="ti ${escapeHtml(c.icon || 'ti-category')}" style="color:${paletteItem.color};" hidden></i></div>`;
     }
     return `<div class="cat-icon" style="background:${paletteItem.bg};"><i class="ti ${escapeHtml(c.icon || 'ti-category')}" style="color:${paletteItem.color};"></i></div>`;
   }
@@ -44,8 +53,12 @@
   function categoryNavIconHtml(c) {
     const url = c?.icon_url || c?.iconUrl;
     if (url) {
-      const src = window.productImageSrc ? window.productImageSrc(url) : url;
-      return `<img class="cat-nav-icon-img" src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async">`;
+      const src = window.rakuImageVariantUrl
+        ? window.rakuImageVariantUrl(url, 96)
+        : window.productImageSrc
+          ? window.productImageSrc(url)
+          : url;
+      return `<img class="cat-nav-icon-img" src="${escapeHtml(src)}" alt="" width="48" height="48" loading="lazy" decoding="async">`;
     }
     return `<i class="ti ${escapeHtml(c.icon || 'ti-category')}"></i>`;
   }
@@ -128,7 +141,7 @@
       },
     ];
     const trustBar = document.getElementById('trust-bar');
-    if (trustBar) {
+    if (trustBar && trustBar.dataset.ssrReady !== '1') {
       trustBar.innerHTML = trust
         .map(
           (t) => `<div class="trust-item trust-item--colored" style="background:${t.bg};border-color:${t.bg};">
@@ -137,10 +150,10 @@
       </div>`
         )
         .join('');
+    }
+    if (trustBar && window._rakuInitHomeScrollAuto) {
       if (window._rakuStopHomeScrollAuto) window._rakuStopHomeScrollAuto('trust-bar');
-      if (window._rakuInitHomeScrollAuto) {
-        setTimeout(() => window._rakuInitHomeScrollAuto('trust-bar', 4000), 120);
-      }
+      setTimeout(() => window._rakuInitHomeScrollAuto('trust-bar', 4000), 120);
     }
 
     const delBox = document.getElementById('pv-delivery-list');
@@ -155,7 +168,7 @@
 
   function renderStats(stats) {
     const grid = document.getElementById('stats-grid');
-    if (!grid || !stats) return;
+    if (!grid || !stats || grid.dataset.ssrReady === '1') return;
     const fmt = (n) => {
       const x = Number(n) || 0;
       if (x >= 10000) return `${Math.floor(x / 1000)}k+`;
@@ -248,6 +261,27 @@
     requestAnimationFrame(() => bootAuto(0));
   }
 
+  function bindSsrCategoryCards() {
+    const track = document.getElementById('home-category-track');
+    if (!track || track.dataset.ssrReady !== '1') return;
+    track.querySelectorAll('.cat-card').forEach((card) => {
+      if (card._rakuCatBound) return;
+      card._rakuCatBound = true;
+      card.onclick = (e) => {
+        e.preventDefault();
+        const slug = card.dataset.catSlug;
+        if (window.rakuNavigateStoreLink) window.rakuNavigateStoreLink(slug);
+        else if (window.openCategory) window.openCategory(slug);
+      };
+    });
+    syncHomeCategoryCardWidths();
+    requestAnimationFrame(() => {
+      syncHomeCategoryCardWidths();
+      const count = track.querySelectorAll('.cat-card').length || 0;
+      if (count) syncCategoryAutoScroll(count);
+    });
+  }
+
   function renderCategoryGridHome(categories, opts = {}) {
     const track = document.getElementById('home-category-track');
     const wrap = document.querySelector('#categories .category-scroll-wrap');
@@ -263,7 +297,7 @@
             const pal = palette(i);
             const count = Number(c.product_count) || 0;
             const a = catLinkAttrs(c.slug);
-            return `<a href="${a.href}" class="cat-card" data-cat-slug="${escapeHtml(c.slug)}"${a.extAttrs}>
+            return `<a href="${a.href}" class="cat-card" data-cat-slug="${a.slug}"${a.extAttrs}>
         ${categoryIconHtml(c, pal)}
         <div class="cat-card-label">
           <div class="cat-name">${escapeHtml(c.name_bn)}</div>
@@ -278,7 +312,8 @@
       card.onclick = (e) => {
         e.preventDefault();
         const slug = card.dataset.catSlug;
-        if (window.openCategory) window.openCategory(slug);
+        if (window.rakuNavigateStoreLink) window.rakuNavigateStoreLink(slug);
+        else if (window.openCategory) window.openCategory(slug);
       };
     });
 
@@ -341,8 +376,13 @@
       }
       e.preventDefault();
       const slug = link.dataset.navSlug;
-      if (slug && window.openCategory) window.openCategory(slug);
-      else if (window.showPage) window.showPage('home');
+      if (window.rakuNavigateStoreLink) {
+        window.rakuNavigateStoreLink(slug);
+      } else if (slug && window.openCategory) {
+        window.openCategory(slug);
+      } else if (window.showPage) {
+        window.showPage('home');
+      }
       if (typeof onNavigate === 'function') onNavigate();
     });
   }
@@ -356,10 +396,10 @@
     let html = `<a href="/" class="cat-link" data-nav="home"><i class="ti ti-home"></i> Home</a>`;
     topLevel.forEach((c) => {
       const a = catLinkAttrs(c.slug);
-      html += `<a href="${a.href}" class="cat-link" data-nav-slug="${escapeHtml(c.slug)}"${a.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
+      html += `<a href="${a.href}" class="cat-link" data-nav-slug="${a.slug}"${a.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
       childrenOf(c.id).forEach((sub) => {
         const sa = catLinkAttrs(sub.slug);
-        html += `<a href="${sa.href}" class="cat-link cat-link--sub" data-nav-slug="${escapeHtml(sub.slug)}"${sa.extAttrs}><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
+        html += `<a href="${sa.href}" class="cat-link cat-link--sub" data-nav-slug="${sa.slug}"${sa.extAttrs}><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
       });
     });
     html += `<a href="/" class="cat-link" data-nav="sale"><i class="ti ti-discount"></i> Sale & Offers</a>`;
@@ -376,7 +416,8 @@
         inner.querySelectorAll('.cat-link').forEach((l) => l.classList.remove('active'));
         link.classList.add('active');
         const slug = link.dataset.navSlug;
-        if (slug && window.openCategory) window.openCategory(slug);
+        if (window.rakuNavigateStoreLink) window.rakuNavigateStoreLink(slug);
+        else if (slug && window.openCategory) window.openCategory(slug);
         else if (window.showPage) window.showPage('home');
       });
     });
@@ -397,15 +438,15 @@
           </button>
           <div class="mobile-menu-sub">`;
         const ca = catLinkAttrs(c.slug);
-        html += `<a href="${ca.href}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${escapeHtml(c.slug)}"${ca.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> All ${escapeHtml(c.name_bn)}</a>`;
+        html += `<a href="${ca.href}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${ca.slug}"${ca.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> All ${escapeHtml(c.name_bn)}</a>`;
         subs.forEach((sub) => {
           const sa = catLinkAttrs(sub.slug);
-          html += `<a href="${sa.href}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${escapeHtml(sub.slug)}"${sa.extAttrs}><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
+          html += `<a href="${sa.href}" class="mobile-cat-link mobile-cat-link--sub" data-nav-slug="${sa.slug}"${sa.extAttrs}><i class="ti ${escapeHtml(sub.icon || c.icon)}"></i> ${escapeHtml(sub.name_bn)}</a>`;
         });
         html += `</div></div>`;
       } else {
         const a = catLinkAttrs(c.slug);
-        html += `<a href="${a.href}" class="mobile-cat-link" data-nav-slug="${escapeHtml(c.slug)}"${a.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
+        html += `<a href="${a.href}" class="mobile-cat-link" data-nav-slug="${a.slug}"${a.extAttrs}><i class="ti ${escapeHtml(c.icon)}"></i> ${escapeHtml(c.name_bn)}</a>`;
       }
     });
     html += `<a href="/" class="mobile-cat-link" data-nav="sale"><i class="ti ti-discount"></i> Sale & Offers</a>`;
@@ -487,10 +528,7 @@
         }
         if (page === 'home' && window.showPage) window.showPage('home');
         else if (page === 'account' && window.showPage) window.showPage('account');
-        else if (page === 'cart' && window.showPage) {
-          window.showPage('cart');
-          if (window.renderCart) void window.renderCart();
-        } else if (page === 'appointment' && window.showPage) window.showPage('appointment');
+        else if (page === 'cart' && window.showPage) window.showPage('cart'); else if (page === 'appointment' && window.showPage) window.showPage('appointment');
       });
     });
   }
@@ -730,13 +768,20 @@
     const specPane = document.getElementById('tab-spec');
     if (specTabBtn) specTabBtn.hidden = !show;
     if (specPane && !show) {
-      specPane.style.display = 'none';
+      specPane.hidden = true;
       const descBtn = document.querySelector('.tab-btn[data-tab="tab-desc"]');
       const descPane = document.getElementById('tab-desc');
       if (descBtn && descPane && specTabBtn?.classList.contains('active')) {
-        document.querySelectorAll('.tab-btn').forEach((b) => b.classList.remove('active'));
+        document.querySelectorAll('#page-product .tab-btn').forEach((b) => {
+          b.classList.remove('active');
+          b.setAttribute('aria-selected', 'false');
+        });
         descBtn.classList.add('active');
-        descPane.style.display = '';
+        descBtn.setAttribute('aria-selected', 'true');
+        document.querySelectorAll('#page-product .tab-pane').forEach((pane) => {
+          pane.hidden = true;
+        });
+        descPane.hidden = false;
       }
     }
   }
@@ -897,11 +942,30 @@
     if (!categories?.length) return;
     window._rakuCategories = categories;
     if (window._rakuSetCategoryLabels) window._rakuSetCategoryLabels(categories);
-    renderCategoryGridHome(categories);
-    renderGlobalCatNav(categories);
-    renderMobileCatNav(categories);
-    renderHomeFilterTabs(categories);
-    renderSearchCategories(categories);
+    const track = document.getElementById('home-category-track');
+    if (track?.dataset.ssrReady === '1') bindSsrCategoryCards();
+    else renderCategoryGridHome(categories);
+
+    let navRendered = false;
+    const renderNav = () => {
+      if (navRendered) return;
+      navRendered = true;
+      renderGlobalCatNav(categories);
+      renderMobileCatNav(categories);
+      renderHomeFilterTabs(categories);
+      renderSearchCategories(categories);
+    };
+    const browseBtn = document.getElementById('nav-browse-cats-btn');
+    const mobileBtn = document.getElementById('nav-mobile-menu-btn');
+    ['mouseenter', 'focus', 'touchstart'].forEach((eventName) => {
+      browseBtn?.addEventListener(eventName, renderNav, { once: true, passive: true });
+      mobileBtn?.addEventListener(eventName, renderNav, { once: true, passive: true });
+    });
+    if (window.rakuScheduleIdle) {
+      window.rakuScheduleIdle(renderNav, { timeout: 3500 });
+    } else {
+      setTimeout(renderNav, 300);
+    }
   }
 
   window._rakuPartitionCategories = partitionCategories;

@@ -328,6 +328,9 @@
           name,
           description,
           image: [ogImage],
+          sku: String(p.sku || p.id || ''),
+          url: canonical,
+          brand: { '@type': 'Brand', name: sn },
           offers: {
             '@type': 'Offer',
             price: String(Number(p.price) || 0),
@@ -335,7 +338,20 @@
             availability:
               p.stock > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
             url: canonical,
+            itemCondition: 'https://schema.org/NewCondition',
+            seller: { '@type': 'Organization', name: sn, url: abs('/') },
           },
+          ...(Number(p.review_count) > 0 && Number(p.rating) > 0
+            ? {
+                aggregateRating: {
+                  '@type': 'AggregateRating',
+                  ratingValue: Number(p.rating).toFixed(1),
+                  reviewCount: Number(p.review_count),
+                  bestRating: '5',
+                  worstRating: '1',
+                },
+              }
+            : {}),
         },
       ],
     };

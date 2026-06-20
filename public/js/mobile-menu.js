@@ -25,6 +25,7 @@
       if (!mobileCatMenu) return;
       mobileCatMenu.classList.add('open');
       mobileCatMenu.setAttribute('aria-hidden', 'false');
+      mobileCatMenu.removeAttribute('inert');
       if (mobileCatMenuBtn) mobileCatMenuBtn.setAttribute('aria-expanded', 'true');
       document.body.classList.add('mobile-cat-menu-open');
     }
@@ -33,6 +34,7 @@
       if (!mobileCatMenu) return;
       mobileCatMenu.classList.remove('open');
       mobileCatMenu.setAttribute('aria-hidden', 'true');
+      mobileCatMenu.setAttribute('inert', '');
       if (mobileCatMenuBtn) mobileCatMenuBtn.setAttribute('aria-expanded', 'false');
       document.body.classList.remove('mobile-cat-menu-open');
     }

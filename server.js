@@ -9,6 +9,7 @@ if (process.env.DATABASE_URL) {
 }
 
 const path = require('path');
+const fs = require('fs');
 const compression = require('compression');
 const express = require('express');
 const cookieSession = require('cookie-session');
@@ -17,6 +18,7 @@ const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
 const { getStoreBootstrap, getProductByRef } = require('./lib/storeBootstrap');
+const { buildHomePageSsr } = require('./lib/homePageSsr');
 const { isNumericProductRef } = require('./lib/productUrl');
 const { registerAdminAuth } = require('./lib/registerAdminAuth');
 const { usePostgres, query } = require('./config/db');
@@ -38,7 +40,6 @@ const { ensureRewardPointSettings } = require('./lib/ensureRewardPointSettings')
 const { ensureReviewVideos } = require('./lib/ensureReviewVideos');
 const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
-const { ensureFaceAnalyzerSetting } = require('./lib/ensureFaceAnalyzerSetting');
 const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
 const { ensureTrackingSettings } = require('./lib/ensureTrackingSettings');
 const { ensureNotifyEmailSettings } = require('./lib/ensureNotifyEmailSettings');
@@ -46,14 +47,16 @@ const { ensureLegalPages } = require('./lib/ensureLegalPages');
 const { ensureCategoryParent } = require('./lib/ensureCategoryParent');
 const { ensureCategoryIconUrl } = require('./lib/ensureCategoryIconUrl');
 const { buildTrackingScripts } = require('./lib/trackingScripts');
-const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug } = require('./lib/seo');
+const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug, resolvePageType } = require('./lib/seo');
+const { buildProductPageVm } = require('./lib/productPageSsr');
+const pageRenderCache = require('./lib/pageRenderCache');
 const { getSiteSettings } = require('./lib/siteSettings');
-const faceAnalyzerRoutes = require('./routes/faceAnalyzer');
-
+const { imageVariantMiddleware } = require('./lib/imageVariantRoute');
+const { buildImgAttributes } = require('./lib/imageDelivery');
+const { expressStaticOptions, cacheControlPublic, applyStaticAssetCache, ONE_YEAR_SEC, ONE_MONTH_SEC } = require('./lib/httpCache');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const { legacyUploadWebpFallback } = require('./lib/legacyUploadWebp');
-const isProduction = process.env.NODE_ENV === 'production';
 
 process.on('uncaughtException', (err) => {
   console.error('uncaughtException:', err);
@@ -105,21 +108,49 @@ app.get('/sitemap.xml', async (req, res) => {
   }
 });
 
-const staticCache = (maxAge) => ({
-  maxAge: isProduction ? maxAge : 0,
-  etag: true,
-  immutable: Boolean(isProduction && maxAge),
+app.use('/fonts', express.static(path.join(publicDir, 'fonts'), expressStaticOptions(ONE_YEAR_SEC)));
+
+function useMinifiedJs() {
+  return process.env.NODE_ENV === 'production' && process.env.SERVE_UNMINIFIED_JS !== '1';
+}
+
+function useMinifiedCss() {
+  return process.env.NODE_ENV === 'production' && process.env.SERVE_UNMINIFIED_CSS !== '1';
+}
+
+app.use('/js', (req, res, next) => {
+  if (!useMinifiedJs()) return next();
+  if (!req.path.endsWith('.js') || req.path.endsWith('.min.js')) return next();
+  const minPath = path.join(publicDir, 'js', req.path.replace(/\.js$/, '.min.js'));
+  if (!fs.existsSync(minPath)) return next();
+  applyStaticAssetCache(res, ONE_YEAR_SEC);
+  res.type('application/javascript');
+  return res.sendFile(minPath);
 });
-app.use('/js', express.static(path.join(publicDir, 'js'), staticCache('365d')));
-app.use('/css', express.static(path.join(publicDir, 'css'), staticCache('365d')));
-app.use('/images', express.static(path.join(publicDir, 'images'), staticCache('30d')));
+app.use('/js', express.static(path.join(publicDir, 'js'), expressStaticOptions(ONE_YEAR_SEC)));
+app.use('/css', (req, res, next) => {
+  if (!useMinifiedCss()) return next();
+  if (!req.path.endsWith('.css') || req.path.endsWith('.min.css')) return next();
+  const minPath = path.join(publicDir, 'css', req.path.replace(/\.css$/, '.min.css'));
+  if (!fs.existsSync(minPath)) return next();
+  applyStaticAssetCache(res, ONE_YEAR_SEC);
+  res.type('text/css');
+  return res.sendFile(minPath);
+});
+app.use('/css', express.static(path.join(publicDir, 'css'), expressStaticOptions(ONE_YEAR_SEC)));
+app.use('/images', express.static(path.join(publicDir, 'images'), expressStaticOptions(ONE_YEAR_SEC)));
 app.get('/images/rakushopbd-logo.png', (_req, res) => {
-  res.set('Cache-Control', isProduction ? 'public, max-age=3600, must-revalidate' : 'no-cache');
+  if (process.env.NODE_ENV === 'development') {
+    res.set('Cache-Control', 'no-cache');
+  } else {
+    res.set('Cache-Control', cacheControlPublic(ONE_YEAR_SEC, { immutable: true }));
+  }
   res.sendFile(path.join(publicDir, 'images', 'rakushopbd-logo.png'));
 });
+app.use('/media', imageVariantMiddleware);
 app.use('/uploads', legacyUploadWebpFallback);
-app.use('/uploads', express.static(path.join(publicDir, 'uploads'), staticCache('7d')));
-app.use(express.static(publicDir, staticCache(0)));
+app.use('/uploads', express.static(path.join(publicDir, 'uploads'), expressStaticOptions(ONE_YEAR_SEC)));
+app.use(express.static(publicDir, expressStaticOptions(ONE_MONTH_SEC)));
 
 const sessionMaxAge = 7 * 24 * 60 * 60 * 1000;
 const sessionSecret = process.env.SESSION_SECRET || 'rakushopbd-dev-secret-change-me';
@@ -194,6 +225,7 @@ async function renderStorefront(req, res) {
     const productRef = productMatch ? decodeURIComponent(productMatch[1]) : null;
     const categoryMatch = req.path.match(/^\/category\/([^/]+)$/);
     const categorySlug = categoryMatch ? decodeURIComponent(categoryMatch[1]) : null;
+    const pageType = resolvePageType(req);
 
     const bootstrap = await getStoreBootstrap(req, { lite: true });
     let product = null;
@@ -218,18 +250,95 @@ async function renderStorefront(req, res) {
     if (product && productRef && isNumericProductRef(productRef) && product.slug) {
       return res.redirect(301, `/product/${encodeURIComponent(product.slug)}`);
     }
-    const seo = await buildPageSeo(req, { bootstrap, product, category });
+
+    const initialPage = product
+      ? 'product'
+      : categorySlug && category
+        ? 'category'
+        : pageType === 'home'
+          ? 'home'
+          : pageType;
+
+    let seo;
+    let productVm = null;
+    const cacheKey = product ? `ssr:product:${product.id}:${product.slug}` : null;
+    const cached = cacheKey ? pageRenderCache.get(cacheKey) : null;
+    if (cached) {
+      seo = cached.seo;
+      productVm = cached.productVm;
+    } else {
+      seo = await buildPageSeo(req, { bootstrap, product, category });
+      if (product) {
+        productVm = buildProductPageVm(product, bootstrap?.settings || {});
+        pageRenderCache.set(cacheKey, { seo, productVm });
+      }
+    }
+
+    if (pageType === 'product' || pageType === 'category' || pageType === 'home') {
+      res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
+    } else if (['cart', 'checkout', 'account', 'wishlist', 'success'].includes(pageType)) {
+      res.set('Cache-Control', 'private, no-store');
+    } else {
+      res.set('Cache-Control', 'public, max-age=120, s-maxage=600, stale-while-revalidate=86400');
+    }
+
     const trackingScripts = buildTrackingScripts(bootstrap.settings || {});
-    const heroSideSlider = bootstrap?.heroSideSlider || null;
+    let heroSideSlider = bootstrap?.heroSideSlider || null;
+    let lcpHeroPreload = null;
+    if (heroSideSlider?.slides?.length) {
+      heroSideSlider = {
+        ...heroSideSlider,
+        slides: heroSideSlider.slides.map((slide) => ({
+          ...slide,
+          imageAttrs: buildImgAttributes(slide.image, {
+            widths: [640, 960, 1280],
+            sizes: '(max-width: 768px) 100vw, 1200px',
+            srcWidth: 960,
+          }),
+        })),
+      };
+      const firstAttrs = heroSideSlider.slides[0]?.imageAttrs;
+      if (firstAttrs?.src) {
+        lcpHeroPreload = {
+          href: firstAttrs.src,
+          imagesrcset: firstAttrs.srcset || '',
+          imagesizes: firstAttrs.sizes || '',
+          type: String(firstAttrs.src).includes('.webp') ? 'image/webp' : '',
+        };
+      }
+    }
     const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
+    const homeSsr = initialPage === 'home' && bootstrap?.ok ? buildHomePageSsr(bootstrap) : null;
     const productJson = product
       ? JSON.stringify({ ok: true, product }).replace(/</g, '\\u003c')
       : null;
     const seoJson = JSON.stringify(seo).replace(/</g, '\\u003c');
-    res.render('index', { bootstrapJson, productJson, seoJson, seo, trackingScripts, heroSideSlider });
+    res.render('index', {
+      bootstrapJson,
+      productJson,
+      seoJson,
+      seo,
+      trackingScripts,
+      heroSideSlider,
+      lcpHeroPreload,
+      homeSsr,
+      initialPage,
+      productVm,
+    });
   } catch (err) {
     console.error('renderStorefront', err);
-    res.render('index', { bootstrapJson: null, productJson: null, seoJson: null, seo: null, trackingScripts: null, heroSideSlider: null });
+    res.render('index', {
+      bootstrapJson: null,
+      productJson: null,
+      seoJson: null,
+      seo: null,
+      trackingScripts: null,
+      heroSideSlider: null,
+      lcpHeroPreload: null,
+      homeSsr: null,
+      initialPage: 'home',
+      productVm: null,
+    });
   }
 }
 
@@ -241,7 +350,6 @@ app.get('/admin', (req, res) => {
 });
 
 app.use('/api', apiRoutes);
-app.use('/api/face-analyzer', faceAnalyzerRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
@@ -281,7 +389,34 @@ app.use((req, res) => {
   res.status(404).send('Page not found');
 });
 
-app.listen(PORT, () => {
+async function startServer() {
+  if (useMinifiedJs()) {
+    try {
+      const { minifyAll } = require('./scripts/minify-js');
+      const { processed, saved } = await minifyAll();
+      if (processed) {
+        console.log(`JS minify: ${processed} file(s) updated, saved ${Math.round(saved / 1024)}KB`);
+      }
+    } catch (err) {
+      console.warn('JS minify:', err.message);
+    }
+  }
+
+  if (useMinifiedCss()) {
+    try {
+      const { buildHomeCssBundle } = require('./scripts/build-home-css-bundle');
+      buildHomeCssBundle();
+      const { minifyAll } = require('./scripts/minify-css');
+      const { processed, saved } = minifyAll();
+      if (processed) {
+        console.log(`CSS minify: ${processed} file(s) updated, saved ${Math.round(saved / 1024)}KB`);
+      }
+    } catch (err) {
+      console.warn('CSS minify:', err.message);
+    }
+  }
+
+  app.listen(PORT, () => {
   const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
   console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
   void warmBootstrapCache();
@@ -314,9 +449,14 @@ app.listen(PORT, () => {
   ensureReviewVideos().catch((err) => console.warn('review videos table:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
-  ensureFaceAnalyzerSetting().catch((err) => console.warn('face analyzer setting:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
   ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
   ensureNotifyEmailSettings().catch((err) => console.warn('Notify email settings:', err.message));
   ensureLegalPages().catch((err) => console.warn('Legal pages:', err.message));
+  });
+}
+
+startServer().catch((err) => {
+  console.error('Server start failed:', err);
+  process.exit(1);
 });

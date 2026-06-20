@@ -22,13 +22,20 @@
     "local:setup": "npm run db:setup && npm run admin:sync",
     "pm2:start": "pm2 start ecosystem.config.cjs",
     "pm2:restart": "pm2 restart rakushopbd",
-    "uploads:migrate-webp": "node scripts/migrate-uploads-to-webp.js"
+    "uploads:migrate-webp": "node scripts/migrate-uploads-to-webp.js",
+    "build:js": "node scripts/minify-js.js",
+    "build:js:force": "node scripts/minify-js.js --force",
+    "build:css": "node scripts/minify-css.js",
+    "build:css:force": "node scripts/minify-css.js --force",
+    "build:home-css": "node scripts/build-home-css-bundle.js",
+    "build:assets": "npm run build:home-css && npm run build:css && npm run build:js"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
+    "clean-css": "^5.3.3",
     "compression": "^1.8.1",
     "cookie-session": "^2.1.0",
     "dotenv": "^16.4.7",
@@ -39,6 +46,7 @@
     "mysql2": "^3.12.0",
     "nodemailer": "^6.10.1",
     "pg": "^8.21.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.33.5",
+    "terser": "^5.39.0"
   }
 }

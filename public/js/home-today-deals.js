@@ -40,7 +40,7 @@
     if (window.productMediaHtml) return window.productMediaHtml(p);
     if (p.image_url || p.imageUrl) {
       const src = esc(p.image_url || p.imageUrl);
-      return `<img src="${src}" alt="${esc(p.name_bn || 'Product')}" loading="lazy" decoding="async">`;
+      return `<img src="${src}" alt="${esc(p.name_bn || 'Product')}" width="240" height="240" loading="lazy" decoding="async">`;
     }
     return `<i class="${esc(p.icon || 'ti ti-package')}" style="color:${esc(p.icon_color || p.iconColor || '#2D6B32')};font-size:42px;"></i>`;
   }

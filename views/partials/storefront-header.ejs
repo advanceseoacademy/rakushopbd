@@ -16,7 +16,10 @@
      <span class="navbar-hamburger-line"></span>
     </button>
     <a href="/" class="logo site-logo-link" aria-label="RakuShopBD — Home">
-     <img src="/images/rakushopbd-logo.png?v=10" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
+     <picture>
+      <source srcset="/images/rakushopbd-logo-280.webp?v=1" type="image/webp">
+      <img src="/images/rakushopbd-logo.png?v=11" alt="RakuShopBD — Comfort Your Life" class="site-logo-img site-logo-img--header" width="280" height="68">
+     </picture>
     </a>
     <div class="nav-actions nav-actions--header nav-actions--mobile-bar">
      <a href="#" class="header-icon-btn" id="nav-wishlist-btn" aria-label="Wishlist">
@@ -40,7 +43,7 @@
        <option value="all">All Products</option>
       </select>
       <div class="search-field">
-       <input class="search-input" id="search-input" type="search" autocomplete="off" placeholder="Search for product" aria-autocomplete="list" aria-controls="search-suggest" aria-expanded="false">
+       <input class="search-input" id="search-input" type="search" role="combobox" autocomplete="off" placeholder="Search for product" aria-autocomplete="list" aria-haspopup="listbox" aria-controls="search-suggest" aria-expanded="false">
        <button type="button" class="search-clear" id="search-clear" aria-label="Clear search" hidden><i class="ti ti-x"></i></button>
        <button type="button" class="search-btn" id="search-btn" aria-label="Search"><i class="ti ti-search"></i></button>
       </div>
@@ -48,11 +51,11 @@
      <div class="search-suggest" id="search-suggest" role="listbox" hidden></div>
     </div>
    </div>
-   <a href="tel:+8801700000000" class="header-support" id="header-support">
+   <a href="tel:+8801339411587" class="header-support" id="header-support">
     <span class="header-support-icon" aria-hidden="true"><i class="ti ti-phone"></i></span>
     <span class="header-support-body">
      <span class="header-support-label">Support</span>
-     <strong class="header-support-phone" id="header-support-phone">+880 1700-000000</strong>
+     <strong class="header-support-phone" id="header-support-phone">+880 1339-411587</strong>
     </span>
    </a>
   </div>
@@ -90,7 +93,7 @@
 </nav>
 
 <!-- Mobile category menu -->
-<div id="mobile-cat-menu" class="mobile-cat-menu" aria-hidden="true">
+<div id="mobile-cat-menu" class="mobile-cat-menu" aria-hidden="true" inert>
  <div class="mobile-cat-menu-backdrop" id="mobile-cat-menu-backdrop"></div>
  <aside class="mobile-cat-menu-panel" role="dialog" aria-modal="true" aria-labelledby="mobile-cat-menu-title">
  <div class="mobile-cat-menu-header">

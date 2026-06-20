@@ -134,6 +134,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Show target route immediately (content fills via bootstrap / API)
   const initialRoute = (function parseInitial() {
+    if (window.__RAKU_INITIAL_PAGE && PAGE_NAMES.includes(window.__RAKU_INITIAL_PAGE)) {
+      return { page: window.__RAKU_INITIAL_PAGE };
+    }
     const parts = (location.pathname || '/').split('/').filter(Boolean);
     if (!parts.length) return { page: 'home' };
     const [page, param] = parts;
@@ -151,6 +154,7 @@ document.addEventListener('DOMContentLoaded', function() {
   Object.entries(pages).forEach(([name, el]) => {
     if (el) el.style.display = name === initialRoute.page ? 'block' : 'none';
   });
+  syncPageA11y(initialRoute.page);
   updateHeaderNavActive(initialRoute.page);
 
   try {
@@ -211,19 +215,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function showPage(name, opts) {
-    if (typeof opts !== 'object' || opts === null) opts = {};
-    window._rakuVisiblePage = name;
-    if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
-    if (!opts.skipScroll) {
-      rakuScrollToTop('auto');
-    }
-    Object.values(pages).forEach((p) => {
-      if (p) p.style.display = 'none';
+  function syncPageA11y(visibleName) {
+    Object.entries(pages).forEach(([name, el]) => {
+      if (!el) return;
+      const visible = name === visibleName;
+      el.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      if (visible) el.removeAttribute('inert');
+      else el.setAttribute('inert', '');
     });
-    if (pages[name]) pages[name].style.display = 'block';
-    const catNav = document.getElementById('global-cat-nav');
-    if (catNav) catNav.style.display = 'none';
+  }
+
+  function runPageInits(name) {
     if (name === 'appointment' && window._rakuInitAppointmentPage) {
       window._rakuInitAppointmentPage();
     }
@@ -254,6 +256,28 @@ document.addEventListener('DOMContentLoaded', function() {
     if (name === 'home' && window._rakuRefreshHomeRecommendations) {
       window._rakuRefreshHomeRecommendations();
     }
+    if (name === 'cart' && window.renderCart) {
+      void window.renderCart();
+    }
+    if (name === 'checkout' && window.renderCheckout) {
+      void window.renderCheckout();
+    }
+  }
+
+  function showPage(name, opts) {
+    if (typeof opts !== 'object' || opts === null) opts = {};
+    window._rakuVisiblePage = name;
+    if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
+    if (!opts.skipScroll) {
+      rakuScrollToTop('auto');
+    }
+    Object.values(pages).forEach((p) => {
+      if (p) p.style.display = 'none';
+    });
+    if (pages[name]) pages[name].style.display = 'block';
+    syncPageA11y(name);
+    const catNav = document.getElementById('global-cat-nav');
+    if (catNav) catNav.style.display = 'none';
     updateHeaderNavActive(name);
     const skipUrl = opts.skipHash || opts.skipUrl;
     if (!skipUrl) {
@@ -265,13 +289,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.RakuSEO) {
       window.RakuSEO.onNavigate(name, opts);
     }
-    if (name === 'cart' && window.renderCart) {
-      void window.renderCart();
-    }
-    if (name === 'checkout' && window.renderCheckout) {
-      void window.renderCheckout();
-    }
     document.dispatchEvent(new CustomEvent('raku:navigate', { detail: { page: name } }));
+
+    const finish = () => runPageInits(name);
+    const assets = window.rakuEnsureRouteAssets ? window.rakuEnsureRouteAssets(name) : Promise.resolve();
+    assets.then(finish).catch(finish);
   }
 
   async function restoreFromUrl() {
@@ -398,11 +420,12 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   function openCartPage() {
+    if (window._rakuOpenCart) {
+      window._rakuOpenCart();
+      return;
+    }
     if (window.showPage) window.showPage('cart');
     else window.location.href = '/cart';
-    if (window.renderCart) {
-      window.renderCart().catch((err) => console.warn('renderCart failed', err));
-    }
   }
   window._rakuOpenCart = openCartPage;
 
@@ -442,14 +465,20 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Tab switching
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+  // Product page tabs
+  document.querySelectorAll('#page-product .tab-btn').forEach((btn) => {
+    btn.addEventListener('click', function () {
+      document.querySelectorAll('#page-product .tab-btn').forEach((b) => {
+        b.classList.remove('active');
+        b.setAttribute('aria-selected', 'false');
+      });
+      document.querySelectorAll('#page-product .tab-pane').forEach((p) => {
+        p.hidden = true;
+      });
       this.classList.add('active');
+      this.setAttribute('aria-selected', 'true');
       const target = document.getElementById(this.dataset.tab);
-      if (target) target.style.display = 'block';
+      if (target) target.hidden = false;
     });
   });
 

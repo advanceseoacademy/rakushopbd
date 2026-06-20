@@ -4,6 +4,7 @@ const bcrypt = require('bcryptjs');
 const { query } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { slugify } = require('../lib/slugify');
+const { normalizeStoreUrl } = require('../lib/normalizeStoreUrl');
 const { clearSiteSettingsCache } = require('../lib/siteSettings');
 const { normalizeSiteBaseUrl } = require('../lib/seo');
 const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
@@ -856,7 +857,7 @@ router.post('/categories/:parentId/subcategories', requireAdmin, async (req, res
     }
     const { name, slug, icon, iconUrl, sortOrder } = req.body;
     if (!name) return res.status(400).json({ ok: false, error: 'Name required' });
-    const s = slug || slugify(name);
+    const s = normalizeStoreUrl(String(slug || slugify(name)).trim());
     await query(
       'INSERT INTO categories (slug, name_bn, icon, icon_url, sort_order, parent_id) VALUES (?, ?, ?, ?, ?, ?)',
       [s, name, icon || 'ti-category', iconUrl || null, sortOrder || 0, parentCheck]
@@ -884,7 +885,7 @@ router.post('/categories', requireAdmin, async (req, res) => {
     const parentCheck = await validateCategoryParent(parentIdRaw);
     if (parentCheck?.error) return res.status(400).json({ ok: false, error: parentCheck.error });
     const parent_id = parentCheck === null ? null : parentCheck;
-    const s = slug || slugify(name);
+    const s = normalizeStoreUrl(String(slug || slugify(name)).trim());
     await query(
       'INSERT INTO categories (slug, name_bn, icon, icon_url, sort_order, parent_id) VALUES (?, ?, ?, ?, ?, ?)',
       [s, name, icon || 'ti-category', iconUrl || null, sortOrder || 0, parent_id]
@@ -904,9 +905,10 @@ router.put('/categories/:id', requireAdmin, async (req, res) => {
     const parentCheck = await validateCategoryParent(parentIdRaw, req.params.id);
     if (parentCheck?.error) return res.status(400).json({ ok: false, error: parentCheck.error });
     const parent_id = parentCheck === null ? null : parentCheck;
+    const s = normalizeStoreUrl(String(slug || '').trim());
     await query(
       'UPDATE categories SET slug=?, name_bn=?, icon=?, icon_url=?, sort_order=?, parent_id=? WHERE id=?',
-      [slug, name, icon || 'ti-category', iconUrl || null, sortOrder || 0, parent_id, req.params.id]
+      [s, name, icon || 'ti-category', iconUrl || null, sortOrder || 0, parent_id, req.params.id]
     );
     clearStoreBootstrapCache();
     res.json({ ok: true });

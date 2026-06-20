@@ -10,4 +10,8 @@ npm-debug.log*
 *.log
 Archive.zip
 public/uploads/_orig/
+public/uploads/.variants/
 public/.cache/
+public/js/*.min.js
+public/css/*.min.css
+public/css/home.bundle.css

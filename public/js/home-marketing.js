@@ -71,7 +71,17 @@
     if (!el) return;
     const src = String(url || '').trim();
     if (src) {
-      el.innerHTML = `<img src="${escapeHtml(src)}" alt="" loading="lazy" decoding="async">`;
+      const attrs = window.rakuImageAttrs
+        ? window.rakuImageAttrs(src, {
+            widths: [480, 640, 960],
+            sizes: '(max-width: 768px) 100vw, 560px',
+            srcWidth: 640,
+          })
+        : { src, srcset: '', sizes: '' };
+      const srcset = attrs.srcset
+        ? ` srcset="${escapeHtml(attrs.srcset)}" sizes="${escapeHtml(attrs.sizes)}"`
+        : '';
+      el.innerHTML = `<img src="${escapeHtml(attrs.src)}"${srcset} alt="" width="560" height="560" loading="lazy" decoding="async">`;
     } else {
       el.innerHTML = '<i class="ti ti-photo"></i>';
     }
@@ -80,7 +90,7 @@
   function isHomePageVisible() {
     const home = document.getElementById('page-home');
     if (!home) return false;
-    return home.style.display !== 'none' && window.getComputedStyle(home).display !== 'none';
+    return home.style.display !== 'none';
   }
 
   function isHomeRoute() {
@@ -420,12 +430,20 @@
   }
 
   document.addEventListener('raku:bootstrap', (e) => {
-    applyHomeMarketing(e.detail?.settings);
+    const settings = e.detail?.settings;
+    const run = () => applyHomeMarketing(settings);
+    if (window.rakuWhenVisible) {
+      window.rakuWhenVisible('home-marketing', run, { rootMargin: '320px' });
+    } else if (window.rakuScheduleIdle) {
+      window.rakuScheduleIdle(run, { timeout: 3500 });
+    } else {
+      run();
+    }
   });
 
   document.addEventListener('DOMContentLoaded', () => {
     bindForms();
-    if (window.__RAKU_BOOTSTRAP?.settings) {
+    if (window.__RAKU_BOOTSTRAP?.settings && !window.rakuWhenVisible) {
       applyHomeMarketing(window.__RAKU_BOOTSTRAP.settings);
     }
   });

@@ -1,5 +1,5 @@
 <% if (heroSideSlider && heroSideSlider.enabled && heroSideSlider.slides && heroSideSlider.slides.length) { %>
-<div class="hero-main hero-main--slider" id="hero-main" aria-label="Home banner">
+<div class="hero-main hero-main--slider" id="hero-main" role="region" aria-label="Home banner">
   <div class="hero-banner-slider">
     <div class="hero-banner-slider-track" id="hero-banner-slider-track">
       <% heroSideSlider.slides.forEach(function (slide, i) {
@@ -10,13 +10,16 @@
       %>
       <% if (link && link !== '#') {
         var href = link.charAt(0) === '/' || /^https?:\/\//i.test(link) ? link : '/' + link;
+        var img = slide.imageAttrs || { src: src, srcset: '', sizes: '' };
       %>
       <a href="<%= href %>" class="hero-banner-slide<%= i === 0 ? ' is-active' : '' %>" data-slide-index="<%= i %>">
-        <img class="hero-banner-slide-photo" src="<%= src %>" alt="<%= alt %>" loading="<%= i === 0 ? 'eager' : 'lazy' %>" decoding="async">
+        <img class="hero-banner-slide-photo" src="<%= img.src || src %>"<% if (img.srcset) { %> srcset="<%= img.srcset %>" sizes="<%= img.sizes %>"<% } %> alt="<%= alt %>" loading="<%= i === 0 ? 'eager' : 'lazy' %>"<% if (i === 0) { %> fetchpriority="high"<% } %> decoding="async" width="1200" height="480">
       </a>
-      <% } else { %>
+      <% } else {
+        var img = slide.imageAttrs || { src: src, srcset: '', sizes: '' };
+      %>
       <div class="hero-banner-slide<%= i === 0 ? ' is-active' : '' %>" data-slide-index="<%= i %>">
-        <img class="hero-banner-slide-photo" src="<%= src %>" alt="<%= alt %>" loading="<%= i === 0 ? 'eager' : 'lazy' %>" decoding="async">
+        <img class="hero-banner-slide-photo" src="<%= img.src || src %>"<% if (img.srcset) { %> srcset="<%= img.srcset %>" sizes="<%= img.sizes %>"<% } %> alt="<%= alt %>" loading="<%= i === 0 ? 'eager' : 'lazy' %>"<% if (i === 0) { %> fetchpriority="high"<% } %> decoding="async" width="1200" height="480">
       </div>
       <% } %>
       <% }); %>
@@ -24,14 +27,14 @@
     <% if (heroSideSlider.slides.length > 1) { %>
     <button type="button" class="hero-banner-slider-nav hero-banner-slider-nav--prev" aria-label="Previous slide"><i class="ti ti-chevron-left"></i></button>
     <button type="button" class="hero-banner-slider-nav hero-banner-slider-nav--next" aria-label="Next slide"><i class="ti ti-chevron-right"></i></button>
-    <div class="hero-banner-slider-dots" id="hero-banner-slider-dots">
+    <div class="hero-banner-slider-dots" id="hero-banner-slider-dots" role="tablist" aria-label="Banner slides">
       <% heroSideSlider.slides.forEach(function (_slide, i) { %>
-      <button type="button" class="hero-banner-slider-dot<%= i === 0 ? ' is-active' : '' %>" data-slide="<%= i %>" aria-label="Slide <%= i + 1 %>" aria-selected="<%= i === 0 ? 'true' : 'false' %>"></button>
+      <button type="button" class="hero-banner-slider-dot<%= i === 0 ? ' is-active' : '' %>" data-slide="<%= i %>" role="tab" aria-selected="<%= i === 0 ? 'true' : 'false' %>" aria-label="Slide <%= i + 1 %>"></button>
       <% }); %>
     </div>
     <% } %>
   </div>
 </div>
 <% } else { %>
-<div class="hero-main" id="hero-main" aria-label="Home banner"></div>
+<div class="hero-main" id="hero-main" role="region" aria-label="Home banner"></div>
 <% } %>

@@ -88,7 +88,37 @@
     }
   }
 
+  function hasBehaviorSignals() {
+    return readRecentProducts().length > 0 || readRecentCategories().length > 0;
+  }
+
+  function popularFromBootstrap() {
+    const boot = window.__RAKU_BOOTSTRAP;
+    if (!boot?.ok) return null;
+    const pool = [...(boot.bestSelling || []), ...(boot.newArrivals || [])];
+    const seen = new Set();
+    const products = [];
+    for (const p of pool) {
+      if (!p?.id || seen.has(p.id)) continue;
+      seen.add(p.id);
+      products.push(p);
+      if (products.length >= 12) break;
+    }
+    if (!products.length) return null;
+    return {
+      ok: true,
+      products,
+      reason: 'popular',
+      reasonLabel: 'Trending picks — browse more for personal recommendations',
+      personalized: false,
+    };
+  }
+
   async function fetchRecommendations() {
+    if (!hasBehaviorSignals()) {
+      const local = popularFromBootstrap();
+      if (local) return local;
+    }
     const base = window.RAKU_API_BASE || '';
     try {
       const res = await fetch(`${base}/api/products/recommended?${buildQuery()}`, {
@@ -135,15 +165,15 @@
     if (window.bindProductGridEvents) window.bindProductGridEvents();
     if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
 
-    requestAnimationFrame(() => {
-      if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
-      setTimeout(() => {
-        if (window._rakuSyncHomeScrollCardWidths) window._rakuSyncHomeScrollCardWidths();
-        if (window._rakuInitHomeScrollAuto) {
-          window._rakuInitHomeScrollAuto('track-recommended-for-you', 3500);
-        }
-      }, 120);
-    });
+    if (window._rakuInitHomeScrollAuto) {
+      if (window.rakuScheduleIdle) {
+        window.rakuScheduleIdle(() => window._rakuInitHomeScrollAuto('track-recommended-for-you', 3500), {
+          timeout: 2000,
+        });
+      } else {
+        setTimeout(() => window._rakuInitHomeScrollAuto('track-recommended-for-you', 3500), 150);
+      }
+    }
   }
 
   let refreshTimer = null;
@@ -180,7 +210,22 @@
   function bootRecommendations() {
     const page = document.getElementById('page-home');
     if (!page || page.style.display === 'none') return;
-    void loadRecommendations();
+    const run = () => void loadRecommendations();
+    if (hasBehaviorSignals()) {
+      if (window.rakuWhenVisible) {
+        window.rakuWhenVisible('section-recommended-for-you', run, { rootMargin: '120px' });
+      } else if (window.rakuScheduleIdle) {
+        window.rakuScheduleIdle(run, { timeout: 3500 });
+      } else {
+        run();
+      }
+      return;
+    }
+    if (window.rakuScheduleIdle) {
+      window.rakuScheduleIdle(run, { timeout: 5000 });
+    } else {
+      setTimeout(run, 1200);
+    }
   }
 
   document.addEventListener('raku:ready', bootRecommendations);
@@ -191,8 +236,8 @@
   });
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(bootRecommendations, 100));
+    document.addEventListener('DOMContentLoaded', bootRecommendations);
   } else {
-    setTimeout(bootRecommendations, 100);
+    bootRecommendations();
   }
 })();

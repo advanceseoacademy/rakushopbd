@@ -89,6 +89,16 @@ function getCart(req) {
   return req.session.cart;
 }
 
+function persistCart(req, cart) {
+  req.session.cart = Array.isArray(cart) ? cart : [];
+  return req.session.cart;
+}
+
+function sendNoStoreJson(res, payload) {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.json(payload);
+}
+
 function getWishlist(req) {
   if (!req.session.wishlist) req.session.wishlist = [];
   return req.session.wishlist;
@@ -653,7 +663,7 @@ router.post('/wishlist/toggle', async (req, res) => {
 
 router.get('/cart', async (req, res) => {
   const cart = getCart(req);
-  res.json({
+  sendNoStoreJson(res, {
     ok: true,
     cart,
     count: cart.reduce((s, i) => s + i.qty, 0),
@@ -757,7 +767,9 @@ router.post('/cart/add', async (req, res) => {
         imageUrl: p.image_url || null,
       });
 
-    res.json({
+    persistCart(req, cart);
+
+    sendNoStoreJson(res, {
       ok: true,
       cart,
       count: cart.reduce((s, i) => s + i.qty, 0),
@@ -776,13 +788,25 @@ router.patch('/cart/:productId', async (req, res) => {
 
   const qty = Math.max(1, Math.min(99, Number(req.body.qty) || 1));
   item.qty = qty;
-  res.json({ ok: true, cart, totals: await cartTotalsResponse(cart, req) });
+  persistCart(req, cart);
+  sendNoStoreJson(res, {
+    ok: true,
+    cart,
+    count: cart.reduce((s, i) => s + i.qty, 0),
+    totals: await cartTotalsResponse(cart, req),
+  });
 });
 
 router.delete('/cart/:productId', async (req, res) => {
   const cart = getCart(req);
-  req.session.cart = cart.filter((i) => i.productId !== Number(req.params.productId));
-  res.json({ ok: true, cart: req.session.cart, totals: await cartTotalsResponse(req.session.cart, req) });
+  const next = cart.filter((i) => i.productId !== Number(req.params.productId));
+  persistCart(req, next);
+  sendNoStoreJson(res, {
+    ok: true,
+    cart: req.session.cart,
+    count: req.session.cart.reduce((s, i) => s + i.qty, 0),
+    totals: await cartTotalsResponse(req.session.cart, req),
+  });
 });
 
 router.post('/orders', async (req, res) => {

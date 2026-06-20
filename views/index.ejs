@@ -21,6 +21,14 @@
 <noscript><link rel="stylesheet" href="/css/popup-themes.css?v=1"></noscript>
 <link rel="stylesheet" href="/css/home-today-deals.css?v=4" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-today-deals.css?v=4"></noscript>
+<% const _initialPage = typeof initialPage !== 'undefined' ? initialPage : 'home'; %>
+<% const _pagesCssPages = ['faq', 'about', 'contact', 'track', 'privacy', 'terms', 'return', 'preorder', 'points', 'appointment']; %>
+<% if (_pagesCssPages.includes(_initialPage)) { %>
+<link rel="stylesheet" href="/css/pages.css?v=8">
+<% } %>
+<% if (_initialPage === 'about') { %>
+<script src="/js/about.js?v=2" defer></script>
+<% } %>
 <%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </head>
 <body>
@@ -28,7 +36,7 @@
 <%- include('partials/storefront-header') %>
 
 <!-- PAGE CONTENT START -->
-<% const _initialPage = typeof initialPage !== 'undefined' ? initialPage : 'home'; const _pv = typeof productVm !== 'undefined' ? productVm : null; %>
+<% const _pv = typeof productVm !== 'undefined' ? productVm : null; %>
 <% const _homeSsr = typeof homeSsr !== 'undefined' && homeSsr ? homeSsr : null; %>
 <div id="page-home" style="display:<%= _initialPage === 'home' ? 'block' : 'none' %>;">
 <main class="main">
@@ -676,7 +684,7 @@
 <!-- ===================================================
  APPOINTMENT PAGE
 =================================================== -->
-<div id="page-appointment" style="display:none;">
+<div id="page-appointment" style="display:<%= _initialPage === 'appointment' ? 'block' : 'none' %>;">
 <div class="appt-wrap">
  <div class="appt-grid">
   <div class="appt-card">
@@ -765,11 +773,11 @@
 <!-- ===================================================
  FAQ PAGE
 =================================================== -->
-<div id="page-faq" style="display:none;">
+<div id="page-faq" style="display:<%= _initialPage === 'faq' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-faq') %>
 </div><!-- /page-faq -->
 
-<div id="page-about" style="display:none;">
+<div id="page-about" style="display:<%= _initialPage === 'about' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-about') %>
 </div><!-- /page-about -->
 
@@ -779,34 +787,34 @@
 <!-- ===================================================
  CONTACT PAGE
 =================================================== -->
-<div id="page-contact" style="display:none;">
+<div id="page-contact" style="display:<%= _initialPage === 'contact' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-contact') %>
 </div><!-- /page-contact -->
 
-<div id="page-privacy" style="display:none;">
+<div id="page-privacy" style="display:<%= _initialPage === 'privacy' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-privacy') %>
 </div><!-- /page-privacy -->
 
-<div id="page-terms" style="display:none;">
+<div id="page-terms" style="display:<%= _initialPage === 'terms' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-terms') %>
 </div><!-- /page-terms -->
 
-<div id="page-return" style="display:none;">
+<div id="page-return" style="display:<%= _initialPage === 'return' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-return') %>
 </div><!-- /page-return -->
 
-<div id="page-preorder" style="display:none;">
+<div id="page-preorder" style="display:<%= _initialPage === 'preorder' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-preorder') %>
 </div><!-- /page-preorder -->
 
-<div id="page-points" style="display:none;">
+<div id="page-points" style="display:<%= _initialPage === 'points' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-points') %>
 </div><!-- /page-points -->
 
 <!-- ===================================================
  TRACK ORDER PAGE
 =================================================== -->
-<div id="page-track" style="display:none;">
+<div id="page-track" style="display:<%= _initialPage === 'track' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-track') %>
 </div><!-- /page-track -->
 
@@ -1652,12 +1660,12 @@
 <% } %>
 <script>window.__RAKU_INITIAL_PAGE=<%- JSON.stringify(_initialPage) %>;</script>
 <script>window.RAKU_API_BASE = '';</script>
-<script src="/js/lazy-route-assets.js?v=4" defer></script>
+<script src="/js/lazy-route-assets.js?v=5" defer></script>
 <script src="/js/maintenance-view.js?v=4" defer></script>
 <script src="/js/seo.js?v=8" defer></script>
 <script src="/js/mobile-menu.js?v=2" defer></script>
 <script src="/js/store-url.js?v=1" defer></script>
-<script src="/js/app.js?v=44" defer></script>
+<script src="/js/app.js?v=45" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
 <script src="/js/home-hero-slider.js?v=11" defer></script>
 <script src="/js/home-today-deals.js?v=5" defer></script>

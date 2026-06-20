@@ -654,6 +654,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const SPA_INIT = {
     faq: () => window._rakuInitFaqPage?.(),
+    about: () => window._rakuInitAboutPage?.(),
     contact: () => window._rakuInitContactPage?.(),
     appointment: () => window._rakuInitAppointmentPage?.(),
     privacy: () => window._rakuInitLegalPrivacy?.(),

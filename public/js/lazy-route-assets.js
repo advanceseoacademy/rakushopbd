@@ -47,43 +47,43 @@
     },
     appointment: {
       js: ['/js/appointment.js?v=5'],
-      css: ['/css/appointment.css?v=3'],
+      css: ['/css/appointment.css?v=3', '/css/pages.css?v=8'],
     },
     faq: {
       js: ['/js/faq.js?v=5'],
-      css: ['/css/pages.css?v=7'],
+      css: ['/css/pages.css?v=8'],
     },
     about: {
-      js: ['/js/about.js?v=1'],
-      css: ['/css/pages.css?v=7'],
+      js: ['/js/about.js?v=2'],
+      css: ['/css/pages.css?v=8'],
     },
     contact: {
       js: ['/js/contact.js?v=4'],
-      css: ['/css/pages.css?v=7'],
+      css: ['/css/pages.css?v=8'],
     },
     track: {
       js: ['/js/track.js?v=3'],
-      css: ['/css/pages.css?v=7'],
+      css: ['/css/pages.css?v=8'],
     },
     privacy: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=7'],
+      css: ['/css/pages.css?v=8'],
     },
     terms: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=7'],
+      css: ['/css/pages.css?v=8'],
     },
     return: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=7'],
+      css: ['/css/pages.css?v=8'],
     },
     preorder: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=7'],
+      css: ['/css/pages.css?v=8'],
     },
     points: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=7'],
+      css: ['/css/pages.css?v=8'],
     },
     cart: {
       css: ['/css/cart.css?v=7'],

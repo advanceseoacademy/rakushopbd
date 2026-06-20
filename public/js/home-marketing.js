@@ -14,19 +14,20 @@
     marketing_card1_btn: 'Start Group Shopping',
     marketing_card1_link: '#products',
     marketing_card1_image: '/uploads/1780840201419-groupshopping.webp',
-    marketing_card1_bg: '#fce4ec',
+    marketing_card1_bg: '#FDE8EF',
     marketing_card2_title: 'Get Surprise gift',
     marketing_card2_desc:
       'Subscribe with your phone number to get new gifts and updates about our new products and offers',
     marketing_card2_btn: 'Submit',
     marketing_card2_image: '/uploads/1780840201433-surprise-banner.webp',
-    marketing_card2_bg: '#ede7f6',
+    marketing_card2_bg: '#E8F3EA',
   };
 
   let popupTimer = null;
   let marketingEnabled = true;
   let popupEnabled = true;
   let popupIntervalHours = 24;
+  let popupActiveTemplateId = 'gift';
   /** @type {any[]} */
   let popupTemplates = [];
   let activeTemplate = null;
@@ -153,6 +154,13 @@
       const hit = popupTemplates.find((t) => String(t?.id) === String(forced));
       if (hit) return hit;
     }
+    const activeId = String(popupActiveTemplateId || '').trim();
+    if (activeId) {
+      const chosen = popupTemplates.find(
+        (t) => String(t?.id) === activeId && t.enabled !== false
+      );
+      if (chosen) return chosen;
+    }
     return popupTemplates.find((t) => t && t.enabled !== false) || null;
   }
 
@@ -261,6 +269,7 @@
     marketingEnabled = settings.marketing_enabled !== '0';
     popupEnabled = String(settings.popup_enabled ?? '1') !== '0';
     popupIntervalHours = Number(settings.popup_interval_hours || 24) || 24;
+    popupActiveTemplateId = String(settings.popup_active_template || 'gift').trim() || 'gift';
     popupTemplates = (parseJson(settings.popup_templates, []) || []).map((t) => {
       if (!t || typeof t !== 'object') return t;
       if (String(t.id) === 'points') {

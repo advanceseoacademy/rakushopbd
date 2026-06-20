@@ -93,6 +93,7 @@
     legal: 'Legal Pages',
     coupons: 'Coupons',
     reviews: 'Reviews',
+    'review-videos': 'Review Videos',
     banners: 'Banners',
     marketing: 'Marketing',
     messenger: 'Messenger Chats',
@@ -233,6 +234,7 @@
     }
     if (page === 'analytics') loadAnalytics();
     if (page === 'reviews') loadReviews();
+    if (page === 'review-videos') loadReviewVideos();
     if (page === 'banners') loadBanners();
     if (page === 'marketing') loadMarketing();
     if (page === 'messenger') loadMessengerChats();
@@ -643,7 +645,7 @@
         <div><div class="stat-num">${s.pendingOrders}</div><div class="stat-label">Orders in progress</div></div></div>
       <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;"><i class="ti ti-users" style="color:#EF9F27;font-size:26px;"></i></div>
         <div><div class="stat-num">${s.totalCustomers}</div><div class="stat-label">Registered customers</div></div></div>
-      <div class="stat-card"><div class="stat-icon" style="background:#fee2e2;"><i class="ti ti-box" style="color:#d48696;font-size:26px;"></i></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#FDE8EF;"><i class="ti ti-box" style="color:#E91E8C;font-size:26px;"></i></div>
         <div><div class="stat-num">${s.totalProducts}</div><div class="stat-label">Products (${s.lowStock} low stock)</div></div></div>`;
 
     setOrderBadge(s.totalOrders);
@@ -655,6 +657,12 @@
     });
     api('/phone-subscribers?limit=1&page=1').then((d) => {
       if (d.ok && d.newCount != null) setSubscriberBadge(d.newCount);
+    });
+    api('/review-videos?status=pending').then((d) => {
+      if (d.ok && d.pendingCount != null) {
+        const badge = document.getElementById('review-video-badge');
+        if (badge) badge.textContent = d.pendingCount;
+      }
     });
 
     await loadDashboardRecentOrders(dashRecentOrdersPage);
@@ -725,7 +733,7 @@
   function drawDonutChart(breakdown) {
     const canvas = document.getElementById('donut-chart');
     if (!canvas) return;
-    const colors = { delivered: '#2D6B32', pending: '#EF9F27', confirmed: '#64748b', shipped: '#1D9E75', cancelled: '#d48696' };
+    const colors = { delivered: '#2D6B32', pending: '#EF9F27', confirmed: '#64748b', shipped: '#1D9E75', cancelled: '#E91E8C' };
     const slices = breakdown.map((b) => ({ val: b.cnt, color: colors[b.status] || '#94a3b8', label: b.status }));
     const total = slices.reduce((a, s) => a + s.val, 0) || 1;
     const dc = canvas.getContext('2d');
@@ -1476,12 +1484,12 @@
       marketing_card1_btn: document.getElementById('mkt1-btn')?.value.trim() || '',
       marketing_card1_link: document.getElementById('mkt1-link')?.value.trim() || '#products',
       marketing_card1_image: document.getElementById('mkt1-image')?.value.trim() || '',
-      marketing_card1_bg: document.getElementById('mkt1-bg')?.value.trim() || '#fce4ec',
+      marketing_card1_bg: document.getElementById('mkt1-bg')?.value.trim() || '#FDE8EF',
       marketing_card2_title: document.getElementById('mkt2-title')?.value.trim() || '',
       marketing_card2_desc: document.getElementById('mkt2-desc')?.value.trim() || '',
       marketing_card2_btn: document.getElementById('mkt2-btn')?.value.trim() || 'Submit',
       marketing_card2_image: document.getElementById('mkt2-image')?.value.trim() || '',
-      marketing_card2_bg: document.getElementById('mkt2-bg')?.value.trim() || '#ede7f6',
+      marketing_card2_bg: document.getElementById('mkt2-bg')?.value.trim() || '#E8F3EA',
     };
   }
 
@@ -1625,6 +1633,7 @@
     return {
       popup_enabled: s?.popup_enabled ?? '1',
       popup_interval_hours: s?.popup_interval_hours ?? '24',
+      popup_active_template: s?.popup_active_template ?? 'gift',
       popup_templates: s?.popup_templates ?? '[]',
     };
   }
@@ -1635,10 +1644,11 @@
     if (en) en.checked = String(d.popup_enabled ?? '1') !== '0';
     const interval = document.getElementById('popup-interval-hours');
     if (interval) interval.value = String(Number(d.popup_interval_hours || 24) || 24);
+    livePopupTemplateId = String(d.popup_active_template || 'gift').trim() || 'gift';
     const templates = normalizePopupTemplates(d.popup_templates);
     templates.forEach((t, i) => fillPopupTemplateForm(i, t));
-    syncPopupTemplateModeFields();
-    updatePopupLivePreview();
+    const liveIdx = POPUP_DEFAULT_TEMPLATES.findIndex((t) => t.id === livePopupTemplateId);
+    switchPopupTab(liveIdx >= 0 ? liveIdx : 0);
   }
 
   function collectPopupTemplateFromForm(i) {
@@ -1668,14 +1678,54 @@
     for (let i = 0; i < POPUP_TEMPLATE_COUNT; i++) {
       templates.push(collectPopupTemplateFromForm(i));
     }
+    const activeId = POPUP_DEFAULT_TEMPLATES[activePopupTabIdx]?.id || 'gift';
+    templates[activePopupTabIdx].enabled = true;
+    const activeToggle = document.getElementById(`popup-tpl-${activePopupTabIdx}-enabled`);
+    if (activeToggle) activeToggle.checked = true;
     return {
       popup_enabled: document.getElementById('popup-enabled')?.checked ? '1' : '0',
       popup_interval_hours: String(Number(document.getElementById('popup-interval-hours')?.value || 24) || 24),
+      popup_active_template: activeId,
       popup_templates: JSON.stringify(templates),
     };
   }
 
   let activePopupTabIdx = 0;
+  let livePopupTemplateId = 'gift';
+
+  function switchPopupTab(idx) {
+    const safeIdx = Math.max(0, Math.min(POPUP_TEMPLATE_COUNT - 1, Number(idx) || 0));
+    activePopupTabIdx = safeIdx;
+    document.querySelectorAll('.popup-template-tab').forEach((el) => {
+      const on = Number(el.dataset.popupTab) === safeIdx;
+      el.classList.toggle('active', on);
+      el.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.popup-template-panel').forEach((el) => {
+      el.classList.toggle('active', Number(el.dataset.popupPanel) === safeIdx);
+    });
+    syncPopupTemplateModeFields();
+    updatePopupLivePreview();
+    updatePopupLiveTabBadges();
+  }
+
+  function updatePopupLiveTabBadges() {
+    document.querySelectorAll('.popup-template-tab').forEach((el) => {
+      const i = Number(el.dataset.popupTab);
+      const id = POPUP_DEFAULT_TEMPLATES[i]?.id;
+      let badge = el.querySelector('.popup-tab-live-badge');
+      if (id === livePopupTemplateId) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'popup-tab-live-badge';
+          badge.textContent = 'Live';
+          el.appendChild(badge);
+        }
+      } else if (badge) {
+        badge.remove();
+      }
+    });
+  }
 
   function popupIconClass(icon) {
     const raw = String(icon || 'ti-gift').trim();
@@ -1785,16 +1835,7 @@
     document.getElementById('popup-template-tabs')?.addEventListener('click', (e) => {
       const tab = e.target.closest('.popup-template-tab');
       if (!tab) return;
-      activePopupTabIdx = Number(tab.dataset.popupTab) || 0;
-      document.querySelectorAll('.popup-template-tab').forEach((el) => {
-        const on = el.dataset.popupTab === tab.dataset.popupTab;
-        el.classList.toggle('active', on);
-        el.setAttribute('aria-selected', on ? 'true' : 'false');
-      });
-      document.querySelectorAll('.popup-template-panel').forEach((el) => {
-        el.classList.toggle('active', el.dataset.popupPanel === tab.dataset.popupTab);
-      });
-      updatePopupLivePreview();
+      switchPopupTab(Number(tab.dataset.popupTab) || 0);
     });
 
     for (let i = 0; i < POPUP_TEMPLATE_COUNT; i++) {
@@ -1848,7 +1889,7 @@
       document.getElementById('mkt1-btn').value = s.marketing_card1_btn || '';
       document.getElementById('mkt1-link').value = s.marketing_card1_link || '';
       document.getElementById('mkt1-image').value = s.marketing_card1_image || '';
-      document.getElementById('mkt1-bg').value = s.marketing_card1_bg || '#fce4ec';
+      document.getElementById('mkt1-bg').value = s.marketing_card1_bg || '#FDE8EF';
       setMktImagePreview('mkt1-preview-wrap', 'mkt1-preview', s.marketing_card1_image);
       const mkt1File = document.getElementById('mkt1-file');
       if (mkt1File) mkt1File.value = '';
@@ -1856,7 +1897,7 @@
       document.getElementById('mkt2-desc').value = s.marketing_card2_desc || '';
       document.getElementById('mkt2-btn').value = s.marketing_card2_btn || 'Submit';
       document.getElementById('mkt2-image').value = s.marketing_card2_image || '';
-      document.getElementById('mkt2-bg').value = s.marketing_card2_bg || '#ede7f6';
+      document.getElementById('mkt2-bg').value = s.marketing_card2_bg || '#E8F3EA';
       setMktImagePreview('mkt2-preview-wrap', 'mkt2-preview', s.marketing_card2_image);
       const mkt2File = document.getElementById('mkt2-file');
       if (mkt2File) mkt2File.value = '';
@@ -2031,8 +2072,12 @@
         method: 'PUT',
         body: JSON.stringify({ settings }),
       });
-      if (data.ok) toast('Popups saved');
-      else toast(data.error || 'Save failed', 'error');
+      if (data.ok) {
+        livePopupTemplateId = settings.popup_active_template || livePopupTemplateId;
+        window._lastSettingsCache = { ...(window._lastSettingsCache || {}), ...settings, ...(data.settings || {}) };
+        updatePopupLiveTabBadges();
+        toast('Popups saved — this template is now live on the homepage');
+      } else toast(data.error || 'Save failed', 'error');
     } catch (err) {
       toast(err.message || 'Could not save popups', 'error');
     }
@@ -4029,6 +4074,7 @@
       ['set-rp-first-order', 'reward_points_first_order', '20'],
       ['set-rp-review', 'reward_points_review', '10'],
       ['set-rp-photo-review', 'reward_points_photo_review', '10'],
+      ['set-rp-video-review', 'reward_points_video_review', '100'],
       ['set-rp-referral', 'reward_points_referral', '50'],
       ['set-rp-referral-signup', 'reward_points_referral_signup', '50'],
       ['set-rp-min-redeem', 'reward_points_min_redeem', '100'],
@@ -4048,6 +4094,7 @@
       reward_points_first_order: document.getElementById('set-rp-first-order')?.value || '0',
       reward_points_review: document.getElementById('set-rp-review')?.value || '0',
       reward_points_photo_review: document.getElementById('set-rp-photo-review')?.value || '0',
+      reward_points_video_review: document.getElementById('set-rp-video-review')?.value || '0',
       reward_points_referral: document.getElementById('set-rp-referral')?.value || '0',
       reward_points_referral_signup: document.getElementById('set-rp-referral-signup')?.value || '0',
       reward_points_min_redeem: document.getElementById('set-rp-min-redeem')?.value || '100',
@@ -4311,6 +4358,87 @@
   }
 
   document.getElementById('reviews-filter').onchange = loadReviews;
+
+  async function loadReviewVideos() {
+    const status = document.getElementById('review-videos-filter')?.value || 'pending';
+    const data = await api('/review-videos?status=' + encodeURIComponent(status));
+    if (!data.ok) return toast(data.error || 'Load failed', 'error');
+    const badge = document.getElementById('review-video-badge');
+    if (badge) badge.textContent = data.pendingCount || 0;
+    const tbody = document.getElementById('review-videos-tbody');
+    if (!tbody) return;
+    if (!data.videos?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">No review videos found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.videos
+      .map((v) => {
+        const statusCls =
+          v.status === 'approved' ? 'green' : v.status === 'pending' ? 'amber' : 'red';
+        const videoCell = v.videoUrl
+          ? `<a href="${escHtml(v.videoUrl)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs"><i class="ti ti-player-play"></i> Watch</a>`
+          : '—';
+        const approveBtn =
+          v.status === 'pending'
+            ? `<button type="button" class="btn btn-primary btn-xs" data-approve-rv="${v.id}">Approve</button>`
+            : '';
+        const rejectBtn =
+          v.status === 'pending'
+            ? `<button type="button" class="btn btn-outline btn-xs" data-reject-rv="${v.id}">Reject</button>`
+            : '';
+        return `<tr>
+          <td>${escHtml(v.customerName || 'Customer')}</td>
+          <td>#${escHtml(v.orderNumber || v.orderId || '')}</td>
+          <td>${escHtml(v.productName || '')}</td>
+          <td>${videoCell}</td>
+          <td>${fmtDate(v.createdAt)}</td>
+          <td><span class="badge badge-${statusCls}">${escHtml(v.status)}</span></td>
+          <td>${approveBtn} ${rejectBtn}
+            <button type="button" class="btn btn-danger btn-xs" data-del-rv="${v.id}">Delete</button></td>
+        </tr>`;
+      })
+      .join('');
+
+    tbody.querySelectorAll('[data-approve-rv]').forEach((btn) => {
+      btn.onclick = async () => {
+        const res = await api('/review-videos/' + btn.dataset.approveRv, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'approved' }),
+        });
+        if (res.ok) {
+          toast(
+            res.pointsAwarded
+              ? `Approved — ${res.pointsAwarded} points awarded`
+              : 'Review video approved'
+          );
+          loadReviewVideos();
+        } else toast(res.error || 'Approve failed', 'error');
+      };
+    });
+    tbody.querySelectorAll('[data-reject-rv]').forEach((btn) => {
+      btn.onclick = async () => {
+        const note = prompt('Optional note for customer (why rejected):') || '';
+        const res = await api('/review-videos/' + btn.dataset.rejectRv, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'rejected', adminNote: note }),
+        });
+        if (res.ok) {
+          toast('Review video rejected');
+          loadReviewVideos();
+        } else toast(res.error || 'Reject failed', 'error');
+      };
+    });
+    tbody.querySelectorAll('[data-del-rv]').forEach((btn) => {
+      btn.onclick = async () => {
+        if (!confirm('Delete this review video?')) return;
+        await api('/review-videos/' + btn.dataset.delRv, { method: 'DELETE' });
+        loadReviewVideos();
+      };
+    });
+  }
+
+  document.getElementById('review-videos-filter')?.addEventListener('change', loadReviewVideos);
 
   // ——— Review modal (create/edit) ———
   function closeReviewModal() {

@@ -12,14 +12,15 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
-<link rel="stylesheet" href="/css/main.css?v=91">
+<link rel="stylesheet" href="/css/brand-tokens.css?v=1">
+<link rel="stylesheet" href="/css/main.css?v=93">
 <link rel="stylesheet" href="/css/category.css?v=4">
-<link rel="stylesheet" href="/css/account.css?v=10">
+<link rel="stylesheet" href="/css/account.css?v=12">
 <link rel="stylesheet" href="/css/cart.css?v=5">
 <link rel="stylesheet" href="/css/checkout-modal.css?v=15">
 <link rel="stylesheet" href="/css/reviews.css?v=3">
 <link rel="stylesheet" href="/css/wishlist.css?v=3">
-<link rel="stylesheet" href="/css/responsive.css?v=37">
+<link rel="stylesheet" href="/css/responsive.css?v=38">
 <link rel="stylesheet" href="/css/home-marketing.css?v=8">
 <link rel="stylesheet" href="/css/popup-themes.css?v=1">
 <link rel="stylesheet" href="/css/home-hero-slider.css?v=10">
@@ -404,6 +405,9 @@
 .product-desc-rich { font-size:14px; color:var(--text-muted); line-height:1.8; word-break:break-word; }
 .product-desc-rich p { margin:0 0 0.75em; }
 .product-desc-rich p:last-child { margin-bottom:0; }
+.product-desc-rich strong { font-weight:700; color:var(--text); }
+.product-desc-rich br + strong,
+.product-desc-rich p > strong:first-child { margin-top:0.15em; }
 .product-desc-rich h2 { font-size:18px; font-weight:700; color:var(--text); margin:1em 0 0.5em; line-height:1.35; }
 .product-desc-rich h3 { font-size:15px; font-weight:600; color:var(--text); margin:0.85em 0 0.4em; line-height:1.4; }
 .product-desc-rich h2:first-child,
@@ -435,9 +439,9 @@
 <div class="pv-wrap">
  <!-- Gallery -->
  <div class="pv-gallery">
- <div class="main-product-img" style="background:#fdf0f3;">
+ <div class="main-product-img" style="background:var(--primary-pale,#FDE8EF);">
  <div class="pv-badge-row" id="pv-badge-row"></div>
- <i class="ti ti-watch" style="color:#d48696;"></i>
+ <i class="ti ti-watch" style="color:var(--primary,#E91E8C);"></i>
  </div>
  <div class="thumb-row" style="display:none;"></div>
  </div>
@@ -1179,6 +1183,7 @@
         <button type="button" class="acc-nav-btn" data-acc-panel="orders"><i class="ti ti-package"></i><span>My Orders</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="track"><i class="ti ti-truck-delivery"></i><span>Track Order</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="referral"><i class="ti ti-share"></i><span>Refer &amp; Earn</span></button>
+        <button type="button" class="acc-nav-btn" data-acc-panel="review-videos"><i class="ti ti-video"></i><span>Review Video</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="profile"><i class="ti ti-user-circle"></i><span>Profile</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="addresses"><i class="ti ti-map-pin"></i><span>Addresses</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="password"><i class="ti ti-lock"></i><span>Security</span></button>
@@ -1340,6 +1345,37 @@
             <li>They receive <strong id="acc-ref-step-friend">150</strong> points — <span id="acc-ref-step-breakdown">100 registration + 50 referral bonus</span>.</li>
             <li>You receive <strong id="acc-ref-step-you">50</strong> points for each successful referral.</li>
           </ol>
+        </div>
+      </section>
+
+      <section class="acc-panel" id="acc-panel-review-videos">
+        <div class="acc-panel-head">
+          <div>
+            <h2 class="acc-panel-title">Product Review Video</h2>
+            <p class="acc-panel-sub">After your order is delivered, upload a short review video and earn <strong id="acc-rv-points-label">100</strong> reward points when admin approves it.</p>
+          </div>
+        </div>
+        <div id="acc-rv-alert"></div>
+        <div class="acc-section-card acc-rv-upload-card">
+          <h3 class="acc-section-title"><i class="ti ti-upload" style="color:var(--primary);"></i> Upload review video</h3>
+          <p class="acc-rv-hint">Choose a delivered product, record a short honest review (MP4, WebM, or MOV — max 30 MB), then submit.</p>
+          <form class="acc-form" id="acc-rv-form">
+            <div class="acc-field">
+              <label class="acc-label" for="acc-rv-product">Delivered product</label>
+              <select class="acc-input" id="acc-rv-product" name="productKey" required>
+                <option value="">Loading eligible products…</option>
+              </select>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label" for="acc-rv-video">Review video file</label>
+              <input class="acc-input acc-input-file" type="file" id="acc-rv-video" name="video" accept="video/mp4,video/webm,video/quicktime,video/*" required>
+            </div>
+            <button type="submit" class="acc-btn acc-btn-primary" id="acc-rv-submit"><i class="ti ti-send"></i> Submit for review</button>
+          </form>
+        </div>
+        <div class="acc-section-card" style="margin-top:16px;">
+          <h3 class="acc-section-title">Your submissions</h3>
+          <div id="acc-rv-list"><div class="acc-empty"><i class="ti ti-video"></i>No review videos yet.</div></div>
         </div>
       </section>
 
@@ -1604,6 +1640,11 @@
   var descEl = document.getElementById('tab-desc-content');
   var longDesc = String(p.description_bn || p.descriptionBn || '').trim();
   if (descEl && longDesc) {
+    if (window._rakuNormalizeProductDescriptionHtml) {
+      longDesc = window._rakuNormalizeProductDescriptionHtml(longDesc);
+    } else if (longDesc.indexOf('<') >= 0 && /\n/.test(longDesc)) {
+      longDesc = longDesc.replace(/\r\n/g, '\n').replace(/\n/g, '<br>');
+    }
     var descBody = longDesc.indexOf('<') >= 0
       ? '<div class="product-desc-rich">' + longDesc + '</div>'
       : '<p class="product-desc-prose">' + longDesc + '</p>';
@@ -1638,21 +1679,22 @@
 <script src="/js/maintenance-view.js?v=3" defer></script>
 <script src="/js/seo.js?v=7" defer></script>
 <script src="/js/mobile-menu.js?v=1" defer></script>
-<script src="/js/app.js?v=36" defer></script>
+<script src="/js/app.js?v=37" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
 <script src="/js/home-hero-slider.js?v=4" defer></script>
 <script src="/js/home-today-deals.js?v=4" defer></script>
-<script src="/js/storefront-dynamic.js?v=55" defer></script>
-<script src="/js/api.js?v=103" defer></script>
+<script src="/js/product-description-html.js?v=1"></script>
+<script src="/js/storefront-dynamic.js?v=57" defer></script>
+<script src="/js/api.js?v=105" defer></script>
 <script src="/js/home-recommendations.js?v=4" defer></script>
-<script src="/js/home-messenger-chats.js?v=2" defer></script>
-<script src="/js/home-customer-reviews.js?v=10" defer></script>
-<script src="/js/home-marketing.js?v=11" defer></script>
+<script src="/js/home-messenger-chats.js?v=3" defer></script>
+<script src="/js/home-customer-reviews.js?v=11" defer></script>
+<script src="/js/home-marketing.js?v=13" defer></script>
 <script src="/js/appointment.js?v=4" defer></script>
 <script src="/js/face-analyzer.js?v=10" defer></script>
 <script src="/js/footer-settings.js?v=12" defer></script>
 <script src="/js/search.js?v=6" defer></script>
-<script src="/js/account.js?v=14" defer></script>
+<script src="/js/account.js?v=15" defer></script>
 <script src="/js/legal-pages.js?v=4" defer></script>
 <script src="/js/faq.js?v=4" defer></script>
 <script src="/js/contact.js?v=3" defer></script>

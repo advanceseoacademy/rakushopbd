@@ -76,6 +76,9 @@
     track.innerHTML = list.map(chatCardHtml).join('');
 
     function startMessengerScroll() {
+      if (window._rakuSyncHomeCarouselCardWidths) {
+        window._rakuSyncHomeCarouselCardWidths('track-messenger-reviews', '.home-messenger-card', 220);
+      }
       if (window._rakuStopHomeScrollAuto) window._rakuStopHomeScrollAuto('track-messenger-reviews');
       if (window._rakuInitHomeScrollAuto) {
         window._rakuInitHomeScrollAuto('track-messenger-reviews', 4000);

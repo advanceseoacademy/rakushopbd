@@ -12,6 +12,13 @@ const {
   assignReferralCode,
   getRewardPointConfig,
 } = require('../lib/rewardPoints');
+const { videoUpload } = require('../lib/uploadVideo');
+const { saveVideoFile } = require('../lib/saveVideoFile');
+const {
+  listUserReviewVideos,
+  listEligibleReviewVideoProducts,
+  createReviewVideoSubmission,
+} = require('../lib/reviewVideos');
 
 const router = express.Router();
 
@@ -326,6 +333,72 @@ router.delete('/addresses/:id', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not delete address' });
+  }
+});
+
+router.get('/review-videos/config', requireAuth, async (req, res) => {
+  try {
+    const config = await getRewardPointConfig(query);
+    res.json({
+      ok: true,
+      enabled: config.enabled,
+      videoReviewPoints: config.videoReview,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load review video settings' });
+  }
+});
+
+router.get('/review-videos/eligible', requireAuth, async (req, res) => {
+  try {
+    const eligible = await listEligibleReviewVideoProducts(query, req.session.userId);
+    res.json({ ok: true, eligible });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load eligible products' });
+  }
+});
+
+router.get('/review-videos', requireAuth, async (req, res) => {
+  try {
+    const videos = await listUserReviewVideos(query, req.session.userId);
+    res.json({ ok: true, videos });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load review videos' });
+  }
+});
+
+router.post('/review-videos/upload', requireAuth, (req, res) => {
+  videoUpload.single('video')(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ ok: false, error: err.message || 'Invalid video upload' });
+    }
+    try {
+      if (!req.file) return res.status(400).json({ ok: false, error: 'No video uploaded' });
+      const saved = await saveVideoFile(req.file);
+      res.json({ ok: true, url: saved.url });
+    } catch (uploadErr) {
+      console.error('review video upload', uploadErr);
+      res.status(500).json({ ok: false, error: 'Could not upload video' });
+    }
+  });
+});
+
+router.post('/review-videos', requireAuth, async (req, res) => {
+  try {
+    const { orderId, productId, videoUrl } = req.body || {};
+    const result = await createReviewVideoSubmission(query, req.session.userId, {
+      orderId,
+      productId,
+      videoUrl,
+    });
+    if (!result.ok) return res.status(400).json(result);
+    res.json(result);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not submit review video' });
   }
 });
 

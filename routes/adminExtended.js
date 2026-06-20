@@ -1,4 +1,5 @@
 const path = require('path');
+const { brandGradient } = require('../lib/brandColors');
 const { upload } = require('../lib/upload');
 const { optimizeAndSaveImage } = require('../lib/imageOptimize');
 const { sql: sqlDialect } = require('../lib/db-dialect');
@@ -339,6 +340,60 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
+  router.get('/review-videos', requireAdmin, async (req, res) => {
+    try {
+      const status = String(req.query.status || 'pending').trim() || 'pending';
+      const { listAdminReviewVideos, countPendingReviewVideos } = require('../lib/reviewVideos');
+      const videos = await listAdminReviewVideos(query, status);
+      const pendingCount = await countPendingReviewVideos(query);
+      res.json({ ok: true, videos, pendingCount });
+    } catch (err) {
+      console.error('admin review videos list', err);
+      res.status(500).json({ ok: false, error: 'Could not load review videos' });
+    }
+  });
+
+  router.patch('/review-videos/:id', requireAdmin, async (req, res) => {
+    try {
+      const { status, adminNote } = req.body || {};
+      if (!['approved', 'rejected', 'pending'].includes(status)) {
+        return res.status(400).json({ ok: false, error: 'Invalid status' });
+      }
+      const rows = await query('SELECT * FROM product_review_videos WHERE id = ? LIMIT 1', [
+        req.params.id,
+      ]);
+      if (!rows.length) return res.status(404).json({ ok: false, error: 'Review video not found' });
+      const prev = rows[0];
+      const note = adminNote != null ? String(adminNote).trim().slice(0, 500) : prev.admin_note;
+
+      await query(
+        `UPDATE product_review_videos SET status = ?, admin_note = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [status, note || '', req.params.id]
+      );
+
+      let pointsAwarded = 0;
+      if (status === 'approved' && String(prev.status).toLowerCase() !== 'approved') {
+        const { awardApprovedReviewVideoPoints } = require('../lib/rewardPoints');
+        const award = await awardApprovedReviewVideoPoints(query, prev);
+        pointsAwarded = award.awarded || 0;
+      }
+
+      res.json({ ok: true, pointsAwarded });
+    } catch (err) {
+      console.error('admin review video patch', err);
+      res.status(500).json({ ok: false, error: 'Could not update review video' });
+    }
+  });
+
+  router.delete('/review-videos/:id', requireAdmin, async (req, res) => {
+    try {
+      await query('DELETE FROM product_review_videos WHERE id = ?', [req.params.id]);
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not delete review video' });
+    }
+  });
+
   // ——— Banners ———
   router.get('/banners', requireAdmin, async (req, res) => {
     try {
@@ -359,7 +414,7 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
           title,
           position || 'hero',
           linkUrl || '/',
-          bgGradient || 'linear-gradient(135deg,#2d8a2d,#164816)',
+          bgGradient || brandGradient,
           expiresAt || null,
           isActive !== false ? 1 : 0,
           sortOrder || 0,

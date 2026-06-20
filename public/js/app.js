@@ -1,9 +1,10 @@
 (function () {
   const SCROLL_KEY = 'raku_scroll_pos';
 
-  function rakuScrollToTop() {
+  function rakuScrollToTop(behavior) {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    window.scrollTo({ top: 0, left: 0, behavior: reduce ? 'auto' : 'smooth' });
+    const mode = behavior || (reduce ? 'auto' : 'auto');
+    window.scrollTo({ top: 0, left: 0, behavior: mode });
   }
 
   function scrollStoragePath() {
@@ -214,6 +215,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (typeof opts !== 'object' || opts === null) opts = {};
     window._rakuVisiblePage = name;
     if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
+    if (!opts.skipScroll) {
+      rakuScrollToTop('auto');
+    }
     Object.values(pages).forEach((p) => {
       if (p) p.style.display = 'none';
     });
@@ -257,9 +261,6 @@ document.addEventListener('DOMContentLoaded', function() {
       if (location.pathname !== path) {
         history.pushState({ page: name, ...opts }, '', path);
       }
-    }
-    if (!opts.skipScroll) {
-      window.rakuScrollToTop();
     }
     if (window.RakuSEO) {
       window.RakuSEO.onNavigate(name, opts);

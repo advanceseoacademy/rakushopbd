@@ -118,6 +118,9 @@
 
     requestAnimationFrame(() => {
       setTimeout(() => {
+        if (window._rakuSyncHomeCarouselCardWidths) {
+          window._rakuSyncHomeCarouselCardWidths('track-customer-reviews', '.home-review-card', 140);
+        }
         if (window._rakuInitHomeScrollAuto) {
           window._rakuInitHomeScrollAuto('track-customer-reviews', 3800);
         }

@@ -1,4 +1,5 @@
 const express = require('express');
+const { brandLight, brandPale } = require('../lib/brandColors');
 const bcrypt = require('bcryptjs');
 const { query } = require('../config/db');
 const { formatPrice } = require('../lib/format');
@@ -637,8 +638,8 @@ router.post('/products', requireAdmin, async (req, res) => {
         buy_price,
         stock ?? 100,
         icon || 'ti-package',
-        iconColor || '#2d8a2d',
-        bgColor || '#e8f5e8',
+        iconColor || brandLight,
+        bgColor || brandPale,
         imageUrl || null,
         tagType || 'none',
         tagText || null,
@@ -711,8 +712,8 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
       buy_price,
       stock ?? 0,
       icon || 'ti-package',
-      iconColor || '#2d8a2d',
-      bgColor || '#e8f5e8',
+      iconColor || brandLight,
+      bgColor || brandPale,
       imageUrl || null,
       tagType || 'none',
       tagText || null,

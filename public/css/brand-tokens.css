@@ -1,0 +1,31 @@
+/**
+ * RakushopBD brand tokens — match logo (forest green bar + vibrant pink bag).
+ * Load before main.css / admin.css on every page.
+ */
+:root {
+  --brand: #1E4620;
+  --brand-light: #2D6B32;
+  --brand-dark: #143318;
+  --brand-pale: #E8F3EA;
+  --brand-gradient: linear-gradient(135deg, #143318 0%, #1E4620 52%, #2D6B32 100%);
+
+  --primary: #E91E8C;
+  --primary-light: #F062A8;
+  --primary-dark: #C21872;
+  --primary-pale: #FDE8EF;
+  --primary-soft: #FDE8EF;
+  --primary-gradient: linear-gradient(135deg, #C21872 0%, #E91E8C 55%, #F062A8 100%);
+
+  --accent: #2D6B32;
+  --accent-light: #E8F3EA;
+  --accent-dark: #1E4620;
+  --discount-badge-bg: #C21872;
+  --discount-badge-color: #fff;
+  --green: #2D6B32;
+  --green-pale: #E8F3EA;
+  --amber: #8a6914;
+  --amber-pale: #faf3e0;
+  --pink: #E91E8C;
+  --pink-pale: #FDE8EF;
+  --hero-card-bg: linear-gradient(135deg, #FDE8EF 0%, #F5A0B8 42%, #E91E8C 78%, #C21872 100%);
+}

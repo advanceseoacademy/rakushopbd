@@ -328,7 +328,143 @@
       p.classList.toggle('active', p === target);
     });
     if (panelId === 'referral') loadReferralPanel();
+    if (panelId === 'review-videos') loadReviewVideosPanel();
     return true;
+  }
+
+  function reviewVideoStatusLabel(status) {
+    const s = String(status || '').toLowerCase();
+    if (s === 'approved') return 'Approved';
+    if (s === 'rejected') return 'Rejected';
+    return 'Under review';
+  }
+
+  function reviewVideoStatusClass(status) {
+    const s = String(status || '').toLowerCase();
+    if (s === 'approved') return 'approved';
+    if (s === 'rejected') return 'rejected';
+    return 'pending';
+  }
+
+  function renderReviewVideosList(videos) {
+    const el = document.getElementById('acc-rv-list');
+    if (!el) return;
+    if (!videos.length) {
+      el.innerHTML = '<div class="acc-empty"><i class="ti ti-video"></i>No review videos yet.</div>';
+      return;
+    }
+    el.innerHTML = videos
+      .map((v) => {
+        const status = reviewVideoStatusClass(v.status);
+        const label = reviewVideoStatusLabel(v.status);
+        const note = v.adminNote
+          ? `<p class="acc-rv-note">${escapeHtml(v.adminNote)}</p>`
+          : '';
+        return `<article class="acc-rv-item">
+          <div class="acc-rv-item-head">
+            <div>
+              <strong>${escapeHtml(v.productName || 'Product')}</strong>
+              <div class="acc-rv-meta">Order #${escapeHtml(v.orderNumber || v.orderId || '')} · ${formatDate(v.createdAt)}</div>
+            </div>
+            <span class="acc-rv-status ${status}">${label}</span>
+          </div>
+          <video class="acc-rv-preview" src="${escapeHtml(v.videoUrl)}" controls playsinline preload="metadata"></video>
+          ${note}
+        </article>`;
+      })
+      .join('');
+  }
+
+  function populateEligibleProducts(eligible) {
+    const sel = document.getElementById('acc-rv-product');
+    if (!sel) return;
+    if (!eligible.length) {
+      sel.innerHTML = '<option value="">No delivered products available for video review</option>';
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML =
+      '<option value="">Select a product…</option>' +
+      eligible
+        .map((item) => {
+          const key = `${item.orderId}:${item.productId}`;
+          const suffix = item.canResubmit ? ' (resubmit)' : '';
+          return `<option value="${escapeHtml(key)}">${escapeHtml(item.productName)} — #${escapeHtml(item.orderNumber)}${suffix}</option>`;
+        })
+        .join('');
+  }
+
+  async function loadReviewVideosPanel() {
+    if (!currentUser) return;
+    const [cfgRes, eligibleRes, listRes] = await Promise.all([
+      authFetch('/review-videos/config'),
+      authFetch('/review-videos/eligible'),
+      authFetch('/review-videos'),
+    ]);
+    const pts = cfgRes.ok ? Number(cfgRes.videoReviewPoints) || 100 : 100;
+    const ptsLabel = document.getElementById('acc-rv-points-label');
+    if (ptsLabel) ptsLabel.textContent = String(pts);
+    if (eligibleRes.ok) populateEligibleProducts(eligibleRes.eligible || []);
+    if (listRes.ok) renderReviewVideosList(listRes.videos || []);
+  }
+
+  function bindReviewVideosPanel() {
+    const form = document.getElementById('acc-rv-form');
+    if (!form || form._rakuRvBound) return;
+    form._rakuRvBound = true;
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+      const alertEl = document.getElementById('acc-rv-alert');
+      const submitBtn = document.getElementById('acc-rv-submit');
+      const productKey = document.getElementById('acc-rv-product')?.value || '';
+      const fileInput = document.getElementById('acc-rv-video');
+      const file = fileInput?.files?.[0];
+      const [orderId, productId] = productKey.split(':').map(Number);
+      if (!orderId || !productId) {
+        showAlert(alertEl, 'Please select a delivered product.');
+        return;
+      }
+      if (!file) {
+        showAlert(alertEl, 'Please choose a video file.');
+        return;
+      }
+      if (submitBtn) submitBtn.disabled = true;
+      try {
+        const fd = new FormData();
+        fd.append('video', file);
+        const upRes = await fetch(`${API}/review-videos/upload`, {
+          method: 'POST',
+          body: fd,
+          credentials: 'same-origin',
+        });
+        const upData = await upRes.json();
+        if (!upData.ok) {
+          showAlert(alertEl, upData.error || 'Video upload failed');
+          return;
+        }
+        const data = await authFetch('/review-videos', {
+          method: 'POST',
+          body: JSON.stringify({
+            orderId,
+            productId,
+            videoUrl: upData.url,
+          }),
+        });
+        if (!data.ok) {
+          showAlert(alertEl, data.error || 'Could not submit review video');
+          return;
+        }
+        showAlert(alertEl, 'Review video submitted — status: Under review.', 'success');
+        form.reset();
+        await loadReviewVideosPanel();
+      } catch (_) {
+        showAlert(alertEl, 'Upload failed. Please try again.');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
   }
 
   function buildTrackResultHtml(data) {
@@ -702,6 +838,7 @@
     bindTrackPanel();
     bindNav();
     bindReferralPanel();
+    bindReviewVideosPanel();
     captureReferralFromUrl();
     applyStoredReferral();
   }

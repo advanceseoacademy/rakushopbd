@@ -367,7 +367,7 @@
 }
 
 .c-coupon-input[readonly] {
-  background: var(--green-pale, #e8f5e9);
+  background: var(--green-pale);
   border-color: var(--green, #2e7d32);
   color: var(--green, #2e7d32);
   font-weight: 600;

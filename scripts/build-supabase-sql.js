@@ -55,9 +55,9 @@ INSERT INTO coupons (code, discount_type, discount_value, min_order, usage_limit
 ON CONFLICT (code) DO NOTHING;
 
 INSERT INTO banners (title, position, link_url, bg_gradient, is_active, sort_order) VALUES
-('Summer Sale', 'hero', '/', 'linear-gradient(135deg,#2d8a2d,#164816)', 1, 1),
+('Summer Sale', 'hero', '/', 'linear-gradient(135deg,#143318,#1E4620,#2D6B32)', 1, 1),
 ('Free Delivery', 'promo', '/category/electronics', 'linear-gradient(135deg,#1D9E75,#0F6E56)', 1, 2),
-('Flash Sale', 'promo', '/', 'linear-gradient(135deg,#d48696,#9e5568)', 1, 3),
+('Flash Sale', 'promo', '/', 'linear-gradient(135deg,#C21872,#E91E8C,#F062A8)', 1, 3),
 ('Authentic Products', 'promo', '/', 'linear-gradient(135deg,#1D9E75,#0F6E56)', 1, 4);
 `;
 

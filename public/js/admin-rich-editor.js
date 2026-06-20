@@ -117,7 +117,11 @@
 
     getContent(textareaId) {
       syncEditor(textareaId);
-      return document.getElementById(textareaId)?.value || '';
+      let value = document.getElementById(textareaId)?.value || '';
+      if (PRODUCT_EDITOR_IDS.includes(textareaId) && window._rakuNormalizeProductDescriptionHtml) {
+        value = window._rakuNormalizeProductDescriptionHtml(value);
+      }
+      return value;
     },
 
     sync(textareaId) {

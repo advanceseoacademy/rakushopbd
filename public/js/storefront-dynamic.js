@@ -5,11 +5,11 @@
 (function () {
   const CAT_PALETTE = [
     { bg: '#E8F3EA', color: '#2D6B32' },
-    { bg: '#FDE8EF', color: '#EF7A9C' },
+    { bg: '#FDE8EF', color: '#E91E8C' },
     { bg: '#faf3e0', color: '#8a6914' },
-    { bg: '#f8c8d8', color: '#D85A7A' },
-    { bg: '#d4edd8', color: '#1E4620' },
-    { bg: '#fce8ec', color: '#F5A0B8' },
+    { bg: '#FDE8EF', color: '#C21872' },
+    { bg: '#E8F3EA', color: '#1E4620' },
+    { bg: '#FDE8EF', color: '#F062A8' },
   ];
 
   function palette(i) {
@@ -107,7 +107,7 @@
       },
       {
         icon: 'ti-shield-check',
-        color: '#D85A7A',
+        color: '#E91E8C',
         bg: '#FDE8EF',
         title: settings.trust_2_title || '100% authentic products',
         sub: settings.trust_2_sub || 'Full refund on counterfeit items',
@@ -163,10 +163,10 @@
       return `${x}+`;
     };
     const items = [
-      { icon: 'ti-box', bg: '#c8e6cc', color: '#2D6B32', num: `${stats.productCount}+`, label: 'Total Products' },
-      { icon: 'ti-users', bg: '#f8c8d8', color: '#D85A7A', num: '500+', label: 'Happy Customers' },
-      { icon: 'ti-truck', bg: '#fde8ef', color: '#EF7A9C', num: `${stats.districts} Districts`, label: 'Delivery Coverage' },
-      { icon: 'ti-star', bg: '#d4edd8', color: '#1E4620', num: `${stats.avgRating} ⭐`, label: 'Average Rating' },
+      { icon: 'ti-box', bg: '#E8F3EA', color: '#2D6B32', num: `${stats.productCount}+`, label: 'Total Products' },
+      { icon: 'ti-users', bg: '#FDE8EF', color: '#E91E8C', num: '500+', label: 'Happy Customers' },
+      { icon: 'ti-truck', bg: '#FDE8EF', color: '#E91E8C', num: `${stats.districts} Districts`, label: 'Delivery Coverage' },
+      { icon: 'ti-star', bg: '#E8F3EA', color: '#1E4620', num: `${stats.avgRating} ⭐`, label: 'Average Rating' },
     ];
     grid.innerHTML = items
       .map(
@@ -571,7 +571,11 @@
 
   function renderRichProductHtml(html) {
     if (!html) return '';
-    return `<div class="product-desc-rich">${html}</div>`;
+    const body =
+      typeof window._rakuNormalizeProductDescriptionHtml === 'function'
+        ? window._rakuNormalizeProductDescriptionHtml(html)
+        : html;
+    return `<div class="product-desc-rich">${body}</div>`;
   }
 
   function renderShortDescriptionRichHtml(p) {

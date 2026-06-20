@@ -138,7 +138,7 @@
   min-height: 0;
   background:
     radial-gradient(circle at 50% 20%, rgba(255, 255, 255, 0.95) 0%, transparent 55%),
-    linear-gradient(165deg, #f4fbf4 0%, #e8f5e8 48%, #dff0df 100%);
+    linear-gradient(165deg, var(--brand-pale) 0%, #dff0df 48%, #cce8cc 100%);
   position: relative;
   overflow: hidden;
 }

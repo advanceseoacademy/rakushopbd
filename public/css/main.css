@@ -1,26 +1,6 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    /* RakushopBD logo — forest green + vibrant pink */
-    --brand: #1E4620;
-    --brand-light: #2D6B32;
-    --brand-dark: #143318;
-    --brand-pale: #E8F3EA;
-    --primary: #EF7A9C;
-    --primary-light: #F5A0B8;
-    --primary-dark: #D85A7A;
-    --primary-pale: #FDE8EF;
-    --accent: #2D6B32;
-    --accent-light: #E8F3EA;
-    --accent-dark: #1E4620;
-    --discount-badge-bg: #D85A7A;
-    --discount-badge-color: #fff;
-    --green: #2D6B32;
-    --green-pale: #E8F3EA;
-    --amber: #8a6914;
-    --amber-pale: #faf3e0;
-    --pink: #e8b4bc;
-    --pink-pale: #fdf0f3;
     --bg: #F5F5F5;
     --surface: #FFFFFF;
     --surface2: #F8F8F8;
@@ -985,7 +965,7 @@
 
   .mobile-cat-link:hover,
   .mobile-cat-link.active {
-    background: var(--green-pale, #e8f5e8);
+    background: var(--green-pale);
     border-color: rgba(45, 138, 45, 0.2);
     color: var(--primary);
   }
@@ -1277,7 +1257,7 @@
   }
   .hero-card:hover { transform: translateY(-2px); }
   .hero-card-a {
-    --hero-card-bg: linear-gradient(135deg, #c9a0a8 0%, #b07886 45%, #d48696 75%, #a86b7a 100%);
+    --hero-card-bg: var(--primary-gradient);
     background: var(--hero-card-bg);
     animation-duration: 8s;
   }
@@ -1396,10 +1376,12 @@
     margin: 0 -4px;
     width: 100%;
     max-width: 100%;
+    min-width: 0;
   }
 
   .home-scroll-track {
     display: flex;
+    flex-wrap: nowrap;
     gap: 16px;
     overflow-x: auto;
     overflow-y: hidden;
@@ -1407,6 +1389,7 @@
     scroll-padding: 4px;
     padding: 4px 4px 8px;
     -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
     scrollbar-width: none;
     -ms-overflow-style: none;
     scroll-behavior: smooth;
@@ -1707,9 +1690,12 @@
   }
 
   .home-messenger-track .home-messenger-card {
-    flex: 0 0 calc(33.333% - 11px);
-    min-width: calc(33.333% - 11px);
+    flex: 0 0 auto;
     flex-shrink: 0;
+    width: calc((100% - 32px) / 3);
+    min-width: calc((100% - 32px) / 3);
+    max-width: calc((100% - 32px) / 3);
+    box-sizing: border-box;
     scroll-snap-align: start;
     display: flex;
     flex-direction: column;
@@ -1790,14 +1776,15 @@
 
   @media (max-width: 1024px) {
     .home-messenger-track .home-messenger-card {
-      flex: 0 0 calc(50% - 8px);
-      min-width: calc(50% - 8px);
+      width: calc((100% - 16px) / 2);
+      min-width: calc((100% - 16px) / 2);
+      max-width: calc((100% - 16px) / 2);
     }
   }
 
   @media (max-width: 768px) {
     .home-messenger-track .home-messenger-card {
-      flex: 0 0 calc((100vw - 48px) / 2);
+      width: calc((100vw - 48px) / 2);
       min-width: calc((100vw - 48px) / 2);
       max-width: calc((100vw - 48px) / 2);
     }
@@ -2316,7 +2303,7 @@
   }
   .social-btn:hover { background: rgba(239, 122, 156, 0.25); }
   .social-btn i { font-size: 17px; color: rgba(255,255,255,0.8); }
-  .social-btn:hover i { color: #F5A0B8; }
+  .social-btn:hover i { color: var(--primary-light); }
   .footer-heading { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 16px; }
   .footer-links { list-style: none; display: flex; flex-direction: column; gap: 8px; }
   .footer-links li a {

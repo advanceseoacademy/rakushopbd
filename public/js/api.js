@@ -659,10 +659,49 @@
     'track-recommended-for-you',
   ];
 
+  const HOME_CAROUSEL_TRACKS = [
+    { id: 'track-customer-reviews', cardSel: '.home-review-card', minWidth: 140 },
+    { id: 'track-messenger-reviews', cardSel: '.home-messenger-card', minWidth: 220 },
+  ];
+
   function visibleHomeScrollCards() {
     if (window.matchMedia('(max-width: 768px)').matches) return 2;
     if (window.matchMedia('(max-width: 1024px)').matches) return 3;
     return 4;
+  }
+
+  function visibleHomeCarouselCards() {
+    if (window.matchMedia('(max-width: 768px)').matches) return 2;
+    if (window.matchMedia('(max-width: 1024px)').matches) return 2;
+    return 3;
+  }
+
+  function syncHomeCarouselCardWidths(trackId, cardSelector, minWidth = 140) {
+    const track = document.getElementById(trackId);
+    if (!track) return;
+    const cards = track.querySelectorAll(cardSelector);
+    if (!cards.length) return;
+
+    const styles = getComputedStyle(track);
+    const gapRaw = styles.columnGap && styles.columnGap !== 'normal' ? styles.columnGap : styles.gap;
+    const gap = Number.parseFloat(gapRaw) || 16;
+    const visible = visibleHomeCarouselCards();
+    const trackWidth = track.getBoundingClientRect().width;
+    if (trackWidth < 40) return;
+
+    const width = Math.max(minWidth, Math.floor((trackWidth - gap * (visible - 1)) / visible));
+    cards.forEach((card) => {
+      card.style.flex = '0 0 auto';
+      card.style.width = `${width}px`;
+      card.style.minWidth = `${width}px`;
+      card.style.maxWidth = `${width}px`;
+    });
+  }
+
+  function syncAllHomeCarouselCardWidths() {
+    HOME_CAROUSEL_TRACKS.forEach(({ id, cardSel, minWidth }) => {
+      syncHomeCarouselCardWidths(id, cardSel, minWidth);
+    });
   }
 
   function syncHomeScrollCardWidths(trackId) {
@@ -689,6 +728,7 @@
 
   function syncAllHomeScrollCardWidths() {
     HOME_PRODUCT_TRACK_IDS.forEach(syncHomeScrollCardWidths);
+    syncAllHomeCarouselCardWidths();
   }
 
   let homeScrollResizeBound = false;
@@ -698,11 +738,14 @@
     let timer;
     window.addEventListener('resize', () => {
       clearTimeout(timer);
-      timer = setTimeout(syncAllHomeScrollCardWidths, 100);
+      timer = setTimeout(() => {
+        syncAllHomeScrollCardWidths();
+        initAllHomeScrollAuto();
+      }, 100);
     });
     if (typeof ResizeObserver === 'function') {
       const ro = new ResizeObserver(() => syncAllHomeScrollCardWidths());
-      HOME_PRODUCT_TRACK_IDS.forEach((id) => {
+      [...HOME_PRODUCT_TRACK_IDS, ...HOME_CAROUSEL_TRACKS.map((t) => t.id)].forEach((id) => {
         const el = document.getElementById(id);
         if (el) ro.observe(el);
       });
@@ -1457,6 +1500,13 @@
     const byId = /^\d+$/.test(raw);
     const n = byId ? Number(raw) : null;
 
+    if (!opts.skipScroll) {
+      (window.rakuScrollToTop || (() => window.scrollTo(0, 0)))('auto');
+    }
+    if (window.showPage && window._rakuVisiblePage !== 'product') {
+      window.showPage('product', { skipUrl: true, skipScroll: true });
+    }
+
     const preloaded =
       window.__RAKU_PRELOAD_PRODUCT?.ok &&
       (byId
@@ -1523,6 +1573,7 @@
         productId: p.id,
         productSlug: p.slug,
         skipUrl: opts.skipUrl,
+        skipScroll: true,
       });
     }
 
@@ -2690,8 +2741,13 @@
       trackId === 'track-customer-reviews' || trackId === 'track-messenger-reviews';
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     if (isTrustBar && !isMobile) return;
-    // Horizontal auto-scroll on review carousels jumps the page on mobile browsers.
-    if (isReviewTrack && isMobile) return;
+
+    if (isReviewTrack) {
+      const carousel = HOME_CAROUSEL_TRACKS.find((t) => t.id === trackId);
+      if (carousel) {
+        syncHomeCarouselCardWidths(trackId, carousel.cardSel, carousel.minWidth);
+      }
+    }
 
     const cards = () =>
       track.querySelectorAll(
@@ -2780,6 +2836,7 @@
 
   window._rakuInitHomeScrollAuto = initHomeScrollAuto;
   window._rakuStopHomeScrollAuto = stopHomeScrollAuto;
+  window._rakuSyncHomeCarouselCardWidths = syncHomeCarouselCardWidths;
 
   function paintHomeScrollTrack(trackId, list) {
     const track = document.getElementById(trackId);

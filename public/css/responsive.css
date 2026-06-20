@@ -1023,4 +1023,14 @@ svg {
     flex-shrink: 0 !important;
     box-sizing: border-box;
   }
+
+  /* Messenger chat screenshots — 2 cards visible */
+  .home-messenger-track .home-messenger-card {
+    flex: 0 0 calc((100vw - 48px) / 2) !important;
+    min-width: calc((100vw - 48px) / 2) !important;
+    max-width: calc((100vw - 48px) / 2) !important;
+    width: calc((100vw - 48px) / 2) !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box;
+  }
 }

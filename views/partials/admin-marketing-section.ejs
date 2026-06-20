@@ -115,7 +115,7 @@
                           <input class="form-input" type="file" id="mkt1-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
                           <div id="mkt1-preview-wrap" hidden style="margin-top:8px;"><img id="mkt1-preview" alt="Preview" class="marketing-img-preview"></div>
                         </div>
-                        <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt1-bg" placeholder="#fce4ec"></div>
+                        <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt1-bg" placeholder="#FDE8EF"></div>
                       </form>
                     </div>
                   </div>
@@ -135,7 +135,7 @@
                           <input class="form-input" type="file" id="mkt2-file" accept="image/jpeg,image/png,image/webp,image/gif" style="margin-top:8px;">
                           <div id="mkt2-preview-wrap" hidden style="margin-top:8px;"><img id="mkt2-preview" alt="Preview" class="marketing-img-preview"></div>
                         </div>
-                        <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt2-bg" placeholder="#ede7f6"></div>
+                        <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="mkt2-bg" placeholder="#E8F3EA"></div>
                       </form>
                     </div>
                   </div>
@@ -213,7 +213,7 @@
 
                 <div class="form-group">
                   <label class="form-label">Edit templates</label>
-                  <p class="form-hint" style="margin-bottom:12px;">5 templates are pre-made — pick a tab, edit fields, and check the live preview above.</p>
+                  <p class="form-hint" style="margin-bottom:12px;">Pick a tab, edit fields, then click <strong>Save Popups</strong>. The open tab becomes the live homepage popup (marked <span class="popup-tab-live-badge popup-tab-live-badge--inline">Live</span>).</p>
                   <div class="popup-template-tabs" id="popup-template-tabs" role="tablist">
                     <% const popupTabLabels = [
                       { id: 'gift', label: 'Gift', icon: 'ti-gift' },
@@ -236,8 +236,8 @@
                           <strong><%= tab.label %> popup</strong>
                           <small>ID: <code><%= tab.id %></code></small>
                         </div>
-                        <label class="toggle popup-tpl-enabled-wrap" title="Show this template in rotation">
-                          <span class="popup-tpl-enabled-label">Active</span>
+                        <label class="toggle popup-tpl-enabled-wrap" title="Turn off to hide this template from the site">
+                          <span class="popup-tpl-enabled-label">Enabled</span>
                           <input type="checkbox" id="popup-tpl-<%= i %>-enabled" checked>
                           <span class="toggle-slider"></span>
                         </label>

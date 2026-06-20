@@ -9,7 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-<link rel="stylesheet" href="/css/admin.css?v=22">
+<link rel="stylesheet" href="/css/brand-tokens.css?v=1">
+<link rel="stylesheet" href="/css/admin.css?v=23">
 <link rel="stylesheet" href="/css/popup-themes.css?v=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
@@ -71,6 +72,7 @@
     </div>
     <div class="nav-item" data-page="coupons"><i class="ti ti-discount"></i> Coupons</div>
     <div class="nav-item" data-page="reviews"><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
+    <div class="nav-item" data-page="review-videos"><i class="ti ti-video"></i> Review Videos <span class="nav-badge nav-badge-amber" id="review-video-badge">0</span></div>
     <div class="nav-item" data-page="banners"><i class="ti ti-photo"></i> Banners</div>
     <div class="nav-item" data-page="marketing"><i class="ti ti-speakerphone"></i> Marketing <span class="nav-badge nav-badge-amber" id="subscriber-badge">0</span></div>
     <div class="nav-item" data-page="messenger"><i class="ti ti-brand-messenger"></i> Messenger Chats</div>
@@ -333,7 +335,7 @@
                 <div class="form-group"><label class="form-label">Icon class</label><input class="form-input" id="pf-icon" placeholder="ti-watch" value="ti-package"></div>
                 <div class="form-group"><label class="form-label">Icon color</label><input class="form-input" id="pf-icon-color" value="#2D6B32"></div>
               </div>
-              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="pf-bg" value="#e8f5e8"></div>
+              <div class="form-group"><label class="form-label">Background color</label><input class="form-input" id="pf-bg" value="#E8F3EA"></div>
               <div class="form-section-title">Display</div>
               <div class="form-group"><label class="form-label">Tag</label>
                 <select class="form-input form-select" id="pf-tag">
@@ -441,6 +443,27 @@
             <th class="tbl-check-col"><input type="checkbox" id="reviews-select-all" title="Select all on this page" aria-label="Select all reviews on this page"></th>
             <th>Avatar</th><th>Customer</th><th>Product</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="reviews-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-review-videos">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Product Review Videos</h3>
+            <div class="table-actions">
+              <select class="tbl-select" id="review-videos-filter">
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+          </div>
+          <p class="form-hint" style="padding:0 16px 12px;margin:0;">Approve a video to award reward points (amount set in Settings → Reward Points → Video review).</p>
+          <table class="tbl"><thead><tr>
+            <th>Customer</th><th>Order</th><th>Product</th><th>Video</th><th>Date</th><th>Status</th><th>Action</th>
+          </tr></thead>
+          <tbody id="review-videos-tbody"></tbody></table>
         </div>
       </div>
 
@@ -977,6 +1000,7 @@
                       <div class="form-group"><label class="form-label">First order</label><input class="form-input" id="set-rp-first-order" type="number" min="0"></div>
                       <div class="form-group"><label class="form-label">Product review</label><input class="form-input" id="set-rp-review" type="number" min="0"></div>
                       <div class="form-group"><label class="form-label">Photo review (+)</label><input class="form-input" id="set-rp-photo-review" type="number" min="0"></div>
+                      <div class="form-group"><label class="form-label">Video review (approved)</label><input class="form-input" id="set-rp-video-review" type="number" min="0" placeholder="100"></div>
                       <div class="form-group"><label class="form-label">Friend referral (you earn)</label><input class="form-input" id="set-rp-referral" type="number" min="0"></div>
                       <div class="form-group"><label class="form-label">Referral signup bonus (friend)</label><input class="form-input" id="set-rp-referral-signup" type="number" min="0"></div>
                     </div>
@@ -1268,7 +1292,8 @@
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
-<script src="/js/admin-rich-editor.js?v=4"></script>
-<script src="/js/admin.js?v=95"></script>
+<script src="/js/product-description-html.js?v=1"></script>
+<script src="/js/admin-rich-editor.js?v=5"></script>
+<script src="/js/admin.js?v=98"></script>
 </body>
 </html>

@@ -12,9 +12,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="preload" href="/css/home.bundle.css?v=6" as="style">
+<link rel="preload" href="/css/home.bundle.css?v=8" as="style">
 <link rel="preload" href="/fonts/tabler-icons.woff2?v=3" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/home.bundle.css?v=6">
+<link rel="stylesheet" href="/css/home.bundle.css?v=8">
 <link rel="stylesheet" href="/css/home-marketing.css?v=8" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-marketing.css?v=8"></noscript>
 <link rel="stylesheet" href="/css/popup-themes.css?v=1" media="print" onload="this.media='all'">
@@ -37,6 +37,27 @@
  <div class="hero-grid" id="hero-grid">
  <%- include('partials/hero-slider-ssr', { heroSideSlider: typeof heroSideSlider !== 'undefined' ? heroSideSlider : null }) %>
  </div>
+
+ <!-- Trust Section (below banner) -->
+ <section class="trust-section" aria-label="Why shop with us">
+  <div class="trust-section-grid">
+   <article class="trust-section-card trust-section-card--green">
+    <div class="trust-section-icon" aria-hidden="true"><i class="ti ti-world"></i></div>
+    <h3 class="trust-section-title">সরাসরি জাপান থেকে</h3>
+    <p class="trust-section-text">আমরা সরাসরি জাপানের স্টোর থেকে পণ্য সংগ্রহ করি।</p>
+   </article>
+   <article class="trust-section-card trust-section-card--pink">
+    <div class="trust-section-icon" aria-hidden="true"><i class="ti ti-shield-check"></i></div>
+    <h3 class="trust-section-title">১০০% আসল পণ্য</h3>
+    <p class="trust-section-text">নকল প্রমাণে সম্পূর্ণ টাকা ফেরতের নিশ্চয়তা।</p>
+   </article>
+   <article class="trust-section-card trust-section-card--amber">
+    <div class="trust-section-icon" aria-hidden="true"><i class="ti ti-truck-delivery"></i></div>
+    <h3 class="trust-section-title">দ্রুত ডেলিভারি</h3>
+    <p class="trust-section-text">সারাদেশে ৬৪ জেলায় নিরাপদ ও দ্রুত ডেলিভারি।</p>
+   </article>
+  </div>
+ </section>
 
  <!-- Stats (loaded from API) -->
  <div class="stats-grid" id="stats-grid"<% if (_homeSsr && _homeSsr.hasStats) { %> data-ssr-ready="1"<% } %>>

@@ -1303,6 +1303,67 @@
   .hero-card-label { font-size: 11px; color: rgba(255,255,255,0.75); margin-bottom: 3px; }
   .hero-card-title { font-size: 16px; font-weight: 700; color: #fff; }
 
+  /* ===== HOME TRUST SECTION (below hero) ===== */
+  .trust-section {
+    margin-bottom: 24px;
+    padding: 28px 24px;
+    background: var(--surface-alt, #f7faf7);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    text-align: center;
+  }
+  .trust-section-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+  .trust-section-card {
+    padding: 22px 18px;
+    border-radius: var(--radius-md);
+    border: 1px solid transparent;
+    box-shadow: 0 4px 12px rgba(20, 51, 24, 0.06);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+  .trust-section-card--green {
+    background: var(--brand-pale);
+    border-color: var(--brand-pale);
+  }
+  .trust-section-card--green .trust-section-icon { color: var(--brand-light); }
+  .trust-section-card--pink {
+    background: var(--primary-pale);
+    border-color: var(--primary-pale);
+  }
+  .trust-section-card--pink .trust-section-icon { color: var(--primary); }
+  .trust-section-card--amber {
+    background: var(--amber-pale);
+    border-color: var(--amber-pale);
+  }
+  .trust-section-card--amber .trust-section-icon { color: var(--amber); }
+  .trust-section-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(20, 51, 24, 0.1);
+  }
+  .trust-section-icon {
+    font-size: 40px;
+    margin-bottom: 12px;
+    line-height: 1;
+  }
+  .trust-section-icon i { font-size: 40px; }
+  .trust-section-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 8px;
+    font-family: 'Hind Siliguri', 'Inter', sans-serif;
+  }
+  .trust-section-text {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.55;
+    margin: 0;
+    font-family: 'Hind Siliguri', 'Inter', sans-serif;
+  }
+
   /* ===== STATS ===== */
   .stats-grid {
     display: grid;
@@ -2364,6 +2425,7 @@
   @media (max-width: 900px) {
     .hero-grid { grid-template-columns: 1fr; }
     .hero-side { flex-direction: column; }
+    .trust-section-grid { grid-template-columns: 1fr; }
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .category-grid:not(.category-scroll-track) { grid-template-columns: repeat(4, 1fr); }
     .product-grid { grid-template-columns: repeat(2, 1fr); }

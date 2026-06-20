@@ -3289,9 +3289,12 @@
     }
   }
 
-  document.addEventListener('raku:ready', () => {
+  function onRakuReady() {
     void runStorefrontBootstrap();
-  });
+  }
+
+  document.addEventListener('raku:ready', onRakuReady);
+  if (window.__RAKU_READY__) onRakuReady();
 
   flushPendingRelatedProduct();
 })();

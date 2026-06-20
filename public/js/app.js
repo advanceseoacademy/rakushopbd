@@ -419,22 +419,18 @@ document.addEventListener('DOMContentLoaded', function() {
     return cartCount;
   };
 
-  function openCartPage() {
-    if (window._rakuOpenCart) {
-      window._rakuOpenCart();
-      return;
-    }
-    if (window.showPage) window.showPage('cart');
-    else window.location.href = '/cart';
-  }
-  window._rakuOpenCart = openCartPage;
-
   document.querySelectorAll('.nav-cart-btn').forEach((btn) => {
     if (btn._rakuNavBound) return;
     btn._rakuNavBound = true;
     btn.addEventListener('click', (e) => {
       e.preventDefault();
-      openCartPage();
+      if (typeof window._rakuOpenCart === 'function') {
+        window._rakuOpenCart();
+      } else if (window.showPage) {
+        window.showPage('cart');
+      } else {
+        window.location.href = '/cart';
+      }
     });
   });
 
@@ -621,8 +617,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeCatDropdown();
   });
-
-  document.dispatchEvent(new CustomEvent('raku:ready'));
 
   const SPA_INIT = {
     faq: () => window._rakuInitFaqPage?.(),

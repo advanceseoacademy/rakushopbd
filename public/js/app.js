@@ -262,6 +262,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (name === 'checkout' && window.renderCheckout) {
       void window.renderCheckout();
     }
+    if (name === 'account' && window._rakuInitAccountPage) {
+      void window._rakuInitAccountPage();
+    }
   }
 
   function showPage(name, opts) {
@@ -430,6 +433,22 @@ document.addEventListener('DOMContentLoaded', function() {
         window.showPage('cart');
       } else {
         window.location.href = '/cart';
+      }
+    });
+  });
+
+  ['nav-account-btn', 'nav-account-btn-desktop'].forEach((id) => {
+    const btn = document.getElementById(id);
+    if (!btn || btn._rakuAccountNavBound) return;
+    btn._rakuAccountNavBound = true;
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (typeof window.openAccount === 'function') {
+        void window.openAccount();
+      } else if (window.showPage) {
+        window.showPage('account');
+      } else {
+        window.location.href = '/account';
       }
     });
   });

@@ -805,10 +805,27 @@
         switchPanel('dashboard');
       };
     }
+
+    document.querySelectorAll('.acc-breadcrumb .link[data-page="home"]').forEach((el) => {
+      el.onclick = () => {
+        if (window.showPage) window.showPage('home');
+      };
+    });
   }
 
   window.openAccount = async function () {
-    if (window.showPage) window.showPage('account');
+    if (window.showPage && window._rakuVisiblePage !== 'account') {
+      window.showPage('account');
+      return;
+    }
+    await window._rakuInitAccountPage();
+  };
+
+  window._rakuInitAccountPage = async function () {
+    if (!window.__RAKU_ACCOUNT_UI_BOUND) {
+      bootAccountUi();
+      window.__RAKU_ACCOUNT_UI_BOUND = true;
+    }
     await loadSession();
     (window.rakuScrollToTop || (() => window.scrollTo(0, 0)))();
   };
@@ -845,26 +862,12 @@
 
   initPasswordToggles();
 
-  document.addEventListener('raku:ready', () => {
-    bootAccountUi();
-    const runSession = () => loadSession();
-    if (window.requestIdleCallback) requestIdleCallback(runSession, { timeout: 2500 });
-    else setTimeout(runSession, 250);
+  function bootAccountWhenReady() {
+    if (window.RAKU_STANDALONE || window._rakuVisiblePage === 'account') {
+      void window._rakuInitAccountPage();
+    }
+  }
 
-    ['nav-account-btn', 'nav-account-btn-desktop'].forEach((id) => {
-      const navBtn = document.getElementById(id);
-      if (!navBtn || navBtn._rakuAccountBound) return;
-      navBtn._rakuAccountBound = true;
-      navBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        window.openAccount();
-      });
-    });
-
-    document.querySelectorAll('.acc-breadcrumb .link[data-page="home"]').forEach((el) => {
-      el.addEventListener('click', () => {
-        if (window.showPage) window.showPage('home');
-      });
-    });
-  });
+  document.addEventListener('raku:ready', bootAccountWhenReady);
+  if (window.__RAKU_READY__) bootAccountWhenReady();
 })();

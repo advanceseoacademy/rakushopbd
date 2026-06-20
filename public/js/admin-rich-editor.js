@@ -30,8 +30,12 @@
     'faq-answer',
   ];
 
-  /** Keep HTML tables intact — no Quill mount */
+  /** Raw HTML textarea — no Quill (preserves <table class="legal-table"> etc.) */
   const PLAIN_HTML_EDITOR_IDS = ['legal-points-content'];
+
+  function isPlainHtmlEditor(textareaId) {
+    return PLAIN_HTML_EDITOR_IDS.includes(textareaId);
+  }
 
   const PRODUCT_EDITOR_IDS = ['pf-short-desc', 'pf-desc'];
 
@@ -40,7 +44,7 @@
   }
 
   function mountEditor(textareaId, options) {
-    if (PLAIN_HTML_EDITOR_IDS.includes(textareaId)) return null;
+    if (isPlainHtmlEditor(textareaId)) return null;
     if (editors.has(textareaId)) return editors.get(textareaId);
     const ta = document.getElementById(textareaId);
     if (!ta || !quillReady()) return null;
@@ -108,7 +112,7 @@
       const ta = document.getElementById(textareaId);
       const value = html || '';
       if (ta) ta.value = value;
-      if (PLAIN_HTML_EDITOR_IDS.includes(textareaId)) return;
+      if (isPlainHtmlEditor(textareaId)) return;
       const quill = editors.get(textareaId) || mountEditor(textareaId, {
         toolbar: PRODUCT_EDITOR_IDS.includes(textareaId) ? PRODUCT_TOOLBAR : PAGE_TOOLBAR,
       });
@@ -129,8 +133,13 @@
     },
 
     syncAll() {
-      [...PAGE_EDITOR_IDS, ...PRODUCT_EDITOR_IDS].forEach((id) => syncEditor(id));
+      [...PAGE_EDITOR_IDS, ...PRODUCT_EDITOR_IDS]
+        .filter((id) => !isPlainHtmlEditor(id))
+        .forEach((id) => syncEditor(id));
     },
+
+    isPlainHtmlEditor,
+    plainHtmlEditorIds: PLAIN_HTML_EDITOR_IDS,
 
     syncProductEditors() {
       PRODUCT_EDITOR_IDS.forEach((id) => syncEditor(id));

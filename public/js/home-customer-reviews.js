@@ -126,24 +126,16 @@
     });
   }
 
-  document.addEventListener('raku:ready', () => {
-    if (window.rakuWhenVisible) {
-      window.rakuWhenVisible('section-customer-reviews', () => void paintHomeCustomerReviews(), { rootMargin: '240px' });
-    } else {
-      void paintHomeCustomerReviews();
-    }
-  });
-  document.addEventListener('raku:bootstrap', () => {
-    if (window.rakuWhenVisible) {
-      window.rakuWhenVisible('section-customer-reviews', () => void paintHomeCustomerReviews(), { rootMargin: '240px' });
-    } else if (window.rakuScheduleIdle) {
-      window.rakuScheduleIdle(() => void paintHomeCustomerReviews(), { timeout: 3000 });
-    } else {
-      void paintHomeCustomerReviews();
-    }
-  });
-
-  if (document.readyState !== 'loading' && !window.rakuWhenVisible) {
+  function scheduleHomeReviewsPaint() {
     void paintHomeCustomerReviews();
+    setTimeout(() => {
+      const track = document.getElementById('track-customer-reviews');
+      if (track?.querySelector('.home-review-card--skeleton')) void paintHomeCustomerReviews();
+    }, 3000);
   }
+
+  document.addEventListener('raku:ready', scheduleHomeReviewsPaint);
+  document.addEventListener('raku:bootstrap', scheduleHomeReviewsPaint);
+
+  if (window.__RAKU_READY__) scheduleHomeReviewsPaint();
 })();

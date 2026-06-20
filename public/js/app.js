@@ -105,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     wishlist: document.getElementById('page-wishlist'),
     appointment: document.getElementById('page-appointment'),
     faq: document.getElementById('page-faq'),
+    about: document.getElementById('page-about'),
     contact: document.getElementById('page-contact'),
     privacy: document.getElementById('page-privacy'),
     terms: document.getElementById('page-terms'),
@@ -114,9 +115,10 @@ document.addEventListener('DOMContentLoaded', function() {
     track: document.getElementById('page-track'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'contact', 'privacy', 'terms', 'return', 'preorder', 'points', 'track'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'about', 'contact', 'privacy', 'terms', 'return', 'preorder', 'points', 'track'];
 
   const PATH_ALIASES = {
+    'about-us': 'about',
     'privacy-policy': 'privacy',
     'terms-and-conditions': 'terms',
     'return-policy': 'return',
@@ -125,6 +127,7 @@ document.addEventListener('DOMContentLoaded', function() {
   };
 
   const PAGE_PATHS = {
+    about: '/about',
     privacy: '/privacy-policy',
     terms: '/terms-and-conditions',
     return: '/return-policy',
@@ -232,6 +235,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (name === 'faq' && window._rakuInitFaqPage) {
       window._rakuInitFaqPage();
     }
+    if (name === 'about' && window._rakuInitAboutPage) {
+      window._rakuInitAboutPage();
+    }
     if (name === 'contact' && window._rakuInitContactPage) {
       window._rakuInitContactPage();
     }
@@ -323,6 +329,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window._rakuInitAppointmentPage();
       } else if (route.page === 'faq' && window._rakuInitFaqPage) {
         window._rakuInitFaqPage();
+      } else if (route.page === 'about' && window._rakuInitAboutPage) {
+        window._rakuInitAboutPage();
       } else if (route.page === 'contact' && window._rakuInitContactPage) {
         window._rakuInitContactPage();
       } else if (route.page === 'privacy' && window._rakuInitLegalPrivacy) {
@@ -409,6 +417,12 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   window.showPage = showPage;
   window._rakuRestoreRoute = restoreFromUrl;
+  // Restore deep links once navigation helpers exist (before raku:ready in index.ejs).
+  const bootPathParts = (location.pathname || '/').split('/').filter(Boolean);
+  if (bootPathParts.length && !window._rakuDidInitialRouteRestore) {
+    window._rakuDidInitialRouteRestore = true;
+    void restoreFromUrl();
+  }
   window._rakuSetCartCount = function (n) {
     cartCount = Math.max(0, Number(n) || 0);
     updateBadges();
@@ -622,6 +636,7 @@ document.addEventListener('DOMContentLoaded', function() {
         '/': 'home',
         '/appointment': 'appointment',
         '/faq': 'faq',
+        '/about': 'about',
         '/contact': 'contact',
         '/track': 'track',
       };

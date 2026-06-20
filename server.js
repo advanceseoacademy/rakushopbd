@@ -227,7 +227,7 @@ async function renderStorefront(req, res) {
     const categorySlug = categoryMatch ? decodeURIComponent(categoryMatch[1]) : null;
     const pageType = resolvePageType(req);
 
-    const bootstrap = await getStoreBootstrap(req, { lite: true });
+    const bootstrap = await getStoreBootstrap(req, { lite: pageType !== 'home' });
     let product = null;
     let category = null;
 
@@ -355,7 +355,7 @@ app.use('/api/admin', adminRoutes);
 
 // Storefront SPA — clean URLs (no hash)
 app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy', '/reward-point-policy'],
+  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/about', '/about-us', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy', '/reward-point-policy'],
   (req, res) => renderStorefront(req, res)
 );
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));

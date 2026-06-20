@@ -254,7 +254,8 @@
     const bypassCache = Boolean(opts.bypassCache);
     if (!bypassCache && productDetailCache.has(cacheKey)) {
       const cached = productDetailCache.get(cacheKey);
-      if (productGalleryFromApi(cached) !== null) return cached;
+      const gallery = productGalleryFromApi(cached);
+      if (gallery !== null && gallery.length > 1) return cached;
     }
     if (!bypassCache && productFetchInflight.has(cacheKey)) return productFetchInflight.get(cacheKey);
     const apiPath = byId ? `/products/${raw}` : `/products/${encodeURIComponent(raw)}`;
@@ -327,18 +328,37 @@
     return null;
   }
 
+  function homeTrackNeedsPaint(trackId) {
+    const track = document.getElementById(trackId);
+    if (!track) return false;
+    if (track.querySelector('.product-card--skeleton')) return true;
+    return !track.querySelector('.product-card:not(.product-card--skeleton)');
+  }
+
+  function homePageNeedsProductPaint() {
+    return homeTrackNeedsPaint('track-best-selling') || homeTrackNeedsPaint('track-new-arrivals');
+  }
+
   async function refreshHomeProductSections(boot) {
     if (!document.getElementById('track-new-arrivals')) return;
+    const needsPaint = homePageNeedsProductPaint();
+
     if (boot?.ok && (boot.bestSelling?.length || boot.newArrivals?.length)) {
       paintHomeProductSections(bootHomeSections(boot));
-      return;
+      if (!needsPaint || !homePageNeedsProductPaint()) return;
     }
+
     const data = await fetchHomeSectionsFallback(24);
-    if (data) {
+    if (data?.bestSelling?.length || data?.newArrivals?.length) {
       paintHomeProductSections(data);
       return;
     }
-    if (boot?.ok) paintHomeProductSections(bootHomeSections(boot));
+    if (boot?.ok) {
+      const fallback = bootHomeSections(boot);
+      if (fallback.bestSelling?.length || fallback.newArrivals?.length) {
+        paintHomeProductSections(fallback);
+      }
+    }
   }
 
   let cartRequestSeq = 0;
@@ -1312,6 +1332,11 @@
     return path;
   }
 
+  /** Product page: always use the stored upload (never implicit /media/48). */
+  function productDetailImageSrc(url) {
+    return productImageSrc(url);
+  }
+
   function productImageAttrs(url, opts) {
     if (window.rakuImageAttrs) return window.rakuImageAttrs(url, opts);
     return { src: productImageSrc(url), srcset: '', sizes: '' };
@@ -1341,30 +1366,19 @@
       if (!imgEl) {
         imgEl = document.createElement('img');
         imgEl.className = 'product-photo';
-        imgEl.style.cssText = 'width:100%;height:100%;object-fit:contain;padding:12px;box-sizing:border-box;';
         imgEl.loading = 'eager';
         imgEl.decoding = 'async';
         imgEl.fetchPriority = 'high';
-        imgEl.setAttribute('width', '600');
-        imgEl.setAttribute('height', '600');
         mainEl.appendChild(imgEl);
       }
-      imgEl.setAttribute('width', '600');
-      imgEl.setAttribute('height', '600');
+      imgEl.removeAttribute('style');
+      imgEl.removeAttribute('width');
+      imgEl.removeAttribute('height');
       imgEl.onerror = () => setMainProductPhoto(mainEl, null, alt, bgColor, icon, iconColor);
-      const detailAttrs = productImageAttrs(url, {
-        widths: [480, 640, 960, 1280],
-        sizes: window.rakuImageSizes ? window.rakuImageSizes.productDetail() : '(max-width: 768px) 100vw, 600px',
-        srcWidth: 640,
-      });
-      if (detailAttrs.srcset) {
-        imgEl.srcset = detailAttrs.srcset;
-        imgEl.sizes = detailAttrs.sizes;
-      } else {
-        imgEl.removeAttribute('srcset');
-        imgEl.removeAttribute('sizes');
-      }
-      if (imgEl.getAttribute('src') !== detailAttrs.src) imgEl.src = detailAttrs.src;
+      const fullSrc = productDetailImageSrc(url);
+      imgEl.removeAttribute('srcset');
+      imgEl.removeAttribute('sizes');
+      if (imgEl.getAttribute('src') !== fullSrc) imgEl.src = fullSrc;
       imgEl.alt = (alt || 'Product').trim();
     } else {
       if (imgEl) imgEl.remove();
@@ -1405,22 +1419,24 @@
 
     thumbRow.style.display = '';
     thumbRow.innerHTML = urls
-      .map(
-        (url, i) => {
-          const src = productImageSrc(url).replace(/"/g, '&quot;');
-          return `<div class="thumb-img${i === 0 ? ' active' : ''}" data-url="${encodeURIComponent(productImageSrc(url))}" style="background:${p.bg_color || '#f5f5f5'};"><img src="${src}" alt="" width="72" height="72" loading="lazy" decoding="async"></div>`;
-        }
-      )
+      .map((url, i) => {
+        const thumbSrc = (window.rakuImageVariantUrl
+          ? window.rakuImageVariantUrl(url, 144)
+          : productDetailImageSrc(url)
+        ).replace(/"/g, '&quot;');
+        return `<div class="thumb-img${i === 0 ? ' active' : ''}" data-url="${encodeURIComponent(url)}" style="background:${p.bg_color || p.bgColor || '#f5f5f5'};"><img src="${thumbSrc}" alt="" width="72" height="72" loading="lazy" decoding="async"></div>`;
+      })
       .join('');
 
     thumbRow.querySelectorAll('.thumb-img').forEach((thumb) => {
       const img = thumb.querySelector('img');
       if (img) {
+        const fallbackSrc = decodeURIComponent(thumb.dataset.url || '');
         img.onerror = () => {
-          thumb.remove();
-          if (!thumbRow.querySelector('.thumb-img')) {
-            thumbRow.innerHTML = '';
-            thumbRow.style.display = 'none';
+          if (fallbackSrc && img.getAttribute('src') !== fallbackSrc) {
+            img.onerror = null;
+            img.src = fallbackSrc;
+            return;
           }
         };
       }
@@ -1616,8 +1632,9 @@
   function productNeedsDetailFetch(p) {
     if (!p) return true;
     if (!('stock' in p)) return true;
-    // List/bootstrap cards only have image_url — need API detail for full gallery_urls.
-    if (productGalleryFromApi(p) === null) return true;
+    const gallery = productGalleryFromApi(p);
+    // List/bootstrap cards often omit extra gallery rows — refetch to confirm.
+    if (gallery === null || gallery.length <= 1) return true;
     const hasDesc = Boolean(String(p.description_bn || p.descriptionBn || '').trim());
     const hasShort = Boolean(String(p.short_description || p.shortDescription || '').trim());
     if (hasDesc || hasShort) return false;
@@ -1908,33 +1925,49 @@
     panel.style.display = total ? '' : 'none';
   }
 
-  function reviewCardHtml(r) {
-    const initials = (r.customer_name || 'U')
-      .split(' ')
+  function reviewAvatarHtml(r) {
+    const name = r.customer_name || r.customerName || 'Customer';
+    const initials = name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
       .map((w) => w[0])
       .join('')
-      .slice(0, 2)
-      .toUpperCase();
+      .toUpperCase() || 'U';
+    const url = String(r.reviewer_avatar_url || r.reviewerAvatarUrl || '').trim();
+    if (url) {
+      const src = escapeHtml(url).replace(/"/g, '&quot;');
+      return `<div class="reviewer-avatar-wrap"><img class="reviewer-avatar-img" src="${src}" alt="" width="44" height="44" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><div class="reviewer-avatar" hidden>${escapeHtml(initials)}</div></div>`;
+    }
+    return `<div class="reviewer-avatar">${escapeHtml(initials)}</div>`;
+  }
+
+  function reviewCardHtml(r) {
     const date = r.created_at
       ? new Date(r.created_at).toLocaleDateString('en-US', {
           day: 'numeric',
           month: 'short',
           year: 'numeric',
         })
-      : r.city
-        ? escapeHtml(r.city)
+      : r.reviewer_city || r.city
+        ? escapeHtml(String(r.reviewer_city || r.city).trim())
         : 'Verified purchase';
     const comment = escapeHtml(r.comment || '');
+    const photoUrl = String(r.image_url || r.imageUrl || '').trim();
+    const photoHtml = photoUrl
+      ? `<div class="review-photo"><img src="${escapeHtml(photoUrl).replace(/"/g, '&quot;')}" alt="Review photo" loading="lazy" decoding="async"></div>`
+      : '';
     return `<article class="review-card">
       <div class="review-head">
-        <div class="reviewer-avatar">${escapeHtml(initials)}</div>
+        ${reviewAvatarHtml(r)}
         <div class="reviewer-meta">
-          <div class="reviewer-name">${escapeHtml(r.customer_name)}</div>
+          <div class="reviewer-name">${escapeHtml(r.customer_name || r.customerName || 'Customer')}</div>
           <div class="reviewer-date">${date}</div>
         </div>
         ${renderStarIcons(Number(r.rating))}
       </div>
       <p class="review-text">${comment}</p>
+      ${photoHtml}
       <span class="review-verified"><i class="ti ti-circle-check-filled"></i> Verified buyer</span>
     </article>`;
   }
@@ -2999,16 +3032,26 @@
     const track = document.getElementById(trackId);
     if (!track) return;
     stopHomeScrollAuto(trackId);
-    if (track.dataset.ssrReady === '1') {
+    const skeletonOnly = Boolean(track.querySelector('.product-card--skeleton'));
+    const existingCount = track.querySelectorAll('.product-card:not(.product-card--skeleton)').length;
+    const incomingCount = list?.length || 0;
+    if (
+      !skeletonOnly &&
+      track.dataset.ssrReady === '1' &&
+      existingCount > 0 &&
+      (!incomingCount || existingCount >= incomingCount)
+    ) {
       bindHomeScrollResize();
       queueSyncHomeScrollTrack(trackId);
       return;
     }
     if (!list?.length) {
+      if (skeletonOnly) return;
       track.innerHTML = '<p class="home-scroll-empty">No products in this section yet.</p>';
       return;
     }
     track.innerHTML = list.map(productCardHtml).join('');
+    track.dataset.ssrReady = '1';
     bindHomeScrollResize();
     queueSyncHomeScrollTrack(trackId);
   }
@@ -3130,7 +3173,13 @@
 
     if (boot.bestSelling?.length || boot.newArrivals?.length) {
       try {
-        paintHomeProductSections(bootHomeSections(boot));
+        await refreshHomeProductSections(boot);
+      } catch (err) {
+        console.warn('Home product sections failed', err);
+      }
+    } else if (homePageNeedsProductPaint()) {
+      try {
+        await refreshHomeProductSections(boot);
       } catch (err) {
         console.warn('Home product sections failed', err);
       }
@@ -3256,6 +3305,22 @@
     if (blocked) return;
 
     await homeProductsPromise;
+
+    if (isHome && homePageNeedsProductPaint()) {
+      try {
+        await refreshHomeProductSections(window._rakuStoreBoot || window.__RAKU_BOOTSTRAP);
+      } catch (err) {
+        console.warn('Home product retry failed', err);
+      }
+    }
+
+    if (isHome) {
+      setTimeout(() => {
+        if (!homePageNeedsProductPaint()) return;
+        void refreshHomeProductSections(window._rakuStoreBoot || window.__RAKU_BOOTSTRAP);
+      }, 3000);
+    }
+
     bindHomeScrollResize();
     if (typeof queueSyncAllHomeScrollCardWidths === 'function') {
       queueSyncAllHomeScrollCardWidths();

@@ -443,6 +443,7 @@
             <th class="tbl-check-col"><input type="checkbox" id="reviews-select-all" title="Select all on this page" aria-label="Select all reviews on this page"></th>
             <th>Avatar</th><th>Customer</th><th>Product</th><th>Rating</th><th>Comment</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
           <tbody id="reviews-tbody"></tbody></table>
+          <div class="pagination-bar" id="reviews-pagination"></div>
         </div>
       </div>
 
@@ -645,8 +646,8 @@
                   <div class="form-group"><label class="form-label">Page title</label><input class="form-input" id="legal-points-title" placeholder="Reward Point Policy"></div>
                   <div class="form-group">
                     <label class="form-label">Page content</label>
-                    <textarea class="form-input form-textarea" id="legal-points-content" rows="16" placeholder="Write your reward point policy…"></textarea>
-                    <small class="form-hint">HTML supported — keep <code>&lt;table class="legal-table"&gt;</code> for the earn-points table. Use headings (<code>&lt;h2&gt;</code>) and lists like other legal pages.</small>
+                    <textarea class="form-input form-textarea form-textarea-code" id="legal-points-content" rows="20" spellcheck="false" placeholder="Paste or edit HTML for the reward point policy…"></textarea>
+                    <small class="form-hint">HTML code mode — content is saved exactly as written. Keep <code>&lt;table class="legal-table"&gt;</code> for the earn-points table. Use <code>&lt;h2&gt;</code>, <code>&lt;ul&gt;</code>, and <code>&lt;p&gt;</code> like the default template.</small>
                   </div>
                 </div>
               </div>
@@ -1289,7 +1290,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
-<script src="/js/admin-rich-editor.js?v=5"></script>
-<script src="/js/admin.js?v=100"></script>
+<script src="/js/admin-rich-editor.js?v=6"></script>
+<script src="/js/admin.js?v=102"></script>
 </body>
 </html>

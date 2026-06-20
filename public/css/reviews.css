@@ -298,6 +298,23 @@
   margin-bottom: 12px;
 }
 
+.reviewer-avatar-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+}
+
+.reviewer-avatar-img {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.12);
+  border: 2px solid #fff;
+}
+
 .reviewer-avatar {
   width: 44px;
   height: 44px;
@@ -311,6 +328,23 @@
   font-size: 14px;
   flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(32, 96, 32, 0.25);
+}
+
+.reviewer-avatar-wrap .reviewer-avatar[hidden] {
+  display: none !important;
+}
+
+.review-photo {
+  margin: 10px 0 0 56px;
+}
+
+.review-photo img {
+  max-width: 220px;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  display: block;
 }
 
 .reviewer-meta {

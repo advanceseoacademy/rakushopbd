@@ -53,6 +53,16 @@
     return headers;
   }
 
+  function adminUploadHeaders() {
+    const headers = {};
+    const token = getAdminToken();
+    if (token) {
+      headers.Authorization = `Bearer ${token}`;
+      headers['X-Admin-Token'] = token;
+    }
+    return headers;
+  }
+
   let currentAdmin = null;
   let categories = [];
   let cfSubParentId = null;
@@ -70,6 +80,7 @@
   const selectedReviewIds = new Set();
 
   let ordersPage = 1;
+  let reviewsPage = 1;
   let dashRecentOrdersPage = 1;
   let appointmentsPage = 1;
   let contactsPage = 1;
@@ -2332,7 +2343,7 @@
   async function uploadProductImage(file) {
     const fd = new FormData();
     fd.append('image', file);
-    const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+    const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', headers: adminUploadHeaders(), body: fd });
     return up.json();
   }
 
@@ -3807,6 +3818,7 @@
     { value: 'appointment', label: 'Book Appointment' },
     { value: 'track', label: 'Track Order' },
     { value: 'faq', label: 'FAQ' },
+    { value: 'about', label: 'About Us' },
     { value: 'contact', label: 'Contact Us' },
     { value: 'privacy', label: 'Privacy Policy' },
     { value: 'terms', label: 'Terms & Conditions' },
@@ -3821,6 +3833,7 @@
     '/appointment': 'appointment',
     '/track': 'track',
     '/faq': 'faq',
+    '/about': 'about',
     '/contact': 'contact',
     '/privacy-policy': 'privacy',
     '/terms-and-conditions': 'terms',
@@ -4145,7 +4158,8 @@
       const el = document.getElementById(id);
       if (!el) return;
       const value = s[key] || '';
-      if (id.endsWith('-content') && window.RakuRichEditor) {
+      const plainHtml = window.RakuRichEditor?.isPlainHtmlEditor?.(id);
+      if (id.endsWith('-content') && window.RakuRichEditor && !plainHtml) {
         window.RakuRichEditor.setContent(id, value);
       } else {
         el.value = value;
@@ -4167,7 +4181,10 @@
       legal_preorder_title: document.getElementById('legal-preorder-title')?.value?.trim() || 'Pre-Order Policy',
       legal_preorder_content: document.getElementById('legal-preorder-content')?.value || '',
       legal_points_title: document.getElementById('legal-points-title')?.value?.trim() || 'Reward Point Policy',
-      legal_points_content: document.getElementById('legal-points-content')?.value || '',
+      legal_points_content:
+        document.getElementById('legal-points-content')?.value ||
+        window.RakuRichEditor?.getContent?.('legal-points-content') ||
+        '',
     };
   }
 
@@ -4268,17 +4285,22 @@
     }
   }
 
-  async function loadReviews() {
+  async function loadReviews(page) {
+    if (page) reviewsPage = page;
     const status = document.getElementById('reviews-filter').value;
-    const data = await api('/reviews?status=' + status);
+    const q = new URLSearchParams({ page: reviewsPage, limit: 10 });
+    if (status !== 'all') q.set('status', status);
+    const data = await api('/reviews?' + q.toString());
     if (!data.ok) return toast(data.error || 'Load failed', 'error');
     const rb = document.getElementById('review-badge');
     if (rb) rb.textContent = data.pendingCount || 0;
     const tbody = document.getElementById('reviews-tbody');
     if (!data.reviews?.length) {
       tbody.innerHTML =
-        '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No reviews found.</td></tr>';
+        '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px;">No reviews found.</td></tr>';
       updateReviewsSelectionUi();
+      const pagEl = document.getElementById('reviews-pagination');
+      if (pagEl) pagEl.innerHTML = '';
       return;
     }
     tbody.innerHTML = data.reviews
@@ -4301,6 +4323,18 @@
       })
       .join('');
     updateReviewsSelectionUi();
+
+    const pag = data.pagination;
+    const pagEl = document.getElementById('reviews-pagination');
+    if (pagEl && pag) {
+      pagEl.innerHTML = `<span>Page ${pag.page} of ${pag.pages} (${pag.total} reviews)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} data-rp="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page >= pag.pages ? 'disabled' : ''} data-rp="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-rp]').forEach((b) => {
+        b.onclick = () => loadReviews(reviewsPage + Number(b.dataset.rp));
+      });
+    }
+
     document.querySelectorAll('[data-approve]').forEach((b) => {
       b.onclick = async () => {
         await api('/reviews/' + b.dataset.approve, { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) });
@@ -4366,7 +4400,7 @@
     });
   }
 
-  document.getElementById('reviews-filter').onchange = loadReviews;
+  document.getElementById('reviews-filter').onchange = () => loadReviews(1);
 
   async function loadReviewVideos() {
     const status = document.getElementById('review-videos-filter')?.value || 'pending';
@@ -4464,20 +4498,27 @@
     document.getElementById('review-form-title').textContent = review?.id ? 'Edit Review' : 'Add Review';
     document.getElementById('rev-id').value = review?.id || '';
     document.getElementById('rev-product-id').value = review?.product_id || review?.productId || '';
-    document.getElementById('rev-product-search').value = review?.product_name || '';
-    document.getElementById('rev-name').value = review?.customer_name || '';
-    document.getElementById('rev-city').value = review?.reviewer_city || '';
+    document.getElementById('rev-product-search').value = review?.product_name || review?.productName || '';
+    const pickedHint = document.getElementById('rev-product-picked-hint');
+    const pid = review?.product_id || review?.productId || '';
+    if (pickedHint) {
+      pickedHint.textContent = pid
+        ? `Selected: ${review?.product_name || review?.productName || 'Product'} (#${pid})`
+        : 'Select a product from search results.';
+    }
+    document.getElementById('rev-name').value = review?.customer_name || review?.customerName || '';
+    document.getElementById('rev-city').value = review?.reviewer_city || review?.reviewerCity || '';
     document.getElementById('rev-rating').value = String(review?.rating || 5);
     document.getElementById('rev-comment').value = review?.comment || '';
     document.getElementById('rev-status').value = review?.status || 'approved';
-    document.getElementById('rev-image').value = review?.image_url || '';
-    document.getElementById('rev-avatar').value = review?.reviewer_avatar_url || '';
+    document.getElementById('rev-image').value = review?.image_url || review?.imageUrl || '';
+    document.getElementById('rev-avatar').value = review?.reviewer_avatar_url || review?.reviewerAvatarUrl || '';
     const file = document.getElementById('rev-avatar-file');
     if (file) file.value = '';
     const wrap = document.getElementById('rev-avatar-preview-wrap');
     const img = document.getElementById('rev-avatar-preview');
     if (wrap && img) {
-      const url = (review?.reviewer_avatar_url || '').trim();
+      const url = (review?.reviewer_avatar_url || review?.reviewerAvatarUrl || '').trim();
       if (url) {
         img.src = url;
         wrap.hidden = false;
@@ -4594,7 +4635,7 @@
     if (f?.files?.[0]) {
       const fd = new FormData();
       fd.append('image', f.files[0]);
-      const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+      const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', headers: adminUploadHeaders(), body: fd });
       const upData = await up.json();
       if (upData.ok) avatarUrl = upData.url;
       else return toast(upData.error || 'Avatar upload failed', 'error');
@@ -4738,7 +4779,7 @@
     if (f?.files?.[0]) {
       const fd = new FormData();
       fd.append('image', f.files[0]);
-      const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', body: fd });
+      const up = await fetch(API + '/upload', { method: 'POST', credentials: 'same-origin', headers: adminUploadHeaders(), body: fd });
       const upData = await up.json();
       if (upData.ok) imageUrl = upData.url;
       else {

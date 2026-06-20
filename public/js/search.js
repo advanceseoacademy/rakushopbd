@@ -249,7 +249,4 @@
   document.addEventListener('click', (e) => {
     if (!e.target.closest('#header-search-wrap')) hideSuggest();
   });
-
-  window.__RAKU_READY__ = true;
-  document.dispatchEvent(new CustomEvent('raku:ready'));
 })();

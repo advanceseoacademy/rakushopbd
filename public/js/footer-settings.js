@@ -28,6 +28,7 @@
       return { label: 'Contact Us', href: '/contact' };
     }
     if (link.page === 'faq') return { label: label || 'FAQ', href: '/faq' };
+    if (link.page === 'about') return { label: label || 'About Us', href: '/about' };
     if (link.page === 'contact') return { label: label || 'Contact Us', href: '/contact' };
     if (link.page === 'privacy') return { label: label || 'Privacy Policy', href: '/privacy-policy' };
     if (link.page === 'terms') return { label: label || 'Terms & Conditions', href: '/terms-and-conditions' };
@@ -73,6 +74,7 @@
     appointment: '/appointment',
     track: '/track',
     faq: '/faq',
+    about: '/about',
     contact: '/contact',
     privacy: '/privacy-policy',
     terms: '/terms-and-conditions',

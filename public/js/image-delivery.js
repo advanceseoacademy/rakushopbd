@@ -25,8 +25,9 @@
   function variantUrl(url, width) {
     const u = preferWebpUrl(normalizeUrl(url));
     if (!isResizableUpload(u)) return u;
-    const w = Math.max(48, Math.min(2560, Math.round(Number(width) || 0)));
-    if (!w) return u;
+    const raw = Number(width);
+    if (!Number.isFinite(raw) || raw <= 0) return u;
+    const w = Math.max(48, Math.min(2560, Math.round(raw)));
     return `/media/${w}${u}`;
   }
 

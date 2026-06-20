@@ -12,9 +12,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="preload" href="/css/home.bundle.css?v=8" as="style">
+<link rel="preload" href="/css/home.bundle.css?v=9" as="style">
 <link rel="preload" href="/fonts/tabler-icons.woff2?v=3" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/home.bundle.css?v=8">
+<link rel="stylesheet" href="/css/home.bundle.css?v=9">
 <link rel="stylesheet" href="/css/home-marketing.css?v=8" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-marketing.css?v=8"></noscript>
 <link rel="stylesheet" href="/css/popup-themes.css?v=1" media="print" onload="this.media='all'">
@@ -319,6 +319,12 @@
  border:1px solid var(--border); position:relative; overflow:hidden;
 }
 .main-product-img i { font-size:140px; color:#2D6B32; }
+.main-product-img .product-photo {
+ max-width:calc(100% - 24px); max-height:calc(100% - 24px);
+ width:auto; height:auto;
+ object-fit:contain; object-position:center;
+ display:block;
+}
 .pv-badge-row { position:absolute; top:14px; left:14px; display:flex; gap:6px; }
 .pv-badge { background:var(--accent); color:#fff; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
 .pv-badge-new { background:var(--green); }
@@ -503,7 +509,7 @@
  <div class="main-product-img" style="background:<%= _pv ? _pv.bgColor : 'var(--primary-pale,#FDE8EF)' %>;">
  <div class="pv-badge-row" id="pv-badge-row"><% if (_pv && _pv.discountPercent) { %><span class="pv-badge">-<%= _pv.discountPercent %>%</span><% } %></div>
  <% if (_pv && _pv.imageUrl) { %>
- <img class="product-photo" src="<%= _pv.imageUrl %>"<% if (_pv.imageSrcset) { %> srcset="<%= _pv.imageSrcset %>" sizes="<%= _pv.imageSizes %>"<% } %> alt="<%= _pv.imageAlt %>" width="600" height="600" style="width:100%;height:100%;object-fit:contain;padding:12px;box-sizing:border-box;" loading="eager" fetchpriority="high" decoding="async">
+ <img class="product-photo" src="<%= _pv.imageUrl %>" alt="<%= _pv.imageAlt %>" loading="eager" fetchpriority="high" decoding="async">
  <% } else { %>
  <i class="ti ti-clock" style="color:var(--primary,#E91E8C);"></i>
  <% } %>
@@ -762,6 +768,10 @@
 <div id="page-faq" style="display:none;">
 <%- include('partials/spa-page-faq') %>
 </div><!-- /page-faq -->
+
+<div id="page-about" style="display:none;">
+<%- include('partials/spa-page-about') %>
+</div><!-- /page-about -->
 
 <!-- ===================================================
  REWARDS PAGE
@@ -1611,7 +1621,7 @@
   if (!img) {
     img = document.createElement('img');
     img.className = 'product-photo';
-    img.style.cssText = 'width:100%;height:100%;object-fit:contain;padding:12px;box-sizing:border-box;';
+    img.style.cssText = '';
     img.loading = 'eager';
     img.decoding = 'async';
     main.appendChild(img);
@@ -1622,6 +1632,18 @@
   img.alt = String(p.image_alt || p.imageAlt || p.name_bn || p.nameBn || 'Product').trim();
   var bg = p.bg_color || p.bgColor;
   if (bg) main.style.background = bg;
+  var urls = Array.isArray(p.gallery_urls) ? p.gallery_urls.filter(Boolean) : [];
+  if (!urls.length && url) urls = [url];
+  else if (url && urls.indexOf(url) < 0) urls.unshift(url);
+  var thumbRow = document.querySelector('#page-product .thumb-row');
+  if (thumbRow && urls.length > 1) {
+    thumbRow.style.display = '';
+    thumbRow.innerHTML = urls.map(function (u, i) {
+      var src = u.charAt(0) === '/' ? u : (/^https?:\/\//i.test(u) ? u : '/' + u);
+      var active = i === 0 ? ' active' : '';
+      return '<div class="thumb-img' + active + '" data-url="' + encodeURIComponent(src) + '" style="background:' + (bg || '#f5f5f5') + ';"><img src="' + src + '" alt="" width="72" height="72" loading="lazy" decoding="async"></div>';
+    }).join('');
+  }
 })();
 </script>
 <% } %>
@@ -1635,20 +1657,27 @@
 <script src="/js/seo.js?v=8" defer></script>
 <script src="/js/mobile-menu.js?v=2" defer></script>
 <script src="/js/store-url.js?v=1" defer></script>
-<script src="/js/app.js?v=42" defer></script>
+<script src="/js/app.js?v=44" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
 <script src="/js/home-hero-slider.js?v=11" defer></script>
 <script src="/js/home-today-deals.js?v=5" defer></script>
-<script src="/js/image-delivery.js?v=2" defer></script>
+<script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/product-description-html.js?v=1" defer></script>
 <script src="/js/storefront-dynamic.js?v=65" defer></script>
-<script src="/js/api.js?v=117" defer></script>
+<script src="/js/api.js?v=124" defer></script>
 <script src="/js/home-recommendations.js?v=7" defer></script>
 <script src="/js/home-messenger-chats.js?v=6" defer></script>
-<script src="/js/home-customer-reviews.js?v=15" defer></script>
+<script src="/js/home-customer-reviews.js?v=16" defer></script>
 <script src="/js/home-marketing.js?v=18" defer></script>
 <script src="/js/footer-settings.js?v=14" defer></script>
-<script src="/js/search.js?v=8" defer></script>
+<script src="/js/search.js?v=9" defer></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  if (window.__RAKU_READY__) return;
+  window.__RAKU_READY__ = true;
+  document.dispatchEvent(new CustomEvent('raku:ready'));
+});
+</script>
 <div class="gift-popup" id="gift-popup" hidden aria-hidden="true" data-popup-theme="gift">
   <div class="gift-popup-backdrop" data-gift-popup-close></div>
   <div class="gift-popup-dialog" role="dialog" aria-modal="true" aria-labelledby="gift-popup-title">

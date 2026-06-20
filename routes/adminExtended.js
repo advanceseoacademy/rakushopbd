@@ -168,22 +168,39 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
   // ——— Reviews ———
   router.get('/reviews', requireAdmin, async (req, res) => {
     try {
-      const { ensureHomepageReviewsSeeded } = require('../lib/ensureHomepageReviewsSeeded');
-      await ensureHomepageReviewsSeeded();
       const { status } = req.query;
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+      const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 10));
+      const offset = (page - 1) * limit;
+
+      let countSql = `SELECT COUNT(*) AS total FROM product_reviews r WHERE 1=1`;
       let sql = `SELECT r.*, p.name_bn AS product_name FROM product_reviews r
         JOIN products p ON p.id = r.product_id WHERE 1=1`;
       const params = [];
       if (status && status !== 'all') {
+        countSql += ' AND r.status = ?';
         sql += ' AND r.status = ?';
         params.push(status);
       }
-      sql += ' ORDER BY COALESCE(r.homepage_sort_order, 9999) ASC, r.created_at DESC LIMIT 500';
-      const reviews = await query(sql, params);
+      sql += ' ORDER BY COALESCE(r.homepage_sort_order, 9999) ASC, r.created_at DESC LIMIT ? OFFSET ?';
+
+      const [{ total }] = await query(countSql, params).catch(() => [{ total: 0 }]);
+      const reviews = await query(sql, [...params, limit, offset]);
       const [{ pending }] = await query(
         "SELECT COUNT(*) AS pending FROM product_reviews WHERE status='pending'"
       ).catch(() => [{ pending: 0 }]);
-      res.json({ ok: true, reviews, pendingCount: pending });
+      const totalNum = Number(total) || 0;
+      res.json({
+        ok: true,
+        reviews,
+        pendingCount: pending,
+        pagination: {
+          page,
+          limit,
+          total: totalNum,
+          pages: Math.max(1, Math.ceil(totalNum / limit)),
+        },
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ ok: false, error: 'Reviews table missing — run db setup' });
@@ -222,6 +239,8 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       const id = result?.insertId || result?.[0]?.id;
       const { syncProductReviewStats } = require('../lib/productReviews');
       await syncProductReviewStats(query, productId);
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      clearStoreBootstrapCache();
       res.json({ ok: true, id });
     } catch (err) {
       console.error('admin create review', err);
@@ -266,10 +285,13 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
 
       const { syncProductReviewStats } = require('../lib/productReviews');
       await syncProductReviewStats(query, productId);
-      if (Number(prev[0].product_id) !== productId) {
-        await syncProductReviewStats(query, prev[0].product_id);
+      const prevProductId = Number(prev[0].product_id || prev[0].productId);
+      if (prevProductId && prevProductId !== productId) {
+        await syncProductReviewStats(query, prevProductId);
       }
 
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      clearStoreBootstrapCache();
       res.json({ ok: true });
     } catch (err) {
       console.error('admin update review', err);
@@ -289,12 +311,14 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       await query('UPDATE product_reviews SET status = ? WHERE id = ?', [status, req.params.id]);
       if (rows.length) {
         const { syncProductReviewStats } = require('../lib/productReviews');
-        await syncProductReviewStats(query, rows[0].product_id);
+        await syncProductReviewStats(query, rows[0].product_id || rows[0].productId);
       }
       if (status === 'approved' && String(prev.status).toLowerCase() !== 'approved') {
         const { awardApprovedReviewPoints } = require('../lib/rewardPoints');
         await awardApprovedReviewPoints(query, prev);
       }
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      clearStoreBootstrapCache();
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ ok: false, error: 'Could not update review' });
@@ -314,9 +338,11 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       if (rows.length) {
         const { syncProductReviewStats } = require('../lib/productReviews');
         for (const row of rows) {
-          await syncProductReviewStats(query, row.product_id);
+          await syncProductReviewStats(query, row.product_id || row.productId);
         }
       }
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      clearStoreBootstrapCache();
       res.json({ ok: true, deleted: ids.length });
     } catch (err) {
       console.error('admin reviews bulk delete', err);
@@ -332,8 +358,10 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       await query('DELETE FROM product_reviews WHERE id = ?', [req.params.id]);
       if (rows.length) {
         const { syncProductReviewStats } = require('../lib/productReviews');
-        await syncProductReviewStats(query, rows[0].product_id);
+        await syncProductReviewStats(query, rows[0].product_id || rows[0].productId);
       }
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      clearStoreBootstrapCache();
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ ok: false, error: 'Could not delete review' });

@@ -402,10 +402,28 @@
       success: 'Order Confirmed',
       appointment: 'Book Appointment',
       track: 'Track Order',
+      faq: 'FAQ',
+      about: 'About Us',
+      contact: 'Contact Us',
     };
     const label = labels[page] || page;
     const sn = siteName();
-    const path = page === 'home' ? '/' : `/${page}`;
+    const path =
+      page === 'home'
+        ? '/'
+        : page === 'privacy'
+          ? '/privacy-policy'
+          : page === 'terms'
+            ? '/terms-and-conditions'
+            : page === 'return'
+              ? '/return-policy'
+              : page === 'preorder'
+                ? '/pre-order-policy'
+                : page === 'points'
+                  ? '/reward-point-policy'
+                  : page === 'about'
+                    ? '/about'
+                    : `/${page}`;
     const title = `${label} • ${sn}`;
     const description = defaultDesc();
     const canonical = abs(path);
@@ -505,7 +523,7 @@
     if (page === 'home') return apply(forHome());
     if (NOINDEX.has(page)) return apply(forPrivatePage(page));
     if (page === 'appointment' || page === 'track') return apply(forPrivatePage(page));
-    if (page === 'faq' || page === 'contact') return apply(forPrivatePage(page));
+    if (page === 'faq' || page === 'contact' || page === 'about') return apply(forPrivatePage(page));
     if (page === 'privacy' || page === 'terms' || page === 'return' || page === 'preorder' || page === 'points') return apply(forLegalPage(page));
     if (page === 'product' && opts?.product) return apply(forProduct(opts.product));
     if (page === 'category' && opts?.category) return apply(forCategory(opts.category));

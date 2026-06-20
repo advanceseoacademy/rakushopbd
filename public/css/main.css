@@ -1607,8 +1607,17 @@
     height: 52px;
   }
 
-  .home-review-avatar,
   .home-review-avatar-img {
+    flex-shrink: 0;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    object-fit: cover;
+    display: block;
+    box-shadow: 0 3px 10px rgba(32, 96, 32, 0.25);
+  }
+
+  .home-review-avatar {
     flex-shrink: 0;
     width: 52px;
     height: 52px;
@@ -1621,7 +1630,15 @@
     color: #fff;
     box-shadow: 0 3px 10px rgba(32, 96, 32, 0.25);
     background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-    object-fit: cover;
+  }
+
+  .home-review-avatar-wrap .home-review-avatar {
+    position: absolute;
+    inset: 0;
+  }
+
+  .home-review-avatar-wrap .home-review-avatar[hidden] {
+    display: none !important;
   }
 
   .home-review-avatar.accent {
@@ -1719,7 +1736,8 @@
       gap: 10px;
     }
 
-    .home-review-avatar {
+    .home-review-avatar,
+    .home-review-avatar-img {
       width: 40px;
       height: 40px;
       font-size: 13px;

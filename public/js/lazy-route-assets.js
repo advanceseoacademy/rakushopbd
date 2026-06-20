@@ -51,35 +51,39 @@
     },
     faq: {
       js: ['/js/faq.js?v=5'],
-      css: ['/css/pages.css?v=6'],
+      css: ['/css/pages.css?v=7'],
+    },
+    about: {
+      js: ['/js/about.js?v=1'],
+      css: ['/css/pages.css?v=7'],
     },
     contact: {
       js: ['/js/contact.js?v=4'],
-      css: ['/css/pages.css?v=6'],
+      css: ['/css/pages.css?v=7'],
     },
     track: {
       js: ['/js/track.js?v=3'],
-      css: ['/css/pages.css?v=6'],
+      css: ['/css/pages.css?v=7'],
     },
     privacy: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=6'],
+      css: ['/css/pages.css?v=7'],
     },
     terms: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=6'],
+      css: ['/css/pages.css?v=7'],
     },
     return: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=6'],
+      css: ['/css/pages.css?v=7'],
     },
     preorder: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=6'],
+      css: ['/css/pages.css?v=7'],
     },
     points: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=6'],
+      css: ['/css/pages.css?v=7'],
     },
     cart: {
       css: ['/css/cart.css?v=7'],
@@ -91,7 +95,7 @@
       css: ['/css/checkout-modal.css?v=16'],
     },
     product: {
-      css: ['/css/reviews.css?v=5'],
+      css: ['/css/reviews.css?v=6'],
     },
   };
 

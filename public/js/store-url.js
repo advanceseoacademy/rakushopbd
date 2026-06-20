@@ -8,6 +8,8 @@
     '/': 'home',
     '/appointment': 'appointment',
     '/faq': 'faq',
+    '/about': 'about',
+    '/about-us': 'about',
     '/contact': 'contact',
     '/track': 'track',
     '/cart': 'cart',

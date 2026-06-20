@@ -1825,7 +1825,18 @@
   }
 
   function openPopupSitePreview() {
-    const id = POPUP_DEFAULT_TEMPLATES[activePopupTabIdx]?.id || 'gift';
+    updatePopupLivePreview();
+    const tpl = collectPopupTemplateFromForm(activePopupTabIdx);
+    const fileEl = document.getElementById(`popup-tpl-${activePopupTabIdx}-file`);
+    const pending = fileEl?.files?.[0];
+    if (pending && !tpl.image) tpl.image = URL.createObjectURL(pending);
+    const id = tpl.id || POPUP_DEFAULT_TEMPLATES[activePopupTabIdx]?.id || 'gift';
+    try {
+      sessionStorage.setItem(
+        'raku_popup_preview_draft',
+        JSON.stringify({ id, template: tpl, ts: Date.now() })
+      );
+    } catch (_) {}
     window.open(`/?popup_preview=1&popup_template=${encodeURIComponent(id)}`, '_blank', 'noopener');
   }
 

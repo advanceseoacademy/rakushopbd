@@ -4,6 +4,7 @@
 (function () {
   const API = (window.RAKU_API_BASE || '') + '/api';
   const LAST_SEEN_KEY = 'raku_popup_last_seen_at';
+  const POPUP_PREVIEW_DRAFT_KEY = 'raku_popup_preview_draft';
   const POPUP_DELAY_MS = 1500;
 
   const MARKETING_DEFAULTS = {
@@ -42,6 +43,18 @@
 
   function isPopupPreviewMode() {
     return getUrlParam('popup_preview') === '1';
+  }
+
+  function readPopupPreviewDraft() {
+    if (!isPopupPreviewMode()) return null;
+    try {
+      const raw = sessionStorage.getItem(POPUP_PREVIEW_DRAFT_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      const tpl = data?.template;
+      if (tpl && typeof tpl === 'object') return tpl;
+    } catch (_) {}
+    return null;
   }
 
   function marketingValue(settings, key) {
@@ -134,7 +147,7 @@
   }
 
   function openGiftPopup() {
-    if (!marketingEnabled || !popupEnabled) return;
+    if (!isPopupPreviewMode() && (!marketingEnabled || !popupEnabled)) return;
     if (!isPopupPreviewMode() && !isHomeRoute()) return;
     if (!activeTemplate) return;
     const popup = document.getElementById('gift-popup');
@@ -149,7 +162,7 @@
 
   function scheduleGiftPopup() {
     cancelGiftPopupTimer();
-    if (!marketingEnabled || !popupEnabled) return;
+    if (!isPopupPreviewMode() && (!marketingEnabled || !popupEnabled)) return;
     if (isPopupPreviewMode()) return setTimeout(openGiftPopup, 50);
     if (!isHomeRoute()) return;
     const lastSeenAt = getPopupLastSeenAt();
@@ -159,7 +172,9 @@
   }
 
   function pickActiveTemplate() {
+    const draft = readPopupPreviewDraft();
     const forced = getUrlParam('popup_template');
+    if (draft && (!forced || String(draft.id) === String(forced))) return draft;
     if (forced) {
       const hit = popupTemplates.find((t) => String(t?.id) === String(forced));
       if (hit) return hit;
@@ -295,7 +310,7 @@
     if (!Array.isArray(popupTemplates)) popupTemplates = [];
     activeTemplate = pickActiveTemplate();
 
-    if (!marketingEnabled) {
+    if (!marketingEnabled && !isPopupPreviewMode()) {
       section.hidden = true;
       cancelGiftPopupTimer();
       closeGiftPopup();
@@ -432,6 +447,10 @@
   document.addEventListener('raku:bootstrap', (e) => {
     const settings = e.detail?.settings;
     const run = () => applyHomeMarketing(settings);
+    if (isPopupPreviewMode()) {
+      run();
+      return;
+    }
     if (window.rakuWhenVisible) {
       window.rakuWhenVisible('home-marketing', run, { rootMargin: '320px' });
     } else if (window.rakuScheduleIdle) {
@@ -443,7 +462,9 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     bindForms();
-    if (window.__RAKU_BOOTSTRAP?.settings && !window.rakuWhenVisible) {
+    if (isPopupPreviewMode() && window.__RAKU_BOOTSTRAP?.settings) {
+      applyHomeMarketing(window.__RAKU_BOOTSTRAP.settings);
+    } else if (window.__RAKU_BOOTSTRAP?.settings && !window.rakuWhenVisible) {
       applyHomeMarketing(window.__RAKU_BOOTSTRAP.settings);
     }
   });

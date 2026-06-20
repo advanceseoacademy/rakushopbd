@@ -99,6 +99,22 @@
     if (!first.getAttribute('height')) first.setAttribute('height', '480');
   }
 
+  function getTrack() {
+    return document.getElementById('hero-banner-slider-track');
+  }
+
+  function slidesFromDomTrack(track) {
+    if (!track) return [];
+    return Array.from(track.children).map((el) => {
+      const img = el.querySelector('.hero-banner-slide-photo');
+      return {
+        image: img?.getAttribute('src') || '',
+        link: el.getAttribute('href') || '',
+        alt: img?.getAttribute('alt') || '',
+      };
+    });
+  }
+
   function getDots() {
     return document.getElementById('hero-banner-slider-dots');
   }
@@ -183,8 +199,14 @@
     const data = payload?.slides ? payload : payload?.heroSideSlider || {};
     slides = Array.isArray(data.slides) ? data.slides.filter((s) => s?.image) : [];
     intervalMs = Number(data.intervalMs) || 4500;
-    if (data.enabled === false || !slides.length) return false;
-    if (track.children.length !== slides.length) return false;
+    if (data.enabled === false) return false;
+
+    const domCount = track.children.length;
+    if (!domCount) return false;
+    if (slides.length !== domCount) {
+      slides = slidesFromDomTrack(track).filter((s) => s.image);
+    }
+    if (!slides.length) return false;
 
     heroMain.className = 'hero-main hero-main--slider';
     heroMain.style.cursor = '';
@@ -262,16 +284,35 @@
     mountSlider(payload);
   }
 
+  function tryBootHeroSlider() {
+    const payload = window.__RAKU_BOOTSTRAP?.heroSideSlider;
+    if (payload?.slides?.length) {
+      bootHeroSlider(payload);
+      return;
+    }
+    const track = getTrack();
+    if (track && track.children.length >= 1) {
+      bootHeroSlider({
+        enabled: true,
+        slides: slidesFromDomTrack(track),
+        intervalMs: 4500,
+      });
+    }
+  }
+
   window.syncHeroSideHeight = function syncHeroSideHeight() {};
 
   window.applyHeroSideSliderData = mountSlider;
 
-  if (window.__RAKU_BOOTSTRAP?.heroSideSlider?.slides?.length) {
-    const boot = () => bootHeroSlider(window.__RAKU_BOOTSTRAP.heroSideSlider);
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', boot, { once: true });
-    } else {
-      boot();
-    }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryBootHeroSlider, { once: true });
+  } else {
+    tryBootHeroSlider();
   }
+
+  document.addEventListener('raku:ready', () => {
+    if (window.__RAKU_BOOTSTRAP?.heroSideSlider?.slides?.length) {
+      bootHeroSlider(window.__RAKU_BOOTSTRAP.heroSideSlider);
+    }
+  });
 })();

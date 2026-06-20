@@ -46,7 +46,7 @@
     const avatarCls = avClass ? ` home-review-avatar ${avClass}` : ' home-review-avatar';
     const name = review.customer_name || review.customerName || 'Customer';
     if (url) {
-      return `<div class="home-review-avatar-wrap">${`<img class="home-review-avatar-img" src="${escapeHtml(url)}" alt="" width="52" height="52" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;">`}<div class="${avatarCls.trim()}" hidden>${escapeHtml(initials(name))}</div></div>`;
+      return `<div class="home-review-avatar-wrap"><img class="home-review-avatar-img" src="${escapeHtml(url)}" alt="" width="52" height="52" loading="lazy" decoding="async" onerror="this.hidden=true"><div class="${avatarCls.trim()}" aria-hidden="true">${escapeHtml(initials(name))}</div></div>`;
     }
     return `<div class="${avatarCls.trim()}">${escapeHtml(initials(name))}</div>`;
   }

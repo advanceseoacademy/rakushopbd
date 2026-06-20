@@ -1937,7 +1937,7 @@
     const url = String(r.reviewer_avatar_url || r.reviewerAvatarUrl || '').trim();
     if (url) {
       const src = escapeHtml(url).replace(/"/g, '&quot;');
-      return `<div class="reviewer-avatar-wrap"><img class="reviewer-avatar-img" src="${src}" alt="" width="44" height="44" loading="lazy" decoding="async" onerror="this.hidden=true;this.nextElementSibling.hidden=false;"><div class="reviewer-avatar" hidden>${escapeHtml(initials)}</div></div>`;
+      return `<div class="reviewer-avatar-wrap"><img class="reviewer-avatar-img" src="${src}" alt="" width="44" height="44" loading="lazy" decoding="async" onerror="this.hidden=true"><div class="reviewer-avatar" aria-hidden="true">${escapeHtml(initials)}</div></div>`;
     }
     return `<div class="reviewer-avatar">${escapeHtml(initials)}</div>`;
   }

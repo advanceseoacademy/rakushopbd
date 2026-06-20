@@ -1637,8 +1637,13 @@
     inset: 0;
   }
 
-  .home-review-avatar-wrap .home-review-avatar[hidden] {
+  .home-review-avatar-wrap .home-review-avatar-img:not([hidden]) + .home-review-avatar {
     display: none !important;
+  }
+
+  .home-review-avatar-wrap .home-review-avatar-img[hidden] + .home-review-avatar {
+    display: flex !important;
+    z-index: 2;
   }
 
   .home-review-avatar.accent {

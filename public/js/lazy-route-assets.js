@@ -95,7 +95,7 @@
       css: ['/css/checkout-modal.css?v=16'],
     },
     product: {
-      css: ['/css/reviews.css?v=6'],
+      css: ['/css/reviews.css?v=7'],
     },
   };
 

@@ -1527,6 +1527,15 @@
   }
 
   #section-recommended-for-you[hidden] { display: none !important; }
+
+  @media (max-width: 768px) {
+    #section-recommended-for-you .home-scroll-track .product-card {
+      width: calc((100% - 12px) / 2);
+      min-width: calc((100% - 12px) / 2);
+      max-width: calc((100% - 12px) / 2);
+    }
+  }
+
  .home-recommendations .section-header {
     flex-direction: column;
     align-items: flex-start;

@@ -12,9 +12,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="preload" href="/css/home.bundle.css?v=10" as="style">
+<link rel="preload" href="/css/home.bundle.css?v=12" as="style">
 <link rel="preload" href="/fonts/tabler-icons.woff2?v=3" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/home.bundle.css?v=10">
+<link rel="stylesheet" href="/css/home.bundle.css?v=12">
 <link rel="stylesheet" href="/css/home-marketing.css?v=8" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-marketing.css?v=8"></noscript>
 <link rel="stylesheet" href="/css/popup-themes.css?v=1" media="print" onload="this.media='all'">
@@ -200,14 +200,17 @@
  </section>
 
  <!-- Recommended For You (behavior-based) -->
- <section class="home-product-section home-recommendations raku-below-fold" id="section-recommended-for-you" hidden>
+ <section class="home-product-section home-recommendations raku-below-fold" id="section-recommended-for-you">
  <div class="section-header">
  <h2 class="section-title"><i class="ti ti-sparkles" style="color:var(--primary);font-size:20px;vertical-align:-2px;"></i> Recommended For You</h2>
  <p class="home-reviews-sub" id="recommended-subtitle">Picks based on your shopping activity</p>
  </div>
  <div class="home-scroll-wrap">
  <div class="home-scroll-track" id="track-recommended-for-you">
- <p class="home-scroll-loading">Finding picks for you...</p>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
+ <div class="product-card product-card--skeleton"><div class="prod-img skeleton-block"></div><div class="prod-info"><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span><span class="skeleton-block skeleton-block--xs"></span></div></div>
  </div>
  </div>
  </section>
@@ -552,7 +555,7 @@
  <input class="qty-input" type="text" value="1" readonly aria-label="Quantity">
  <button type="button" class="qty-btn" data-dir="up" aria-label="Increase quantity">+</button>
  </div>
- <span class="pv-stock"><i class="ti ti-circle-check-filled"></i> <%= _pv ? _pv.stockLabel : 'In stock (47 left)' %></span>
+ <span class="pv-stock"><i class="ti ti-circle-check-filled"></i> <%= _pv ? _pv.stockLabel : 'In stock' %></span>
  </div>
 
  <div class="pv-specs-inline" id="pv-specs-inline" hidden></div>
@@ -1671,9 +1674,9 @@
 <script src="/js/home-today-deals.js?v=5" defer></script>
 <script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/product-description-html.js?v=1" defer></script>
-<script src="/js/storefront-dynamic.js?v=65" defer></script>
-<script src="/js/api.js?v=125" defer></script>
-<script src="/js/home-recommendations.js?v=7" defer></script>
+<script src="/js/storefront-dynamic.js?v=66" defer></script>
+<script src="/js/api.js?v=127" defer></script>
+<script src="/js/home-recommendations.js?v=10" defer></script>
 <script src="/js/home-messenger-chats.js?v=6" defer></script>
 <script src="/js/home-customer-reviews.js?v=17" defer></script>
 <script src="/js/home-marketing.js?v=18" defer></script>

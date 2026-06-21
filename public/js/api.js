@@ -723,7 +723,10 @@
     { id: 'track-messenger-reviews', cardSel: '.home-messenger-card', minWidth: 220 },
   ];
 
-  function visibleHomeScrollCards() {
+  function visibleHomeScrollCards(trackId) {
+    if (trackId === 'track-recommended-for-you') {
+      return window.matchMedia('(max-width: 768px)').matches ? 2 : 4;
+    }
     if (window.matchMedia('(max-width: 768px)').matches) return 2;
     if (window.matchMedia('(max-width: 1024px)').matches) return 3;
     return 4;
@@ -784,7 +787,7 @@
     const measured = measureTrackCards(
       document.getElementById(trackId),
       '.product-card',
-      visibleHomeScrollCards,
+      () => visibleHomeScrollCards(trackId),
       120
     );
     if (measured) applyMeasuredWidths(measured);
@@ -796,7 +799,7 @@
       const measured = measureTrackCards(
         document.getElementById(trackId),
         '.product-card',
-        visibleHomeScrollCards,
+        () => visibleHomeScrollCards(trackId),
         120
       );
       if (measured) measurements.push(measured);

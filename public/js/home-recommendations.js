@@ -93,7 +93,7 @@
   }
 
   function popularFromBootstrap() {
-    const boot = window.__RAKU_BOOTSTRAP;
+    const boot = window.__RAKU_BOOTSTRAP || window._rakuStoreBoot;
     if (!boot?.ok) return null;
     const pool = [...(boot.bestSelling || []), ...(boot.newArrivals || [])];
     const seen = new Set();
@@ -127,15 +127,22 @@
       const data = await res.json();
       if (data?.ok && Array.isArray(data.products) && data.products.length) return data;
     } catch (_) {}
+    const bootFallback = popularFromBootstrap();
+    if (bootFallback) return bootFallback;
     return fetchFallbackProducts();
   }
 
   async function waitForCardRenderer() {
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 80; i++) {
       if (window.productCardHtml) return true;
       await new Promise((r) => setTimeout(r, 50));
     }
     return false;
+  }
+
+  function showSection() {
+    const section = document.getElementById('section-recommended-for-you');
+    if (section) section.hidden = false;
   }
 
   function paintRecommendations(data) {
@@ -151,11 +158,11 @@
     }
 
     if (!window.productCardHtml) {
-      section.hidden = true;
+      showSection();
       return;
     }
 
-    section.hidden = false;
+    showSection();
     if (sub && data.reasonLabel) sub.textContent = data.reasonLabel;
 
     if (window._rakuStopHomeScrollAuto) window._rakuStopHomeScrollAuto('track-recommended-for-you');
@@ -178,6 +185,7 @@
 
   let refreshTimer = null;
   let loading = false;
+  let cardRetryTimer = null;
 
   function scheduleRefresh() {
     if (refreshTimer) clearTimeout(refreshTimer);
@@ -192,13 +200,22 @@
     if (!section || !track || loading) return;
 
     loading = true;
+    showSection();
     try {
-      await waitForCardRenderer();
       const data = await fetchRecommendations();
       if (!data) {
         section.hidden = true;
         return;
       }
+
+      const hasRenderer = await waitForCardRenderer();
+      if (!hasRenderer) {
+        paintRecommendations(data);
+        if (cardRetryTimer) clearTimeout(cardRetryTimer);
+        cardRetryTimer = setTimeout(() => void loadRecommendations(), 300);
+        return;
+      }
+
       paintRecommendations(data);
     } finally {
       loading = false;
@@ -210,22 +227,8 @@
   function bootRecommendations() {
     const page = document.getElementById('page-home');
     if (!page || page.style.display === 'none') return;
-    const run = () => void loadRecommendations();
-    if (hasBehaviorSignals()) {
-      if (window.rakuWhenVisible) {
-        window.rakuWhenVisible('section-recommended-for-you', run, { rootMargin: '120px' });
-      } else if (window.rakuScheduleIdle) {
-        window.rakuScheduleIdle(run, { timeout: 3500 });
-      } else {
-        run();
-      }
-      return;
-    }
-    if (window.rakuScheduleIdle) {
-      window.rakuScheduleIdle(run, { timeout: 5000 });
-    } else {
-      setTimeout(run, 1200);
-    }
+    showSection();
+    void loadRecommendations();
   }
 
   document.addEventListener('raku:ready', bootRecommendations);

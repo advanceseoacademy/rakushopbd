@@ -856,7 +856,7 @@
       const s = Number(p.stock) || 0;
       stock.innerHTML =
         s > 0
-          ? `<i class="ti ti-circle-check-filled"></i> In stock (${s} left)`
+          ? `<i class="ti ti-circle-check-filled"></i> In stock`
           : `<i class="ti ti-alert-circle"></i> Out of stock`;
       stock.style.color = s > 0 ? 'var(--green)' : 'var(--accent)';
     }

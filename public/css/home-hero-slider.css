@@ -181,7 +181,6 @@
 
 @media (max-width: 768px) {
   .hero-banner-slider-dots {
-    gap: 4px;
-    padding: 4px 8px;
+    display: none;
   }
 }

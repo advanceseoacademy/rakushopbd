@@ -1458,7 +1458,7 @@
     scroll-padding: 4px;
     padding: 4px 4px 8px;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
+    touch-action: manipulation;
     scrollbar-width: none;
     -ms-overflow-style: none;
     scroll-behavior: smooth;

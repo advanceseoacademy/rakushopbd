@@ -837,6 +837,7 @@
 
   let homeScrollResizeBound = false;
   function bindHomeScrollResize() {
+    bindAllMobileHorizontalTrackScrollFixes();
     if (homeScrollResizeBound) return;
     homeScrollResizeBound = true;
     let timer;
@@ -2923,6 +2924,71 @@
     }
   }
 
+  function bindMobileHorizontalTrackScrollFix(track) {
+    if (!track || track._rakuMobileHScrollFix) return;
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    track._rakuMobileHScrollFix = true;
+
+    let startX = 0;
+    let startY = 0;
+    let axis = null;
+
+    const clearAxis = () => {
+      axis = null;
+      track.style.removeProperty('touch-action');
+      track.style.removeProperty('overflow-x');
+    };
+
+    track.addEventListener(
+      'touchstart',
+      (e) => {
+        if (e.touches.length !== 1) return;
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        axis = null;
+        track.style.removeProperty('touch-action');
+        track.style.removeProperty('overflow-x');
+      },
+      { passive: true }
+    );
+
+    track.addEventListener(
+      'touchmove',
+      (e) => {
+        if (e.touches.length !== 1) return;
+        const dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+          axis = Math.abs(dy) > Math.abs(dx) ? 'y' : 'x';
+          if (axis === 'y') {
+            track.style.touchAction = 'pan-y';
+            track.style.overflowX = 'hidden';
+          } else {
+            track.style.touchAction = 'pan-x';
+          }
+        }
+      },
+      { passive: true }
+    );
+
+    track.addEventListener('touchend', clearAxis, { passive: true });
+    track.addEventListener('touchcancel', clearAxis, { passive: true });
+  }
+
+  function bindAllMobileHorizontalTrackScrollFixes() {
+    if (!window.matchMedia('(max-width: 768px)').matches) return;
+    [
+      ...HOME_PRODUCT_TRACK_IDS,
+      ...HOME_CAROUSEL_TRACKS.map((t) => t.id),
+      'home-category-track',
+      'trust-bar',
+      'today-deals-grid',
+    ].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) bindMobileHorizontalTrackScrollFix(el);
+    });
+  }
+
   function initHomeScrollAuto(trackId, intervalMs = 3200) {
     stopHomeScrollAuto(trackId);
     const track = document.getElementById(trackId);
@@ -3019,6 +3085,7 @@
   }
 
   function initAllHomeScrollAuto() {
+    bindAllMobileHorizontalTrackScrollFixes();
     initHomeScrollAuto('track-best-selling', 3200);
     initHomeScrollAuto('track-new-arrivals', 3600);
     initHomeScrollAuto('track-recommended-for-you', 3500);
@@ -3030,6 +3097,7 @@
   window._rakuInitHomeScrollAuto = initHomeScrollAuto;
   window._rakuStopHomeScrollAuto = stopHomeScrollAuto;
   window._rakuSyncHomeCarouselCardWidths = syncHomeCarouselCardWidths;
+  window._rakuBindMobileHorizontalTrackScrollFix = bindMobileHorizontalTrackScrollFix;
 
   function paintHomeScrollTrack(trackId, list) {
     const track = document.getElementById(trackId);

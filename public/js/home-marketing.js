@@ -147,7 +147,7 @@
   }
 
   function openGiftPopup() {
-    if (!isPopupPreviewMode() && (!marketingEnabled || !popupEnabled)) return;
+    if (!isPopupPreviewMode() && !popupEnabled) return;
     if (!isPopupPreviewMode() && !isHomeRoute()) return;
     if (!activeTemplate) return;
     const popup = document.getElementById('gift-popup');
@@ -162,7 +162,7 @@
 
   function scheduleGiftPopup() {
     cancelGiftPopupTimer();
-    if (!isPopupPreviewMode() && (!marketingEnabled || !popupEnabled)) return;
+    if (!isPopupPreviewMode() && !popupEnabled) return;
     if (isPopupPreviewMode()) return setTimeout(openGiftPopup, 50);
     if (!isHomeRoute()) return;
     const lastSeenAt = getPopupLastSeenAt();
@@ -287,11 +287,8 @@
     }
   }
 
-  function applyHomeMarketing(settings) {
-    const section = document.getElementById('home-marketing');
-    if (!section || !settings) return;
-
-    marketingEnabled = settings.marketing_enabled !== '0';
+  function loadPopupConfig(settings) {
+    if (!settings) return;
     popupEnabled = String(settings.popup_enabled ?? '1') !== '0';
     popupIntervalHours = Number(settings.popup_interval_hours || 24) || 24;
     popupActiveTemplateId = String(settings.popup_active_template || 'gift').trim() || 'gift';
@@ -309,11 +306,35 @@
     });
     if (!Array.isArray(popupTemplates)) popupTemplates = [];
     activeTemplate = pickActiveTemplate();
+  }
 
-    if (!marketingEnabled && !isPopupPreviewMode()) {
-      section.hidden = true;
+  function applyPopupFromSettings(settings) {
+    loadPopupConfig(settings);
+    if (!popupEnabled && !isPopupPreviewMode()) {
       cancelGiftPopupTimer();
       closeGiftPopup();
+      return;
+    }
+    if (!activeTemplate) {
+      cancelGiftPopupTimer();
+      closeGiftPopup();
+      return;
+    }
+    paintGiftPopup(settings);
+    if (isHomeRoute() || isPopupPreviewMode()) scheduleGiftPopup();
+    else {
+      cancelGiftPopupTimer();
+      closeGiftPopup();
+    }
+  }
+
+  function applyMarketingCards(settings) {
+    const section = document.getElementById('home-marketing');
+    if (!section || !settings) return;
+
+    marketingEnabled = settings.marketing_enabled !== '0';
+    if (!marketingEnabled && !isPopupPreviewMode()) {
+      section.hidden = true;
       return;
     }
 
@@ -347,12 +368,30 @@
     }
 
     paintImage(document.getElementById('marketing-img-2'), marketingValue(settings, 'marketing_card2_image'));
-    paintGiftPopup(settings);
+  }
 
-    if (isHomeRoute() || isPopupPreviewMode()) scheduleGiftPopup();
-    else {
-      cancelGiftPopupTimer();
-      closeGiftPopup();
+  function applyHomeMarketing(settings) {
+    if (!settings) return;
+    applyPopupFromSettings(settings);
+    applyMarketingCards(settings);
+  }
+
+  function bootHomeMarketing(settings) {
+    if (!settings) return;
+    applyPopupFromSettings(settings);
+    if (isPopupPreviewMode()) {
+      applyMarketingCards(settings);
+      return;
+    }
+    const section = document.getElementById('home-marketing');
+    if (!section) return;
+    const runCards = () => applyMarketingCards(settings);
+    if (window.rakuWhenVisible) {
+      window.rakuWhenVisible('home-marketing', runCards, { rootMargin: '320px' });
+    } else if (window.rakuScheduleIdle) {
+      window.rakuScheduleIdle(runCards, { timeout: 3500 });
+    } else {
+      runCards();
     }
   }
 
@@ -436,7 +475,9 @@
 
     document.addEventListener('raku:navigate', (e) => {
       if (e.detail?.page === 'home') {
-        scheduleGiftPopup();
+        const settings = window.__RAKU_BOOTSTRAP?.settings || window._rakuStoreSettings;
+        if (settings) applyPopupFromSettings(settings);
+        else scheduleGiftPopup();
         return;
       }
       cancelGiftPopupTimer();
@@ -445,28 +486,18 @@
   }
 
   document.addEventListener('raku:bootstrap', (e) => {
-    const settings = e.detail?.settings;
-    const run = () => applyHomeMarketing(settings);
-    if (isPopupPreviewMode()) {
-      run();
-      return;
-    }
-    if (window.rakuWhenVisible) {
-      window.rakuWhenVisible('home-marketing', run, { rootMargin: '320px' });
-    } else if (window.rakuScheduleIdle) {
-      window.rakuScheduleIdle(run, { timeout: 3500 });
-    } else {
-      run();
-    }
+    bootHomeMarketing(e.detail?.settings);
   });
 
+  function bootWhenReady() {
+    const settings = window.__RAKU_BOOTSTRAP?.settings || window._rakuStoreSettings;
+    if (settings) bootHomeMarketing(settings);
+  }
+
+  document.addEventListener('raku:ready', bootWhenReady);
   document.addEventListener('DOMContentLoaded', () => {
     bindForms();
-    if (isPopupPreviewMode() && window.__RAKU_BOOTSTRAP?.settings) {
-      applyHomeMarketing(window.__RAKU_BOOTSTRAP.settings);
-    } else if (window.__RAKU_BOOTSTRAP?.settings && !window.rakuWhenVisible) {
-      applyHomeMarketing(window.__RAKU_BOOTSTRAP.settings);
-    }
+    bootWhenReady();
   });
 
   window._rakuApplyHomeMarketing = applyHomeMarketing;

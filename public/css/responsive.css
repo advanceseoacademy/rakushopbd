@@ -952,6 +952,28 @@ svg {
     font-size: 14px;
   }
 
+  /* Horizontal rows must not trap vertical page scroll on touch devices */
+  .home-scroll-track,
+  .today-deals-scroll-track,
+  .trust-bar {
+    touch-action: pan-y pinch-zoom;
+    scroll-snap-type: none;
+    overflow-y: visible;
+  }
+
+  .home-scroll-track .product-card,
+  .home-scroll-track .home-review-card,
+  .home-scroll-track .home-messenger-card,
+  .trust-bar .trust-item {
+    scroll-snap-align: unset;
+  }
+
+  .category-scroll-wrap--home #home-category-track {
+    scroll-snap-type: x proximity;
+    touch-action: manipulation;
+    overflow-y: visible;
+  }
+
   .today-deals-scroll-track .today-deals-card-foot {
     flex-direction: column;
     align-items: stretch;

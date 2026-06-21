@@ -202,6 +202,10 @@
     const track = document.getElementById('today-deals-grid');
     if (!track) return;
 
+    if (window._rakuBindMobileHorizontalTrackScrollFix) {
+      window._rakuBindMobileHorizontalTrackScrollFix(track);
+    }
+
     requestAnimationFrame(() => {
       syncTodayDealsCardWidths();
       setTimeout(() => {

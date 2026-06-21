@@ -259,6 +259,9 @@
 @media (max-width: 768px) {
   .today-deals-scroll-track {
     gap: 12px;
+    touch-action: pan-y pinch-zoom;
+    scroll-snap-type: none;
+    overflow-y: visible;
   }
 
   .today-deals-scroll-track .today-deals-card {

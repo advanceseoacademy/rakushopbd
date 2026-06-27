@@ -246,17 +246,51 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  function runPageInits(name) {
+  async function ensureBlogReady() {
+    if (window._rakuInitBlogPage) return true;
+    if (window.rakuEnsureRouteAssets) {
+      try {
+        await window.rakuEnsureRouteAssets('blog');
+      } catch (_) {}
+    }
+    if (window._rakuInitBlogPage) return true;
+    if (document.querySelector('script[src*="/js/blog.js"]')) {
+      await new Promise((resolve) => {
+        const started = Date.now();
+        const tick = () => {
+          if (window._rakuInitBlogPage) return resolve(true);
+          if (Date.now() - started > 4000) return resolve(false);
+          setTimeout(tick, 50);
+        };
+        tick();
+      });
+      return Boolean(window._rakuInitBlogPage);
+    }
+    return new Promise((resolve) => {
+      const script = document.createElement('script');
+      script.src = '/js/blog.js?v=3';
+      script.defer = true;
+      script.onload = () => resolve(Boolean(window._rakuInitBlogPage));
+      script.onerror = () => resolve(false);
+      document.head.appendChild(script);
+    });
+  }
+
+  async function runPageInits(name) {
     if (name === 'appointment' && window._rakuInitAppointmentPage) {
       window._rakuInitAppointmentPage();
     }
     if (name === 'faq' && window._rakuInitFaqPage) {
       window._rakuInitFaqPage();
     }
-    if (name === 'blog' && window._rakuInitBlogPage) {
-      const parts = (location.pathname || '').split('/').filter(Boolean);
-      const slug = parts[0] === 'blog' && parts[1] ? decodeURIComponent(parts[1]) : null;
-      window._rakuInitBlogPage(slug);
+    if (name === 'blog') {
+      await ensureBlogReady();
+      if (window._rakuInitBlogPage) {
+        const parts = (location.pathname || '').split('/').filter(Boolean);
+        const slug = parts[0] === 'blog' && parts[1] ? decodeURIComponent(parts[1]) : null;
+        window._rakuInitBlogPage(slug);
+      }
+      return;
     }
     if (name === 'about' && window._rakuInitAboutPage) {
       window._rakuInitAboutPage();
@@ -323,7 +357,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.dispatchEvent(new CustomEvent('raku:navigate', { detail: { page: name } }));
 
-    const finish = () => runPageInits(name);
+    const finish = () => {
+      void runPageInits(name);
+    };
     const assets = window.rakuEnsureRouteAssets ? window.rakuEnsureRouteAssets(name) : Promise.resolve();
     assets.then(finish).catch(finish);
   }
@@ -699,9 +735,7 @@ document.addEventListener('DOMContentLoaded', function() {
   };
   setTimeout(async () => {
     if (initialRoute.page === 'blog') {
-      try {
-        await window.rakuEnsureRouteAssets?.('blog');
-      } catch (_) {}
+      await ensureBlogReady();
       window._rakuInitBlogPage?.(initialRoute.blogSlug || null);
       return;
     }

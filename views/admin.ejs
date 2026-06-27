@@ -10,7 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/tabler-icons-subset.css?v=3">
 <link rel="stylesheet" href="/css/brand-tokens.css?v=3">
-<link rel="stylesheet" href="/css/admin.css?v=26">
+<link rel="stylesheet" href="/css/admin.css?v=32">
 <link rel="stylesheet" href="/css/popup-themes.css?v=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
@@ -70,6 +70,7 @@
         <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="points"><i class="ti ti-award"></i> Reward Point Policy</button>
       </div>
     </div>
+    <div class="nav-item" data-page="blog" data-super-only><i class="ti ti-file-text"></i> Blog</div>
     <div class="nav-item" data-page="coupons" data-super-only><i class="ti ti-discount"></i> Coupons</div>
     <div class="nav-item" data-page="reviews" data-super-only><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
     <div class="nav-item" data-page="review-videos" data-super-only><i class="ti ti-video"></i> Review Videos <span class="nav-badge nav-badge-amber" id="review-video-badge">0</span></div>
@@ -421,6 +422,100 @@
           </div>
           <table class="tbl"><thead><tr><th>Order</th><th>Question</th><th>Answer preview</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody id="faq-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-blog">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Blog Posts</h3>
+            <div class="table-actions">
+              <select class="tbl-select" id="blog-status-filter">
+                <option value="all">All statuses</option>
+                <option value="published">Published</option>
+                <option value="draft">Draft</option>
+              </select>
+              <input class="tbl-search" id="blog-search" type="search" placeholder="Search title or slug…">
+              <button type="button" class="btn btn-primary btn-sm" id="add-blog-btn"><i class="ti ti-plus"></i> New Post</button>
+            </div>
+          </div>
+          <p class="form-hint" style="margin:0 0 12px;padding:0 16px;">Publish articles here — they appear on <a href="/blog" target="_blank" rel="noopener noreferrer">rakushopbd.com/blog</a>.</p>
+          <table class="tbl"><thead><tr><th>Title</th><th>Status</th><th>Published</th><th>Actions</th></tr></thead>
+          <tbody id="blog-tbody"></tbody></table>
+          <div class="pagination-bar" id="blog-pagination"></div>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-blog-form">
+        <div class="product-form-page">
+          <div class="product-form-head">
+            <button type="button" class="btn btn-outline btn-sm" id="blog-form-back"><i class="ti ti-arrow-left"></i> Back to Blog</button>
+            <h2 id="blog-form-title">New Blog Post</h2>
+          </div>
+          <div class="card product-form-card">
+            <form id="blog-form">
+              <input type="hidden" id="blog-id" value="">
+              <div class="form-section-title">Post details</div>
+              <div class="form-group"><label class="form-label">Title *</label><input class="form-input" id="blog-title" required maxlength="255" placeholder="Blog post title"></div>
+              <div class="form-group"><label class="form-label">URL slug</label><input class="form-input" id="blog-slug" placeholder="auto from title"><small class="form-hint">Live URL: <span id="blog-url-preview">/blog/your-slug</span></small></div>
+              <div class="form-group"><label class="form-label">Short excerpt</label><textarea class="form-input form-textarea" id="blog-excerpt" rows="3" maxlength="2000" placeholder="Brief summary for blog listing…"></textarea></div>
+              <div class="form-group">
+                <label class="form-label">Featured image</label>
+                <div class="admin-dropzone" id="blog-featured-dropzone" tabindex="0" role="button" aria-label="Upload featured image by drag and drop or click">
+                  <input type="file" id="blog-featured-file" accept="image/*" hidden>
+                  <div class="admin-dropzone-empty" id="blog-featured-dropzone-empty">
+                    <i class="ti ti-upload" aria-hidden="true"></i>
+                    <p><strong>Drag & drop</strong> image here</p>
+                    <span>or click to browse · PNG, JPG, WebP</span>
+                  </div>
+                  <div class="admin-dropzone-preview" id="blog-featured-dropzone-preview" hidden>
+                    <img id="blog-featured-preview" alt="">
+                    <button type="button" class="btn btn-outline btn-sm admin-dropzone-remove" id="blog-featured-clear"><i class="ti ti-x"></i> Remove</button>
+                  </div>
+                  <p class="admin-dropzone-status" id="blog-featured-upload-status" hidden aria-live="polite"></p>
+                </div>
+                <input class="form-input" id="blog-featured-image" placeholder="/uploads/... or paste image URL" style="margin-top:10px;">
+                <small class="form-hint">Optional hero image for blog listing and article header.</small>
+              </div>
+              <div class="form-section-title">Content</div>
+              <div class="form-group blog-editor-group"><label class="form-label">Article body *</label><p class="form-hint" style="margin:0 0 8px;">Drag & drop images into the editor, or use the image button in the toolbar.</p><textarea class="form-input form-textarea rich-editor-placeholder" id="blog-content" rows="1" placeholder="Write your blog article…"></textarea></div>
+              <details class="form-seo-panel" id="blog-seo-panel">
+                <summary class="form-seo-summary"><i class="ti ti-search"></i> SEO &amp; Search (optional)</summary>
+                <div class="form-seo-body">
+                  <p class="form-hint" style="margin:0 0 12px;">Optional — leave blank to use post title, excerpt and featured image automatically.</p>
+                  <div class="form-group">
+                    <label class="form-label">SEO title</label>
+                    <input class="form-input" id="blog-seo-title" maxlength="255" placeholder="Google search title — leave blank to use post title">
+                    <small class="form-hint">If set: 50–60 characters works best in Google results.</small>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">SEO description</label>
+                    <textarea class="form-input form-textarea" id="blog-seo-desc" rows="3" maxlength="320" placeholder="Meta description for search engines"></textarea>
+                    <small class="form-hint">If set: ~150–160 characters. Otherwise excerpt is used.</small>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">SEO keywords</label>
+                    <input class="form-input" id="blog-seo-keywords" maxlength="255" placeholder="skincare, japanese beauty, bangladesh">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Featured image alt text</label>
+                    <input class="form-input" id="blog-image-alt" maxlength="255" placeholder="Describe the featured image for accessibility &amp; SEO">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Social share image (Open Graph)</label>
+                    <input class="form-input" id="blog-og-image" placeholder="/uploads/... or full URL — optional, overrides featured image on Facebook/WhatsApp">
+                    <small class="form-hint">Recommended size: 1200×630 px for best social previews.</small>
+                  </div>
+                </div>
+              </details>
+              <div class="form-group"><label class="form-label">Status</label><select class="form-input" id="blog-status"><option value="draft">Draft</option><option value="published">Published</option></select></div>
+              <div class="product-form-actions">
+                <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save Post</button>
+                <button type="button" class="btn btn-outline" id="blog-reset">Clear</button>
+                <button type="button" class="btn btn-outline" id="blog-form-cancel">Cancel</button>
+              </div>
+            </form>
+          </div>
         </div>
       </div>
 
@@ -1326,7 +1421,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
-<script src="/js/admin-rich-editor.js?v=6"></script>
-<script src="/js/admin.js?v=105"></script>
+<script src="/js/admin-rich-editor.js?v=12"></script>
+<script src="/js/admin.js?v=114"></script>
 </body>
 </html>

@@ -8,6 +8,7 @@
     '/': 'home',
     '/appointment': 'appointment',
     '/faq': 'faq',
+    '/blog': 'blog',
     '/about': 'about',
     '/about-us': 'about',
     '/contact': 'contact',
@@ -25,6 +26,25 @@
 
   function isLocalDevHost(hostname) {
     return LOCAL_HOSTS.has(String(hostname || '').toLowerCase());
+  }
+
+  function shopOrigin() {
+    const o = String(global.RAKU_SHOP_ORIGIN || '').trim();
+    return o ? o.replace(/\/$/, '') : '';
+  }
+
+  function withShopOrigin(path) {
+    const p = String(path || '').trim();
+    if (!p || !p.startsWith('/') || !shopOrigin()) return p;
+    return shopOrigin() + p;
+  }
+
+  function rakuShopUrl(input) {
+    const raw = String(input || '').trim();
+    if (!raw) return shopOrigin() ? `${shopOrigin()}/` : '/';
+    if (/^https?:\/\//i.test(raw)) return raw;
+    const path = raw.startsWith('/') ? raw : `/${raw}`;
+    return withShopOrigin(path);
   }
 
   function normalizeStoreUrl(input) {
@@ -52,8 +72,8 @@
   function categoryHref(slug) {
     const s = normalizeStoreUrl(slug);
     if (isExternalStoreUrl(s)) return s;
-    if (s.startsWith('/')) return s;
-    return `/category/${encodeURIComponent(s)}`;
+    if (s.startsWith('/')) return withShopOrigin(s);
+    return withShopOrigin(`/category/${encodeURIComponent(s)}`);
   }
 
   function pageFromPath(path) {
@@ -73,12 +93,13 @@
         global.showPage(page);
         return;
       }
-      global.location.href = normalized;
+      global.location.href = withShopOrigin(normalized);
       return;
     }
     if (global.openCategory) global.openCategory(normalized);
   }
 
+  global.rakuShopUrl = rakuShopUrl;
   global.rakuNormalizeStoreUrl = normalizeStoreUrl;
   global.rakuIsExternalStoreUrl = isExternalStoreUrl;
   global.rakuCategoryHref = categoryHref;

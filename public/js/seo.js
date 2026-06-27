@@ -403,6 +403,7 @@
       appointment: 'Book Appointment',
       track: 'Track Order',
       faq: 'FAQ',
+      blog: 'Blog',
       about: 'About Us',
       contact: 'Contact Us',
     };
@@ -516,6 +517,76 @@
     };
   }
 
+  function forBlogPost(post) {
+    const sn = siteName();
+    const path = post?.url || (post?.slug ? `/blog/${encodeURIComponent(post.slug)}` : '/blog');
+    const seoTitle = String(post?.seoTitle || post?.seo_title || '').trim();
+    const seoDesc = String(post?.seoDescription || post?.seo_description || '').trim();
+    const seoKw = String(post?.seoKeywords || post?.seo_keywords || '').trim();
+    const headline = String(post?.title || '').trim() || 'Blog';
+    const title = seoTitle || `${headline} • ${sn}`;
+    const description = truncate(
+      seoDesc ||
+        String(post?.excerpt || '').trim() ||
+        String(post?.content || '')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim() ||
+        `${headline} — ${sn} blog.`
+    );
+    const ogTitle = seoTitle || `${headline} | ${sn}`;
+    const shareImage =
+      String(post?.ogImage || post?.og_image || '').trim() ||
+      String(post?.featuredImageUrl || post?.featured_image_url || '').trim();
+    const ogImage = shareImage ? abs(shareImage) : defaultOgImage();
+    const ogImageAlt = String(post?.imageAlt || post?.image_alt || '').trim() || headline;
+    const canonical = abs(path);
+    return {
+      title,
+      description,
+      keywords: seoKw || settings().seo_meta_keywords || '',
+      canonical,
+      robots: 'index, follow',
+      ogTitle,
+      ogDescription: description,
+      ogUrl: canonical,
+      ogImage,
+      ogType: 'article',
+      ogSiteName: sn,
+      ogImageAlt,
+      ogMeta: buildOgMetaList({
+        ogType: 'article',
+        ogSiteName: sn,
+        ogTitle,
+        ogDescription: description,
+        ogUrl: canonical,
+        ogImage,
+        ogImageAlt,
+        twitterSite: twitterHandle(),
+        includeImageDimensions: ogImage !== defaultOgImage(),
+      }),
+      jsonLd: [
+        {
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          headline,
+          description,
+          datePublished: post?.publishedAt || post?.published_at || post?.createdAt,
+          dateModified: post?.updatedAt || post?.updated_at || post?.publishedAt || post?.createdAt,
+          author: { '@type': 'Organization', name: sn },
+          publisher: {
+            '@type': 'Organization',
+            name: sn,
+            logo: { '@type': 'ImageObject', url: abs('/images/rakushopbd-logo.png') },
+          },
+          mainEntityOfPage: { '@type': 'WebPage', '@id': canonical },
+          url: canonical,
+          ...(ogImage !== defaultOgImage() ? { image: [ogImage] } : {}),
+        },
+      ],
+    };
+  }
+
   function onNavigate(page, opts) {
     if (window.__RAKU_SEO && !window.__RAKU_SEO_CLIENT_READY) {
       return;
@@ -524,6 +595,8 @@
     if (NOINDEX.has(page)) return apply(forPrivatePage(page));
     if (page === 'appointment' || page === 'track') return apply(forPrivatePage(page));
     if (page === 'faq' || page === 'contact' || page === 'about') return apply(forPrivatePage(page));
+    if (page === 'blog' && opts?.blogSlug) return;
+    if (page === 'blog') return apply(forPrivatePage(page));
     if (page === 'privacy' || page === 'terms' || page === 'return' || page === 'preorder' || page === 'points') return apply(forLegalPage(page));
     if (page === 'product' && opts?.product) return apply(forProduct(opts.product));
     if (page === 'category' && opts?.category) return apply(forCategory(opts.category));
@@ -553,6 +626,7 @@
     forCategory,
     forPrivatePage,
     forLegalPage,
+    forBlogPost,
     onNavigate,
   };
 

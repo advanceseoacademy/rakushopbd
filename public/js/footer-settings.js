@@ -165,16 +165,23 @@
     });
   }
 
+  function shopHref(path) {
+    const p = String(path || '').trim();
+    if (!p || p === '#') return p;
+    return window.rakuShopUrl ? window.rakuShopUrl(p) : p;
+  }
+
   function linkHtml(link, usePageRoutes) {
     const label = escapeHtml(link.label || 'Link');
     if (link.page) {
       if (usePageRoutes) {
-        const href = escapeHtml(PAGE_HREFS[link.page] || '/');
+        const href = escapeHtml(shopHref(PAGE_HREFS[link.page] || '/'));
         return `<li><a href="${href}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
       }
       return `<li><a href="#" data-footer-page="${escapeHtml(link.page)}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
     }
-    const href = escapeHtml(link.href || '#');
+    const raw = String(link.href || '#').trim();
+    const href = escapeHtml(raw.startsWith('/') ? shopHref(raw) : raw);
     return `<li><a href="${href}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
   }
 

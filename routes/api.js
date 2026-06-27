@@ -1152,6 +1152,58 @@ router.get('/faqs', async (req, res) => {
   }
 });
 
+router.get('/blog/posts', async (req, res) => {
+  try {
+    const { ensureBlogPostsTable } = require('../lib/ensureBlogPostsTable');
+    const { ensureBlogSeoColumns } = require('../lib/ensureBlogSeoColumns');
+    const { blogPostToPublic } = require('../lib/blogPosts');
+    await ensureBlogPostsTable();
+    await ensureBlogSeoColumns();
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 12));
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const offset = (page - 1) * limit;
+    const countRows = await query("SELECT COUNT(*) AS total FROM blog_posts WHERE status = 'published'");
+    const total = Number(countRows[0]?.total ?? Object.values(countRows[0] || {})[0]) || 0;
+    const rows = await query(
+      `SELECT id, title, slug, excerpt, featured_image_url, image_alt, seo_title, seo_description, status, published_at, created_at, updated_at
+       FROM blog_posts WHERE status = 'published'
+       ORDER BY published_at DESC, id DESC LIMIT ? OFFSET ?`,
+      [limit, offset]
+    );
+    cachePublic(res, 60);
+    res.json({
+      ok: true,
+      posts: rows.map((row) => blogPostToPublic(row, { includeContent: false })),
+      pagination: { page, limit, total, pages: Math.max(1, Math.ceil(total / limit)) },
+    });
+  } catch (err) {
+    console.error('blog posts GET', err);
+    res.status(500).json({ ok: false, error: 'Could not load blog posts' });
+  }
+});
+
+router.get('/blog/posts/:slug', async (req, res) => {
+  try {
+    const { ensureBlogPostsTable } = require('../lib/ensureBlogPostsTable');
+    const { ensureBlogSeoColumns } = require('../lib/ensureBlogSeoColumns');
+    const { blogPostToPublic } = require('../lib/blogPosts');
+    await ensureBlogPostsTable();
+    await ensureBlogSeoColumns();
+    const slug = String(req.params.slug || '').trim();
+    if (!slug) return res.status(400).json({ ok: false, error: 'Invalid slug' });
+    const rows = await query(
+      `SELECT * FROM blog_posts WHERE slug = ? AND status = 'published' LIMIT 1`,
+      [slug]
+    );
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Post not found' });
+    cachePublic(res, 120);
+    res.json({ ok: true, post: blogPostToPublic(rows[0]) });
+  } catch (err) {
+    console.error('blog post GET', err);
+    res.status(500).json({ ok: false, error: 'Could not load blog post' });
+  }
+});
+
 router.get('/legal-pages/:slug', async (req, res) => {
   try {
     const { getLegalPageFromSettings, LEGAL_SLUGS } = require('../lib/legalPages');

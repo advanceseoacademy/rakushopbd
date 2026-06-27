@@ -133,7 +133,10 @@
     input.blur();
     if (window.openProduct) window.openProduct(id);
     else if (window.showPage) window.showPage('product');
-    else window.location.href = `/product/${encodeURIComponent(id)}`;
+    else {
+      const path = `/product/${encodeURIComponent(id)}`;
+      window.location.href = window.rakuShopUrl ? window.rakuShopUrl(path) : path;
+    }
   }
 
   async function runFullSearch() {
@@ -153,7 +156,8 @@
     else if (window.RAKU_STANDALONE) {
       const params = new URLSearchParams({ search: q });
       if (cat !== 'all') params.set('category', cat);
-      window.location.href = `/?${params.toString()}`;
+      const path = `/?${params.toString()}`;
+      window.location.href = window.rakuShopUrl ? window.rakuShopUrl(path) : path;
       return;
     }
 

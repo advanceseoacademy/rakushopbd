@@ -2667,7 +2667,7 @@
         l._rakuStandaloneBound = true;
         l.addEventListener('click', (e) => {
           e.preventDefault();
-          window.location.href = '/';
+          window.location.href = window.rakuShopUrl ? window.rakuShopUrl('/') : '/';
         });
       });
       ['nav-wishlist-btn', 'nav-wishlist-btn-desktop'].forEach((id) => {
@@ -2676,7 +2676,7 @@
         navWish._rakuBound = true;
         navWish.addEventListener('click', (e) => {
           e.preventDefault();
-          window.location.href = '/wishlist';
+          window.location.href = window.rakuShopUrl ? window.rakuShopUrl('/wishlist') : '/wishlist';
         });
       });
       ['nav-account-btn', 'nav-account-btn-desktop'].forEach((id) => {
@@ -2685,7 +2685,7 @@
         navAcc._rakuBound = true;
         navAcc.addEventListener('click', (e) => {
           e.preventDefault();
-          window.location.href = '/account';
+          window.location.href = window.rakuShopUrl ? window.rakuShopUrl('/account') : '/account';
         });
       });
     }
@@ -2725,7 +2725,7 @@
         e.preventDefault();
         if (window._rakuOpenCart) window._rakuOpenCart();
         else if (window.showPage) window.showPage('cart');
-        else window.location.href = '/cart';
+        else window.location.href = window.rakuShopUrl ? window.rakuShopUrl('/cart') : '/cart';
       });
     });
 

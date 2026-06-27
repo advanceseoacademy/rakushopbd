@@ -51,11 +51,15 @@
     },
     faq: {
       js: ['/js/faq.js?v=5'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=9'],
+    },
+    blog: {
+      js: ['/js/blog.js?v=3'],
+      css: ['/css/pages.css?v=10'],
     },
     about: {
       js: ['/js/about.js?v=2'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=9'],
     },
     contact: {
       js: ['/js/contact.js?v=4'],

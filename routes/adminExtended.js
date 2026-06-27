@@ -710,6 +710,179 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
+  // ——— Blog posts ———
+  router.get('/blog/posts', requireAdmin, async (req, res) => {
+    try {
+      const { ensureBlogPostsTable } = require('../lib/ensureBlogPostsTable');
+      const { ensureBlogSeoColumns } = require('../lib/ensureBlogSeoColumns');
+      const { blogPostToPublic } = require('../lib/blogPosts');
+      await ensureBlogPostsTable();
+      await ensureBlogSeoColumns();
+      const { page, limit, status, search } = req.query;
+      const { page: p, limit: l, offset } = paginate(page, limit);
+      const where = [];
+      const params = [];
+      if (status && status !== 'all') {
+        where.push('status = ?');
+        params.push(String(status));
+      }
+      if (search && String(search).trim()) {
+        where.push('(title LIKE ? OR slug LIKE ?)');
+        const q = `%${String(search).trim()}%`;
+        params.push(q, q);
+      }
+      const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      const countRows = await query(`SELECT COUNT(*) AS total FROM blog_posts ${whereSql}`, params);
+      const total = Number(countRows[0]?.total ?? Object.values(countRows[0] || {})[0]) || 0;
+      const rows = await query(
+        `SELECT * FROM blog_posts ${whereSql} ORDER BY COALESCE(published_at, created_at) DESC, id DESC LIMIT ? OFFSET ?`,
+        [...params, l, offset]
+      );
+      res.json({
+        ok: true,
+        posts: rows.map((row) => blogPostToPublic(row)),
+        pagination: { page: p, limit: l, total, pages: Math.max(1, Math.ceil(total / l)) },
+      });
+    } catch (err) {
+      console.error('admin blog GET', err);
+      res.status(500).json({ ok: false, error: 'Could not load blog posts' });
+    }
+  });
+
+  router.post('/blog/posts', requireAdmin, async (req, res) => {
+    try {
+      const { ensureBlogPostsTable } = require('../lib/ensureBlogPostsTable');
+      const { ensureBlogSeoColumns } = require('../lib/ensureBlogSeoColumns');
+      const {
+        ensureUniqueBlogSlug,
+        normalizeBlogStatus,
+        blogPostPublicUrl,
+        parseBlogSeoFields,
+      } = require('../lib/blogPosts');
+      await ensureBlogPostsTable();
+      await ensureBlogSeoColumns();
+
+      const title = String(req.body?.title || '').trim().slice(0, 255);
+      const content = String(req.body?.content || '').trim().slice(0, 80000);
+      const excerpt = String(req.body?.excerpt || '').trim().slice(0, 2000) || null;
+      const featuredImageUrl = String(req.body?.featuredImageUrl || '').trim().slice(0, 500) || null;
+      const status = normalizeBlogStatus(req.body?.status);
+      const seo = parseBlogSeoFields(req.body);
+      if (!title) return res.status(400).json({ ok: false, error: 'Title is required' });
+      if (!content) return res.status(400).json({ ok: false, error: 'Content is required' });
+
+      const slugInput = String(req.body?.slug || '').trim() || title;
+      const slug = await ensureUniqueBlogSlug(query, slugInput);
+      const publishedAt = status === 'published' ? new Date() : null;
+
+      const result = await query(
+        `INSERT INTO blog_posts (
+          title, slug, excerpt, content, featured_image_url, status, published_at,
+          seo_title, seo_description, seo_keywords, image_alt, og_image
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          title,
+          slug,
+          excerpt,
+          content,
+          featuredImageUrl,
+          status,
+          publishedAt,
+          seo.seoTitle,
+          seo.seoDescription,
+          seo.seoKeywords,
+          seo.imageAlt,
+          seo.ogImage,
+        ]
+      );
+      const id = result?.insertId || result?.[0]?.id;
+      res.json({ ok: true, id, slug, url: blogPostPublicUrl(slug) });
+    } catch (err) {
+      console.error('admin blog POST', err);
+      res.status(500).json({ ok: false, error: 'Could not create blog post' });
+    }
+  });
+
+  router.put('/blog/posts/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureBlogPostsTable } = require('../lib/ensureBlogPostsTable');
+      const { ensureBlogSeoColumns } = require('../lib/ensureBlogSeoColumns');
+      const {
+        ensureUniqueBlogSlug,
+        normalizeBlogStatus,
+        blogPostPublicUrl,
+        parseBlogSeoFields,
+      } = require('../lib/blogPosts');
+      await ensureBlogPostsTable();
+      await ensureBlogSeoColumns();
+
+      const id = Number(req.params.id);
+      if (!id) return res.status(400).json({ ok: false, error: 'Invalid post id' });
+
+      const prev = await query('SELECT id, slug, status, published_at FROM blog_posts WHERE id = ? LIMIT 1', [id]);
+      if (!prev.length) return res.status(404).json({ ok: false, error: 'Post not found' });
+
+      const title = String(req.body?.title || '').trim().slice(0, 255);
+      const content = String(req.body?.content || '').trim().slice(0, 80000);
+      const excerpt = String(req.body?.excerpt || '').trim().slice(0, 2000) || null;
+      const featuredImageUrl = String(req.body?.featuredImageUrl || '').trim().slice(0, 500) || null;
+      const status = normalizeBlogStatus(req.body?.status);
+      const seo = parseBlogSeoFields(req.body);
+      if (!title) return res.status(400).json({ ok: false, error: 'Title is required' });
+      if (!content) return res.status(400).json({ ok: false, error: 'Content is required' });
+
+      const slugInput = String(req.body?.slug || '').trim() || title;
+      const slug = await ensureUniqueBlogSlug(query, slugInput, id);
+
+      let publishedAt = prev[0].published_at || prev[0].publishedAt || null;
+      const prevStatus = normalizeBlogStatus(prev[0].status);
+      if (status === 'published' && (!publishedAt || prevStatus !== 'published')) {
+        publishedAt = new Date();
+      }
+      if (status === 'draft') publishedAt = null;
+
+      await query(
+        `UPDATE blog_posts
+         SET title = ?, slug = ?, excerpt = ?, content = ?, featured_image_url = ?, status = ?, published_at = ?,
+             seo_title = ?, seo_description = ?, seo_keywords = ?, image_alt = ?, og_image = ?
+         WHERE id = ?`,
+        [
+          title,
+          slug,
+          excerpt,
+          content,
+          featuredImageUrl,
+          status,
+          publishedAt,
+          seo.seoTitle,
+          seo.seoDescription,
+          seo.seoKeywords,
+          seo.imageAlt,
+          seo.ogImage,
+          id,
+        ]
+      );
+      res.json({ ok: true, id, slug, url: blogPostPublicUrl(slug) });
+    } catch (err) {
+      console.error('admin blog PUT', err);
+      res.status(500).json({ ok: false, error: 'Could not update blog post' });
+    }
+  });
+
+  router.delete('/blog/posts/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureBlogPostsTable } = require('../lib/ensureBlogPostsTable');
+      await ensureBlogPostsTable();
+      const id = Number(req.params.id);
+      if (!id) return res.status(400).json({ ok: false, error: 'Invalid post id' });
+      await query('DELETE FROM blog_posts WHERE id = ?', [id]);
+      res.json({ ok: true });
+    } catch (err) {
+      console.error('admin blog DELETE', err);
+      res.status(500).json({ ok: false, error: 'Could not delete blog post' });
+    }
+  });
+
   // ——— Contact messages ———
   router.get('/contact-messages', requireAdmin, async (req, res) => {
     try {

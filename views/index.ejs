@@ -22,9 +22,9 @@
 <link rel="stylesheet" href="/css/home-today-deals.css?v=5" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-today-deals.css?v=5"></noscript>
 <% const _initialPage = typeof initialPage !== 'undefined' ? initialPage : 'home'; %>
-<% const _pagesCssPages = ['faq', 'about', 'contact', 'track', 'privacy', 'terms', 'return', 'preorder', 'points', 'appointment']; %>
+<% const _pagesCssPages = ['faq', 'blog', 'about', 'contact', 'track', 'privacy', 'terms', 'return', 'preorder', 'points', 'appointment']; %>
 <% if (_pagesCssPages.includes(_initialPage)) { %>
-<link rel="stylesheet" href="/css/pages.css?v=8">
+<link rel="stylesheet" href="/css/pages.css?v=10">
 <% } %>
 <% if (_initialPage === 'about') { %>
 <script src="/js/about.js?v=2" defer></script>
@@ -779,6 +779,10 @@
 <div id="page-faq" style="display:<%= _initialPage === 'faq' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-faq') %>
 </div><!-- /page-faq -->
+
+<div id="page-blog" style="display:<%= _initialPage === 'blog' ? 'block' : 'none' %>;">
+<%- include('partials/spa-page-blog') %>
+</div><!-- /page-blog -->
 
 <div id="page-about" style="display:<%= _initialPage === 'about' ? 'block' : 'none' %>;">
 <%- include('partials/spa-page-about') %>
@@ -1662,10 +1666,13 @@
 <script>window.__RAKU_SEO=<%- seoJson %>;</script>
 <% } %>
 <script>window.__RAKU_INITIAL_PAGE=<%- JSON.stringify(_initialPage) %>;</script>
+<% if (typeof blogSlug !== 'undefined' && blogSlug) { %>
+<script>window.__RAKU_BLOG_SLUG=<%- JSON.stringify(blogSlug) %>;</script>
+<% } %>
 <script>window.RAKU_API_BASE = '';</script>
 <script src="/js/lazy-route-assets.js?v=5" defer></script>
 <script src="/js/maintenance-view.js?v=4" defer></script>
-<script src="/js/seo.js?v=8" defer></script>
+<script src="/js/seo.js?v=9" defer></script>
 <script src="/js/mobile-menu.js?v=2" defer></script>
 <script src="/js/store-url.js?v=1" defer></script>
 <script src="/js/app.js?v=45" defer></script>

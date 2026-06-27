@@ -478,6 +478,12 @@ table.tbl { width:100%; border-collapse:collapse; }
 .modal-box--product {
   max-width: 640px;
 }
+.modal-box--wide {
+  max-width: 760px;
+}
+.modal-box--tall {
+  max-height: 92vh;
+}
 .form-seo-panel {
   margin: 16px 0;
   border: 1px solid var(--border);
@@ -1486,6 +1492,18 @@ body.banner-modal-open {
 }
 
 /* Rich text editor (Quill) — legal pages & FAQ */
+textarea.rich-editor-source,
+textarea.rich-editor-placeholder {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  resize: none !important;
+}
+
 .rich-editor-box {
   background: #fff;
   border-radius: var(--radius);
@@ -1519,6 +1537,158 @@ body.banner-modal-open {
 
 .rich-editor-box--product .ql-toolbar.ql-snow {
   border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+
+/* Blog editor — sticky toolbar + scrollable writing area */
+.rich-editor-box--blog {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.rich-editor-box--blog .ql-toolbar.ql-snow {
+  position: sticky;
+  top: 57px;
+  z-index: 45;
+  flex: 0 0 auto;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+}
+
+.rich-editor-box--blog .ql-container.ql-snow {
+  flex: 0 0 auto;
+  height: min(52vh, 560px);
+  max-height: min(52vh, 560px);
+  min-height: 280px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.rich-editor-box--blog .ql-editor {
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  height: auto;
+  max-height: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.blog-editor-group > textarea {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Drag & drop upload zones (blog featured image, etc.) */
+.admin-dropzone {
+  position: relative;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  background: #f8fafc;
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s, box-shadow 0.15s;
+}
+
+.admin-dropzone:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.admin-dropzone.is-dragover {
+  border-color: var(--primary);
+  background: var(--primary-pale);
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.15);
+}
+
+.admin-dropzone.is-uploading {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
+.admin-dropzone-empty i {
+  font-size: 32px;
+  color: var(--primary);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.admin-dropzone-empty p {
+  margin: 0 0 4px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.admin-dropzone-empty span {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.admin-dropzone-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.admin-dropzone-preview img {
+  max-width: 100%;
+  max-height: 220px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  object-fit: contain;
+  background: #fff;
+}
+
+.admin-dropzone-status {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.admin-dropzone-status.is-error {
+  color: #dc2626;
+}
+
+.rich-editor-box--blog.is-dragover .ql-container.ql-snow {
+  border-color: var(--primary);
+  background: var(--primary-pale);
+}
+
+.rich-editor-box--blog.is-dragover::after {
+  content: 'Drop image to upload';
+  position: absolute;
+  inset: 42px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(240, 253, 244, 0.92);
+  border-radius: 0 0 var(--radius) var(--radius);
+  pointer-events: none;
+  z-index: 2;
+}
+
+@media (max-width: 768px) {
+  .rich-editor-box--blog .ql-toolbar.ql-snow {
+    top: 52px;
+  }
+
+  .rich-editor-box--blog .ql-container.ql-snow {
+    height: min(45vh, 480px);
+    max-height: min(45vh, 480px);
+    min-height: 240px;
+  }
 }
 
 .rich-editor-box .ql-editor.ql-blank::before {

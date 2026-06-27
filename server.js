@@ -41,6 +41,8 @@ const { ensureRewardPointSettings } = require('./lib/ensureRewardPointSettings')
 const { ensureReviewVideos } = require('./lib/ensureReviewVideos');
 const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
 const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
+const { ensureBlogPostsTable } = require('./lib/ensureBlogPostsTable');
+const { ensureBlogSeoColumns } = require('./lib/ensureBlogSeoColumns');
 const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
 const { ensureTrackingSettings } = require('./lib/ensureTrackingSettings');
 const { ensureNotifyEmailSettings } = require('./lib/ensureNotifyEmailSettings');
@@ -51,10 +53,13 @@ const { buildTrackingScripts } = require('./lib/trackingScripts');
 const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug, resolvePageType } = require('./lib/seo');
 const { buildProductPageVm } = require('./lib/productPageSsr');
 const pageRenderCache = require('./lib/pageRenderCache');
+const { initRedis, isRedisReady, redisConfigured } = require('./lib/redis');
+const { cacheBackendLabel } = require('./lib/appCache');
 const { getSiteSettings } = require('./lib/siteSettings');
 const { imageVariantMiddleware } = require('./lib/imageVariantRoute');
 const { buildImgAttributes } = require('./lib/imageDelivery');
 const { expressStaticOptions, cacheControlPublic, applyStaticAssetCache, ONE_YEAR_SEC, ONE_MONTH_SEC } = require('./lib/httpCache');
+const { isStorefrontSpaPath, STOREFRONT_SPA_EXACT_PATHS } = require('./lib/storefrontSpa');
 const app = express();
 const PORT = process.env.PORT || 3000;
 const { legacyUploadWebpFallback } = require('./lib/legacyUploadWebp');
@@ -179,7 +184,12 @@ registerAdminAuth(app);
 /** Always fast — used by reverse proxy / uptime checks (prevents 503 during warm-up). */
 app.get('/api/health', (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json({ ok: true, uptime: Math.round(process.uptime()) });
+  res.json({
+    ok: true,
+    uptime: Math.round(process.uptime()),
+    cache: cacheBackendLabel(),
+    redis: isRedisReady(),
+  });
 });
 
 /** Live diagnostic (works after git pull + restart) */
@@ -191,6 +201,9 @@ app.get('/api/db-check', async (req, res) => {
     usePostgres: usePostgres(),
     hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
     nodeEnv: process.env.NODE_ENV || null,
+    redisConfigured: redisConfigured(),
+    redisConnected: isRedisReady(),
+    cacheBackend: cacheBackendLabel(),
   };
   try {
     require.resolve('pg');
@@ -226,6 +239,8 @@ async function renderStorefront(req, res) {
     const productRef = productMatch ? decodeURIComponent(productMatch[1]) : null;
     const categoryMatch = req.path.match(/^\/category\/([^/]+)$/);
     const categorySlug = categoryMatch ? decodeURIComponent(categoryMatch[1]) : null;
+    const blogMatch = req.path.match(/^\/blog\/([^/]+)$/);
+    const blogSlug = blogMatch ? decodeURIComponent(blogMatch[1]) : null;
     const pageType = resolvePageType(req);
 
     const bootstrap = await getStoreBootstrap(req, { lite: pageType !== 'home' });
@@ -263,7 +278,7 @@ async function renderStorefront(req, res) {
     let seo;
     let productVm = null;
     const cacheKey = product ? `ssr:product:${product.id}:${product.slug}` : null;
-    const cached = cacheKey ? pageRenderCache.get(cacheKey) : null;
+    const cached = cacheKey ? await pageRenderCache.get(cacheKey) : null;
     if (cached) {
       seo = cached.seo;
       productVm = cached.productVm;
@@ -271,7 +286,7 @@ async function renderStorefront(req, res) {
       seo = await buildPageSeo(req, { bootstrap, product, category });
       if (product) {
         productVm = buildProductPageVm(product, bootstrap?.settings || {});
-        pageRenderCache.set(cacheKey, { seo, productVm });
+        await pageRenderCache.set(cacheKey, { seo, productVm });
       }
     }
 
@@ -325,6 +340,7 @@ async function renderStorefront(req, res) {
       homeSsr,
       initialPage,
       productVm,
+      blogSlug,
     });
   } catch (err) {
     console.error('renderStorefront', err);
@@ -354,13 +370,20 @@ app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 
-// Storefront SPA — clean URLs (no hash)
-app.get(
-  ['/account', '/cart', '/checkout', '/wishlist', '/success', '/appointment', '/faq', '/about', '/about-us', '/contact', '/track', '/privacy-policy', '/terms-and-conditions', '/return-policy', '/pre-order-policy', '/reward-point-policy'],
-  (req, res) => renderStorefront(req, res)
-);
+// Storefront SPA — clean URLs (no hash); reload on /blog, /faq, etc. must serve the app shell
+const STOREFRONT_SPA_PATH_LIST = [...STOREFRONT_SPA_EXACT_PATHS];
+app.get(STOREFRONT_SPA_PATH_LIST, (req, res) => renderStorefront(req, res));
 app.get('/product/:ref', (req, res) => renderStorefront(req, res));
 app.get('/category/:slug', (req, res) => renderStorefront(req, res));
+app.get('/blog/:slug', (req, res) => renderStorefront(req, res));
+
+app.use((req, res, next) => {
+  if (req.method !== 'GET') return next();
+  if (req.path.startsWith('/api') || req.path.startsWith('/admin')) return next();
+  if (path.extname(req.path)) return next();
+  if (!isStorefrontSpaPath(req.path)) return next();
+  return renderStorefront(req, res);
+});
 
 app.use((req, res) => {
   // API 404 stays JSON/plain
@@ -417,9 +440,16 @@ async function startServer() {
     }
   }
 
+  if (redisConfigured()) {
+    const ok = await initRedis();
+    if (ok) console.log('Redis connected — shared cache enabled');
+    else console.warn('Redis configured but unavailable — using in-memory cache only');
+  }
+
   app.listen(PORT, () => {
   const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
-  console.log(`RakuShopBD running — http://localhost:${PORT} [${db}]`);
+  const cache = cacheBackendLabel();
+  console.log(`RakuShopBD running — http://localhost:${PORT} [${db}, cache: ${cache}]`);
   void warmBootstrapCache();
   ensureCategoryParent()
     .then(() => console.log('categories.parent_id ready'))
@@ -451,6 +481,8 @@ async function startServer() {
   ensureReviewVideos().catch((err) => console.warn('review videos table:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
+  ensureBlogPostsTable().catch((err) => console.warn('blog_posts table:', err.message));
+  ensureBlogSeoColumns().catch((err) => console.warn('blog SEO columns:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
   ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));
   ensureNotifyEmailSettings().catch((err) => console.warn('Notify email settings:', err.message));

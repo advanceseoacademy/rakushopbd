@@ -113,9 +113,10 @@ document.addEventListener('DOMContentLoaded', function() {
     preorder: document.getElementById('page-preorder'),
     points: document.getElementById('page-points'),
     track: document.getElementById('page-track'),
+    blog: document.getElementById('page-blog'),
   };
 
-  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'about', 'contact', 'privacy', 'terms', 'return', 'preorder', 'points', 'track'];
+  const PAGE_NAMES = ['home', 'category', 'product', 'cart', 'checkout', 'success', 'account', 'wishlist', 'appointment', 'faq', 'blog', 'about', 'contact', 'privacy', 'terms', 'return', 'preorder', 'points', 'track'];
 
   const PATH_ALIASES = {
     'about-us': 'about',
@@ -138,7 +139,11 @@ document.addEventListener('DOMContentLoaded', function() {
   // Show target route immediately (content fills via bootstrap / API)
   const initialRoute = (function parseInitial() {
     if (window.__RAKU_INITIAL_PAGE && PAGE_NAMES.includes(window.__RAKU_INITIAL_PAGE)) {
-      return { page: window.__RAKU_INITIAL_PAGE };
+      const route = { page: window.__RAKU_INITIAL_PAGE };
+      if (window.__RAKU_INITIAL_PAGE === 'blog' && window.__RAKU_BLOG_SLUG) {
+        route.blogSlug = String(window.__RAKU_BLOG_SLUG);
+      }
+      return route;
     }
     const parts = (location.pathname || '/').split('/').filter(Boolean);
     if (!parts.length) return { page: 'home' };
@@ -149,6 +154,10 @@ document.addEventListener('DOMContentLoaded', function() {
       return { page: 'product', productSlug: decoded };
     }
     if (page === 'category' && param) return { page: 'category', categorySlug: decodeURIComponent(param) };
+    if (page === 'blog') {
+      if (param) return { page: 'blog', blogSlug: decodeURIComponent(param) };
+      return { page: 'blog' };
+    }
     if (PATH_ALIASES[page]) return { page: PATH_ALIASES[page] };
     if (PAGE_NAMES.includes(page)) return { page };
     return { page: 'home' };
@@ -180,6 +189,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (name === 'category' && opts.categorySlug) {
       return `/category/${encodeURIComponent(opts.categorySlug)}`;
     }
+    if (name === 'blog') {
+      if (opts.blogSlug) return `/blog/${encodeURIComponent(opts.blogSlug)}`;
+      return '/blog';
+    }
     if (PAGE_PATHS[name]) return PAGE_PATHS[name];
     return `/${name}`;
   }
@@ -196,6 +209,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (page === 'category' && param) {
       return { page: 'category', categorySlug: decodeURIComponent(param) };
     }
+    if (page === 'blog') {
+      if (param) return { page: 'blog', blogSlug: decodeURIComponent(param) };
+      return { page: 'blog' };
+    }
     if (PATH_ALIASES[page]) return { page: PATH_ALIASES[page] };
     if (PAGE_NAMES.includes(page)) return { page };
     return { page: 'home' };
@@ -206,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
       home: '/',
       appointment: '/appointment',
       faq: '/faq',
+      blog: '/blog',
       contact: '/contact',
       track: '/track',
     };
@@ -234,6 +252,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (name === 'faq' && window._rakuInitFaqPage) {
       window._rakuInitFaqPage();
+    }
+    if (name === 'blog' && window._rakuInitBlogPage) {
+      const parts = (location.pathname || '').split('/').filter(Boolean);
+      const slug = parts[0] === 'blog' && parts[1] ? decodeURIComponent(parts[1]) : null;
+      window._rakuInitBlogPage(slug);
     }
     if (name === 'about' && window._rakuInitAboutPage) {
       window._rakuInitAboutPage();
@@ -329,6 +352,8 @@ document.addEventListener('DOMContentLoaded', function() {
         window._rakuInitAppointmentPage();
       } else if (route.page === 'faq' && window._rakuInitFaqPage) {
         window._rakuInitFaqPage();
+      } else if (route.page === 'blog' && window._rakuInitBlogPage) {
+        window._rakuInitBlogPage(route.blogSlug || null);
       } else if (route.page === 'about' && window._rakuInitAboutPage) {
         window._rakuInitAboutPage();
       } else if (route.page === 'contact' && window._rakuInitContactPage) {
@@ -636,10 +661,17 @@ document.addEventListener('DOMContentLoaded', function() {
         '/': 'home',
         '/appointment': 'appointment',
         '/faq': 'faq',
+        '/blog': 'blog',
         '/about': 'about',
         '/contact': 'contact',
         '/track': 'track',
       };
+      if (href.startsWith('/blog/') && window.showPage && !window.RAKU_STANDALONE) {
+        e.preventDefault();
+        showPage('blog', { blogSlug: decodeURIComponent(href.slice('/blog/'.length)) });
+        closeCatDropdown();
+        return;
+      }
       if (spaRoutes[href] && window.showPage && !window.RAKU_STANDALONE) {
         e.preventDefault();
         showPage(spaRoutes[href]);
@@ -654,6 +686,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   const SPA_INIT = {
     faq: () => window._rakuInitFaqPage?.(),
+    blog: () => window._rakuInitBlogPage?.(initialRoute.blogSlug || null),
     about: () => window._rakuInitAboutPage?.(),
     contact: () => window._rakuInitContactPage?.(),
     appointment: () => window._rakuInitAppointmentPage?.(),
@@ -664,7 +697,14 @@ document.addEventListener('DOMContentLoaded', function() {
     points: () => window._rakuInitLegalPoints?.(),
     track: () => window._rakuInitTrackPage?.(),
   };
-  setTimeout(() => {
+  setTimeout(async () => {
+    if (initialRoute.page === 'blog') {
+      try {
+        await window.rakuEnsureRouteAssets?.('blog');
+      } catch (_) {}
+      window._rakuInitBlogPage?.(initialRoute.blogSlug || null);
+      return;
+    }
     SPA_INIT[initialRoute.page]?.();
   }, 0);
 }); // end DOMContentLoaded

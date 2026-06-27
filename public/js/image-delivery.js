@@ -2,11 +2,19 @@
  * Client-side image delivery helpers (WebP + responsive /media/ variants).
  */
 (function () {
+  function assetBase() {
+    const base = String(window.RAKU_ASSET_BASE || window.RAKU_SHOP_ORIGIN || '').trim();
+    return base ? base.replace(/\/$/, '') : '';
+  }
+
   function normalizeUrl(url) {
     const u = String(url || '').trim();
     if (!u) return '';
     if (/^https?:\/\//i.test(u)) return u;
-    return u.startsWith('/') ? u : `/${u}`;
+    const path = u.startsWith('/') ? u : `/${u}`;
+    const base = assetBase();
+    if (base && path.startsWith('/')) return base + path;
+    return path;
   }
 
   function preferWebpUrl(url) {

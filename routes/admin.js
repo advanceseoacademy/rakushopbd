@@ -11,7 +11,7 @@ const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
 const { setUserRewardPoints } = require('../lib/rewardPoints');
 const { sendAdminEmail, loadNotifySettings } = require('../lib/emailNotify');
 const { sanitizeSmtpForAdminResponse } = require('../lib/smtpSettings');
-const { requireAdmin } = require('../middleware/requireAdmin');
+const { requireAdmin, requireSuperAdmin } = require('../middleware/requireAdmin');
 const { sql: sqlDialect, upsertSiteSettingSql, returningId } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
 const { saveSession } = require('../lib/sessionSave');
@@ -27,6 +27,7 @@ const {
 } = require('../lib/categoryHelpers');
 const { setProductTodaySellingSlot, setTodaySellingProducts, normalizeSlot } = require('../lib/todaySellingSlots');
 const { awardOrderPointsOnDelivery } = require('../lib/rewardPoints');
+const { formatAdminPublic, ROLES, normalizeAdminRole } = require('../lib/adminRoles');
 
 const router = express.Router();
 
@@ -120,7 +121,7 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Username and password required' });
     }
     const rows = await query(
-      'SELECT id, username, email, full_name, password_hash FROM admins WHERE username = ? OR email = ? LIMIT 1',
+      'SELECT id, username, email, full_name, password_hash, role FROM admins WHERE username = ? OR email = ? LIMIT 1',
       [username.trim(), username.trim()]
     );
     if (!rows.length) return res.status(401).json({ ok: false, error: 'Invalid credentials' });
@@ -135,12 +136,7 @@ router.post('/login', async (req, res) => {
     const payload = {
       ok: true,
       token,
-      admin: {
-        id: admin.id,
-        username: admin.username,
-        email: admin.email,
-        fullName: admin.full_name,
-      },
+      admin: formatAdminPublic(admin),
     };
     saveSession(req, (saveErr) => {
       if (saveErr) console.error('Session save warning:', saveErr.message);
@@ -162,7 +158,7 @@ router.get('/me', async (req, res) => {
   const adminId = getAdminIdFromRequest(req);
   if (!adminId) return res.json({ ok: true, admin: null });
   const rows = await query(
-    'SELECT id, username, email, full_name FROM admins WHERE id = ?',
+    'SELECT id, username, email, full_name, role FROM admins WHERE id = ?',
     [adminId]
   );
   if (!rows.length) {
@@ -173,8 +169,164 @@ router.get('/me', async (req, res) => {
   setAdminAuthCookie(res, a.id);
   res.json({
     ok: true,
-    admin: { id: a.id, username: a.username, email: a.email, fullName: a.full_name },
+    admin: formatAdminPublic(a),
   });
+});
+
+// ——— Team / admin accounts (super admin only) ———
+router.get('/admins', requireAdmin, requireSuperAdmin, async (req, res) => {
+  try {
+    const rows = await query(
+      'SELECT id, username, email, full_name, role, created_at FROM admins ORDER BY id ASC'
+    );
+    res.json({
+      ok: true,
+      admins: rows.map((row) => ({
+        ...formatAdminPublic(row),
+        createdAt: row.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load admin accounts' });
+  }
+});
+
+router.post('/admins', requireAdmin, requireSuperAdmin, async (req, res) => {
+  try {
+    const username = String(req.body?.username || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const fullName = String(req.body?.fullName || req.body?.full_name || '').trim() || 'Admin';
+    const password = String(req.body?.password || '');
+    const role = normalizeAdminRole(req.body?.role);
+
+    if (!username || !email || !password) {
+      return res.status(400).json({ ok: false, error: 'Username, email, and password are required' });
+    }
+    if (password.length < 6) {
+      return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters' });
+    }
+    if (role !== ROLES.PRODUCT_EDITOR && role !== ROLES.SUPER_ADMIN) {
+      return res.status(400).json({ ok: false, error: 'Invalid role' });
+    }
+
+    const existing = await query(
+      'SELECT id FROM admins WHERE username = ? OR email = ? LIMIT 1',
+      [username, email]
+    );
+    if (existing.length) {
+      return res.status(400).json({ ok: false, error: 'Username or email already in use' });
+    }
+
+    const hash = await bcrypt.hash(password, 10);
+    const result = await query(
+      `INSERT INTO admins (username, email, password_hash, full_name, role) VALUES (?, ?, ?, ?, ?)${returningId()}`,
+      [username, email, hash, fullName, role]
+    );
+    const newId = firstInsertId(result);
+    const rows = newId
+      ? await query('SELECT id, username, email, full_name, role, created_at FROM admins WHERE id = ?', [newId])
+      : await query(
+          'SELECT id, username, email, full_name, role, created_at FROM admins WHERE username = ? LIMIT 1',
+          [username]
+        );
+
+    res.json({ ok: true, admin: { ...formatAdminPublic(rows[0]), createdAt: rows[0]?.created_at } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not create admin account' });
+  }
+});
+
+router.put('/admins/:id', requireAdmin, requireSuperAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid admin id' });
+
+    const rows = await query('SELECT id, role FROM admins WHERE id = ? LIMIT 1', [id]);
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Admin not found' });
+
+    const nextRole = req.body?.role != null ? normalizeAdminRole(req.body.role) : normalizeAdminRole(rows[0].role);
+    const fullName = req.body?.fullName != null ? String(req.body.fullName).trim() : null;
+    const email = req.body?.email != null ? String(req.body.email).trim().toLowerCase() : null;
+    const password = req.body?.password != null ? String(req.body.password) : '';
+
+    if (email) {
+      const dup = await query('SELECT id FROM admins WHERE email = ? AND id != ? LIMIT 1', [email, id]);
+      if (dup.length) return res.status(400).json({ ok: false, error: 'Email already in use' });
+    }
+
+    if (password && password.length < 6) {
+      return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters' });
+    }
+
+    if (Number(req.adminId) === id && nextRole !== ROLES.SUPER_ADMIN) {
+      return res.status(400).json({ ok: false, error: 'You cannot remove your own super admin access' });
+    }
+
+    if (normalizeAdminRole(rows[0].role) === ROLES.SUPER_ADMIN && nextRole !== ROLES.SUPER_ADMIN) {
+      const superCount = await scalarCount(
+        "SELECT COUNT(*) AS cnt FROM admins WHERE role = 'super_admin' OR role IS NULL OR role = ''"
+      );
+      if (superCount <= 1) {
+        return res.status(400).json({ ok: false, error: 'At least one super admin is required' });
+      }
+    }
+
+    const fields = ['role = ?'];
+    const params = [nextRole];
+    if (fullName) {
+      fields.push('full_name = ?');
+      params.push(fullName);
+    }
+    if (email) {
+      fields.push('email = ?');
+      params.push(email);
+    }
+    if (password) {
+      fields.push('password_hash = ?');
+      params.push(await bcrypt.hash(password, 10));
+    }
+    params.push(id);
+    await query(`UPDATE admins SET ${fields.join(', ')} WHERE id = ?`, params);
+
+    const updated = await query(
+      'SELECT id, username, email, full_name, role, created_at FROM admins WHERE id = ?',
+      [id]
+    );
+    res.json({ ok: true, admin: { ...formatAdminPublic(updated[0]), createdAt: updated[0]?.created_at } });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update admin account' });
+  }
+});
+
+router.delete('/admins/:id', requireAdmin, requireSuperAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid admin id' });
+    if (Number(req.adminId) === id) {
+      return res.status(400).json({ ok: false, error: 'You cannot delete your own account' });
+    }
+
+    const rows = await query('SELECT id, role FROM admins WHERE id = ? LIMIT 1', [id]);
+    if (!rows.length) return res.status(404).json({ ok: false, error: 'Admin not found' });
+
+    if (normalizeAdminRole(rows[0].role) === ROLES.SUPER_ADMIN) {
+      const superCount = await scalarCount(
+        "SELECT COUNT(*) AS cnt FROM admins WHERE role = 'super_admin' OR role IS NULL OR role = ''"
+      );
+      if (superCount <= 1) {
+        return res.status(400).json({ ok: false, error: 'Cannot delete the last super admin' });
+      }
+    }
+
+    await query('DELETE FROM admins WHERE id = ?', [id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not delete admin account' });
+  }
 });
 
 // ——— Dashboard ———

@@ -104,6 +104,7 @@ CREATE TABLE admins (
   email VARCHAR(120) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   full_name VARCHAR(120) NOT NULL DEFAULT 'Admin',
+  role VARCHAR(32) NOT NULL DEFAULT 'super_admin',
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

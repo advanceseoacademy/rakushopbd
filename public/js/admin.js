@@ -89,6 +89,59 @@
   let galleryPage = 1;
   let authRedirectHold = false;
 
+  function isProductEditorAdmin() {
+    return Boolean(currentAdmin?.isProductEditor || currentAdmin?.role === 'product_editor');
+  }
+
+  function isSuperAdminUser() {
+    if (!currentAdmin) return true;
+    if (currentAdmin.isSuperAdmin === true) return true;
+    if (currentAdmin.isProductEditor || currentAdmin.role === 'product_editor') return false;
+    return currentAdmin.role !== 'product_editor';
+  }
+
+  function canDeleteProducts() {
+    if (!currentAdmin) return true;
+    if (currentAdmin.canDeleteProducts === false) return false;
+    return !isProductEditorAdmin();
+  }
+
+  function getStartAdminPage() {
+    if (isProductEditorAdmin()) return 'products';
+    const saved = getSavedPage();
+    return validPages.has(saved) ? saved : 'dashboard';
+  }
+
+  function applyAdminAccessUi() {
+    const layout = document.querySelector('.adm-layout');
+    const productOnly = isProductEditorAdmin();
+    if (layout) layout.classList.toggle('admin-access-product-only', productOnly);
+    document.querySelectorAll('[data-super-only]').forEach((el) => {
+      el.hidden = productOnly;
+    });
+    document.querySelectorAll('.nav-item[data-page="products"]').forEach((el) => {
+      el.hidden = false;
+    });
+    const roleNote = document.getElementById('sidebar-role-note');
+    if (roleNote) {
+      roleNote.textContent = productOnly ? 'Product access only' : '';
+      roleNote.hidden = !productOnly;
+    }
+    const bulkDeleteBtn = document.getElementById('products-bulk-delete-btn');
+    const clearSelBtn = document.getElementById('products-clear-selection-btn');
+    const selectAll = document.getElementById('products-select-all');
+    const checkCol = document.querySelector('#sec-products .tbl-check-col');
+    if (!canDeleteProducts()) {
+      if (bulkDeleteBtn) bulkDeleteBtn.hidden = true;
+      if (clearSelBtn) clearSelBtn.hidden = true;
+      if (selectAll) selectAll.closest('th')?.classList.add('is-hidden');
+      document.querySelectorAll('#sec-products .tbl-check-col').forEach((el) => el.classList.add('is-hidden'));
+    } else if (checkCol) {
+      if (selectAll) selectAll.closest('th')?.classList.remove('is-hidden');
+      document.querySelectorAll('#sec-products .tbl-check-col').forEach((el) => el.classList.remove('is-hidden'));
+    }
+  }
+
   const pageTitles = {
     dashboard: 'Dashboard',
     orders: 'Orders',
@@ -210,10 +263,14 @@
     const email = document.getElementById('sidebar-email');
     if (name) name.textContent = admin.fullName || admin.username;
     if (email) email.textContent = admin.email;
+    applyAdminAccessUi();
   }
 
   function switchPage(page, opts = {}) {
-    if (!validPages.has(page)) page = 'dashboard';
+    if (isProductEditorAdmin() && page !== 'products' && page !== 'product-form') {
+      page = 'products';
+    }
+    if (!validPages.has(page)) page = isProductEditorAdmin() ? 'products' : 'dashboard';
     document.querySelectorAll('.adm-section').forEach((s) => s.classList.remove('active'));
     const sec = document.getElementById('sec-' + page);
     if (sec) sec.classList.add('active');
@@ -262,7 +319,7 @@
       cacheAdminUser(me.admin);
       setAdminUI(me.admin);
       showAdmin();
-      switchPage(getSavedPage());
+      switchPage(getStartAdminPage());
       return true;
     }
 
@@ -271,7 +328,7 @@
       const cached = getCachedAdminUser();
       if (cached) setAdminUI(cached);
       showAdmin();
-      switchPage(getSavedPage());
+      switchPage(getStartAdminPage());
       return true;
     }
 
@@ -309,7 +366,7 @@
       authRedirectHold = true;
       setAdminUI(data.admin);
       showAdmin();
-      switchPage('dashboard');
+      switchPage(getStartAdminPage());
       setTimeout(() => {
         authRedirectHold = false;
       }, 8000);
@@ -351,8 +408,8 @@
   }
 
   async function openProductForm(product) {
-    await loadCategoriesList();
     if (product) {
+      await loadCategoriesList();
       const detail = await api('/products/' + product.id);
       if (detail.ok && detail.product) product = detail.product;
       setProductFormTitle('Edit Product');
@@ -400,6 +457,7 @@
       document.getElementById('pf-og-image').value = product.og_image || '';
     } else {
       resetProductForm();
+      await loadCategoriesList();
       setProductFormTitle('Add Product');
     }
     switchPage('product-form');
@@ -2448,18 +2506,35 @@
     return `<div class="prod-thumb" style="background:${bg};"><i class="${icon}" style="color:${color};"></i></div>`;
   }
 
+  function syncCategoryFilterSelects(list) {
+    const html = buildCategoryFilterOptions(list);
+    const productsSel = document.getElementById('products-cat-filter');
+    const gallerySel = document.getElementById('gallery-cat-filter');
+    const productsVal = productsSel?.value || 'all';
+    const galleryVal = gallerySel?.value || 'all';
+    if (productsSel) {
+      productsSel.innerHTML = html;
+      if ([...productsSel.options].some((o) => o.value === productsVal)) productsSel.value = productsVal;
+    }
+    if (gallerySel) {
+      gallerySel.innerHTML = html;
+      if ([...gallerySel.options].some((o) => o.value === galleryVal)) gallerySel.value = galleryVal;
+    }
+  }
+
   async function loadCategoriesList() {
     const data = await api('/categories');
-    if (!data.ok) return;
-    categories = data.categories;
+    if (!data.ok) {
+      toast(data.error || 'Could not load categories', 'error');
+      return;
+    }
+    categories = data.categories || [];
     populateMainCategorySelect(categories);
     const mainVal = document.getElementById('pf-main-cat')?.value || '';
     const subVal = document.getElementById('pf-sub-cat')?.value || '';
     updateSubCategorySelect(categories, mainVal, subVal);
     syncPfCategoryHidden();
-    document.getElementById('products-cat-filter').innerHTML = buildCategoryFilterOptions(categories);
-    const galleryCat = document.getElementById('gallery-cat-filter');
-    if (galleryCat) galleryCat.innerHTML = buildCategoryFilterOptions(categories);
+    syncCategoryFilterSelects(categories);
   }
 
   function populateMainCategorySelect(list) {
@@ -2577,7 +2652,7 @@
   document.getElementById('pf-sub-cat')?.addEventListener('change', syncPfCategoryHidden);
 
   function catParentId(c) {
-    const p = c?.parent_id;
+    const p = c?.parent_id ?? c?.parentId;
     return p == null || p === '' ? null : Number(p);
   }
 
@@ -2688,7 +2763,7 @@
 
   async function loadProducts(page) {
     if (page) productsPage = page;
-    await loadCategoriesList();
+    if (!categories.length) await loadCategoriesList();
     const cat = document.getElementById('products-cat-filter').value;
     const search = document.getElementById('products-search').value.trim();
     const q = new URLSearchParams({ page: productsPage, limit: 6 });
@@ -2703,14 +2778,18 @@
         '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No products found.</td></tr>';
       updateProductsSelectionUi();
     } else {
+      const allowDelete = canDeleteProducts();
       tbody.innerHTML = data.products
         .map((p) => {
           const stockCls = p.stock <= 0 ? 'badge-red' : p.stock <= 5 ? 'badge-amber' : 'badge-green';
           const stockLbl = p.stock <= 0 ? 'Out of stock' : p.stock <= 5 ? 'Low' : 'Active';
           const checked = selectedProductIds.has(Number(p.id)) ? ' checked' : '';
           const rowClass = checked ? ' class="row-selected"' : '';
+          const deleteBtn = allowDelete
+            ? `<button type="button" class="btn btn-danger btn-xs" data-del-product="${p.id}">Delete</button>`
+            : '';
           return `<tr${rowClass}>
-          <td class="tbl-check-col"><input type="checkbox" class="product-row-check" data-product-id="${p.id}" aria-label="Select ${escHtml(p.name_bn)}"${checked}></td>
+          ${allowDelete ? `<td class="tbl-check-col"><input type="checkbox" class="product-row-check" data-product-id="${p.id}" aria-label="Select ${escHtml(p.name_bn)}"${checked}></td>` : ''}
           <td><div style="display:flex;align-items:center;gap:10px;">
             ${productThumbHtml(p)}
             <div><div style="font-weight:600;">${escHtml(p.name_bn)}</div><small style="color:#94a3b8">${escHtml(p.slug)}</small></div></div></td>
@@ -2721,7 +2800,7 @@
           <td class="tbl-actions">
             <a href="/product/${encodeURIComponent(p.slug || p.id)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs">View</a>
             <button type="button" class="btn btn-outline btn-xs" data-edit-product="${p.id}">Edit</button>
-            <button type="button" class="btn btn-danger btn-xs" data-del-product="${p.id}">Delete</button>
+            ${deleteBtn}
           </td></tr>`;
         })
         .join('');
@@ -2736,18 +2815,20 @@
       };
     });
 
-    document.querySelectorAll('[data-del-product]').forEach((btn) => {
-      btn.onclick = async () => {
-        if (!confirm('Delete this product?')) return;
-        const r = await api('/products/' + btn.dataset.delProduct, { method: 'DELETE' });
-        if (r.ok) {
-          toast('Product deleted');
-          selectedProductIds.delete(Number(btn.dataset.delProduct));
-          updateProductsSelectionUi();
-          loadProducts();
-        } else toast(r.error || 'Failed', 'error');
-      };
-    });
+    if (canDeleteProducts()) {
+      document.querySelectorAll('[data-del-product]').forEach((btn) => {
+        btn.onclick = async () => {
+          if (!confirm('Delete this product?')) return;
+          const r = await api('/products/' + btn.dataset.delProduct, { method: 'DELETE' });
+          if (r.ok) {
+            toast('Product deleted');
+            selectedProductIds.delete(Number(btn.dataset.delProduct));
+            updateProductsSelectionUi();
+            loadProducts();
+          } else toast(r.error || 'Failed', 'error');
+        };
+      });
+    }
 
     const pag = data.pagination;
     const pagEl = document.getElementById('products-pagination');
@@ -3006,10 +3087,7 @@
     const priceEl = document.getElementById('pf-price');
     if (priceEl) delete priceEl.dataset.userEdited;
     resetPfGallery([]);
-    const mainSel = document.getElementById('pf-main-cat');
-    const subSel = document.getElementById('pf-sub-cat');
-    if (mainSel) mainSel.value = '';
-    if (subSel) subSel.value = '';
+    populateMainCategorySelect(categories || []);
     updateSubCategorySelect(categories || [], '', '');
     syncPfCategoryHidden();
   }
@@ -3981,7 +4059,7 @@
     const sh = document.getElementById('set-store-hours');
     if (sh) sh.value = s.store_hours || '';
     const lu = document.getElementById('set-logo-url');
-    if (lu) lu.value = s.site_logo_url || '/images/rakushopbd-logo.png?v=10';
+    if (lu) lu.value = s.site_logo_url || '/images/rakushopbd-logo.png?v=14';
     const sf = document.getElementById('set-social-facebook');
     if (sf) sf.value = s.social_facebook || '';
     const si = document.getElementById('set-social-instagram');
@@ -5072,7 +5150,76 @@
     });
     const saveBar = document.getElementById('settings-save-bar');
     if (saveBar) saveBar.style.display = SETTINGS_STORE_TABS.has(tabId) ? '' : 'none';
+    if (tabId === 'team' && isSuperAdminUser()) loadTeamAdmins();
   }
+
+  async function loadTeamAdmins() {
+    const tbody = document.getElementById('team-admins-tbody');
+    if (!tbody || !isSuperAdminUser()) return;
+    tbody.innerHTML =
+      '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">Loading team accounts...</td></tr>';
+    const data = await api('/admins');
+    if (!data.ok) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#ef4444;padding:20px;">${escHtml(data.error || 'Could not load team accounts')}</td></tr>`;
+      return;
+    }
+    const admins = data.admins || [];
+    if (!admins.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">No admin accounts yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = admins
+      .map((a) => {
+        const isSelf = Number(a.id) === Number(currentAdmin?.id);
+        const roleBadge =
+          a.role === 'product_editor'
+            ? '<span class="badge badge-blue">Product Editor</span>'
+            : '<span class="badge badge-green">Super Admin</span>';
+        const deleteBtn =
+          isSelf || a.role !== 'product_editor'
+            ? ''
+            : `<button type="button" class="btn btn-danger btn-xs" data-team-del="${a.id}">Remove</button>`;
+        return `<tr>
+          <td>${escHtml(a.fullName || a.username)}${isSelf ? ' <small>(you)</small>' : ''}</td>
+          <td>${escHtml(a.username)}</td>
+          <td>${escHtml(a.email)}</td>
+          <td>${roleBadge}</td>
+          <td class="tbl-actions">${deleteBtn}</td>
+        </tr>`;
+      })
+      .join('');
+    tbody.querySelectorAll('[data-team-del]').forEach((btn) => {
+      btn.onclick = async () => {
+        if (!confirm('Remove this product editor account?')) return;
+        const res = await api('/admins/' + btn.dataset.teamDel, { method: 'DELETE' });
+        if (res.ok) {
+          toast('Account removed');
+          loadTeamAdmins();
+        } else toast(res.error || 'Could not remove account', 'error');
+      };
+    });
+  }
+
+  document.getElementById('team-admin-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!isSuperAdminUser()) return;
+    const body = {
+      fullName: document.getElementById('team-full-name')?.value.trim(),
+      username: document.getElementById('team-username')?.value.trim(),
+      email: document.getElementById('team-email')?.value.trim(),
+      password: document.getElementById('team-password')?.value,
+      role: 'product_editor',
+    };
+    const data = await api('/admins', { method: 'POST', body: JSON.stringify(body) });
+    if (data.ok) {
+      toast('Product editor account created');
+      e.target.reset();
+      loadTeamAdmins();
+    } else {
+      toast(data.error || 'Could not create account', 'error');
+    }
+  });
 
   function initSettingsTabs() {
     const root = document.getElementById('sec-settings');

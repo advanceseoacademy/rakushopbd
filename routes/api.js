@@ -925,6 +925,7 @@ router.post('/orders', async (req, res) => {
       paymentMethod,
       subtotal,
       delivery,
+      discount,
       total,
       notes: orderNotes,
       items: orderItems,

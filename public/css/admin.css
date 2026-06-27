@@ -76,7 +76,7 @@ body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(-
 }
 .site-logo-img--admin-sidebar {
   max-width:100%;
-  max-height:54px;
+  max-height:72px;
   width:auto;
   height:auto;
   margin-bottom:8px;
@@ -325,10 +325,27 @@ table.tbl { width:100%; border-collapse:collapse; }
 .form-label { font-size:12px; font-weight:700; color:var(--text-muted); }
 .form-input {
   border:1.5px solid var(--border); border-radius:var(--radius); padding:10px 12px;
-  font-family:inherit; font-size:13px; outline:none; transition:border-color 0.15s; background:#f8fafc;
+  font-family:inherit; font-size:13px; outline:none; transition:border-color 0.15s, background-color 0.15s;
+  background-color:#f8fafc;
 }
-.form-input:focus { border-color:var(--primary); background:#fff; }
-.form-select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B6B6B' fill='none' stroke-width='1.5'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:32px; }
+.form-input:focus { border-color:var(--primary); background-color:#fff; }
+.form-select {
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  padding-right:36px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B6B6B' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+  background-size:12px 8px;
+}
+.form-select::-ms-expand { display:none; }
+.form-select:focus {
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B6B6B' fill='none' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+  background-size:12px 8px;
+}
 .form-textarea { resize:vertical; min-height:80px; }
 .form-textarea-code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
@@ -2134,4 +2151,23 @@ body.popup-preview-modal-open {
     gap: 10px;
     padding: 0 14px 16px;
   }
+}
+
+.sidebar-role-note {
+  font-size: 10px;
+  color: #60a5fa;
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.admin-access-product-only .nav-item:not([data-page="products"]),
+.admin-access-product-only .nav-group,
+.admin-access-product-only .sidebar-section,
+.admin-access-product-only [data-super-only] {
+  display: none !important;
+}
+
+.tbl-check-col.is-hidden,
+th.tbl-check-col.is-hidden {
+  display: none !important;
 }

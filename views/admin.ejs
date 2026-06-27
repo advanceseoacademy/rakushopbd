@@ -5,12 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>RakuShopBD — Admin Panel</title>
-<link rel="icon" href="/images/rakushopbd-logo.png?v=10" type="image/png">
+<link rel="icon" href="/images/rakushopbd-logo.png?v=14" type="image/png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/tabler-icons-subset.css?v=3">
-<link rel="stylesheet" href="/css/brand-tokens.css?v=1">
-<link rel="stylesheet" href="/css/admin.css?v=23">
+<link rel="stylesheet" href="/css/brand-tokens.css?v=3">
+<link rel="stylesheet" href="/css/admin.css?v=26">
 <link rel="stylesheet" href="/css/popup-themes.css?v=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
@@ -20,7 +20,7 @@
 <div id="login-page">
   <div class="login-card">
     <div class="login-logo">
-      <img src="/images/rakushopbd-logo.png?v=10" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-login" width="300" height="80">
+      <img src="/images/rakushopbd-logo.png?v=14" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-login" width="300" height="80">
     </div>
     <div class="login-tagline">Admin Dashboard — Sign in to manage your store</div>
     <div class="login-error" id="login-error"><i class="ti ti-alert-circle"></i> <span>Invalid username or password</span></div>
@@ -42,21 +42,21 @@
   <div class="adm-sidebar-overlay" id="adm-sidebar-overlay" aria-hidden="true"></div>
   <aside class="sidebar" id="adm-sidebar">
     <div class="sidebar-logo">
-      <img src="/images/rakushopbd-logo.png?v=10" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-sidebar" width="240" height="58">
+      <img src="/images/rakushopbd-logo.png?v=14" alt="RakuShopBD" class="site-logo-img site-logo-img--admin-sidebar" width="240" height="58">
       <div class="sidebar-version">Admin Panel</div>
     </div>
-    <div class="sidebar-section">Main</div>
-    <div class="nav-item active" data-page="dashboard"><i class="ti ti-dashboard"></i> Dashboard</div>
-    <div class="nav-item" data-page="orders"><i class="ti ti-shopping-bag"></i> Orders <span class="nav-badge" id="order-badge">0</span></div>
-    <div class="nav-item" data-page="appointments"><i class="ti ti-calendar"></i> Appointments <span class="nav-badge nav-badge-amber" id="appointment-badge">0</span></div>
-    <div class="nav-item" data-page="contacts"><i class="ti ti-mail"></i> Contact Messages <span class="nav-badge nav-badge-amber" id="contact-badge">0</span></div>
+    <div class="sidebar-section" data-super-only>Main</div>
+    <div class="nav-item active" data-page="dashboard" data-super-only><i class="ti ti-dashboard"></i> Dashboard</div>
+    <div class="nav-item" data-page="orders" data-super-only><i class="ti ti-shopping-bag"></i> Orders <span class="nav-badge" id="order-badge">0</span></div>
+    <div class="nav-item" data-page="appointments" data-super-only><i class="ti ti-calendar"></i> Appointments <span class="nav-badge nav-badge-amber" id="appointment-badge">0</span></div>
+    <div class="nav-item" data-page="contacts" data-super-only><i class="ti ti-mail"></i> Contact Messages <span class="nav-badge nav-badge-amber" id="contact-badge">0</span></div>
     <div class="nav-item" data-page="products"><i class="ti ti-box"></i> Products</div>
-    <div class="nav-item" data-page="gallery"><i class="ti ti-photo"></i> Image Gallery</div>
-    <div class="nav-item" data-page="customers"><i class="ti ti-users"></i> Customers</div>
-    <div class="nav-item" data-page="analytics"><i class="ti ti-chart-bar"></i> Analytics</div>
-    <div class="sidebar-section">Manage</div>
-    <div class="nav-item" data-page="categories"><i class="ti ti-category"></i> Categories</div>
-    <div class="nav-group" id="nav-group-pages">
+    <div class="nav-item" data-page="gallery" data-super-only><i class="ti ti-photo"></i> Image Gallery</div>
+    <div class="nav-item" data-page="customers" data-super-only><i class="ti ti-users"></i> Customers</div>
+    <div class="nav-item" data-page="analytics" data-super-only><i class="ti ti-chart-bar"></i> Analytics</div>
+    <div class="sidebar-section" data-super-only>Manage</div>
+    <div class="nav-item" data-page="categories" data-super-only><i class="ti ti-category"></i> Categories</div>
+    <div class="nav-group" id="nav-group-pages" data-super-only>
       <button type="button" class="nav-group-toggle" id="nav-pages-toggle" aria-expanded="false">
         <span class="nav-group-label"><i class="ti ti-files"></i> Pages</span>
         <i class="ti ti-chevron-down nav-group-chevron"></i>
@@ -70,19 +70,20 @@
         <button type="button" class="nav-sub-item" data-page="legal" data-legal-tab="points"><i class="ti ti-award"></i> Reward Point Policy</button>
       </div>
     </div>
-    <div class="nav-item" data-page="coupons"><i class="ti ti-discount"></i> Coupons</div>
-    <div class="nav-item" data-page="reviews"><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
-    <div class="nav-item" data-page="review-videos"><i class="ti ti-video"></i> Review Videos <span class="nav-badge nav-badge-amber" id="review-video-badge">0</span></div>
-    <div class="nav-item" data-page="banners"><i class="ti ti-photo"></i> Banners</div>
-    <div class="nav-item" data-page="marketing"><i class="ti ti-speakerphone"></i> Marketing <span class="nav-badge nav-badge-amber" id="subscriber-badge">0</span></div>
-    <div class="nav-item" data-page="messenger"><i class="ti ti-brand-messenger"></i> Messenger Chats</div>
-    <div class="nav-item" data-page="settings"><i class="ti ti-settings"></i> Settings</div>
+    <div class="nav-item" data-page="coupons" data-super-only><i class="ti ti-discount"></i> Coupons</div>
+    <div class="nav-item" data-page="reviews" data-super-only><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
+    <div class="nav-item" data-page="review-videos" data-super-only><i class="ti ti-video"></i> Review Videos <span class="nav-badge nav-badge-amber" id="review-video-badge">0</span></div>
+    <div class="nav-item" data-page="banners" data-super-only><i class="ti ti-photo"></i> Banners</div>
+    <div class="nav-item" data-page="marketing" data-super-only><i class="ti ti-speakerphone"></i> Marketing <span class="nav-badge nav-badge-amber" id="subscriber-badge">0</span></div>
+    <div class="nav-item" data-page="messenger" data-super-only><i class="ti ti-brand-messenger"></i> Messenger Chats</div>
+    <div class="nav-item" data-page="settings" data-super-only><i class="ti ti-settings"></i> Settings</div>
     <div class="sidebar-footer">
       <div class="sidebar-user">
         <div class="sidebar-avatar" id="sidebar-avatar">A</div>
         <div>
           <div class="sidebar-username" id="sidebar-name">Admin</div>
           <div class="sidebar-email" id="sidebar-email">—</div>
+          <div class="sidebar-role-note" id="sidebar-role-note" hidden></div>
         </div>
       </div>
       <button type="button" class="logout-btn" id="logout-btn"><i class="ti ti-logout"></i> Sign Out</button>
@@ -678,6 +679,7 @@
             <button type="button" class="settings-tab" data-settings-tab="seo" role="tab"><i class="ti ti-world"></i><span>SEO</span></button>
             <button type="button" class="settings-tab" data-settings-tab="tracking" role="tab"><i class="ti ti-chart-dots-3"></i><span>Analytics</span></button>
             <button type="button" class="settings-tab" data-settings-tab="rewardpoints" role="tab"><i class="ti ti-award"></i><span>Reward Points</span></button>
+            <button type="button" class="settings-tab" data-settings-tab="team" data-super-only role="tab"><i class="ti ti-users-group"></i><span>Team Access</span></button>
           </nav>
 
           <form id="settings-form" class="settings-form-wrap">
@@ -740,7 +742,7 @@
                   <div class="form-group"><label class="form-label">Footer description</label><textarea class="form-input form-textarea" id="set-footer-desc" rows="2" placeholder="Short about text under logo"></textarea></div>
                   <div class="form-2col">
                     <div class="form-group"><label class="form-label">Store hours</label><input class="form-input" id="set-store-hours" placeholder="9 AM — 10 PM"></div>
-                    <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png?v=10"></div>
+                    <div class="form-group"><label class="form-label">Logo URL</label><input class="form-input" id="set-logo-url" placeholder="/images/rakushopbd-logo.png?v=14"></div>
                   </div>
                   <div class="form-group"><label class="form-label">Upload logo</label><input class="form-input form-input-file" type="file" id="set-logo-file" accept="image/jpeg,image/png,image/webp,image/gif"></div>
                   <div class="settings-subsection">
@@ -1017,6 +1019,40 @@
               </div>
             </form>
           </div>
+
+          <div class="settings-panel" id="settings-panel-team" role="tabpanel" data-super-only>
+            <div class="settings-card">
+              <div class="settings-card-head">
+                <div class="settings-card-icon settings-card-icon--blue"><i class="ti ti-users-group"></i></div>
+                <div>
+                  <h3 class="settings-card-title">Team access</h3>
+                  <p class="settings-card-desc">Create product-only accounts. They can add and edit products (including SEO) but cannot delete products or access other admin areas.</p>
+                </div>
+              </div>
+              <div class="settings-card-body">
+                <div class="table-wrap" style="margin:0 0 20px;">
+                  <table class="tbl">
+                    <thead>
+                      <tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Actions</th></tr>
+                    </thead>
+                    <tbody id="team-admins-tbody">
+                      <tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px;">Loading team accounts...</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <form id="team-admin-form">
+                  <h4 style="margin:0 0 12px;font-size:15px;">Add product editor</h4>
+                  <div class="form-2col">
+                    <div class="form-group"><label class="form-label">Full name</label><input class="form-input" id="team-full-name" required placeholder="Product Manager"></div>
+                    <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="team-username" required placeholder="product_editor"></div>
+                    <div class="form-group"><label class="form-label">Email</label><input class="form-input" id="team-email" type="email" required placeholder="editor@example.com"></div>
+                    <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="team-password" type="password" required minlength="6" placeholder="Min 6 characters"></div>
+                  </div>
+                  <button type="submit" class="btn btn-primary"><i class="ti ti-user-plus"></i> Create product editor</button>
+                </form>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1291,6 +1327,6 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
 <script src="/js/admin-rich-editor.js?v=6"></script>
-<script src="/js/admin.js?v=102"></script>
+<script src="/js/admin.js?v=105"></script>
 </body>
 </html>

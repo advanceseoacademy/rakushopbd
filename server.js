@@ -27,6 +27,7 @@ const { ensureProductSeoColumns } = require('./lib/ensureProductSeoColumns');
 const { ensureTodaySellingColumn } = require('./lib/ensureTodaySellingColumn');
 const { ensureProductBuyPrice } = require('./lib/ensureProductBuyPrice');
 const { ensureProductSyntheticReviewsColumn } = require('./lib/ensureProductSyntheticReviewsColumn');
+const { ensureAdminRoleColumn } = require('./lib/ensureAdminRoleColumn');
 const { ensureProductReviewAvatarColumn } = require('./lib/ensureProductReviewAvatarColumn');
 const { ensureHomepageReviewsSeeded } = require('./lib/ensureHomepageReviewsSeeded');
 const { ensureProductImagesTable } = require('./lib/ensureProductImagesTable');
@@ -429,6 +430,7 @@ async function startServer() {
   ensureAppointmentsTable().catch((err) => console.warn('appointments table:', err.message));
   ensureProductSeoColumns().catch((err) => console.warn('product SEO columns:', err.message));
   ensureProductBuyPrice().catch((err) => console.warn('product buy_price column:', err.message));
+  ensureAdminRoleColumn().catch((err) => console.warn('admins.role column:', err.message));
   ensureProductSyntheticReviewsColumn().catch((err) =>
     console.warn('product allow_synthetic_reviews column:', err.message)
   );

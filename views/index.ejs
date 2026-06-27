@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <%- include('partials/seo-head', { seo: typeof seo !== 'undefined' ? seo : null }) %>
-<link rel="icon" href="/images/rakushopbd-logo-icon.png?v=1" type="image/png">
+<link rel="icon" href="/images/rakushopbd-logo-icon.png?v=14" type="image/png">
 <% if (typeof lcpHeroPreload !== 'undefined' && lcpHeroPreload && lcpHeroPreload.href) { %>
 <link rel="preload" as="image" href="<%= lcpHeroPreload.href %>"<% if (lcpHeroPreload.imagesrcset) { %> imagesrcset="<%= lcpHeroPreload.imagesrcset %>" imagesizes="<%= lcpHeroPreload.imagesizes %>"<% } %><% if (lcpHeroPreload.type) { %> type="<%= lcpHeroPreload.type %>"<% } %> fetchpriority="high">
 <% } %>
@@ -12,9 +12,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="preload" href="/css/home.bundle.css?v=15" as="style">
+<link rel="preload" href="/css/home.bundle.css?v=19" as="style">
 <link rel="preload" href="/fonts/tabler-icons.woff2?v=3" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/home.bundle.css?v=15">
+<link rel="stylesheet" href="/css/home.bundle.css?v=19">
 <link rel="stylesheet" href="/css/home-marketing.css?v=8" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-marketing.css?v=8"></noscript>
 <link rel="stylesheet" href="/css/popup-themes.css?v=1" media="print" onload="this.media='all'">
@@ -1171,7 +1171,7 @@
     <div class="acc-auth-shell">
       <div class="acc-auth-brand">
         <div class="acc-brand-logo">
-          <img src="/images/rakushopbd-logo-280.webp?v=1" alt="RakuShopBD" class="site-logo-img site-logo-img--account" width="280" height="72">
+          <img src="/images/rakushopbd-logo-280.webp?v=14" alt="RakuShopBD" class="site-logo-img site-logo-img--account" width="280" height="72">
         </div>
         <h2 class="acc-brand-title">Shop smarter with your account</h2>
         <p class="acc-brand-text">Track orders, save addresses, and checkout faster — all in one place.</p>
@@ -1680,7 +1680,7 @@
 <script src="/js/home-messenger-chats.js?v=6" defer></script>
 <script src="/js/home-customer-reviews.js?v=17" defer></script>
 <script src="/js/home-marketing.js?v=19" defer></script>
-<script src="/js/footer-settings.js?v=14" defer></script>
+<script src="/js/footer-settings.js?v=15" defer></script>
 <script src="/js/search.js?v=9" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {

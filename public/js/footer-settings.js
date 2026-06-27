@@ -178,9 +178,9 @@
     return `<li><a href="${href}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
   }
 
-  const DEFAULT_LOGO_WEBP = '/images/rakushopbd-logo-280.webp?v=1';
+  const DEFAULT_LOGO_WEBP = '/images/rakushopbd-logo-280.webp?v=14';
   const DEFAULT_LOGO_PATH = '/images/rakushopbd-logo.png';
-  const DEFAULT_LOGO_URL = `${DEFAULT_LOGO_PATH}?v=11`;
+  const DEFAULT_LOGO_URL = `${DEFAULT_LOGO_PATH}?v=12`;
 
   function logoUrlVersion(url) {
     const m = String(url || '').match(/\?v=(\d+)$/);
@@ -198,7 +198,7 @@
 
   function bundledLogoWebp(url, img) {
     if (!isBundledLogoUrl(url)) return null;
-    if (img?.classList?.contains('site-logo-img--footer')) return '/images/rakushopbd-logo.webp?v=1';
+    if (img?.classList?.contains('site-logo-img--footer')) return '/images/rakushopbd-logo.webp?v=14';
     return DEFAULT_LOGO_WEBP;
   }
 

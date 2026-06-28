@@ -1571,6 +1571,75 @@
 
   window.updateProductPurchaseButtons = updateProductPurchaseButtons;
 
+  function productShareUrl(p) {
+    const slug = p?.slug || p?.id;
+    if (!slug) return window.location.href;
+    const path = `/product/${encodeURIComponent(slug)}`;
+    if (window.rakuShopUrl) return window.rakuShopUrl(path);
+    return `${window.location.origin.replace(/\/$/, '')}${path}`;
+  }
+
+  async function copyProductShareLink(url, btn) {
+    const text = String(url || '').trim();
+    if (!text) return false;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    if (btn) {
+      const prevLabel = btn.getAttribute('aria-label') || '';
+      btn.setAttribute('aria-label', 'Link copied! Paste in Instagram');
+      btn.classList.add('pv-share-copied');
+      setTimeout(() => {
+        btn.setAttribute('aria-label', prevLabel || 'Copy link for Instagram');
+        btn.classList.remove('pv-share-copied');
+      }, 1800);
+    }
+    return true;
+  }
+
+  function bindProductShare(p) {
+    if (!p?.id) return;
+    const url = productShareUrl(p);
+    const name = String(p.name_bn || p.name || 'Product').trim();
+    const text = `${name} — ${formatPrice(p.price)} ${url}`;
+
+    const fb = document.getElementById('pv-share-fb');
+    if (fb) {
+      fb.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`;
+      fb.onclick = null;
+    }
+
+    const wa = document.getElementById('pv-share-wa');
+    if (wa) {
+      wa.href = `https://wa.me/?text=${encodeURIComponent(text)}`;
+      wa.onclick = null;
+    }
+
+    const ig = document.getElementById('pv-share-ig');
+    if (ig) {
+      ig.href = url;
+      ig.onclick = async (e) => {
+        e.preventDefault();
+        if (navigator.share) {
+          try {
+            await navigator.share({ title: name, text: `${name} — ${formatPrice(p.price)}`, url });
+            return;
+          } catch (err) {
+            if (err?.name === 'AbortError') return;
+          }
+        }
+        await copyProductShareLink(url, ig);
+      };
+    }
+  }
+
   function bindProductActions(p) {
     updateProductPurchaseButtons(p);
     const btnAdd = document.getElementById('btn-add-to-cart-main');
@@ -1605,6 +1674,7 @@
       btnPre.onclick = () => openPreOrderFlow(p);
     }
     bindProductWishButton();
+    bindProductShare(p);
     updateProductPageCartBtn();
   }
 

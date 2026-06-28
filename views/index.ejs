@@ -461,6 +461,9 @@
 .pv-meta-row i { font-size:16px; color:var(--primary); }
 .pv-meta-label { color:var(--text-muted); min-width:90px; }
 .pv-meta-val { color:var(--text); font-size:13px; font-weight:600; word-break:break-word; }
+.pv-share-link { display:inline-flex; align-items:center; justify-content:center; transition:opacity 0.15s, transform 0.15s; }
+.pv-share-link:hover { opacity:0.85; transform:translateY(-1px); }
+.pv-share-link.pv-share-copied { opacity:1; transform:scale(1.08); }
 
 .pv-delivery-box { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-md); padding:14px 16px; margin-bottom:16px; }
 .pv-delivery-title { font-size:13px; font-weight:600; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
@@ -564,9 +567,9 @@
  <div class="pv-meta">
  <div class="pv-meta-row"><i class="ti ti-tag"></i><span class="pv-meta-label">SKU:</span><span class="pv-meta-val" id="pv-sku"><%= _pv ? _pv.sku : '—' %></span></div>
  <div class="pv-meta-row"><i class="ti ti-share"></i><span class="pv-meta-label">Share:</span>
- <a href="#" style="color:#3b5998; font-size:18px;" aria-label="Share on Facebook"><i class="ti ti-brand-facebook" aria-hidden="true"></i></a>&nbsp;
- <a href="#" style="color:#E1306C; font-size:18px;" aria-label="Share on Instagram"><i class="ti ti-brand-instagram" aria-hidden="true"></i></a>&nbsp;
- <a href="#" style="color:#25D366; font-size:18px;" aria-label="Share on WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></a>
+ <a href="#" id="pv-share-fb" class="pv-share-link" style="color:#3b5998; font-size:18px;" target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook"><i class="ti ti-brand-facebook" aria-hidden="true"></i></a>&nbsp;
+ <a href="#" id="pv-share-ig" class="pv-share-link" style="color:#E1306C; font-size:18px;" aria-label="Copy link for Instagram"><i class="ti ti-brand-instagram" aria-hidden="true"></i></a>&nbsp;
+ <a href="#" id="pv-share-wa" class="pv-share-link" style="color:#25D366; font-size:18px;" target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp"><i class="ti ti-brand-whatsapp" aria-hidden="true"></i></a>
  </div>
  </div>
 
@@ -1683,7 +1686,7 @@
 <script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/product-description-html.js?v=1" defer></script>
 <script src="/js/storefront-dynamic.js?v=66" defer></script>
-<script src="/js/api.js?v=128" defer></script>
+<script src="/js/api.js?v=129" defer></script>
 <script src="/js/home-recommendations.js?v=10" defer></script>
 <script src="/js/home-messenger-chats.js?v=6" defer></script>
 <script src="/js/home-customer-reviews.js?v=17" defer></script>

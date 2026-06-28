@@ -964,6 +964,7 @@ svg {
   .home-scroll-track .product-card,
   .home-scroll-track .home-review-card,
   .home-scroll-track .home-messenger-card,
+  .home-scroll-track .home-blog-card,
   .trust-bar .trust-item {
     scroll-snap-align: unset;
   }

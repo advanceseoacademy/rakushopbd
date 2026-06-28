@@ -30,6 +30,10 @@
   min-height: 280px;
 }
 
+#section-home-blog .home-scroll-wrap {
+  min-height: 300px;
+}
+
 .home-messenger-card--skeleton {
   pointer-events: none;
 }

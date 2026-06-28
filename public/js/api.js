@@ -721,6 +721,7 @@
   const HOME_CAROUSEL_TRACKS = [
     { id: 'track-customer-reviews', cardSel: '.home-review-card', minWidth: 140 },
     { id: 'track-messenger-reviews', cardSel: '.home-messenger-card', minWidth: 220 },
+    { id: 'track-home-blog', cardSel: '.home-blog-card', minWidth: 180, visibleCountFn: visibleHomeBlogCards },
   ];
 
   function visibleHomeScrollCards(trackId) {
@@ -738,16 +739,33 @@
     return 3;
   }
 
-  function syncHomeCarouselCardWidths(trackId, cardSelector, minWidth = 140) {
+  function visibleHomeBlogCards() {
+    if (window.matchMedia('(max-width: 768px)').matches) return 2;
+    return 4;
+  }
+
+  function syncHomeCarouselCardWidths(trackId, cardSelector, minWidth) {
     const track = document.getElementById(trackId);
-    const measured = measureTrackCards(track, cardSelector, visibleHomeCarouselCards, minWidth);
+    const config = HOME_CAROUSEL_TRACKS.find((t) => t.id === trackId);
+    const visibleFn = config?.visibleCountFn || visibleHomeCarouselCards;
+    const measured = measureTrackCards(
+      track,
+      cardSelector || config?.cardSel,
+      visibleFn,
+      minWidth ?? config?.minWidth
+    );
     if (measured) applyMeasuredWidths(measured);
   }
 
   function syncAllHomeCarouselCardWidths() {
     const measurements = [];
-    HOME_CAROUSEL_TRACKS.forEach(({ id, cardSel, minWidth }) => {
-      const measured = measureTrackCards(document.getElementById(id), cardSel, visibleHomeCarouselCards, minWidth);
+    HOME_CAROUSEL_TRACKS.forEach(({ id, cardSel, minWidth, visibleCountFn }) => {
+      const measured = measureTrackCards(
+        document.getElementById(id),
+        cardSel,
+        visibleCountFn || visibleHomeCarouselCards,
+        minWidth
+      );
       if (measured) measurements.push(measured);
     });
     measurements.forEach(applyMeasuredWidths);
@@ -804,8 +822,13 @@
       );
       if (measured) measurements.push(measured);
     });
-    HOME_CAROUSEL_TRACKS.forEach(({ id, cardSel, minWidth }) => {
-      const measured = measureTrackCards(document.getElementById(id), cardSel, visibleHomeCarouselCards, minWidth);
+    HOME_CAROUSEL_TRACKS.forEach(({ id, cardSel, minWidth, visibleCountFn }) => {
+      const measured = measureTrackCards(
+        document.getElementById(id),
+        cardSel,
+        visibleCountFn || visibleHomeCarouselCards,
+        minWidth
+      );
       if (measured) measurements.push(measured);
     });
     measurements.forEach(applyMeasuredWidths);
@@ -825,7 +848,7 @@
 
   function queueSyncHomeScrollTrack(trackId) {
     const section =
-      document.getElementById(trackId)?.closest('.home-product-section, .home-customer-reviews, .home-messenger-reviews, .trust-bar-wrap') ||
+      document.getElementById(trackId)?.closest('.home-product-section, .home-customer-reviews, .home-messenger-reviews, .home-blog-section, .trust-bar-wrap') ||
       document.getElementById(trackId);
     const run = () => syncHomeScrollCardWidths(trackId);
     if (window.rakuWhenVisible && section) {
@@ -3066,8 +3089,7 @@
 
     const isCategoryTrack = trackId === 'home-category-track';
     const isTrustBar = trackId === 'trust-bar';
-    const isReviewTrack =
-      trackId === 'track-customer-reviews' || trackId === 'track-messenger-reviews';
+    const isReviewTrack = HOME_CAROUSEL_TRACKS.some((t) => t.id === trackId);
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     if (isTrustBar && !isMobile) return;
 
@@ -3080,7 +3102,7 @@
 
     const cards = () =>
       track.querySelectorAll(
-        '.product-card, .home-review-card, .home-messenger-card, .cat-card, .trust-item'
+        '.product-card, .home-review-card, .home-messenger-card, .home-blog-card, .cat-card, .trust-item'
       );
     if (cards().length < 2) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -3161,6 +3183,7 @@
     initHomeScrollAuto('track-recommended-for-you', 3500);
     initHomeScrollAuto('track-customer-reviews', 3800);
     initHomeScrollAuto('track-messenger-reviews', 4000);
+    initHomeScrollAuto('track-home-blog', 4200);
     initHomeScrollAuto('trust-bar', 4000);
   }
 

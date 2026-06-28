@@ -63,16 +63,36 @@
     return BLOG_EDITOR_IDS.includes(textareaId);
   }
 
-  function cleanupEditorDom(textareaId) {
+  function removeEditorBoxes(textareaId) {
+    const boxId = `${textareaId}-quill`;
+    let box = document.getElementById(boxId);
+    while (box) {
+      box.remove();
+      box = document.getElementById(boxId);
+    }
     const ta = document.getElementById(textareaId);
-    if (!ta?.parentNode) return;
-    ta.parentNode.querySelectorAll(`#${textareaId}-quill, .rich-editor-box`).forEach((el) => {
-      if (el !== ta) el.remove();
+    const parent = ta?.parentNode;
+    if (!parent) return;
+    Array.from(parent.children).forEach((el) => {
+      if (el === ta) return;
+      if (el.classList?.contains('rich-editor-box') || el.classList?.contains('ql-toolbar')) {
+        el.remove();
+      }
     });
   }
 
+  function cleanupEditorDom(textareaId) {
+    removeEditorBoxes(textareaId);
+  }
+
   function destroyEditor(textareaId) {
+    const quill = editors.get(textareaId);
     editors.delete(textareaId);
+    if (quill && typeof quill.destroy === 'function') {
+      try {
+        quill.destroy();
+      } catch (_) {}
+    }
     cleanupEditorDom(textareaId);
     const ta = document.getElementById(textareaId);
     if (!ta) return;
@@ -169,10 +189,14 @@
 
   function mountEditor(textareaId, options) {
     if (isPlainHtmlEditor(textareaId)) return null;
-    if (editors.has(textareaId)) {
+    const forceRemount = Boolean(options?.forceRemount);
+    if (editors.has(textareaId) && !forceRemount) {
       const box = document.getElementById(`${textareaId}-quill`);
       if (box) box.className = editorBoxClass(textareaId);
       return editors.get(textareaId);
+    }
+    if (editors.has(textareaId)) {
+      destroyEditor(textareaId);
     }
     const ta = document.getElementById(textareaId);
     if (!ta || !quillReady()) return null;
@@ -258,7 +282,11 @@
     initProductEditors() {
       if (!quillReady()) return;
       PRODUCT_EDITOR_IDS.forEach((id) => destroyEditor(id));
-      initEditors(PRODUCT_EDITOR_IDS, { toolbar: PRODUCT_TOOLBAR });
+      PRODUCT_EDITOR_IDS.forEach((id) => {
+        if (document.getElementById(id)) {
+          mountEditor(id, { toolbar: PRODUCT_TOOLBAR, forceRemount: true });
+        }
+      });
     },
 
     setContent(textareaId, html) {
@@ -267,6 +295,7 @@
       if (ta) ta.value = value;
       if (isPlainHtmlEditor(textareaId)) return;
       if (isBlogEditor(textareaId) && !editors.has(textareaId)) return;
+      if (PRODUCT_EDITOR_IDS.includes(textareaId) && !editors.has(textareaId)) return;
       const quill = editors.get(textareaId) || mountEditor(textareaId, {
         toolbar: isBlogEditor(textareaId)
           ? BLOG_TOOLBAR

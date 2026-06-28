@@ -472,13 +472,7 @@
     }
     switchPage('product-form');
     setTimeout(() => {
-      if (window.RakuRichEditor) {
-        window.RakuRichEditor.initProductEditors();
-        const descVal = product ? (product.description_bn || '') : '';
-        const shortVal = product ? (product.short_description || '') : '';
-        window.RakuRichEditor.setContent('pf-desc', descVal);
-        window.RakuRichEditor.setContent('pf-short-desc', shortVal);
-      }
+      window.RakuRichEditor?.initProductEditors();
       document.getElementById('pf-name')?.focus();
     }, 50);
   }
@@ -3400,10 +3394,10 @@
       const el = document.getElementById(id);
       if (el) el.value = '';
     });
-    if (window.RakuRichEditor) {
-      window.RakuRichEditor.setContent('pf-desc', '');
-      window.RakuRichEditor.setContent('pf-short-desc', '');
-    }
+    const pfDesc = document.getElementById('pf-desc');
+    const pfShort = document.getElementById('pf-short-desc');
+    if (pfDesc) pfDesc.value = '';
+    if (pfShort) pfShort.value = '';
     const oldEl = document.getElementById('pf-old-price');
     if (oldEl) delete oldEl.dataset.userEdited;
     const priceEl = document.getElementById('pf-price');

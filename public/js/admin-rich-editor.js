@@ -256,6 +256,8 @@
     },
 
     initProductEditors() {
+      if (!quillReady()) return;
+      PRODUCT_EDITOR_IDS.forEach((id) => destroyEditor(id));
       initEditors(PRODUCT_EDITOR_IDS, { toolbar: PRODUCT_TOOLBAR });
     },
 

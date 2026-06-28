@@ -484,6 +484,8 @@
   }
 
   function closeProductForm() {
+    window.RakuRichEditor?.destroy?.('pf-desc');
+    window.RakuRichEditor?.destroy?.('pf-short-desc');
     switchPage('products');
   }
 

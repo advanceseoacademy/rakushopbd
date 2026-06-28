@@ -27,6 +27,12 @@ body { font-family:'Hind Siliguri',sans-serif; background:var(--bg); color:var(-
   min-height:100vh; background:linear-gradient(135deg,var(--brand-dark) 0%,var(--brand) 50%,var(--brand-light) 100%);
   display:flex; align-items:center; justify-content:center; padding:20px;
 }
+html.admin-auth-restoring #login-page {
+  display:none !important;
+}
+html.admin-auth-restoring #admin-page {
+  display:block !important;
+}
 .login-card {
   background:#fff; border-radius:20px; padding:48px 40px; width:100%; max-width:420px;
   box-shadow:0 32px 80px rgba(0,0,0,0.35);

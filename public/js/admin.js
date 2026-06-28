@@ -242,6 +242,7 @@
   }
 
   function showLoginPanel() {
+    document.documentElement.classList.remove('admin-auth-restoring');
     document.getElementById('login-page').style.display = 'flex';
     document.getElementById('admin-page').style.display = 'none';
   }
@@ -252,6 +253,7 @@
   }
 
   function showAdmin() {
+    document.documentElement.classList.add('admin-auth-restoring');
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('admin-page').style.display = 'block';
   }

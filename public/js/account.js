@@ -4,7 +4,68 @@
 (function () {
   const API = (window.RAKU_API_BASE || '') + '/api/auth';
   const STORE_API = (window.RAKU_API_BASE || '') + '/api';
+  const USER_SESSION_KEY = 'raku_user_session';
   let currentUser = null;
+
+  function getCachedUserSession() {
+    try {
+      const raw = localStorage.getItem(USER_SESSION_KEY) || sessionStorage.getItem(USER_SESSION_KEY);
+      if (!raw) return null;
+      const user = JSON.parse(raw);
+      return user && user.id ? user : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function cacheUserSession(user) {
+    if (!user?.id) return;
+    try {
+      const json = JSON.stringify(user);
+      localStorage.setItem(USER_SESSION_KEY, json);
+      sessionStorage.setItem(USER_SESSION_KEY, json);
+    } catch (_) {}
+  }
+
+  function clearUserSessionCache() {
+    try {
+      localStorage.removeItem(USER_SESSION_KEY);
+      sessionStorage.removeItem(USER_SESSION_KEY);
+    } catch (_) {}
+    document.documentElement.classList.remove('user-auth-restoring');
+  }
+
+  function markUserAuthRestoring() {
+    document.documentElement.classList.add('user-auth-restoring');
+  }
+
+  function applyCachedUserShell(user) {
+    if (!user) return;
+    markUserAuthRestoring();
+    const page = document.getElementById('page-account');
+    if (page) page.classList.add('logged-in');
+
+    const label = document.getElementById('nav-account-label');
+    if (label) label.textContent = 'My Account';
+
+    const initials = (user.fullName || 'U')
+      .split(' ')
+      .map((w) => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+    const avatar = document.getElementById('acc-avatar');
+    if (avatar) avatar.textContent = initials;
+
+    const set = (id, text) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    };
+    set('acc-sidebar-name', user.fullName || 'Member');
+    set('acc-sidebar-email', user.email || '—');
+    set('acc-dash-name', String(user.fullName || 'Member').split(' ')[0]);
+    set('acc-stat-points', String(user.rewardPoints || 0));
+  }
 
   async function authFetch(url, options = {}) {
     const res = await fetch(API + url, {
@@ -248,6 +309,8 @@
 
   function setLoggedInUI(user) {
     currentUser = user;
+    cacheUserSession(user);
+    markUserAuthRestoring();
     const page = document.getElementById('page-account');
     if (page) page.classList.add('logged-in');
     updateNavAccountLabel();
@@ -288,6 +351,7 @@
 
   function setLoggedOutUI() {
     currentUser = null;
+    clearUserSessionCache();
     const page = document.getElementById('page-account');
     if (page) page.classList.remove('logged-in');
     setAuthTab('login');
@@ -861,6 +925,9 @@
   }
 
   initPasswordToggles();
+
+  const cachedUser = getCachedUserSession();
+  if (cachedUser) applyCachedUserShell(cachedUser);
 
   function bootAccountWhenReady() {
     if (window.RAKU_STANDALONE || window._rakuVisiblePage === 'account') {

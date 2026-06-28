@@ -739,6 +739,10 @@ document.addEventListener('DOMContentLoaded', function() {
       window._rakuInitBlogPage?.(initialRoute.blogSlug || null);
       return;
     }
+    if (initialRoute.page === 'account') {
+      void window._rakuInitAccountPage?.();
+      return;
+    }
     SPA_INIT[initialRoute.page]?.();
   }, 0);
 }); // end DOMContentLoaded

@@ -1271,6 +1271,14 @@
   display: none;
 }
 
+html.user-auth-restoring #page-account .acc-guest-main {
+  display: none !important;
+}
+
+html.user-auth-restoring #page-account .acc-user-only {
+  display: grid !important;
+}
+
 #page-account.logged-in .acc-user-only {
   display: grid;
 }

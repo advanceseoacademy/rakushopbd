@@ -374,7 +374,7 @@
     flex-shrink: 0;
   }
 
-  .navbar--dual .nav-actions--header .header-icon-btn {
+  .navbar--dual .nav-actions--header .header-icon-btn:not(.header-account-btn--text) {
     flex-direction: row;
     padding: 6px 8px;
     min-width: 40px;
@@ -382,7 +382,7 @@
     color: #374151;
   }
 
-  .navbar--dual .nav-actions--header .header-icon-btn:hover {
+  .navbar--dual .nav-actions--header .header-icon-btn:not(.header-account-btn--text):hover {
     background: transparent;
     color: var(--primary);
   }
@@ -394,6 +394,67 @@
 
   .navbar--dual .header-icon-label {
     display: none !important;
+  }
+
+  .navbar--dual .nav-actions--header .header-account-btn--text,
+  .navbar--dual .header-account-btn--text {
+    flex-direction: row;
+    padding: 9px 18px;
+    min-width: auto;
+    min-height: 38px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: none;
+    color: #fff !important;
+    background: #1a1a1a;
+    border: 1px solid #1a1a1a;
+    border-radius: 999px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  }
+
+  .navbar--dual .nav-actions--header .header-account-btn--text:hover,
+  .navbar--dual .header-account-btn--text:hover {
+    color: #fff !important;
+    background: #333;
+    border-color: #333;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+    transform: translateY(-1px);
+    filter: none;
+  }
+
+  .navbar--dual .nav-actions--header .header-account-btn--text:active,
+  .navbar--dual .header-account-btn--text:active {
+    transform: translateY(0);
+    color: #fff !important;
+    background: #000;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.16);
+  }
+
+  .navbar--dual .nav-actions--header .header-account-btn--text.header-account-btn--logged-in,
+  .navbar--dual .header-account-btn--text.header-account-btn--logged-in {
+    color: #fff !important;
+    background: #1a1a1a;
+    border: 1px solid #1a1a1a;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+    filter: none;
+  }
+
+  .navbar--dual .nav-actions--header .header-account-btn--text.header-account-btn--logged-in:hover,
+  .navbar--dual .header-account-btn--text.header-account-btn--logged-in:hover {
+    background: #333;
+    border-color: #333;
+    color: #fff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.22);
+  }
+
+  .navbar--dual .header-account-text {
+    display: inline;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: #fff !important;
   }
 
   .navbar--dual .search-bar {
@@ -2587,7 +2648,7 @@
       color: #374151;
     }
 
-    .navbar--dual .nav-actions--mobile-bar .header-icon-btn {
+    .navbar--dual .nav-actions--mobile-bar .header-icon-btn:not(.header-account-btn--text) {
       flex-direction: row;
       padding: 8px;
       min-width: 48px;
@@ -2595,13 +2656,35 @@
       color: #1a1a1a;
     }
 
-    .navbar--dual .nav-actions--mobile-bar .header-icon-btn:hover {
+    .navbar--dual .nav-actions--mobile-bar .header-icon-btn:not(.header-account-btn--text):hover {
       background: transparent;
       color: #1a1a1a;
     }
 
+    .navbar--dual .nav-actions--mobile-bar .header-account-btn--text:hover {
+      background: #333;
+      border-color: #333;
+      color: #fff;
+      filter: none;
+    }
+
+    .navbar--dual .nav-actions--mobile-bar .header-account-btn--text.header-account-btn--logged-in:hover {
+      background: #333;
+      border-color: #333;
+      color: #fff;
+      filter: none;
+    }
+
     .navbar--dual .nav-actions--mobile-bar .header-icon-btn i {
       font-size: 22px;
+    }
+
+    .navbar--dual .nav-actions--mobile-bar .header-account-btn--text {
+      padding: 7px 14px;
+      min-width: auto;
+      min-height: 34px;
+      font-size: 12px;
+      border-radius: 999px;
     }
 
     .header-icon-label {

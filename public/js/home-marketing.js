@@ -107,9 +107,9 @@
   }
 
   function isHomeRoute() {
-    if (window._rakuVisiblePage && window._rakuVisiblePage !== 'home') return false;
     const parts = (location.pathname || '/').split('/').filter(Boolean);
     if (parts.length > 0) return false;
+    if (window._rakuVisiblePage && window._rakuVisiblePage !== 'home') return false;
     return isHomePageVisible();
   }
 

@@ -740,8 +740,7 @@
   }
 
   function visibleHomeBlogCards() {
-    if (window.matchMedia('(max-width: 768px)').matches) return 2;
-    return 4;
+    return 2;
   }
 
   function syncHomeCarouselCardWidths(trackId, cardSelector, minWidth) {
@@ -1384,6 +1383,100 @@
     return gallery;
   }
 
+  function resetProductImageZoom(container) {
+    if (!container) return;
+    container.classList.remove('is-zooming');
+    const img = container.querySelector('.product-photo');
+    if (!img) return;
+    img.style.transform = '';
+    img.style.width = '';
+    img.style.height = '';
+    img.style.position = '';
+    img.style.left = '';
+    img.style.top = '';
+    img.style.maxWidth = '';
+    img.style.maxHeight = '';
+    img.style.objectFit = '';
+    img.style.willChange = '';
+    delete img.dataset.baseW;
+    delete img.dataset.baseH;
+    delete img.dataset.zoomScale;
+  }
+
+  function applyProductImageZoom(container, e) {
+    const img = container.querySelector('.product-photo');
+    if (!img) return;
+
+    const run = () => {
+      const rect = container.getBoundingClientRect();
+      if (rect.width < 1 || rect.height < 1) return;
+
+      let baseW = Number(img.dataset.baseW);
+      let baseH = Number(img.dataset.baseH);
+      if (!baseW || !baseH) {
+        baseW = img.offsetWidth || rect.width;
+        baseH = img.offsetHeight || rect.height;
+        img.dataset.baseW = String(baseW);
+        img.dataset.baseH = String(baseH);
+      }
+      if (baseW < 1 || baseH < 1) return;
+
+      const naturalW = img.naturalWidth || baseW;
+      const naturalH = img.naturalHeight || baseH;
+      const maxScale = Math.min(naturalW / baseW, naturalH / baseH);
+      const zoomTarget = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 1.2 : 2;
+      const scale = Math.max(1.15, Math.min(zoomTarget, maxScale > 1 ? maxScale : zoomTarget));
+      img.dataset.zoomScale = String(scale);
+
+      const zoomW = baseW * scale;
+      img.style.position = 'absolute';
+      img.style.maxWidth = 'none';
+      img.style.maxHeight = 'none';
+      img.style.width = `${zoomW}px`;
+      img.style.height = 'auto';
+      img.style.objectFit = 'contain';
+
+      const zoomH = img.getBoundingClientRect().height || baseH * scale;
+
+      const relX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+      const relY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+      const tx = relX * rect.width - relX * zoomW;
+      const ty = relY * rect.height - relY * zoomH;
+      img.style.transform = `translate3d(${tx}px, ${ty}px, 0)`;
+    };
+
+    if (img.complete && img.naturalWidth > 0) {
+      run();
+      return;
+    }
+    img.addEventListener('load', run, { once: true });
+  }
+
+  function bindProductImageZoom() {
+    const container = document.querySelector('#page-product .main-product-img');
+    if (!container || container._rakuZoomBound) return;
+    container._rakuZoomBound = true;
+
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+
+    container.addEventListener('mouseenter', (e) => {
+      const img = container.querySelector('.product-photo');
+      if (!img) return;
+      resetProductImageZoom(container);
+      img.dataset.baseW = String(img.offsetWidth);
+      img.dataset.baseH = String(img.offsetHeight);
+      container.classList.add('is-zooming');
+      applyProductImageZoom(container, e);
+    });
+
+    container.addEventListener('mousemove', (e) => {
+      if (!container.classList.contains('is-zooming')) return;
+      applyProductImageZoom(container, e);
+    });
+
+    container.addEventListener('mouseleave', () => resetProductImageZoom(container));
+  }
+
   function setMainProductPhoto(mainEl, url, alt, bgColor, icon, iconColor) {
     if (!mainEl) return;
     if (bgColor) mainEl.style.background = bgColor;
@@ -1401,6 +1494,9 @@
       imgEl.removeAttribute('style');
       imgEl.removeAttribute('width');
       imgEl.removeAttribute('height');
+      delete imgEl.dataset.baseW;
+      delete imgEl.dataset.baseH;
+      delete imgEl.dataset.zoomScale;
       imgEl.onerror = () => setMainProductPhoto(mainEl, null, alt, bgColor, icon, iconColor);
       const fullSrc = productDetailImageSrc(url);
       imgEl.removeAttribute('srcset');
@@ -3519,6 +3615,7 @@
   }
 
   function onRakuReady() {
+    bindProductImageZoom();
     void runStorefrontBootstrap();
   }
 

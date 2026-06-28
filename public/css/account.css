@@ -1279,6 +1279,14 @@ html.user-auth-restoring #page-account .acc-user-only {
   display: grid !important;
 }
 
+html.account-auth-pending #page-account .acc-guest-main {
+  display: none !important;
+}
+
+html.account-auth-pending #page-account .acc-user-only {
+  display: none !important;
+}
+
 #page-account.logged-in .acc-user-only {
   display: grid;
 }

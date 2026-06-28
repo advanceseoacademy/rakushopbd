@@ -42,7 +42,7 @@
 
   const ROUTE_ASSETS = {
     account: {
-      js: ['/js/account.js?v=18'],
+      js: ['/js/account.js?v=22'],
       css: ['/css/account.css?v=14'],
     },
     appointment: {

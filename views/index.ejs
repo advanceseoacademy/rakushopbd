@@ -1,3 +1,4 @@
+<% const _initialPage = typeof initialPage !== 'undefined' ? initialPage : 'home'; %>
 <!DOCTYPE html>
 <html lang="en-BD">
 <head>
@@ -5,14 +6,34 @@
 <script>
 (function () {
   try {
+    var path = (location.pathname || '/').replace(/\/+$/, '') || '/';
+    var onAccount = path === '/account';
+    var hasCookie = document.cookie.split(';').some(function (c) {
+      return c.trim().indexOf('rakushopbd.sid=') === 0;
+    });
     var raw = localStorage.getItem('raku_user_session') || sessionStorage.getItem('raku_user_session');
-    if (raw && JSON.parse(raw).id) document.documentElement.classList.add('user-auth-restoring');
+    var user = raw ? JSON.parse(raw) : null;
+    if (user && user.id && hasCookie) {
+      document.documentElement.classList.add('user-auth-restoring');
+    } else if (user && user.id && !hasCookie) {
+      try {
+        localStorage.removeItem('raku_user_session');
+        sessionStorage.removeItem('raku_user_session');
+      } catch (_) {}
+      if (onAccount) document.documentElement.classList.add('account-auth-pending');
+    } else if (hasCookie) {
+      document.documentElement.classList.add('user-auth-restoring');
+    } else if (onAccount) {
+      document.documentElement.classList.add('account-auth-pending');
+    }
   } catch (_) {}
 })();
 </script>
 <style>
 html.user-auth-restoring #page-account .acc-guest-main { display: none !important; }
 html.user-auth-restoring #page-account .acc-user-only { display: grid !important; }
+html.account-auth-pending #page-account .acc-guest-main { display: none !important; }
+html.account-auth-pending #page-account .acc-user-only { display: none !important; }
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <%- include('partials/seo-head', { seo: typeof seo !== 'undefined' ? seo : null }) %>
@@ -24,18 +45,17 @@ html.user-auth-restoring #page-account .acc-user-only { display: grid !important
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="preload" href="/css/home.bundle.css?v=19" as="style">
+<link rel="preload" href="/css/home.bundle.css?v=25" as="style">
 <link rel="preload" href="/fonts/tabler-icons.woff2?v=3" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/home.bundle.css?v=19">
+<link rel="stylesheet" href="/css/home.bundle.css?v=25">
 <link rel="stylesheet" href="/css/home-marketing.css?v=8" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-marketing.css?v=8"></noscript>
 <link rel="stylesheet" href="/css/popup-themes.css?v=1" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/popup-themes.css?v=1"></noscript>
 <link rel="stylesheet" href="/css/home-today-deals.css?v=5" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-today-deals.css?v=5"></noscript>
-<link rel="stylesheet" href="/css/home-blog.css?v=1" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="/css/home-blog.css?v=1"></noscript>
-<% const _initialPage = typeof initialPage !== 'undefined' ? initialPage : 'home'; %>
+<link rel="stylesheet" href="/css/home-blog.css?v=2" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/css/home-blog.css?v=2"></noscript>
 <% const _pagesCssPages = ['faq', 'blog', 'about', 'contact', 'track', 'privacy', 'terms', 'return', 'preorder', 'points', 'appointment']; %>
 <% if (_pagesCssPages.includes(_initialPage)) { %>
 <link rel="stylesheet" href="/css/pages.css?v=10">
@@ -45,7 +65,7 @@ html.user-auth-restoring #page-account .acc-user-only { display: grid !important
 <% } %>
 <% if (_initialPage === 'account') { %>
 <link rel="stylesheet" href="/css/account.css?v=14">
-<script src="/js/account.js?v=18" defer></script>
+<script src="/js/account.js?v=22" defer></script>
 <% } %>
 <%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </head>
@@ -227,8 +247,6 @@ html.user-auth-restoring #page-account .acc-user-only { display: grid !important
  <div class="home-scroll-track home-blog-track" id="track-home-blog">
  <article class="home-blog-card home-blog-card--skeleton" aria-hidden="true"><div class="home-blog-card-image skeleton-block"></div><div class="home-blog-card-body"><span class="skeleton-block skeleton-block--xs"></span><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span></div></article>
  <article class="home-blog-card home-blog-card--skeleton" aria-hidden="true"><div class="home-blog-card-image skeleton-block"></div><div class="home-blog-card-body"><span class="skeleton-block skeleton-block--xs"></span><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span></div></article>
- <article class="home-blog-card home-blog-card--skeleton" aria-hidden="true"><div class="home-blog-card-image skeleton-block"></div><div class="home-blog-card-body"><span class="skeleton-block skeleton-block--xs"></span><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span></div></article>
- <article class="home-blog-card home-blog-card--skeleton" aria-hidden="true"><div class="home-blog-card-image skeleton-block"></div><div class="home-blog-card-body"><span class="skeleton-block skeleton-block--xs"></span><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span></div></article>
  </div>
  </div>
  </section>
@@ -363,14 +381,34 @@ html.user-auth-restoring #page-account .acc-user-only { display: grid !important
  display:flex; align-items:center; justify-content:center; margin-bottom:12px;
  border:1px solid var(--border); position:relative; overflow:hidden;
 }
-.main-product-img i { font-size:140px; color:#2D6B32; }
 .main-product-img .product-photo {
  max-width:calc(100% - 24px); max-height:calc(100% - 24px);
  width:auto; height:auto;
  object-fit:contain; object-position:center;
  display:block;
 }
-.pv-badge-row { position:absolute; top:14px; left:14px; display:flex; gap:6px; }
+@media (hover: hover) and (pointer: fine) {
+ .main-product-img:has(.product-photo) { cursor: zoom-in; }
+ .main-product-img.is-zooming {
+  display:block;
+  cursor: zoom-in;
+ }
+ .main-product-img.is-zooming .product-photo {
+  position:absolute;
+  left:0;
+  top:0;
+  max-width:none;
+  max-height:none;
+  height:auto;
+  object-fit:contain;
+  will-change:transform;
+ }
+}
+@media (prefers-reduced-motion: reduce) {
+ .main-product-img.is-zooming .product-photo { object-fit:contain; }
+}
+.main-product-img i { font-size:140px; color:#2D6B32; }
+.pv-badge-row { position:absolute; top:14px; left:14px; display:flex; gap:6px; z-index:2; pointer-events:none; }
 .pv-badge { background:var(--accent); color:#fff; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
 .pv-badge-new { background:var(--green); }
 .thumb-row { display:flex; gap:8px; }
@@ -1199,7 +1237,7 @@ html.user-auth-restoring #page-account .acc-user-only { display: grid !important
 </div><!-- /page-success -->
 
 <!-- USER ACCOUNT PAGE -->
-<div id="page-account" style="display:none;">
+<div id="page-account" style="display:<%= _initialPage === 'account' ? 'block' : 'none' %>;">
 <div class="acc-wrap">
   <nav class="acc-breadcrumb">
     <span class="link" data-page="home"><i class="ti ti-home"></i> Home</span>
@@ -1720,11 +1758,11 @@ html.user-auth-restoring #page-account .acc-user-only { display: grid !important
 <script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/product-description-html.js?v=1" defer></script>
 <script src="/js/storefront-dynamic.js?v=66" defer></script>
-<script src="/js/api.js?v=130" defer></script>
+<script src="/js/api.js?v=133" defer></script>
 <script src="/js/home-recommendations.js?v=10" defer></script>
 <script src="/js/home-messenger-chats.js?v=6" defer></script>
 <script src="/js/home-customer-reviews.js?v=17" defer></script>
-<script src="/js/home-blog.js?v=1" defer></script>
+<script src="/js/home-blog.js?v=2" defer></script>
 <script src="/js/home-marketing.js?v=19" defer></script>
 <script src="/js/footer-settings.js?v=15" defer></script>
 <script src="/js/search.js?v=9" defer></script>

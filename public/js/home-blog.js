@@ -1,5 +1,5 @@
 /**
- * Homepage blog row — latest published posts, horizontal scroll (4 desktop / 2 mobile).
+ * Homepage blog row — latest published posts, horizontal scroll (2 visible per view).
  */
 (function () {
   function escapeHtml(s) {

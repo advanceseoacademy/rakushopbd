@@ -7,6 +7,42 @@
   const USER_SESSION_KEY = 'raku_user_session';
   let currentUser = null;
 
+  function hasSessionCookie() {
+    try {
+      return document.cookie.split(';').some((c) => c.trim().startsWith('rakushopbd.sid='));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function finishAccountAuthPending() {
+    document.documentElement.classList.remove('account-auth-pending');
+  }
+
+  function prepareAccountAuthShell() {
+    const html = document.documentElement;
+    const cached = getCachedUserSession();
+    const cookie = hasSessionCookie();
+
+    if (cached && !cookie) {
+      try {
+        localStorage.removeItem(USER_SESSION_KEY);
+        sessionStorage.removeItem(USER_SESSION_KEY);
+      } catch (_) {}
+      html.classList.remove('user-auth-restoring');
+    }
+
+    if (cached && cookie) {
+      applyCachedUserShell(cached);
+      return;
+    }
+    if (cookie) {
+      markUserAuthRestoring();
+      return;
+    }
+    html.classList.add('account-auth-pending');
+  }
+
   function getCachedUserSession() {
     try {
       const raw = localStorage.getItem(USER_SESSION_KEY) || sessionStorage.getItem(USER_SESSION_KEY);
@@ -45,8 +81,7 @@
     const page = document.getElementById('page-account');
     if (page) page.classList.add('logged-in');
 
-    const label = document.getElementById('nav-account-label');
-    if (label) label.textContent = 'My Account';
+    setNavAccountLabels('My Account');
 
     const initials = (user.fullName || 'U')
       .split(' ')
@@ -302,9 +337,22 @@
     }
   }
 
+  function setNavAccountLabels(text) {
+    const loggedIn = text === 'My Account';
+    ['nav-account-label', 'nav-account-label-desktop'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = text;
+    });
+    ['nav-account-btn', 'nav-account-btn-desktop'].forEach((id) => {
+      const btn = document.getElementById(id);
+      if (!btn) return;
+      btn.setAttribute('aria-label', text);
+      btn.classList.toggle('header-account-btn--logged-in', loggedIn);
+    });
+  }
+
   function updateNavAccountLabel() {
-    const label = document.getElementById('nav-account-label');
-    if (label) label.textContent = currentUser ? 'My Account' : 'Login / Register';
+    setNavAccountLabels(currentUser ? 'My Account' : 'SingUp');
   }
 
   function setLoggedInUI(user) {
@@ -360,13 +408,17 @@
   }
 
   async function loadSession() {
-    const data = await authFetch('/me');
-    if (data.ok && data.user) {
-      setLoggedInUI(data.user);
-    } else {
-      setLoggedOutUI();
+    try {
+      const data = await authFetch('/me');
+      if (data.ok && data.user) {
+        setLoggedInUI(data.user);
+      } else {
+        setLoggedOutUI();
+      }
+      return data.user;
+    } finally {
+      finishAccountAuthPending();
     }
-    return data.user;
   }
 
   async function loadOrders() {
@@ -890,6 +942,7 @@
       bootAccountUi();
       window.__RAKU_ACCOUNT_UI_BOUND = true;
     }
+    prepareAccountAuthShell();
     await loadSession();
     (window.rakuScrollToTop || (() => window.scrollTo(0, 0)))();
   };
@@ -925,9 +978,6 @@
   }
 
   initPasswordToggles();
-
-  const cachedUser = getCachedUserSession();
-  if (cachedUser) applyCachedUserShell(cachedUser);
 
   function bootAccountWhenReady() {
     if (window.RAKU_STANDALONE || window._rakuVisiblePage === 'account') {

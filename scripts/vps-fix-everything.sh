@@ -21,6 +21,14 @@ if ! command -v node >/dev/null 2>&1; then
 fi
 command -v pm2 >/dev/null 2>&1 || npm install -g pm2
 
+# Redis — shared app cache
+if ! command -v redis-cli >/dev/null 2>&1; then
+  apt-get update -qq
+  apt-get install -y redis-server
+  systemctl enable redis-server
+  systemctl start redis-server
+fi
+
 mkdir -p "/home/${DOMAIN}/public_html"
 mkdir -p "$APP_DIR"
 
@@ -42,6 +50,8 @@ SESSION_SECRET=rakushopbd-live-secret-8f3a9c2e1b7d4f6a
 ADMIN_USERNAME=admin@rakushopbd.com
 ADMIN_EMAIL=admin@rakushopbd.com
 ADMIN_PASSWORD=BDRakuadmin2026%%
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_KEY_PREFIX=rakushopbd:
 ENVFILE
 
 mkdir -p "$APP_DIR/public/uploads"

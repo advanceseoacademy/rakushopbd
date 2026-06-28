@@ -28,7 +28,8 @@
     "build:css": "node scripts/minify-css.js",
     "build:css:force": "node scripts/minify-css.js --force",
     "build:home-css": "node scripts/build-home-css-bundle.js",
-    "build:assets": "npm run build:home-css && npm run build:css && npm run build:js"
+    "build:assets": "npm run build:home-css && npm run build:css && npm run build:js",
+    "redis:check": "node scripts/redis-check.js"
   },
   "engines": {
     "node": ">=18.0.0"

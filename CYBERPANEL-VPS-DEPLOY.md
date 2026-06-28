@@ -157,6 +157,41 @@ Admin থেকে upload করা image এখানে যাবে।
 
 ---
 
+## ধাপ ৯ — Redis cache (optional, recommended on VPS)
+
+Shared cache — bootstrap, SEO, product lists faster across PM2 restarts.
+
+**VPS-এ (root SSH):**
+
+```bash
+cd /home/rakushopbd.com/rakushopbd
+bash scripts/setup-redis-vps.sh
+```
+
+অথবা one-liner:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/advanceseoacademy/rakushopbd/main/scripts/setup-redis-vps.sh)"
+```
+
+`.env`-এ যোগ হবে:
+
+```env
+REDIS_URL=redis://127.0.0.1:6379
+REDIS_KEY_PREFIX=rakushopbd:
+```
+
+Verify:
+
+```bash
+curl -s http://127.0.0.1:3001/api/health
+# {"ok":true,"cache":"redis","redis":true}
+```
+
+Local test: `npm run redis:check`
+
+---
+
 ## আপডেট (git pull)
 
 ```bash

@@ -54,8 +54,8 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <noscript><link rel="stylesheet" href="/css/popup-themes.css?v=1"></noscript>
 <link rel="stylesheet" href="/css/home-today-deals.css?v=5" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-today-deals.css?v=5"></noscript>
-<link rel="stylesheet" href="/css/home-blog.css?v=2" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="/css/home-blog.css?v=2"></noscript>
+<link rel="stylesheet" href="/css/home-blog.css?v=3" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/css/home-blog.css?v=3"></noscript>
 <% const _pagesCssPages = ['faq', 'blog', 'about', 'contact', 'track', 'privacy', 'terms', 'return', 'preorder', 'points', 'appointment']; %>
 <% if (_pagesCssPages.includes(_initialPage)) { %>
 <link rel="stylesheet" href="/css/pages.css?v=10">
@@ -245,6 +245,8 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
  </div>
  <div class="home-scroll-wrap">
  <div class="home-scroll-track home-blog-track" id="track-home-blog">
+ <article class="home-blog-card home-blog-card--skeleton" aria-hidden="true"><div class="home-blog-card-image skeleton-block"></div><div class="home-blog-card-body"><span class="skeleton-block skeleton-block--xs"></span><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span></div></article>
+ <article class="home-blog-card home-blog-card--skeleton" aria-hidden="true"><div class="home-blog-card-image skeleton-block"></div><div class="home-blog-card-body"><span class="skeleton-block skeleton-block--xs"></span><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span></div></article>
  <article class="home-blog-card home-blog-card--skeleton" aria-hidden="true"><div class="home-blog-card-image skeleton-block"></div><div class="home-blog-card-body"><span class="skeleton-block skeleton-block--xs"></span><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span></div></article>
  <article class="home-blog-card home-blog-card--skeleton" aria-hidden="true"><div class="home-blog-card-image skeleton-block"></div><div class="home-blog-card-body"><span class="skeleton-block skeleton-block--xs"></span><span class="skeleton-block skeleton-block--sm"></span><span class="skeleton-block skeleton-block--md"></span></div></article>
  </div>
@@ -1758,11 +1760,11 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/product-description-html.js?v=1" defer></script>
 <script src="/js/storefront-dynamic.js?v=66" defer></script>
-<script src="/js/api.js?v=133" defer></script>
+<script src="/js/api.js?v=134" defer></script>
 <script src="/js/home-recommendations.js?v=10" defer></script>
 <script src="/js/home-messenger-chats.js?v=6" defer></script>
 <script src="/js/home-customer-reviews.js?v=17" defer></script>
-<script src="/js/home-blog.js?v=2" defer></script>
+<script src="/js/home-blog.js?v=3" defer></script>
 <script src="/js/home-marketing.js?v=19" defer></script>
 <script src="/js/footer-settings.js?v=15" defer></script>
 <script src="/js/search.js?v=9" defer></script>

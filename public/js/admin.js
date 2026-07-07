@@ -5680,6 +5680,10 @@
     URL.revokeObjectURL(a.href);
   }
 
+  document.getElementById('products-export-btn')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    downloadExport('/products/export', 'products.csv');
+  });
   document.getElementById('orders-export-btn')?.addEventListener('click', (e) => {
     e.preventDefault();
     downloadExport('/orders/export', 'orders.csv');

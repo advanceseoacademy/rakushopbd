@@ -740,7 +740,8 @@
   }
 
   function visibleHomeBlogCards() {
-    return 2;
+    if (window.matchMedia('(max-width: 768px)').matches) return 2;
+    return 4;
   }
 
   function syncHomeCarouselCardWidths(trackId, cardSelector, minWidth) {

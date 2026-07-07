@@ -713,6 +713,110 @@ router.get('/products', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/products/export', requireAdmin, async (req, res) => {
+  try {
+    const products = await query(
+      `SELECT p.*, c.name_bn AS category_name, c.slug AS category_slug
+       FROM products p
+       JOIN categories c ON c.id = p.category_id
+       ORDER BY p.id DESC`
+    );
+
+    const galleryMap = new Map();
+    if (products.length) {
+      await ensureProductImagesTable();
+      const ids = products.map((p) => p.id);
+      const placeholders = ids.map(() => '?').join(',');
+      const imageRows = await query(
+        `SELECT product_id, image_url FROM product_images WHERE product_id IN (${placeholders}) ORDER BY product_id, sort_order, id`,
+        ids
+      );
+      for (const row of imageRows) {
+        const pid = row.product_id;
+        if (!galleryMap.has(pid)) galleryMap.set(pid, []);
+        galleryMap.get(pid).push(row.image_url);
+      }
+    }
+
+    const csvCell = (value) => {
+      const s = value == null ? '' : String(value);
+      return `"${s.replace(/"/g, '""').replace(/\r?\n/g, ' ')}"`;
+    };
+
+    const columns = [
+      'ID',
+      'Name',
+      'Slug',
+      'SKU',
+      'Category',
+      'Category Slug',
+      'Price',
+      'Old Price',
+      'Buy Price',
+      'Stock',
+      'Featured',
+      'Tag Type',
+      'Tag Text',
+      'Discount %',
+      'Image URL',
+      'Gallery URLs',
+      'Short Description',
+      'Description',
+      'SEO Title',
+      'SEO Description',
+      'SEO Keywords',
+      'Image Alt',
+      'OG Image',
+      'Rating',
+      'Review Count',
+      'Created At',
+    ];
+
+    const rows = products.map((p) => {
+      let gallery = galleryMap.get(p.id) || [];
+      if (p.image_url && !gallery.includes(p.image_url)) gallery = [p.image_url, ...gallery];
+      return [
+        p.id,
+        p.name_bn,
+        p.slug,
+        p.sku,
+        p.category_name,
+        p.category_slug,
+        p.price,
+        p.old_price,
+        p.buy_price,
+        p.stock,
+        p.is_featured ? 1 : 0,
+        p.tag_type,
+        p.tag_text,
+        p.discount_percent,
+        p.image_url,
+        gallery.join('|'),
+        p.short_description,
+        p.description_bn,
+        p.seo_title,
+        p.seo_description,
+        p.seo_keywords,
+        p.image_alt,
+        p.og_image,
+        p.rating,
+        p.review_count,
+        p.created_at,
+      ]
+        .map(csvCell)
+        .join(',');
+    });
+
+    const csv = `${columns.join(',')}\n${rows.join('\n')}`;
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename=products.csv');
+    res.send(`\uFEFF${csv}`);
+  } catch (err) {
+    console.error('products export', err);
+    res.status(500).send('Export failed');
+  }
+});
+
 router.get('/products/:id', requireAdmin, async (req, res) => {
   try {
     const productId = Number(req.params.id);

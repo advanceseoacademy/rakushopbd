@@ -60,6 +60,10 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <% if (_pagesCssPages.includes(_initialPage)) { %>
 <link rel="stylesheet" href="/css/pages.css?v=10">
 <% } %>
+<% if (_initialPage === 'appointment') { %>
+<link rel="stylesheet" href="/css/appointment.css?v=4">
+<script src="/js/appointment.js?v=6" defer></script>
+<% } %>
 <% if (_initialPage === 'about') { %>
 <script src="/js/about.js?v=2" defer></script>
 <% } %>
@@ -1747,25 +1751,18 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script>window.__RAKU_BLOG_SLUG=<%- JSON.stringify(blogSlug) %>;</script>
 <% } %>
 <script>window.RAKU_API_BASE = '';</script>
-<script src="/js/lazy-route-assets.js?v=7" defer></script>
+<script src="/js/lazy-route-assets.js?v=12" defer></script>
 <script src="/js/maintenance-view.js?v=4" defer></script>
 <script src="/js/seo.js?v=9" defer></script>
 <script src="/js/mobile-menu.js?v=2" defer></script>
 <script src="/js/store-url.js?v=1" defer></script>
-<script src="/js/blog.js?v=3" defer></script>
-<script src="/js/app.js?v=47" defer></script>
+<script src="/js/app.js?v=51" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
 <script src="/js/home-hero-slider.js?v=11" defer></script>
 <script src="/js/home-today-deals.js?v=6" defer></script>
 <script src="/js/image-delivery.js?v=3" defer></script>
-<script src="/js/product-description-html.js?v=1" defer></script>
 <script src="/js/storefront-dynamic.js?v=66" defer></script>
 <script src="/js/api.js?v=134" defer></script>
-<script src="/js/home-recommendations.js?v=10" defer></script>
-<script src="/js/home-messenger-chats.js?v=6" defer></script>
-<script src="/js/home-customer-reviews.js?v=17" defer></script>
-<script src="/js/home-blog.js?v=3" defer></script>
-<script src="/js/home-marketing.js?v=19" defer></script>
 <script src="/js/footer-settings.js?v=15" defer></script>
 <script src="/js/search.js?v=9" defer></script>
 <script>
@@ -1773,6 +1770,30 @@ document.addEventListener('DOMContentLoaded', function () {
   if (window.__RAKU_READY__) return;
   window.__RAKU_READY__ = true;
   document.dispatchEvent(new CustomEvent('raku:ready'));
+
+  // Below-fold homepage modules — load after first paint
+  var deferred = [
+    '/js/product-description-html.js?v=1',
+    '/js/home-recommendations.js?v=10',
+    '/js/home-messenger-chats.js?v=6',
+    '/js/home-customer-reviews.js?v=17',
+    '/js/home-blog.js?v=3',
+    '/js/home-marketing.js?v=19'
+  ];
+  function loadDeferred() {
+    deferred.forEach(function (src) {
+      if (document.querySelector('script[src=\"' + src + '\"]')) return;
+      var s = document.createElement('script');
+      s.src = src;
+      s.defer = true;
+      document.body.appendChild(s);
+    });
+  }
+  if (window.requestIdleCallback) {
+    requestIdleCallback(loadDeferred, { timeout: 2500 });
+  } else {
+    setTimeout(loadDeferred, 200);
+  }
 });
 </script>
 <div class="gift-popup" id="gift-popup" hidden aria-hidden="true" data-popup-theme="gift">

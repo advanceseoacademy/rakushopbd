@@ -1,7 +1,14 @@
 (function () {
   const API = (window.RAKU_API_BASE || '') + '/api';
+  const LIST_CACHE_MS = 60 * 1000;
+  const POST_CACHE_MS = 5 * 60 * 1000;
   let listPage = 1;
   let readProgressBound = false;
+  let listCache = null;
+  let listCacheAt = 0;
+  let listInflight = null;
+  const postCache = new Map();
+  const postInflight = new Map();
 
   function escapeHtml(s) {
     return String(s)
@@ -44,7 +51,14 @@
   function currentBlogSlug() {
     const parts = (location.pathname || '').split('/').filter(Boolean);
     if (parts[0] === 'blog' && parts[1]) return decodeURIComponent(parts[1]);
-    if (window.__RAKU_BLOG_SLUG) return String(window.__RAKU_BLOG_SLUG);
+    // Only trust SSR slug when URL is still a single-post path.
+    if (parts[0] === 'blog' && !parts[1] && window.__RAKU_BLOG_SLUG) {
+      try {
+        delete window.__RAKU_BLOG_SLUG;
+      } catch (_) {
+        window.__RAKU_BLOG_SLUG = '';
+      }
+    }
     return null;
   }
 
@@ -153,21 +167,89 @@
     }
   }
 
+  function adoptWarmList(data) {
+    if (data?.ok) {
+      listCache = data;
+      listCacheAt = Date.now();
+    }
+    return data;
+  }
+
+  async function fetchBlogList(page) {
+    const p = Math.max(1, Number(page) || 1);
+    if (p === 1 && listCache && Date.now() - listCacheAt < LIST_CACHE_MS) {
+      return listCache;
+    }
+    if (p === 1 && listInflight) return listInflight;
+
+    // Early fetch started from app.js before blog.js finished loading.
+    if (p === 1 && window.__RAKU_BLOG_LIST_WARM) {
+      const warm = window.__RAKU_BLOG_LIST_WARM;
+      window.__RAKU_BLOG_LIST_WARM = null;
+      listInflight = Promise.resolve(warm)
+        .then(adoptWarmList)
+        .finally(() => {
+          listInflight = null;
+        });
+      return listInflight;
+    }
+
+    const job = (async () => {
+      const res = await fetch(`${API}/blog/posts?limit=12&page=${p}`, { credentials: 'same-origin' });
+      const data = await res.json();
+      if (p === 1) return adoptWarmList(data);
+      return data;
+    })();
+
+    if (p === 1) {
+      listInflight = job.finally(() => {
+        listInflight = null;
+      });
+      return listInflight;
+    }
+    return job;
+  }
+
+  async function fetchBlogPost(slug) {
+    const key = String(slug || '');
+    const hit = postCache.get(key);
+    if (hit && Date.now() - hit.at < POST_CACHE_MS) return hit.data;
+    if (postInflight.has(key)) return postInflight.get(key);
+
+    const job = (async () => {
+      const res = await fetch(`${API}/blog/posts/${encodeURIComponent(key)}`, {
+        credentials: 'same-origin',
+      });
+      const data = await res.json();
+      if (data?.ok && data.post) postCache.set(key, { at: Date.now(), data });
+      return data;
+    })().finally(() => postInflight.delete(key));
+
+    postInflight.set(key, job);
+    return job;
+  }
+
   async function loadBlogList(page) {
     if (page) listPage = page;
     setBlogMode('list');
     const grid = document.getElementById('blog-grid');
-    if (grid) grid.innerHTML = '<p class="blog-loading">Loading articles…</p>';
+
+    const cached =
+      listPage === 1 && listCache && Date.now() - listCacheAt < LIST_CACHE_MS ? listCache : null;
+    if (cached?.ok) {
+      renderList(cached.posts || [], cached.pagination);
+    } else if (grid && !grid.querySelector('.blog-card')) {
+      grid.innerHTML = '<p class="blog-loading">Loading articles…</p>';
+    }
 
     try {
-      const res = await fetch(`${API}/blog/posts?limit=12&page=${listPage}`, { credentials: 'same-origin' });
-      const data = await res.json();
-      if (data.ok) {
+      const data = await fetchBlogList(listPage);
+      if (data?.ok) {
         renderList(data.posts || [], data.pagination);
         return;
       }
     } catch (_) {}
-    if (grid) {
+    if (grid && !grid.querySelector('.blog-card')) {
       grid.innerHTML = '<p class="blog-empty">Could not load articles. Please try again later.</p>';
     }
   }
@@ -183,14 +265,17 @@
     const imgEl = document.getElementById('blog-single-image');
     const heroWrap = document.getElementById('blog-single-hero');
 
-    if (titleEl) titleEl.textContent = 'Loading…';
-    if (contentEl) contentEl.innerHTML = '';
-    if (excerptEl) excerptEl.hidden = true;
-    if (heroWrap) heroWrap.hidden = true;
+    const cached = postCache.get(String(slug || ''));
+    const hasFresh = cached && Date.now() - cached.at < POST_CACHE_MS && cached.data?.post;
+    if (!hasFresh) {
+      if (titleEl) titleEl.textContent = 'Loading…';
+      if (contentEl) contentEl.innerHTML = '';
+      if (excerptEl) excerptEl.hidden = true;
+      if (heroWrap) heroWrap.hidden = true;
+    }
 
     try {
-      const res = await fetch(`${API}/blog/posts/${encodeURIComponent(slug)}`, { credentials: 'same-origin' });
-      const data = await res.json();
+      const data = await fetchBlogPost(slug);
       if (!data.ok || !data.post) {
         if (titleEl) titleEl.textContent = 'Article not found';
         if (contentEl) {
@@ -260,12 +345,18 @@
   }
 
   function initBlogPage(forcedSlug) {
-    const slug = forcedSlug || currentBlogSlug();
+    const slug =
+      forcedSlug === undefined || forcedSlug === null || forcedSlug === ''
+        ? currentBlogSlug()
+        : String(forcedSlug);
     if (slug) loadBlogSingle(slug);
     else loadBlogList(listPage);
   }
 
   window._rakuInitBlogPage = initBlogPage;
+  window._rakuPrefetchBlogList = function () {
+    void fetchBlogList(1).catch(() => {});
+  };
 
   document.addEventListener('DOMContentLoaded', () => {
     const page = document.getElementById('page-blog');

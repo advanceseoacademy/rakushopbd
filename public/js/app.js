@@ -247,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   async function ensureBlogReady() {
-    if (window._rakuInitBlogPage) return true;
+    // Always ensure CSS/JS assets — blog.js may already be idle-loaded without pages.css.
     if (window.rakuEnsureRouteAssets) {
       try {
         await window.rakuEnsureRouteAssets('blog');
@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     return new Promise((resolve) => {
       const script = document.createElement('script');
-      script.src = '/js/blog.js?v=3';
+      script.src = '/js/blog.js?v=6';
       script.defer = true;
       script.onload = () => resolve(Boolean(window._rakuInitBlogPage));
       script.onerror = () => resolve(false);
@@ -330,21 +330,28 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
+  function warmBlogListEarly() {
+    if (window._rakuPrefetchBlogList) {
+      window._rakuPrefetchBlogList();
+      return;
+    }
+    if (window.__RAKU_BLOG_LIST_WARM) return;
+    const api = (window.RAKU_API_BASE || '') + '/api/blog/posts?limit=12&page=1';
+    window.__RAKU_BLOG_LIST_WARM = fetch(api, { credentials: 'same-origin' })
+      .then((r) => r.json())
+      .catch(() => null);
+  }
+
   function showPage(name, opts) {
     if (typeof opts !== 'object' || opts === null) opts = {};
     window._rakuVisiblePage = name;
     if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
-    if (!opts.skipScroll) {
-      rakuScrollToTop('auto');
+
+    // Start blog API before CSS/JS so "Loading articles…" is not stuck waiting on assets.
+    if (name === 'blog' && !opts.blogSlug) {
+      warmBlogListEarly();
     }
-    Object.values(pages).forEach((p) => {
-      if (p) p.style.display = 'none';
-    });
-    if (pages[name]) pages[name].style.display = 'block';
-    syncPageA11y(name);
-    const catNav = document.getElementById('global-cat-nav');
-    if (catNav) catNav.style.display = 'none';
-    updateHeaderNavActive(name);
+
     const skipUrl = opts.skipHash || opts.skipUrl;
     if (!skipUrl) {
       const path = buildPath(name, opts);
@@ -357,11 +364,30 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     document.dispatchEvent(new CustomEvent('raku:navigate', { detail: { page: name } }));
 
-    const finish = () => {
+    // Hide current page immediately; reveal target only after CSS is ready (avoids FOUC).
+    Object.values(pages).forEach((p) => {
+      if (p) p.style.display = 'none';
+    });
+
+    const reveal = () => {
+      if (pages[name]) pages[name].style.display = 'block';
+      syncPageA11y(name);
+      const catNav = document.getElementById('global-cat-nav');
+      if (catNav) catNav.style.display = 'none';
+      updateHeaderNavActive(name);
+      if (!opts.skipScroll) {
+        rakuScrollToTop('auto');
+      }
       void runPageInits(name);
     };
-    const assets = window.rakuEnsureRouteAssets ? window.rakuEnsureRouteAssets(name) : Promise.resolve();
-    assets.then(finish).catch(finish);
+
+    const assets = window.rakuEnsureRouteAssets
+      ? window.rakuEnsureRouteAssets(name, { cssOnly: true }).then(() => {
+          // Load route JS in parallel after CSS is ready (don't block paint on JS).
+          void window.rakuEnsureRouteAssets(name);
+        })
+      : Promise.resolve();
+    assets.then(reveal).catch(reveal);
   }
 
   async function restoreFromUrl() {
@@ -743,6 +769,22 @@ document.addEventListener('DOMContentLoaded', function() {
       void window._rakuInitAccountPage?.();
       return;
     }
+    if (window.rakuEnsureRouteAssets) {
+      try {
+        await window.rakuEnsureRouteAssets(initialRoute.page);
+      } catch (_) {}
+    }
     SPA_INIT[initialRoute.page]?.();
   }, 0);
+
+  // Warm appointment/blog assets + blog list while idle so nav feels instant
+  if (window.rakuScheduleIdle && window.rakuEnsureRouteAssets && initialRoute.page === 'home') {
+    window.rakuScheduleIdle(() => {
+      void window.rakuEnsureRouteAssets('appointment');
+      void window.rakuEnsureRouteAssets('blog').then(() => {
+        if (window._rakuPrefetchBlogList) window._rakuPrefetchBlogList();
+        else warmBlogListEarly();
+      });
+    }, { timeout: 2500 });
+  }
 }); // end DOMContentLoaded

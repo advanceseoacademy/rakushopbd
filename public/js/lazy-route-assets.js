@@ -46,48 +46,48 @@
       css: ['/css/account.css?v=14'],
     },
     appointment: {
-      js: ['/js/appointment.js?v=5'],
-      css: ['/css/appointment.css?v=3', '/css/pages.css?v=8'],
+      js: ['/js/appointment.js?v=6'],
+      css: ['/css/appointment.css?v=4', '/css/pages.css?v=10'],
     },
     faq: {
       js: ['/js/faq.js?v=5'],
-      css: ['/css/pages.css?v=9'],
+      css: ['/css/pages.css?v=10'],
     },
     blog: {
-      js: ['/js/blog.js?v=3'],
+      js: ['/js/blog.js?v=6'],
       css: ['/css/pages.css?v=10'],
     },
     about: {
       js: ['/js/about.js?v=2'],
-      css: ['/css/pages.css?v=9'],
+      css: ['/css/pages.css?v=10'],
     },
     contact: {
       js: ['/js/contact.js?v=4'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=10'],
     },
     track: {
       js: ['/js/track.js?v=3'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=10'],
     },
     privacy: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=10'],
     },
     terms: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=10'],
     },
     return: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=10'],
     },
     preorder: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=10'],
     },
     points: {
       js: ['/js/legal-pages.js?v=5'],
-      css: ['/css/pages.css?v=8'],
+      css: ['/css/pages.css?v=10'],
     },
     cart: {
       css: ['/css/cart.css?v=7'],
@@ -103,23 +103,27 @@
     },
   };
 
-  function loadSpec(spec) {
+  function loadSpec(spec, opts = {}) {
     if (!spec) return Promise.resolve();
     const jobs = [];
     (spec.css || []).forEach((href) => jobs.push(loadCss(href)));
-    (spec.js || []).forEach((src) => jobs.push(loadJs(src)));
+    if (!opts.cssOnly) {
+      (spec.js || []).forEach((src) => jobs.push(loadJs(src)));
+    }
     return Promise.all(jobs);
   }
 
-  window.rakuEnsureRouteAssets = function (page) {
+  window.rakuEnsureRouteAssets = function (page, opts) {
     const key = String(page || '');
     const spec = ROUTE_ASSETS[key];
     if (!spec) return Promise.resolve();
-    if (inflight[key]) return inflight[key];
-    inflight[key] = loadSpec(spec).finally(() => {
-      delete inflight[key];
+    const cssOnly = Boolean(opts && opts.cssOnly);
+    const inflightKey = cssOnly ? `${key}:css` : key;
+    if (inflight[inflightKey]) return inflight[inflightKey];
+    inflight[inflightKey] = loadSpec(spec, { cssOnly }).finally(() => {
+      delete inflight[inflightKey];
     });
-    return inflight[key];
+    return inflight[inflightKey];
   };
 
   /** Run when browser is idle (falls back to short timeout). */

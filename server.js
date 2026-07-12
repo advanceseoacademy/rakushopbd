@@ -481,7 +481,13 @@ async function startServer() {
   ensureReviewVideos().catch((err) => console.warn('review videos table:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
-  ensureBlogPostsTable().catch((err) => console.warn('blog_posts table:', err.message));
+  ensureBlogPostsTable()
+    .then(async () => {
+      const { repairPlaceholderBlogSlugs } = require('./lib/blogPosts');
+      const result = await repairPlaceholderBlogSlugs(query);
+      if (result?.repaired) console.log(`blog slugs repaired: ${result.repaired}`);
+    })
+    .catch((err) => console.warn('blog_posts table:', err.message));
   ensureBlogSeoColumns().catch((err) => console.warn('blog SEO columns:', err.message));
   ensureSeoSettings().catch((err) => console.warn('SEO settings:', err.message));
   ensureTrackingSettings().catch((err) => console.warn('Tracking settings:', err.message));

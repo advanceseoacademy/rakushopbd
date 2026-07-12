@@ -2358,9 +2358,12 @@
 
   function blogSlugPreview(slug) {
     const s = String(slug || '')
+      .normalize('NFC')
       .toLowerCase()
       .trim()
-      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/[\s_/\\|]+/g, '-')
+      .replace(/[^\p{L}\p{M}\p{N}-]+/gu, '-')
+      .replace(/-+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 120);
     return s || 'your-slug';

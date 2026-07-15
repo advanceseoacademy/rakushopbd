@@ -134,7 +134,7 @@
 
     requestAnimationFrame(() => {
       if (window._rakuSyncHomeCarouselCardWidths) {
-        window._rakuSyncHomeCarouselCardWidths('track-home-blog', '.home-blog-card', 180);
+        window._rakuSyncHomeCarouselCardWidths('track-home-blog', '.home-blog-card', 140);
       } else if (window._rakuSyncHomeScrollCardWidths) {
         window._rakuSyncHomeScrollCardWidths();
       }

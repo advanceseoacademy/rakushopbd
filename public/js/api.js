@@ -721,7 +721,7 @@
   const HOME_CAROUSEL_TRACKS = [
     { id: 'track-customer-reviews', cardSel: '.home-review-card', minWidth: 140 },
     { id: 'track-messenger-reviews', cardSel: '.home-messenger-card', minWidth: 220 },
-    { id: 'track-home-blog', cardSel: '.home-blog-card', minWidth: 180, visibleCountFn: visibleHomeBlogCards },
+    { id: 'track-home-blog', cardSel: '.home-blog-card', minWidth: 140, visibleCountFn: visibleHomeBlogCards },
   ];
 
   function visibleHomeScrollCards(trackId) {
@@ -791,13 +791,18 @@
 
   function applyMeasuredWidths({ track, cards, width }) {
     const key = track.id || String(track);
-    if (homeTrackWidthCache.get(key) === width) return;
+    const px = `${width}px`;
+    // Re-apply when cards were replaced (e.g. blog skeleton → real posts) even if width unchanged.
+    const needsApply =
+      homeTrackWidthCache.get(key) !== width ||
+      Array.prototype.some.call(cards, (card) => card.style.width !== px);
+    if (!needsApply) return;
     homeTrackWidthCache.set(key, width);
     cards.forEach((card) => {
       card.style.flex = '0 0 auto';
-      card.style.width = `${width}px`;
-      card.style.minWidth = `${width}px`;
-      card.style.maxWidth = `${width}px`;
+      card.style.width = px;
+      card.style.minWidth = px;
+      card.style.maxWidth = px;
     });
   }
 

@@ -157,16 +157,38 @@
     }
   }
 
-  document.addEventListener('raku:ready', () => {
+  function bootMessengerSection(boot) {
+    if (boot && Array.isArray(boot.messengerChats)) {
+      scheduleMessengerPaint(boot);
+      // If section still shows skeletons (empty/hidden race), fall back to API refresh.
+      setTimeout(() => {
+        const track = document.getElementById('track-messenger-reviews');
+        if (track?.querySelector('.home-messenger-card--skeleton')) {
+          void refreshMessengerSection();
+        }
+      }, 2500);
+      return;
+    }
     if (window.rakuWhenVisible) {
-      window.rakuWhenVisible('section-messenger-reviews', () => void refreshMessengerSection(), { rootMargin: '240px' });
+      window.rakuWhenVisible(
+        'section-messenger-reviews',
+        () => void refreshMessengerSection(),
+        { rootMargin: '240px' }
+      );
     } else {
       void refreshMessengerSection();
     }
-  });
+  }
+
+  document.addEventListener('raku:ready', () => bootMessengerSection(window.__RAKU_BOOTSTRAP));
   document.addEventListener('raku:bootstrap', (e) => {
-    scheduleMessengerPaint(e.detail);
+    bootMessengerSection(e.detail || window.__RAKU_BOOTSTRAP);
   });
+
+  // Deferred script loads after raku:ready/bootstrap — catch up immediately.
+  if (window.__RAKU_BOOTSTRAP || window.__RAKU_READY__) {
+    bootMessengerSection(window.__RAKU_BOOTSTRAP);
+  }
 
   window._rakuPaintMessengerChats = paintMessengerChats;
 })();

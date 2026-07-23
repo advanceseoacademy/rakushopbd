@@ -3,7 +3,6 @@
  * Avoids Lighthouse legacy-javascript flag for fbevents.js on homepage audits.
  */
 (function () {
-  let tawkLoaded = false;
   let fbLoaded = false;
   let gaLoaded = false;
   let gtmLoaded = false;
@@ -39,34 +38,6 @@
     const script = document.createElement('script');
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
-    document.head.appendChild(script);
-  }
-
-  function loadTawk() {
-    if (tawkLoaded || window._rakuTawkRequested) return;
-    tawkLoaded = true;
-    window._rakuTawkRequested = true;
-
-    if (!document.querySelector('link[href*="tawk-widget.css"]')) {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = '/css/tawk-widget.css?v=2';
-      document.head.appendChild(link);
-    }
-
-    if (!document.querySelector('script[src*="tawk-spa.js"]')) {
-      const spa = document.createElement('script');
-      spa.src = '/js/tawk-spa.js?v=2';
-      spa.defer = true;
-      document.body.appendChild(spa);
-    }
-
-    window.Tawk_API = window.Tawk_API || {};
-    window.Tawk_LoadStart = new Date();
-    const script = document.createElement('script');
-    script.async = true;
-    script.src = 'https://embed.tawk.to/6a2681046784101c2d093b7d/1jqj6fv32';
-    script.charset = 'UTF-8';
     document.head.appendChild(script);
   }
 
@@ -111,10 +82,6 @@
     loadGoogleTagManager();
   }
 
-  function onPassiveEngagement() {
-    loadTawk();
-  }
-
   window.rakuLoadFacebookPixel = loadFacebookPixel;
 
   window.rakuTrackFacebook = function (event, params) {
@@ -134,14 +101,4 @@
   ['pointerdown', 'keydown', 'touchstart'].forEach((eventName) => {
     window.addEventListener(eventName, onUserIntent, { once: true, passive: true });
   });
-
-  // Tawk: scroll or late fallback
-  window.addEventListener('scroll', onPassiveEngagement, { once: true, passive: true });
-  window.addEventListener(
-    'load',
-    () => {
-      setTimeout(onPassiveEngagement, 25000);
-    },
-    { once: true }
-  );
 })();

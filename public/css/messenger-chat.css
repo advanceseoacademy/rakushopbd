@@ -1,0 +1,65 @@
+/* Facebook Messenger floating button — opens m.me in a new tab */
+.raku-messenger-chat {
+  position: fixed;
+  right: 18px;
+  bottom: 20px;
+  z-index: 2147483000;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #00b2ff 0%, #006aff 55%, #a033ff 100%);
+  box-shadow: 0 8px 24px rgba(0, 106, 255, 0.4);
+  text-decoration: none;
+  color: #fff;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.raku-messenger-chat:hover,
+.raku-messenger-chat:focus-visible {
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 12px 28px rgba(0, 106, 255, 0.5);
+  outline: none;
+}
+
+.raku-messenger-chat:active {
+  transform: scale(0.97);
+}
+
+.raku-messenger-chat-icon {
+  display: block;
+  flex-shrink: 0;
+  pointer-events: none;
+}
+
+.raku-messenger-chat-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+  border: 2px solid #fff;
+  box-sizing: border-box;
+  font-family: system-ui, -apple-system, sans-serif;
+  pointer-events: none;
+}
+
+@media (max-width: 480px) {
+  .raku-messenger-chat {
+    right: 14px;
+    bottom: 16px;
+    width: 52px;
+    height: 52px;
+  }
+}

@@ -84,6 +84,10 @@ function warmBootstrapCache() {
 // cPanel / reverse proxy: HTTPS terminates in front of Node
 app.set('trust proxy', 1);
 
+// Apex → www (rakushopbd.com → www.rakushopbd.com)
+const { forceWwwRedirect } = require('./lib/forceWww');
+app.use(forceWwwRedirect);
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 

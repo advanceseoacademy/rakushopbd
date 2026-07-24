@@ -18,18 +18,20 @@ cp -a "$VHOST" "${VHOST}.bak.www.$(date +%Y%m%d%H%M%S)"
 # Remove previous block if re-running
 perl -0777 -i -pe "s/\n?${MARKER}.*?${MARKER}-end\n?/\n/gs" "$VHOST" 2>/dev/null || true
 
+# Quoted heredoc so bash does not interpret <<< as a here-string
 cat >> "$VHOST" << EOF
 
 ${MARKER}
 rewrite  {
   enable                  1
-  RewriteCond %{HTTP_HOST} ^${DOMAIN}\$ [NC]
-  RewriteRule ^(.*)\$ https://${WWW}\$1 [R=301,L]
+  rules                   <<'END_rules'
+RewriteCond %{HTTP_HOST} ^${DOMAIN}\$ [NC]
+RewriteRule ^(.*)\$ https://${WWW}\$1 [R=301,L]
+END_rules
 }
 ${MARKER}-end
 EOF
 
-# Keep Node SITE_URL on www
 ENV_FILE="/home/${DOMAIN}/rakushopbd/.env"
 if [ -f "$ENV_FILE" ]; then
   if grep -q '^SITE_URL=' "$ENV_FILE"; then
@@ -45,7 +47,12 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 /usr/local/lsws/bin/lswsctrl restart 2>/dev/null || systemctl restart lsws 2>/dev/null || true
-pm2 restart rakushopbd --update-env 2>/dev/null || true
+sleep 2
+cd "/home/${DOMAIN}/rakushopbd" 2>/dev/null && pm2 restart rakushopbd --update-env 2>/dev/null || true
+sleep 2
 
-echo "Applied apex → https://${WWW} 301 redirect in $VHOST"
-curl -sI "http://127.0.0.1:3001/" -H "Host: ${DOMAIN}" -H "X-Forwarded-Proto: https" | head -10
+echo "Applied apex → https://${WWW} 301 redirect"
+echo "--- Node Host test ---"
+curl -sI "http://127.0.0.1:3001/blog" -H "Host: ${DOMAIN}" -H "X-Forwarded-Proto: https" | head -12 || true
+echo "--- Public test ---"
+curl -sI "https://${DOMAIN}/" | head -12 || true

@@ -15,22 +15,27 @@ fi
 
 cp -a "$VHOST" "${VHOST}.bak.www.$(date +%Y%m%d%H%M%S)"
 
-# Remove previous block if re-running
 perl -0777 -i -pe "s/\n?${MARKER}.*?${MARKER}-end\n?/\n/gs" "$VHOST" 2>/dev/null || true
 
-# Quoted heredoc so bash does not interpret <<< as a here-string
-cat >> "$VHOST" << EOF
-
-${MARKER}
-rewrite  {
+# Use Python so bash never eats OpenLiteSpeed's <<< heredoc syntax
+python3 - "$VHOST" "$DOMAIN" "$WWW" "$MARKER" <<'PY'
+import sys
+path, domain, www, marker = sys.argv[1:5]
+block = f"""
+{marker}
+rewrite  {{
   enable                  1
-  rules                   <<'END_rules'
-RewriteCond %{HTTP_HOST} ^${DOMAIN}\$ [NC]
-RewriteRule ^(.*)\$ https://${WWW}\$1 [R=301,L]
+  rules                   <<<END_rules
+RewriteCond %{{HTTP_HOST}} ^{domain}$ [NC]
+RewriteRule ^(.*)$ https://{www}$1 [R=301,L]
 END_rules
-}
-${MARKER}-end
-EOF
+}}
+{marker}-end
+"""
+with open(path, "a", encoding="utf-8") as f:
+    f.write(block)
+print(f"Appended www redirect block to {path}")
+PY
 
 ENV_FILE="/home/${DOMAIN}/rakushopbd/.env"
 if [ -f "$ENV_FILE" ]; then
@@ -52,7 +57,5 @@ cd "/home/${DOMAIN}/rakushopbd" 2>/dev/null && pm2 restart rakushopbd --update-e
 sleep 2
 
 echo "Applied apex → https://${WWW} 301 redirect"
-echo "--- Node Host test ---"
-curl -sI "http://127.0.0.1:3001/blog" -H "Host: ${DOMAIN}" -H "X-Forwarded-Proto: https" | head -12 || true
-echo "--- Public test ---"
-curl -sI "https://${DOMAIN}/" | head -12 || true
+curl -sI "http://127.0.0.1:3001/" -H "Host: ${DOMAIN}" -H "X-Forwarded-Proto: https" | head -10 || true
+curl -sI "https://${DOMAIN}/" | head -10 || true

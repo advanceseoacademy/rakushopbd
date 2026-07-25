@@ -1,11 +1,16 @@
 /**
- * Live product search — suggestions as you type
+ * Live product search — suggestions as you type.
+ * Cancels in-flight requests so a slow/old response cannot wipe newer results
+ * (common after a pause, then continuing to type — esp. Safari/Chrome mobile).
  */
 (function () {
   const API = (window.RAKU_API_BASE || '') + '/api';
   let debounceTimer = null;
   let activeIndex = -1;
   let lastResults = [];
+  let suggestGen = 0;
+  let abortCtrl = null;
+  let composing = false;
 
   const input = document.getElementById('search-input');
   const dropdown = document.getElementById('search-suggest');
@@ -103,29 +108,56 @@
     showSuggest();
   }
 
-  async function fetchSuggestions(q) {
+  async function fetchSuggestions(q, signal) {
     const cat = getCategory();
     const params = new URLSearchParams({ search: q, limit: '8' });
     if (cat !== 'all') params.set('category', cat);
-    const res = await fetch(`${API}/products?${params}`, { credentials: 'same-origin' });
+    const res = await fetch(`${API}/products?${params}`, {
+      credentials: 'same-origin',
+      signal,
+    });
     return res.json();
   }
 
   async function runSuggest() {
     const q = input.value.trim();
+    const gen = ++suggestGen;
+
+    if (abortCtrl) {
+      try {
+        abortCtrl.abort();
+      } catch (_) {}
+    }
+    abortCtrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const signal = abortCtrl?.signal;
+
     if (q.length < 1) {
       hideSuggest();
       return;
     }
+
     renderSuggest([], 'loading');
     try {
-      const data = await fetchSuggestions(q);
+      const data = await fetchSuggestions(q, signal);
+      // Ignore outdated responses (user kept typing / newer search started).
+      if (gen !== suggestGen) return;
       if (input.value.trim() !== q) return;
       if (data.ok) renderSuggest(data.products || []);
       else renderSuggest([]);
-    } catch (_) {
+    } catch (err) {
+      if (err?.name === 'AbortError') return;
+      if (gen !== suggestGen) return;
       renderSuggest([]);
     }
+  }
+
+  function scheduleSuggest() {
+    updateClearBtn();
+    if (composing) return;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      void runSuggest();
+    }, 220);
   }
 
   function pickProduct(id) {
@@ -205,14 +237,38 @@
     }
   }
 
-  input.addEventListener('input', () => {
+  input.addEventListener('compositionstart', () => {
+    composing = true;
+  });
+  input.addEventListener('compositionend', () => {
+    composing = false;
+    scheduleSuggest();
+  });
+
+  input.addEventListener('input', scheduleSuggest);
+
+  // Some browsers (esp. after idle / autofill) miss `input` — keyup as backup.
+  input.addEventListener('keyup', (e) => {
+    if (composing) return;
+    if (e.key === 'Escape' || e.key === 'Enter' || e.key === 'ArrowDown' || e.key === 'ArrowUp') return;
+    scheduleSuggest();
+  });
+
+  // type=search clear (native ×) fires `search` in WebKit
+  input.addEventListener('search', () => {
     updateClearBtn();
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(runSuggest, 280);
+    if (!input.value.trim()) hideSuggest();
+    else scheduleSuggest();
   });
 
   if (clearBtn) {
     clearBtn.addEventListener('click', () => {
+      if (abortCtrl) {
+        try {
+          abortCtrl.abort();
+        } catch (_) {}
+      }
+      suggestGen += 1;
       input.value = '';
       updateClearBtn();
       hideSuggest();
@@ -246,7 +302,7 @@
 
   if (categorySelect) {
     categorySelect.addEventListener('change', () => {
-      if (input.value.trim()) runSuggest();
+      if (input.value.trim()) void runSuggest();
     });
   }
 

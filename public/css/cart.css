@@ -373,6 +373,17 @@
   font-weight: 600;
 }
 
+.c-coupon-note {
+  margin: -8px 0 12px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
+.c-coupon-note[hidden] {
+  display: none !important;
+}
+
 .c-total-row {
   display: flex;
   justify-content: space-between;

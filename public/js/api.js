@@ -740,7 +740,7 @@
   }
 
   function visibleHomeBlogCards() {
-    if (window.matchMedia('(max-width: 768px)').matches) return 2;
+    if (window.matchMedia('(max-width: 768px)').matches) return 1;
     return 4;
   }
 
@@ -2382,6 +2382,7 @@
         el.textContent = data.totals.totalFormatted;
       });
       syncCouponInputs(data.totals.couponCode);
+      syncCouponNote(data.totals.couponNote);
     }
 
     const checkoutBtn = document.getElementById('btn-cart-checkout');
@@ -2478,6 +2479,7 @@
     if (data.totals) {
       applyTotalsToSummary(data.totals, '#page-checkout');
       syncCouponInputs(data.totals.couponCode);
+      syncCouponNote(data.totals.couponNote);
     }
     updateCheckoutRewardPoints(data.cart);
     bindDeliveryZone('#page-checkout');
@@ -2538,6 +2540,29 @@
     root.querySelectorAll('.summary-total, .c-total-val').forEach((el) => {
       el.textContent = totals.totalFormatted;
     });
+    if (totals.couponCode !== undefined) syncCouponInputs(totals.couponCode);
+    if (totals.couponNote !== undefined || totals.couponCode !== undefined) {
+      syncCouponNote(totals.couponNote || null);
+    }
+  }
+
+  function syncCouponNote(note) {
+    const text = note || '';
+    document.querySelectorAll('.c-coupon-row').forEach((row) => {
+      let el = row.nextElementSibling;
+      if (!el || !el.classList.contains('c-coupon-note')) {
+        el = document.createElement('p');
+        el.className = 'c-coupon-note';
+        row.insertAdjacentElement('afterend', el);
+      }
+      if (text) {
+        el.hidden = false;
+        el.textContent = text;
+      } else {
+        el.hidden = true;
+        el.textContent = '';
+      }
+    });
   }
 
   function syncCouponInputs(code) {
@@ -2559,6 +2584,7 @@
     if (!data.ok || !data.totals) return;
     const totals = data.totals;
     syncCouponInputs(totals.couponCode);
+    syncCouponNote(totals.couponNote);
 
     const cartPage = document.getElementById('page-cart');
     const checkoutPage = document.getElementById('page-checkout');
@@ -3478,7 +3504,12 @@
         const data = await apiFetch('/cart/coupon', { method: 'POST', body: JSON.stringify({ code }) });
         if (data.ok) {
           await refreshSummariesAfterCoupon();
-          alert(`Coupon ${data.code} applied!`);
+          const note = data.note || data.totals?.couponNote;
+          alert(
+            note
+              ? `Coupon ${data.code} applied!\n${note}`
+              : `Coupon ${data.code} applied!`
+          );
         } else {
           alert(data.error || 'Invalid coupon');
         }

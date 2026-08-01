@@ -502,6 +502,14 @@
   min-width: 0;
 }
 
+.cm-summary-rows .c-coupon-note,
+.checkout-modal-summary .c-coupon-note {
+  margin: -4px 0 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-muted);
+}
+
 .cm-summary-rows {
   margin-top: 12px;
   padding-top: 12px;

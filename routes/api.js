@@ -94,6 +94,115 @@ function persistCart(req, cart) {
   return req.session.cart;
 }
 
+/** Product already has a sale/discount — coupons must not stack. */
+function isProductDiscounted(p) {
+  if (!p) return false;
+  const disc = Number(p.discount_percent ?? p.discountPercent) || 0;
+  const oldP = Number(p.old_price ?? p.oldPrice) || 0;
+  const price = Number(p.price) || 0;
+  return disc > 0 || (oldP > 0 && oldP > price);
+}
+
+function eligibleCouponSubtotal(cart) {
+  return (cart || []).reduce((sum, item) => {
+    if (item.couponEligible === false) return sum;
+    return sum + Number(item.price) * Number(item.qty || 0);
+  }, 0);
+}
+
+function cartHasIneligibleCouponItems(cart) {
+  return (cart || []).some((item) => item.couponEligible === false);
+}
+
+function computeCouponDiscountAmount(coupon, eligibleSubtotal) {
+  const eligible = Math.max(0, Number(eligibleSubtotal) || 0);
+  if (eligible <= 0) return 0;
+  if (coupon.discount_type === 'percent') {
+    return (eligible * Number(coupon.discount_value)) / 100;
+  }
+  return Math.min(Number(coupon.discount_value) || 0, eligible);
+}
+
+function clearSessionCoupon(req) {
+  delete req.session.couponCode;
+  delete req.session.couponId;
+  delete req.session.couponDiscount;
+}
+
+async function refreshCartCouponEligibility(cart) {
+  if (!Array.isArray(cart) || !cart.length) return cart;
+  const ids = [...new Set(cart.map((item) => Number(item.productId)).filter(Boolean))];
+  if (!ids.length) return cart;
+  const placeholders = ids.map(() => '?').join(',');
+  const rows = await query(
+    `SELECT id, price, old_price, discount_percent FROM products WHERE id IN (${placeholders})`,
+    ids
+  );
+  const byId = new Map(rows.map((row) => [Number(row.id), row]));
+  for (const item of cart) {
+    const product = byId.get(Number(item.productId));
+    if (product) {
+      item.couponEligible = !isProductDiscounted(product);
+      item.discountPercent = Number(product.discount_percent) || 0;
+      item.oldPrice = product.old_price != null ? Number(product.old_price) : null;
+    } else if (typeof item.couponEligible !== 'boolean') {
+      item.couponEligible = true;
+    }
+  }
+  return cart;
+}
+
+async function loadActiveCoupon(codeOrId, byId = false) {
+  if (byId) {
+    const rows = await query(
+      `SELECT * FROM coupons WHERE id=? AND is_active=1 AND ${sqlDialect.curDateOrLater()}`,
+      [codeOrId]
+    );
+    return rows[0] || null;
+  }
+  const rows = await query(
+    `SELECT * FROM coupons WHERE code=? AND is_active=1 AND ${sqlDialect.curDateOrLater()}`,
+    [String(codeOrId || '').trim().toUpperCase()]
+  );
+  return rows[0] || null;
+}
+
+/** Recompute or clear session coupon from eligible (non-sale) cart lines. */
+async function recomputeSessionCoupon(req, cart) {
+  const code = req.session.couponCode;
+  const couponId = req.session.couponId;
+  if (!code && !couponId) return;
+
+  await refreshCartCouponEligibility(cart);
+  persistCart(req, cart);
+
+  const eligible = eligibleCouponSubtotal(cart);
+  if (eligible <= 0) {
+    clearSessionCoupon(req);
+    return;
+  }
+
+  const coupon = couponId
+    ? await loadActiveCoupon(couponId, true)
+    : await loadActiveCoupon(code, false);
+  if (!coupon) {
+    clearSessionCoupon(req);
+    return;
+  }
+  if (Number(eligible) < Number(coupon.min_order)) {
+    clearSessionCoupon(req);
+    return;
+  }
+  if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+    clearSessionCoupon(req);
+    return;
+  }
+
+  req.session.couponCode = coupon.code;
+  req.session.couponId = coupon.id;
+  req.session.couponDiscount = computeCouponDiscountAmount(coupon, eligible);
+}
+
 function sendNoStoreJson(res, payload) {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
   res.json(payload);
@@ -142,11 +251,20 @@ async function calcTotalsForRequest(req, cart, discount = 0) {
 }
 
 async function cartTotalsResponse(cart, req) {
+  if (req.session.couponCode || req.session.couponId) {
+    await recomputeSessionCoupon(req, cart);
+  }
   const discount = req.session.couponDiscount || 0;
   const totals = await calcTotalsForRequest(req, cart, discount);
+  const eligible = eligibleCouponSubtotal(cart);
+  const ineligible = cartHasIneligibleCouponItems(cart);
+  const couponCode = req.session.couponCode || null;
   return {
     ...totals,
-    couponCode: req.session.couponCode || null,
+    couponCode,
+    couponEligibleSubtotal: eligible,
+    couponNote:
+      couponCode && ineligible ? 'Applied only to non-discounted items' : null,
     subtotalFormatted: formatPrice(totals.subtotal),
     deliveryFormatted: totals.delivery === 0 ? 'Free' : formatPrice(totals.delivery),
     discountFormatted: totals.discount ? formatPrice(totals.discount) : null,
@@ -311,31 +429,41 @@ router.post('/products/:id/reviews', async (req, res) => {
 
 router.post('/coupons/validate', async (req, res) => {
   try {
-    const { code, subtotal } = req.body;
+    const { code } = req.body;
     const normalizedCode = String(code || '')
       .trim()
       .toUpperCase();
     if (!normalizedCode) {
       return res.status(400).json({ ok: false, error: 'Coupon code is required' });
     }
-    const rows = await query(
-      `SELECT * FROM coupons WHERE code=? AND is_active=1
-       AND ${sqlDialect.curDateOrLater()}`,
-      [normalizedCode]
-    );
-    if (!rows.length) return res.json({ ok: false, error: 'Invalid coupon' });
-    const c = rows[0];
-    if (Number(subtotal) < Number(c.min_order)) {
-      return res.json({ ok: false, error: `Minimum order ৳${c.min_order}` });
+    const cart = getCart(req);
+    await refreshCartCouponEligibility(cart);
+    persistCart(req, cart);
+    const eligible = eligibleCouponSubtotal(cart);
+    const c = await loadActiveCoupon(normalizedCode, false);
+    if (!c) return res.json({ ok: false, error: 'Invalid coupon' });
+    if (eligible <= 0) {
+      return res.json({
+        ok: false,
+        error: 'This coupon cannot be used on already discounted products',
+      });
+    }
+    if (Number(eligible) < Number(c.min_order)) {
+      return res.json({ ok: false, error: `Minimum order ৳${c.min_order} on non-discounted items` });
     }
     if (c.usage_limit && c.used_count >= c.usage_limit) {
       return res.json({ ok: false, error: 'Coupon limit reached' });
     }
-    let discount =
-      c.discount_type === 'percent'
-        ? (Number(subtotal) * Number(c.discount_value)) / 100
-        : Number(c.discount_value);
-    res.json({ ok: true, discount, code: c.code });
+    const discount = computeCouponDiscountAmount(c, eligible);
+    res.json({
+      ok: true,
+      discount,
+      code: c.code,
+      eligibleSubtotal: eligible,
+      note: cartHasIneligibleCouponItems(cart)
+        ? 'Applied only to non-discounted items'
+        : null,
+    });
   } catch (err) {
     res.json({ ok: false, error: 'Could not validate coupon' });
   }
@@ -684,37 +812,45 @@ router.post('/cart/coupon', async (req, res) => {
     const cart = getCart(req);
     if (!cart.length) return res.status(400).json({ ok: false, error: 'Cart is empty' });
     const { code } = req.body;
-    const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
-    const rows = await query(
-      `SELECT * FROM coupons WHERE code=? AND is_active=1
-       AND ${sqlDialect.curDateOrLater()}`,
-      [String(code || '').toUpperCase()]
-    );
-    if (!rows.length) return res.json({ ok: false, error: 'Invalid coupon' });
-    const c = rows[0];
-    if (Number(subtotal) < Number(c.min_order)) {
-      return res.json({ ok: false, error: `Minimum order ৳${c.min_order}` });
+    await refreshCartCouponEligibility(cart);
+    persistCart(req, cart);
+    const eligible = eligibleCouponSubtotal(cart);
+    const c = await loadActiveCoupon(code, false);
+    if (!c) return res.json({ ok: false, error: 'Invalid coupon' });
+    if (eligible <= 0) {
+      return res.json({
+        ok: false,
+        error: 'This coupon cannot be used on already discounted products',
+      });
+    }
+    if (Number(eligible) < Number(c.min_order)) {
+      return res.json({
+        ok: false,
+        error: `Minimum order ৳${c.min_order} on non-discounted items`,
+      });
     }
     if (c.usage_limit && c.used_count >= c.usage_limit) {
       return res.json({ ok: false, error: 'Coupon limit reached' });
     }
-    const discount =
-      c.discount_type === 'percent'
-        ? (Number(subtotal) * Number(c.discount_value)) / 100
-        : Number(c.discount_value);
+    const discount = computeCouponDiscountAmount(c, eligible);
     req.session.couponCode = c.code;
     req.session.couponId = c.id;
     req.session.couponDiscount = discount;
-    res.json({ ok: true, discount, code: c.code, totals: await cartTotalsResponse(cart, req) });
+    const totals = await cartTotalsResponse(cart, req);
+    res.json({
+      ok: true,
+      discount: totals.discount,
+      code: c.code,
+      totals,
+      note: totals.couponNote,
+    });
   } catch (err) {
     res.json({ ok: false, error: 'Could not apply coupon' });
   }
 });
 
 router.delete('/cart/coupon', async (req, res) => {
-  delete req.session.couponCode;
-  delete req.session.couponId;
-  delete req.session.couponDiscount;
+  clearSessionCoupon(req);
   const cart = getCart(req);
   res.json({ ok: true, totals: await cartTotalsResponse(cart, req) });
 });
@@ -765,6 +901,9 @@ router.post('/cart/add', async (req, res) => {
         iconColor: p.icon_color,
         bgColor: p.bg_color,
         imageUrl: p.image_url || null,
+        couponEligible: !isProductDiscounted(p),
+        discountPercent: Number(p.discount_percent) || 0,
+        oldPrice: p.old_price != null ? Number(p.old_price) : null,
       });
 
     persistCart(req, cart);
@@ -852,6 +991,7 @@ router.post('/orders', async (req, res) => {
     }
 
     const orderDistrict = (district && String(district).trim()) || '—';
+    await recomputeSessionCoupon(req, cart);
     const discount = req.session.couponDiscount || 0;
     const { subtotal, delivery, total } = await calcTotalsForRequest(req, cart, discount);
     const orderNumber = `RKS-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`;
@@ -888,9 +1028,7 @@ router.post('/orders', async (req, res) => {
     }
     if (req.session.couponId) {
       await query('UPDATE coupons SET used_count = used_count + 1 WHERE id = ?', [req.session.couponId]);
-      delete req.session.couponCode;
-      delete req.session.couponId;
-      delete req.session.couponDiscount;
+      clearSessionCoupon(req);
     }
     for (const item of cart) {
       await query(

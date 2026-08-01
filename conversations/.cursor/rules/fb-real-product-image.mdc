@@ -1,0 +1,15 @@
+---
+description: FB poster must use real product packaging; never redesign or swap the product
+alwaysApply: true
+---
+
+# RakuShopBD — Real product image (HARD RULE)
+
+When working on FB daily AI post / Telegram approve image generation:
+
+- The poster **MUST** be generated from the sheet **Product Image URL** (real pack photo) as reference `#1`.
+- **Never** change, redesign, beautify-into-a-different-pack, or swap the product bottle/tube/box/label.
+- Only the **scene** may change (background, model, badges, CTA, props).
+- Keep `input_fidelity=high` and product binary as the **first** `image[]` input.
+- Style reference is layout/scene inspiration only — never copy another product from it.
+- Do not relax this rule for “prettier” creatives.

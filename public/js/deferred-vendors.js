@@ -1,24 +1,30 @@
 /**
- * Defer third-party scripts: GA/GTM on interaction; Meta Pixel helpers.
- * SPA navigations always push dataLayer virtual_page_view (works even when GTM
- * is pasted via Admin → tracking_scripts_head instead of tracking_gtm_id).
+ * Defer third-party scripts: GA/GTM helpers + SPA dataLayer page views.
+ * Meta Pixel base code lives ONLY in GTM — this file must not inject fbevents.js.
+ * Conversion helpers call fbq() if GTM already loaded it, else queue briefly.
  */
 (function () {
-  let fbLoaded = false;
   let gaLoaded = false;
   let gtmLoaded = false;
   let lastPageViewKey = '';
   let pageViewTimer = null;
   let spaNavigated = false;
+  const fbQueue = [];
 
   function hasFbq() {
     return typeof window.fbq === 'function';
   }
 
-  function markFbReadyIfPresent() {
-    if (hasFbq()) {
-      fbLoaded = true;
-      window._rakuFbLoaded = true;
+  function flushFbQueue() {
+    if (!hasFbq() || !fbQueue.length) return;
+    while (fbQueue.length) {
+      const entry = fbQueue.shift();
+      if (!entry || !entry.event) continue;
+      if (entry.params && Object.keys(entry.params).length) {
+        window.fbq('track', entry.event, entry.params);
+      } else {
+        window.fbq('track', entry.event);
+      }
     }
   }
 
@@ -47,7 +53,6 @@
   function loadGoogleTagManager() {
     const gtmId = String(window.__RAKU_GTM_ID || '').trim();
     if (!gtmId || gtmLoaded || window._rakuGtmLoaded) return;
-    // Custom head snippet may already have loaded the same container
     if (document.querySelector(`script[src*="googletagmanager.com/gtm.js?id=${gtmId}"]`)) {
       gtmLoaded = true;
       window._rakuGtmLoaded = true;
@@ -64,62 +69,16 @@
     document.head.appendChild(script);
   }
 
-  function loadFacebookPixel() {
-    markFbReadyIfPresent();
-    const pixelId = String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '');
-    if (hasFbq()) {
-      fbLoaded = true;
-      window._rakuFbLoaded = true;
-      return;
-    }
-    if (!pixelId || fbLoaded || window._rakuFbLoaded) return;
-    fbLoaded = true;
-    window._rakuFbLoaded = true;
-
-    !(function (f, b, e, v, n, t, s) {
-      if (f.fbq && f.fbq.loaded) return;
-      n = f.fbq = function () {
-        n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
-      };
-      if (!f._fbq) f._fbq = n;
-      n.push = n;
-      n.loaded = true;
-      n.version = '2.0';
-      n.queue = n.queue || [];
-      t = b.createElement(e);
-      t.async = true;
-      t.setAttribute('data-cfasync', 'false');
-      t.src = v;
-      s = b.getElementsByTagName(e)[0];
-      s.parentNode.insertBefore(t, s);
-    })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
-
-    window.fbq('init', pixelId);
-    window.fbq('track', 'PageView');
-
-    const queued = window._rakuFbEventQueue;
-    if (Array.isArray(queued) && queued.length) {
-      queued.forEach((entry) => {
-        if (entry && entry.length > 1) window.fbq('track', entry[0], entry[1]);
-        else if (entry && entry.length) window.fbq('track', entry[0]);
-      });
-      window._rakuFbEventQueue = [];
-    }
-  }
-
   /**
-   * SPA pages use history.pushState — GTM only sees a full reload otherwise.
-   * Always push to dataLayer so Tag Assistant shows virtual_page_view even when
-   * GTM was installed via custom head HTML (not tracking_gtm_id).
+   * SPA pages use history.pushState — push virtual_page_view for GTM
+   * (Meta Pixel PageView should be a GTM tag on this event, not fbq here).
    */
   function trackSpaPageView(detail) {
     const gtmId = String(window.__RAKU_GTM_ID || '').trim();
     const ga4Id = String(window.__RAKU_GA4_ID || '').trim();
-    const pixelId = String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '');
 
     if (gtmId) loadGoogleTagManager();
     if (ga4Id) loadGoogleAnalytics();
-    markFbReadyIfPresent();
 
     const path = location.pathname + location.search;
     const title = document.title || '';
@@ -146,12 +105,7 @@
       });
     }
 
-    // Meta Pixel SPA PageView — works with admin pixel ID or custom-head fbq()
-    if (hasFbq()) {
-      window.fbq('track', 'PageView');
-    } else if (pixelId) {
-      loadFacebookPixel();
-    }
+    flushFbQueue();
   }
 
   function scheduleSpaPageView(detail) {
@@ -183,29 +137,30 @@
   function onUserIntent() {
     loadGoogleAnalytics();
     loadGoogleTagManager();
-    markFbReadyIfPresent();
-    if (String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '') && !hasFbq()) {
-      loadFacebookPixel();
-    }
   }
 
-  window.rakuLoadFacebookPixel = loadFacebookPixel;
+  // No site-side Pixel loader — GTM owns the Meta Pixel base code.
+  window.rakuLoadFacebookPixel = function () {};
 
   window.rakuTrackFacebook = function (event, params) {
     if (!event) return;
-    markFbReadyIfPresent();
-    const pixelId = String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '');
-
+    // Prefer fbq from GTM Meta Pixel tag; queue briefly if not ready yet
     if (hasFbq()) {
       if (params && Object.keys(params).length) window.fbq('track', event, params);
       else window.fbq('track', event);
       return;
     }
-
-    if (!pixelId) return;
-    window._rakuFbEventQueue = window._rakuFbEventQueue || [];
-    window._rakuFbEventQueue.push(params ? [event, params] : [event]);
-    loadFacebookPixel();
+    fbQueue.push({ event, params: params || null });
+    let tries = 0;
+    const timer = setInterval(() => {
+      tries += 1;
+      if (hasFbq()) {
+        clearInterval(timer);
+        flushFbQueue();
+      } else if (tries >= 40) {
+        clearInterval(timer);
+      }
+    }, 250);
   };
 
   ['pointerdown', 'keydown', 'touchstart'].forEach((eventName) => {

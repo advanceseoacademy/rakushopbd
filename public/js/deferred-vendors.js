@@ -1,6 +1,7 @@
 /**
- * Defer third-party scripts: GA/GTM on interaction; Meta Pixel on checkout/conversion only.
- * Avoids Lighthouse legacy-javascript flag for fbevents.js on homepage audits.
+ * Defer third-party scripts: GA/GTM on interaction; Meta Pixel helpers.
+ * SPA navigations always push dataLayer virtual_page_view (works even when GTM
+ * is pasted via Admin → tracking_scripts_head instead of tracking_gtm_id).
  */
 (function () {
   let fbLoaded = false;
@@ -9,6 +10,17 @@
   let lastPageViewKey = '';
   let pageViewTimer = null;
   let spaNavigated = false;
+
+  function hasFbq() {
+    return typeof window.fbq === 'function';
+  }
+
+  function markFbReadyIfPresent() {
+    if (hasFbq()) {
+      fbLoaded = true;
+      window._rakuFbLoaded = true;
+    }
+  }
 
   function loadGoogleAnalytics() {
     const ga4Id = String(window.__RAKU_GA4_ID || '').trim();
@@ -23,6 +35,7 @@
       };
     const script = document.createElement('script');
     script.async = true;
+    script.setAttribute('data-cfasync', 'false');
     script.src = `https://www.googletagmanager.com/gtag/js?id=${encodeURIComponent(ga4Id)}`;
     script.onload = () => {
       window.gtag('js', new Date());
@@ -34,18 +47,31 @@
   function loadGoogleTagManager() {
     const gtmId = String(window.__RAKU_GTM_ID || '').trim();
     if (!gtmId || gtmLoaded || window._rakuGtmLoaded) return;
+    // Custom head snippet may already have loaded the same container
+    if (document.querySelector(`script[src*="googletagmanager.com/gtm.js?id=${gtmId}"]`)) {
+      gtmLoaded = true;
+      window._rakuGtmLoaded = true;
+      return;
+    }
     gtmLoaded = true;
     window._rakuGtmLoaded = true;
     window.dataLayer = window.dataLayer || [];
     window.dataLayer.push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
     const script = document.createElement('script');
     script.async = true;
+    script.setAttribute('data-cfasync', 'false');
     script.src = `https://www.googletagmanager.com/gtm.js?id=${encodeURIComponent(gtmId)}`;
     document.head.appendChild(script);
   }
 
   function loadFacebookPixel() {
+    markFbReadyIfPresent();
     const pixelId = String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '');
+    if (hasFbq()) {
+      fbLoaded = true;
+      window._rakuFbLoaded = true;
+      return;
+    }
     if (!pixelId || fbLoaded || window._rakuFbLoaded) return;
     fbLoaded = true;
     window._rakuFbLoaded = true;
@@ -62,6 +88,7 @@
       n.queue = n.queue || [];
       t = b.createElement(e);
       t.async = true;
+      t.setAttribute('data-cfasync', 'false');
       t.src = v;
       s = b.getElementsByTagName(e)[0];
       s.parentNode.insertBefore(t, s);
@@ -81,59 +108,54 @@
   }
 
   /**
-   * SPA pages use history.pushState — GTM/GA only see a real page load on full reload.
-   * Push a virtual page view so Tag Assistant / GA4 can track product & other routes.
+   * SPA pages use history.pushState — GTM only sees a full reload otherwise.
+   * Always push to dataLayer so Tag Assistant shows virtual_page_view even when
+   * GTM was installed via custom head HTML (not tracking_gtm_id).
    */
   function trackSpaPageView(detail) {
     const gtmId = String(window.__RAKU_GTM_ID || '').trim();
     const ga4Id = String(window.__RAKU_GA4_ID || '').trim();
     const pixelId = String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '');
-    if (!gtmId && !ga4Id && !pixelId) return;
 
     if (gtmId) loadGoogleTagManager();
     if (ga4Id) loadGoogleAnalytics();
+    markFbReadyIfPresent();
 
     const path = location.pathname + location.search;
     const title = document.title || '';
     const pageLocation = location.href;
     const pageName = (detail && detail.page) || window._rakuVisiblePage || '';
-    // Dedupe by path so title updates (SEO) within the debounce window don't double-count
     if (path === lastPageViewKey) return;
     lastPageViewKey = path;
 
-    if (gtmId || ga4Id) {
-      window.dataLayer = window.dataLayer || [];
-      window.dataLayer.push({
-        event: 'virtual_page_view',
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push({
+      event: 'virtual_page_view',
+      page_path: path,
+      page_title: title,
+      page_location: pageLocation,
+      page_name: pageName,
+    });
+
+    if (typeof window.gtag === 'function' && ga4Id && gaLoaded) {
+      window.gtag('event', 'page_view', {
         page_path: path,
         page_title: title,
         page_location: pageLocation,
-        page_name: pageName,
+        send_to: ga4Id,
       });
-
-      if (typeof window.gtag === 'function' && ga4Id && gaLoaded) {
-        window.gtag('event', 'page_view', {
-          page_path: path,
-          page_title: title,
-          page_location: pageLocation,
-          send_to: ga4Id,
-        });
-      }
     }
 
-    // Meta Pixel SPA PageView (init already sends one PageView — don't double on first load)
-    if (pixelId) {
-      if (fbLoaded && typeof window.fbq === 'function') {
-        window.fbq('track', 'PageView');
-      } else {
-        loadFacebookPixel();
-      }
+    // Meta Pixel SPA PageView — works with admin pixel ID or custom-head fbq()
+    if (hasFbq()) {
+      window.fbq('track', 'PageView');
+    } else if (pixelId) {
+      loadFacebookPixel();
     }
   }
 
   function scheduleSpaPageView(detail) {
     clearTimeout(pageViewTimer);
-    // Wait for SEO title/canonical updates (esp. product pages)
     pageViewTimer = setTimeout(() => trackSpaPageView(detail || {}), 280);
   }
 
@@ -141,16 +163,13 @@
 
   document.addEventListener('raku:navigate', (e) => {
     const detail = e.detail || {};
-    // skipUrl navigations (product shell / URL restore) — wait for URL update or popstate
     if (detail.trackPageView === false || detail.skipUrl) return;
     spaNavigated = true;
-    // Allow a new pageview for the next path
     lastPageViewKey = '';
     scheduleSpaPageView(detail);
   });
 
   document.addEventListener('raku:seo-applied', (e) => {
-    // Skip initial SSR/hydrate SEO — only after a real SPA navigation
     if (!spaNavigated) return;
     scheduleSpaPageView({ page: window._rakuVisiblePage, source: 'seo', ...(e.detail || {}) });
   });
@@ -164,8 +183,8 @@
   function onUserIntent() {
     loadGoogleAnalytics();
     loadGoogleTagManager();
-    // Same deferral as GTM: first click/tap loads Meta Pixel (Lighthouse still skips it)
-    if (String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '')) {
+    markFbReadyIfPresent();
+    if (String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '') && !hasFbq()) {
       loadFacebookPixel();
     }
   }
@@ -173,19 +192,22 @@
   window.rakuLoadFacebookPixel = loadFacebookPixel;
 
   window.rakuTrackFacebook = function (event, params) {
+    if (!event) return;
+    markFbReadyIfPresent();
     const pixelId = String(window.__RAKU_FB_PIXEL_ID || '').replace(/\D/g, '');
-    if (!pixelId || !event) return;
-    if (fbLoaded && typeof window.fbq === 'function') {
+
+    if (hasFbq()) {
       if (params && Object.keys(params).length) window.fbq('track', event, params);
       else window.fbq('track', event);
       return;
     }
+
+    if (!pixelId) return;
     window._rakuFbEventQueue = window._rakuFbEventQueue || [];
     window._rakuFbEventQueue.push(params ? [event, params] : [event]);
     loadFacebookPixel();
   };
 
-  // GA/GTM: first deliberate interaction (scroll does not load analytics)
   ['pointerdown', 'keydown', 'touchstart'].forEach((eventName) => {
     window.addEventListener(eventName, onUserIntent, { once: true, passive: true });
   });

@@ -362,7 +362,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.RakuSEO) {
       window.RakuSEO.onNavigate(name, opts);
     }
-    document.dispatchEvent(new CustomEvent('raku:navigate', { detail: { page: name } }));
+    document.dispatchEvent(
+      new CustomEvent('raku:navigate', {
+        detail: { page: name, skipUrl: !!skipUrl, trackPageView: !skipUrl },
+      })
+    );
 
     // Hide current page immediately; reveal target only after CSS is ready (avoids FOUC).
     Object.values(pages).forEach((p) => {

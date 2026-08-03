@@ -30,6 +30,37 @@
     }
   }
 
+  let lastFbViewContentKey = '';
+
+  function trackFacebookViewContent(p) {
+    if (!p?.id) return;
+    const key = `${p.id}:${location.pathname}`;
+    if (key === lastFbViewContentKey) return;
+    lastFbViewContentKey = key;
+    trackFacebookConversion('ViewContent', {
+      content_ids: [String(p.id)],
+      content_type: 'product',
+      content_name: p.name_bn || p.nameBn || '',
+      content_category: p.category_name || p.categoryName || p.category || '',
+      value: Number(p.price) || 0,
+      currency: 'BDT',
+    });
+  }
+
+  function trackFacebookAddToCart(p, qty = 1) {
+    if (!p?.id) return;
+    const q = Math.max(1, Number(qty) || 1);
+    const unit = Number(p.price) || 0;
+    trackFacebookConversion('AddToCart', {
+      content_ids: [String(p.id)],
+      content_type: 'product',
+      content_name: p.name_bn || p.nameBn || '',
+      value: unit * q,
+      currency: 'BDT',
+      contents: [{ id: String(p.id), quantity: q, item_price: unit }],
+    });
+  }
+
   function stars(rating) {
     const r = Math.round(Number(rating) || 0);
     return '★'.repeat(Math.min(5, r)) + '☆'.repeat(Math.max(0, 5 - r));
@@ -622,6 +653,13 @@
     if (data.ok || data.alreadyInCart) {
       applyCartState(data);
       document.dispatchEvent(new CustomEvent('raku:behavior-changed'));
+    }
+    if (data.ok) {
+      const p =
+        products.find((x) => Number(x.id) === pid) ||
+        (currentProduct && Number(currentProduct.id) === pid ? currentProduct : null) ||
+        { id: pid, price: data.cart?.find((i) => Number(i.productId) === pid)?.price };
+      trackFacebookAddToCart(p, qty);
     }
     return data;
   }
@@ -1805,6 +1843,7 @@
 
   function finishProductPage(p) {
     if (window.RakuSEO && p?.id) window.RakuSEO.apply(window.RakuSEO.forProduct(p));
+    trackFacebookViewContent(p);
     const reviewMsg = document.getElementById('review-submit-msg');
     if (reviewMsg) reviewMsg.className = 'reviews-submit-msg';
     loadProductReviews(p.id);

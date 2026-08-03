@@ -228,6 +228,12 @@
         upsertJsonLd(graph);
       } catch (_) {}
     }
+
+    document.dispatchEvent(
+      new CustomEvent('raku:seo-applied', {
+        detail: { title: cfg.title || document.title, canonical: cfg.canonical || '' },
+      })
+    );
   }
 
   function twitterHandle() {

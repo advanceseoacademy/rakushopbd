@@ -4421,14 +4421,6 @@
     if (seoTwitter) seoTwitter.value = s.seo_twitter_handle || '';
     const seoHome = document.getElementById('set-seo-home-title');
     if (seoHome) seoHome.value = s.seo_home_title || '';
-    const trGsc = document.getElementById('set-tracking-gsc');
-    if (trGsc) trGsc.value = s.seo_google_verification || '';
-    const trGa4 = document.getElementById('set-tracking-ga4');
-    if (trGa4) trGa4.value = s.tracking_ga4_id || '';
-    const trGtm = document.getElementById('set-tracking-gtm');
-    if (trGtm) trGtm.value = s.tracking_gtm_id || '';
-    const trFb = document.getElementById('set-tracking-fb');
-    if (trFb) trFb.value = s.tracking_facebook_pixel_id || '';
     const trHead = document.getElementById('set-tracking-head');
     if (trHead) trHead.value = s.tracking_scripts_head || '';
     const trBody = document.getElementById('set-tracking-body');
@@ -5414,10 +5406,6 @@
 
   function collectTrackingSettings() {
     return {
-      seo_google_verification: document.getElementById('set-tracking-gsc')?.value?.trim() || '',
-      tracking_ga4_id: document.getElementById('set-tracking-ga4')?.value?.trim() || '',
-      tracking_gtm_id: document.getElementById('set-tracking-gtm')?.value?.trim() || '',
-      tracking_facebook_pixel_id: document.getElementById('set-tracking-fb')?.value?.trim() || '',
       tracking_scripts_head: document.getElementById('set-tracking-head')?.value || '',
       tracking_scripts_body: document.getElementById('set-tracking-body')?.value || '',
       tracking_scripts_footer: document.getElementById('set-tracking-footer')?.value || '',

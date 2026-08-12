@@ -498,6 +498,247 @@
   flex-wrap: wrap;
 }
 
+.checkout-savings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 14px 0 12px;
+}
+
+.checkout-savings--cart {
+  margin: 12px 0 4px;
+}
+
+.savings-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #fff 0%, #f8fafc 100%);
+  padding: 12px 12px 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.savings-card--applied {
+  border-color: #86efac;
+  background: linear-gradient(180deg, #f0fdf4 0%, #ecfdf5 100%);
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.12);
+}
+
+.savings-card--reward.savings-card--applied {
+  border-color: #fcd34d;
+  background: linear-gradient(180deg, #fffbeb 0%, #fef3c7 100%);
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.14);
+}
+
+.savings-card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.savings-card-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 18px;
+}
+
+.savings-card-icon--coupon {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.savings-card-icon--reward {
+  background: #fffbeb;
+  color: #d97706;
+}
+
+.savings-card-titles {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.savings-card-titles strong {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.savings-card-titles span {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.3;
+}
+
+.savings-applied-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #15803d;
+  background: #dcfce7;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: 4px 8px;
+  white-space: nowrap;
+}
+
+.savings-applied-badge--reward {
+  color: #b45309;
+  background: #fef3c7;
+  border-color: #fde68a;
+}
+
+.savings-applied-badge[hidden] {
+  display: none !important;
+}
+
+.savings-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+.savings-input {
+  flex: 1;
+  min-width: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.savings-input:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px rgba(32, 96, 32, 0.1);
+}
+
+.savings-input[readonly] {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #166534;
+  font-weight: 600;
+}
+
+.savings-card--reward .savings-input[readonly] {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.savings-btn {
+  border: none;
+  border-radius: 10px;
+  padding: 0 16px;
+  min-height: 42px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  color: #fff;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  box-shadow: 0 4px 12px rgba(32, 96, 32, 0.18);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+}
+
+.savings-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(32, 96, 32, 0.22);
+}
+
+.savings-btn:active {
+  transform: translateY(0);
+}
+
+.savings-btn--reward {
+  background: linear-gradient(135deg, #d97706 0%, #f59e0b 100%);
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.22);
+}
+
+.savings-btn--reward:hover {
+  box-shadow: 0 6px 16px rgba(217, 119, 6, 0.28);
+}
+
+.savings-btn[hidden],
+.savings-remove[hidden] {
+  display: none !important;
+}
+
+.savings-remove {
+  margin-top: 8px;
+  border: none;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.savings-remove:hover {
+  color: #dc2626;
+}
+
+.savings-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--text-muted);
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.savings-note[hidden] {
+  display: none !important;
+}
+
+.savings-note--warn {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.savings-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.savings-card--coupon .savings-note {
+  background: #ecfdf5;
+  color: #166534;
+}
+
+@media (max-width: 480px) {
+  .savings-input-row {
+    flex-direction: column;
+  }
+
+  .savings-btn {
+    width: 100%;
+  }
+}
+
 .cm-coupon-row .c-coupon-input {
   min-width: 0;
 }

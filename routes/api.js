@@ -9,7 +9,14 @@ const { getTodayDealsProducts, getTodayDealsMeta } = require('../lib/todayDeals'
 const { getRecommendedProducts } = require('../lib/productRecommendations');
 const { attachMergedReviewStatsToProducts } = require('../lib/productReviews');
 const { stripInternalProductFields, stripInternalProductList } = require('../lib/productPublic');
-const { pointsFromCartItems, awardApprovedReviewPoints, getRewardPointConfig } = require('../lib/rewardPoints');
+const {
+  pointsFromCartItems,
+  awardApprovedReviewPoints,
+  getRewardPointConfig,
+  getUserRewardPoints,
+  setUserRewardPoints,
+  recordRewardPointEvent,
+} = require('../lib/rewardPoints');
 const {
   fireAdminEmail,
   notifyNewOrder,
@@ -127,6 +134,54 @@ function clearSessionCoupon(req) {
   delete req.session.couponCode;
   delete req.session.couponId;
   delete req.session.couponDiscount;
+}
+
+function clearSessionRewardRedemption(req) {
+  delete req.session.rewardPointsUsed;
+}
+
+async function rewardRedemptionSnapshot(req, cart, settings) {
+  const cfg = getRewardPointConfig ? await getRewardPointConfig(query) : null;
+  const disabled = {
+    enabled: false,
+    loggedIn: Boolean(req.session.userId),
+    minRedeem: 500,
+    balance: 0,
+    maxUsable: 0,
+    applied: 0,
+  };
+  if (!cfg?.enabled) {
+    clearSessionRewardRedemption(req);
+    return disabled;
+  }
+  const userId = Number(req.session.userId) || 0;
+  if (!userId) {
+    clearSessionRewardRedemption(req);
+    return { ...disabled, enabled: true, loggedIn: false, minRedeem: cfg.minRedeem || 500 };
+  }
+  const district = req.session.checkoutDistrict || null;
+  const baseTotals = calcTotalsWithSettings(cart, settings, district, 0);
+  const balance = await getUserRewardPoints(query, userId);
+  const absoluteMax = Math.floor(Math.max(0, baseTotals.subtotal + baseTotals.delivery));
+  const percentMax =
+    Number(cfg.maxOrderPercent) > 0
+      ? Math.floor((absoluteMax * Number(cfg.maxOrderPercent)) / 100)
+      : absoluteMax;
+  const maxUsable = Math.max(0, Math.min(balance, absoluteMax, percentMax || absoluteMax));
+  let applied = Math.max(0, Math.floor(Number(req.session.rewardPointsUsed) || 0));
+  if (balance < cfg.minRedeem) applied = 0;
+  else if (applied > balance) applied = 0;
+  else if (applied > maxUsable) applied = maxUsable;
+  if (applied > 0 && applied < cfg.minRedeem) applied = 0;
+  req.session.rewardPointsUsed = applied;
+  return {
+    enabled: true,
+    loggedIn: true,
+    minRedeem: cfg.minRedeem,
+    balance,
+    maxUsable,
+    applied,
+  };
 }
 
 async function refreshCartCouponEligibility(cart) {
@@ -251,11 +306,19 @@ async function calcTotalsForRequest(req, cart, discount = 0) {
 }
 
 async function cartTotalsResponse(cart, req) {
+  if (!cart.length) {
+    clearSessionCoupon(req);
+    clearSessionRewardRedemption(req);
+  }
   if (req.session.couponCode || req.session.couponId) {
     await recomputeSessionCoupon(req, cart);
   }
-  const discount = req.session.couponDiscount || 0;
-  const totals = await calcTotalsForRequest(req, cart, discount);
+  const settings = await getSiteSettings(query);
+  const reward = await rewardRedemptionSnapshot(req, cart, settings);
+  const couponDiscount = req.session.couponDiscount || 0;
+  const discount = couponDiscount + (reward.applied || 0);
+  const district = req.session.checkoutDistrict || null;
+  const totals = calcTotalsWithSettings(cart, settings, district, discount);
   const eligible = eligibleCouponSubtotal(cart);
   const ineligible = cartHasIneligibleCouponItems(cart);
   const couponCode = req.session.couponCode || null;
@@ -265,6 +328,7 @@ async function cartTotalsResponse(cart, req) {
     couponEligibleSubtotal: eligible,
     couponNote:
       couponCode && ineligible ? 'Applied only to non-discounted items' : null,
+    reward,
     subtotalFormatted: formatPrice(totals.subtotal),
     deliveryFormatted: totals.delivery === 0 ? 'Free' : formatPrice(totals.delivery),
     discountFormatted: totals.discount ? formatPrice(totals.discount) : null,
@@ -855,6 +919,63 @@ router.delete('/cart/coupon', async (req, res) => {
   res.json({ ok: true, totals: await cartTotalsResponse(cart, req) });
 });
 
+router.post('/cart/reward-points', async (req, res) => {
+  try {
+    const cart = getCart(req);
+    if (!cart.length) return res.status(400).json({ ok: false, error: 'Cart is empty' });
+    const settings = await getSiteSettings(query);
+    const reward = await rewardRedemptionSnapshot(req, cart, settings);
+    if (!reward.enabled) return res.status(400).json({ ok: false, error: 'Reward points are currently disabled' });
+    if (!reward.loggedIn) return res.status(401).json({ ok: false, error: 'Please log in to use reward points' });
+    if (reward.balance < reward.minRedeem) {
+      return res.status(400).json({
+        ok: false,
+        error: `You have ${reward.balance} points. Minimum ${reward.minRedeem} points required to redeem.`,
+      });
+    }
+    if (reward.maxUsable < reward.minRedeem) {
+      return res.status(400).json({
+        ok: false,
+        error: `This order is too small for minimum ${reward.minRedeem} point redemption`,
+      });
+    }
+    const requestedRaw = req.body?.points;
+    let requested =
+      requestedRaw == null || requestedRaw === ''
+        ? reward.maxUsable
+        : Math.max(0, Math.floor(Number(requestedRaw) || 0));
+    if (requested > reward.balance) {
+      return res.status(400).json({
+        ok: false,
+        error: `You only have ${reward.balance} points. You cannot use ${requested} points.`,
+      });
+    }
+    if (requested > reward.maxUsable) {
+      return res.status(400).json({
+        ok: false,
+        error: `You can use at most ${reward.maxUsable} points on this order.`,
+      });
+    }
+    if (requested < reward.minRedeem) {
+      return res.status(400).json({
+        ok: false,
+        error: `Minimum redeem is ${reward.minRedeem} points`,
+      });
+    }
+    req.session.rewardPointsUsed = requested;
+    return res.json({ ok: true, totals: await cartTotalsResponse(cart, req) });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ ok: false, error: 'Could not apply reward points' });
+  }
+});
+
+router.delete('/cart/reward-points', async (req, res) => {
+  clearSessionRewardRedemption(req);
+  const cart = getCart(req);
+  res.json({ ok: true, totals: await cartTotalsResponse(cart, req) });
+});
+
 router.post('/cart/add', async (req, res) => {
   try {
     const { productId, qty = 1 } = req.body;
@@ -991,14 +1112,37 @@ router.post('/orders', async (req, res) => {
     }
 
     const orderDistrict = (district && String(district).trim()) || '—';
-    await recomputeSessionCoupon(req, cart);
-    const discount = req.session.couponDiscount || 0;
-    const { subtotal, delivery, total } = await calcTotalsForRequest(req, cart, discount);
-    const orderNumber = `RKS-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`;
-    const couponNote = req.session.couponCode ? `Coupon: ${req.session.couponCode} (-৳${discount})` : '';
-    const orderNotes = [notes, couponNote].filter(Boolean).join(' | ') || null;
-
     const userId = req.session.userId || null;
+    await recomputeSessionCoupon(req, cart);
+    const settings = await getSiteSettings(query);
+    const reward = await rewardRedemptionSnapshot(req, cart, settings);
+    const couponDiscount = req.session.couponDiscount || 0;
+    const rewardDiscount = reward.applied || 0;
+    if (rewardDiscount > 0) {
+      if (!userId) {
+        return res.status(400).json({ ok: false, error: 'Please log in to use reward points' });
+      }
+      if (reward.balance < reward.minRedeem || rewardDiscount < reward.minRedeem) {
+        clearSessionRewardRedemption(req);
+        return res.status(400).json({
+          ok: false,
+          error: `Minimum ${reward.minRedeem} reward points required to redeem`,
+        });
+      }
+      if (rewardDiscount > reward.balance || rewardDiscount > reward.maxUsable) {
+        clearSessionRewardRedemption(req);
+        return res.status(400).json({
+          ok: false,
+          error: 'Reward points could not be applied. Please try again.',
+        });
+      }
+    }
+    const discount = couponDiscount + rewardDiscount;
+    const { subtotal, delivery, total } = calcTotalsWithSettings(cart, settings, orderDistrict, discount);
+    const orderNumber = `RKS-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`;
+    const couponNote = req.session.couponCode ? `Coupon: ${req.session.couponCode} (-৳${couponDiscount})` : '';
+    const rewardNote = rewardDiscount > 0 ? `Reward points used: ${rewardDiscount}` : '';
+    const orderNotes = [notes, couponNote, rewardNote].filter(Boolean).join(' | ') || null;
 
     const orderResult = await query(
       `INSERT INTO orders (user_id, order_number, customer_name, customer_phone, customer_email,
@@ -1030,6 +1174,13 @@ router.post('/orders', async (req, res) => {
       await query('UPDATE coupons SET used_count = used_count + 1 WHERE id = ?', [req.session.couponId]);
       clearSessionCoupon(req);
     }
+    if (userId && rewardDiscount > 0) {
+      const balance = await getUserRewardPoints(query, userId);
+      const next = Math.max(0, balance - rewardDiscount);
+      await setUserRewardPoints(query, userId, next);
+      await recordRewardPointEvent(query, userId, 'order_redeem', -rewardDiscount, String(orderId));
+      clearSessionRewardRedemption(req);
+    }
     for (const item of cart) {
       await query(
         `INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, line_total)
@@ -1051,6 +1202,7 @@ router.post('/orders', async (req, res) => {
 
     req.session.cart = [];
     req.session.checkoutDistrict = null;
+    clearSessionRewardRedemption(req);
     const pointCfg = userId ? await getRewardPointConfig(query) : null;
 
     await fireAdminEmail(query, notifyNewOrder, {
@@ -1080,6 +1232,7 @@ router.post('/orders', async (req, res) => {
       subtotalFormatted: formatPrice(subtotal),
       deliveryFormatted: delivery === 0 ? 'Free' : formatPrice(delivery),
       items: orderItems,
+      rewardPointsUsed: rewardDiscount,
       pointsPending:
         userId && pointCfg?.enabled ? pointsFromCartItems(cart, pointCfg) : 0,
     });

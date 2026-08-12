@@ -569,6 +569,10 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       );
       const pendingCount =
         Number(pendingRows[0]?.c ?? Object.values(pendingRows[0] || {})[0]) || 0;
+      const unreadRows = await query(
+        `SELECT COUNT(*) AS c FROM appointments WHERE COALESCE(viewed_by_admin, false) = false`
+      );
+      const unreadCount = Number(unreadRows[0]?.c ?? Object.values(unreadRows[0] || {})[0]) || 0;
 
       res.json({
         ok: true,
@@ -584,6 +588,8 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
           serviceLabel: serviceLabel(r.service_type || r.serviceType),
           notes: r.notes,
           status: r.status,
+          viewedByAdmin: Boolean(r.viewed_by_admin),
+          viewedAt: r.viewed_at || null,
           createdAt: r.created_at || r.createdAt,
         })),
         pagination: {
@@ -593,6 +599,7 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
           pages: Math.max(1, Math.ceil(totalN / l)),
         },
         pendingCount,
+        unreadCount,
       });
     } catch (err) {
       console.error('admin appointments', err);
@@ -614,6 +621,30 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     } catch (err) {
       console.error('admin appointment patch', err);
       res.status(500).json({ ok: false, error: 'Could not update appointment' });
+    }
+  });
+
+  router.post('/appointments/mark-viewed', requireAdmin, async (req, res) => {
+    try {
+      const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
+      await ensureAppointmentsTable();
+      const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+      if (!ids.length) return res.json({ ok: true, unreadCount: 0, updated: 0 });
+      const placeholders = ids.map(() => '?').join(',');
+      await query(
+        `UPDATE appointments
+         SET viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
+         WHERE id IN (${placeholders})`,
+        ids
+      );
+      const unreadRows = await query(
+        `SELECT COUNT(*) AS c FROM appointments WHERE COALESCE(viewed_by_admin, false) = false`
+      );
+      const unreadCount = Number(unreadRows[0]?.c ?? Object.values(unreadRows[0] || {})[0]) || 0;
+      res.json({ ok: true, unreadCount, updated: ids.length });
+    } catch (err) {
+      console.error('admin appointment mark-viewed', err);
+      res.status(500).json({ ok: false, error: 'Could not update appointment view status' });
     }
   });
 
@@ -924,6 +955,10 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
         `SELECT COUNT(*) AS c FROM contact_messages WHERE status = 'new'`
       );
       const newCount = Number(newRows[0]?.c ?? Object.values(newRows[0] || {})[0]) || 0;
+      const unreadRows = await query(
+        `SELECT COUNT(*) AS c FROM contact_messages WHERE COALESCE(viewed_by_admin, false) = false`
+      );
+      const unreadCount = Number(unreadRows[0]?.c ?? Object.values(unreadRows[0] || {})[0]) || 0;
 
       res.json({
         ok: true,
@@ -935,6 +970,7 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
           pages: Math.max(1, Math.ceil(totalN / l)),
         },
         newCount,
+        unreadCount,
       });
     } catch (err) {
       console.error('admin contact messages', err);
@@ -956,6 +992,30 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     } catch (err) {
       console.error('admin contact message patch', err);
       res.status(500).json({ ok: false, error: 'Could not update message' });
+    }
+  });
+
+  router.post('/contact-messages/mark-viewed', requireAdmin, async (req, res) => {
+    try {
+      const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
+      await ensureContactMessagesTable();
+      const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+      if (!ids.length) return res.json({ ok: true, unreadCount: 0, updated: 0 });
+      const placeholders = ids.map(() => '?').join(',');
+      await query(
+        `UPDATE contact_messages
+         SET viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
+         WHERE id IN (${placeholders})`,
+        ids
+      );
+      const unreadRows = await query(
+        `SELECT COUNT(*) AS c FROM contact_messages WHERE COALESCE(viewed_by_admin, false) = false`
+      );
+      const unreadCount = Number(unreadRows[0]?.c ?? Object.values(unreadRows[0] || {})[0]) || 0;
+      res.json({ ok: true, unreadCount, updated: ids.length });
+    } catch (err) {
+      console.error('admin contact mark-viewed', err);
+      res.status(500).json({ ok: false, error: 'Could not update contact view status' });
     }
   });
 

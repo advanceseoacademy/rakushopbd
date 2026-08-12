@@ -90,6 +90,7 @@
   let productsPage = 1;
   let galleryPage = 1;
   let authRedirectHold = false;
+  let orderBadgePollTimer = null;
 
   function isProductEditorAdmin() {
     return Boolean(currentAdmin?.isProductEditor || currentAdmin?.role === 'product_editor');
@@ -236,9 +237,36 @@
     return `<span class="badge badge-${cls[status] || 'gray'}">${labels[status] || status}</span>`;
   }
 
+  function orderViewBadgeHtml(viewedByAdmin) {
+    if (viewedByAdmin) return '<span class="badge badge-blue">Viewed</span>';
+    return '<span class="badge badge-amber">New</span>';
+  }
+
   function setOrderBadge(count) {
     const badge = document.getElementById('order-badge');
-    if (badge) badge.textContent = String(Number(count) || 0);
+    if (!badge) return;
+    const n = Math.max(0, Number(count) || 0);
+    badge.textContent = n > 99 ? '99+' : String(n);
+  }
+
+  async function refreshOrderUnreadBadge() {
+    const data = await api('/orders/unread-count');
+    if (!data.ok) return;
+    setOrderBadge(data.unreadCount);
+  }
+
+  function startOrderBadgePolling() {
+    if (orderBadgePollTimer) clearInterval(orderBadgePollTimer);
+    void refreshOrderUnreadBadge();
+    orderBadgePollTimer = setInterval(() => {
+      void refreshOrderUnreadBadge();
+    }, 15000);
+  }
+
+  function stopOrderBadgePolling() {
+    if (!orderBadgePollTimer) return;
+    clearInterval(orderBadgePollTimer);
+    orderBadgePollTimer = null;
   }
 
   function showLoginPanel() {
@@ -248,7 +276,9 @@
   }
 
   function logoutAdmin() {
+    stopOrderBadgePolling();
     setAdminToken('');
+    setOrderBadge(0);
     showLoginPanel();
   }
 
@@ -256,6 +286,7 @@
     document.documentElement.classList.add('admin-auth-restoring');
     document.getElementById('login-page').style.display = 'none';
     document.getElementById('admin-page').style.display = 'block';
+    startOrderBadgePolling();
   }
 
   function setAdminUI(admin) {
@@ -539,6 +570,9 @@
     if (e.key === 'Escape' && document.getElementById('messenger-modal')?.classList.contains('open')) {
       closeMessengerModal();
     }
+    if (e.key === 'Escape' && document.getElementById('customer-points-modal')?.classList.contains('open')) {
+      closeCustomerPointsModal();
+    }
   });
 
   function openBannerModal() {
@@ -725,12 +759,12 @@
       <div class="stat-card"><div class="stat-icon" style="background:#FDE8EF;"><i class="ti ti-box" style="color:#E91E8C;font-size:26px;"></i></div>
         <div><div class="stat-num">${s.totalProducts}</div><div class="stat-label">Products (${s.lowStock} low stock)</div></div></div>`;
 
-    setOrderBadge(s.totalOrders);
+    setOrderBadge(s.unreadOrders ?? 0);
     api('/appointments?limit=1&page=1').then((d) => {
-      if (d.ok && d.pendingCount != null) setAppointmentBadge(d.pendingCount);
+      if (d.ok) setAppointmentBadge(d.unreadCount ?? d.pendingCount ?? 0);
     });
     api('/contact-messages?limit=1&page=1').then((d) => {
-      if (d.ok && d.newCount != null) setContactBadge(d.newCount);
+      if (d.ok) setContactBadge(d.unreadCount ?? d.newCount ?? 0);
     });
     api('/phone-subscribers?limit=1&page=1').then((d) => {
       if (d.ok && d.newCount != null) setSubscriberBadge(d.newCount);
@@ -927,15 +961,16 @@
     if (search) q.set('search', search);
     const data = await api('/orders?' + q.toString());
     if (!data.ok) return;
-    if (data.totalOrders != null) setOrderBadge(data.totalOrders);
+    if (data.unreadCount != null) setOrderBadge(data.unreadCount);
     document.getElementById('orders-tbody').innerHTML = data.orders.length
       ? data.orders
           .map((o) => {
             const checked = selectedOrderIds.has(Number(o.id)) ? ' checked' : '';
             const rowClass = checked ? ' class="row-selected"' : '';
+            const seenBadge = orderViewBadgeHtml(o.viewedByAdmin);
             return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="order-row-check" data-order-id="${o.id}" aria-label="Select order ${escHtml(o.orderNumber)}"${checked}></td>
-        <td><b>${escHtml(o.orderNumber)}</b></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
+        <td><b>${escHtml(o.orderNumber)}</b><br><small style="margin-top:4px;display:inline-block;">${seenBadge}</small></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
         <td>${escHtml(o.itemsPreview)}</td><td>${escHtml(o.paymentMethod)}</td><td>${fmtDate(o.createdAt)}</td>
         <td>${escHtml(o.totalFormatted)}</td><td>${statusBadgeHtml(o.status)}</td>
         <td class="tbl-actions">
@@ -1051,6 +1086,42 @@
     return `<span class="badge badge-${cls[status] || 'gray'}">${labels[status] || escHtml(status)}</span>`;
   }
 
+  function seenStatusBadgeHtml(viewedByAdmin) {
+    return viewedByAdmin
+      ? '<span class="badge badge-blue">Viewed</span>'
+      : '<span class="badge badge-amber">New</span>';
+  }
+
+  async function markAppointmentsViewed(ids) {
+    const cleanIds = [...new Set((ids || []).map(Number).filter(Boolean))];
+    if (!cleanIds.length) return;
+    const data = await api('/appointments/mark-viewed', {
+      method: 'POST',
+      body: JSON.stringify({ ids: cleanIds }),
+    });
+    if (!data.ok) return;
+    if (data.unreadCount != null) setAppointmentBadge(data.unreadCount);
+    cleanIds.forEach((id) => {
+      const badge = document.querySelector(`[data-appointment-seen="${id}"]`);
+      if (badge) badge.innerHTML = seenStatusBadgeHtml(true);
+    });
+  }
+
+  async function markContactMessagesViewed(ids) {
+    const cleanIds = [...new Set((ids || []).map(Number).filter(Boolean))];
+    if (!cleanIds.length) return;
+    const data = await api('/contact-messages/mark-viewed', {
+      method: 'POST',
+      body: JSON.stringify({ ids: cleanIds }),
+    });
+    if (!data.ok) return;
+    if (data.unreadCount != null) setContactBadge(data.unreadCount);
+    cleanIds.forEach((id) => {
+      const badge = document.querySelector(`[data-contact-seen="${id}"]`);
+      if (badge) badge.innerHTML = seenStatusBadgeHtml(true);
+    });
+  }
+
   async function loadAppointments(page) {
     if (page) appointmentsPage = page;
     const status = document.getElementById('appointments-status-filter')?.value || 'all';
@@ -1060,7 +1131,9 @@
     if (search) q.set('search', search);
     const data = await api('/appointments?' + q.toString());
     if (!data.ok) return;
-    if (data.pendingCount != null) setAppointmentBadge(data.pendingCount);
+    if (data.unreadCount != null || data.pendingCount != null) {
+      setAppointmentBadge(data.unreadCount ?? data.pendingCount ?? 0);
+    }
     const tbody = document.getElementById('appointments-tbody');
     if (!tbody) return;
 
@@ -1078,9 +1151,10 @@
               : '<span style="color:#94a3b8">—</span>';
             const checked = selectedAppointmentIds.has(Number(a.id)) ? ' checked' : '';
             const rowClass = checked ? ' class="row-selected"' : '';
+            const seenBadge = seenStatusBadgeHtml(a.viewedByAdmin);
             return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="appointment-row-check" data-appointment-id="${a.id}" aria-label="Select appointment ${escHtml(a.referenceNumber)}"${checked}></td>
-        <td><b>${a.referenceNumber}</b><br><small style="color:#94a3b8">${fmtDate(a.createdAt)}</small></td>
+        <td><b>${a.referenceNumber}</b><br><small style="color:#94a3b8">${fmtDate(a.createdAt)}</small><br><small data-appointment-seen="${a.id}">${seenBadge}</small></td>
         <td>${escHtml(a.customerName)}<br><small style="color:#94a3b8">${escHtml(a.customerPhone)}</small>${a.customerEmail ? `<br><small style="color:#94a3b8">${escHtml(a.customerEmail)}</small>` : ''}</td>
         <td>${escHtml(a.serviceLabel || a.serviceType)}</td>
         <td>${a.appointmentDate}<br><small>${escHtml(a.appointmentTime)}</small></td>
@@ -1128,6 +1202,13 @@
         } else toast(res.error || 'Delete failed', 'error');
       };
     });
+
+    const unseenAppointmentIds = (data.appointments || [])
+      .filter((a) => !a.viewedByAdmin)
+      .map((a) => a.id);
+    if (unseenAppointmentIds.length) {
+      void markAppointmentsViewed(unseenAppointmentIds);
+    }
 
     const pag = data.pagination;
     const pagEl = document.getElementById('appointments-pagination');
@@ -1286,7 +1367,9 @@
     if (search) q.set('search', search);
     const data = await api('/contact-messages?' + q.toString());
     if (!data.ok) return;
-    if (data.newCount != null) setContactBadge(data.newCount);
+    if (data.unreadCount != null || data.newCount != null) {
+      setContactBadge(data.unreadCount ?? data.newCount ?? 0);
+    }
     const tbody = document.getElementById('contacts-tbody');
     if (!tbody) return;
 
@@ -1303,9 +1386,10 @@
             : '';
           const checked = selectedContactIds.has(Number(m.id)) ? ' checked' : '';
           const rowClass = checked ? ' class="row-selected"' : '';
+          const seenBadge = seenStatusBadgeHtml(m.viewedByAdmin);
           return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="contact-row-check" data-contact-id="${m.id}" aria-label="Select message from ${escHtml(m.customerName)}"${checked}></td>
-        <td><b>${escHtml(m.customerName)}</b><br><small style="color:#94a3b8">${escHtml(m.customerPhone)}</small>${emailLine}</td>
+        <td><b>${escHtml(m.customerName)}</b><br><small style="color:#94a3b8">${escHtml(m.customerPhone)}</small>${emailLine}<br><small data-contact-seen="${m.id}">${seenBadge}</small></td>
         <td>${escHtml(m.subjectLabel || m.subject)}</td>
         <td><span title="${full}">${preview}${String(m.message || '').length > 120 ? '…' : ''}</span></td>
         <td>${fmtDate(m.createdAt)}</td>
@@ -1317,6 +1401,13 @@
         .join('');
     }
     updateContactsSelectionUi();
+
+    const unseenMessageIds = (data.messages || [])
+      .filter((m) => !m.viewedByAdmin)
+      .map((m) => m.id);
+    if (unseenMessageIds.length) {
+      void markContactMessagesViewed(unseenMessageIds);
+    }
 
     const pag = data.pagination;
     const pagEl = document.getElementById('contacts-pagination');
@@ -2670,10 +2761,12 @@
     currentOrderId = id;
     const data = await api('/orders/' + id);
     if (!data.ok) return;
+    if (data.unreadCount != null) setOrderBadge(data.unreadCount);
     const o = data.order;
     document.getElementById('order-status-select').value = o.status;
     document.getElementById('order-modal-body').innerHTML = `
       <p><b>${o.order_number}</b> — ${fmtDate(o.created_at)}</p>
+      <p>Seen: ${o.viewed_by_admin ? '<span class="badge badge-blue">Viewed</span>' : '<span class="badge badge-amber">New</span>'}</p>
       <p>${o.customer_name} · ${o.customer_phone}</p>
       <p>${o.address_line}, ${o.district}</p>
       <p>Payment: <b>${o.payment_method}</b></p>
@@ -3576,6 +3669,112 @@
     }
   }
 
+  let activeCustomerPointsId = null;
+
+  function closeCustomerPointsModal() {
+    const modal = document.getElementById('customer-points-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('customer-points-modal-open');
+    activeCustomerPointsId = null;
+  }
+
+  async function openCustomerPointsModal(customerId, customerName) {
+    const modal = document.getElementById('customer-points-modal');
+    if (!modal) return;
+    activeCustomerPointsId = Number(customerId);
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('customer-points-modal-open');
+    document.getElementById('customer-points-modal-title').textContent = `Reward points — ${customerName || 'Customer'}`;
+    document.getElementById('customer-points-summary').innerHTML =
+      '<p style="color:#64748b;margin:0 0 12px;">Loading history…</p>';
+    document.getElementById('customer-points-tbody').innerHTML =
+      '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">Loading…</td></tr>';
+
+    const data = await api(`/customers/${customerId}/reward-points`);
+    if (!data.ok) {
+      document.getElementById('customer-points-summary').innerHTML =
+        `<p style="color:#dc2626;margin:0;">${escHtml(data.error || 'Could not load point history')}</p>`;
+      document.getElementById('customer-points-tbody').innerHTML =
+        '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">—</td></tr>';
+      return;
+    }
+
+    const summary = data.summary || {};
+    document.getElementById('customer-points-summary').innerHTML = `
+      <div class="customer-points-stats">
+        <div class="customer-points-stat"><span class="customer-points-stat-label">Current balance</span><strong>${summary.balance ?? 0}</strong></div>
+        <div class="customer-points-stat"><span class="customer-points-stat-label">Total earned</span><strong class="points-pos">+${summary.earnedTotal ?? 0}</strong></div>
+        <div class="customer-points-stat"><span class="customer-points-stat-label">Total used / deducted</span><strong class="points-neg">-${summary.spentTotal ?? 0}</strong></div>
+        <div class="customer-points-stat"><span class="customer-points-stat-label">Events</span><strong>${summary.eventCount ?? 0}</strong></div>
+      </div>`;
+
+    const tbody = document.getElementById('customer-points-tbody');
+    if (!data.events?.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px;">No point history yet.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = data.events
+      .map((ev) => {
+        const pts = Number(ev.points) || 0;
+        const ptsClass = pts > 0 ? 'points-pos' : pts < 0 ? 'points-neg' : '';
+        const detail = ev.detail || '—';
+        const orderLink =
+          ev.orderId && ev.eventType !== 'first_order'
+            ? `<button type="button" class="btn btn-outline btn-xs customer-points-order-link" data-order-id="${ev.orderId}">Order #${ev.orderId}</button>`
+            : ev.orderId
+              ? `Order #${ev.orderId}`
+              : escHtml(detail);
+        return `<tr>
+          <td>${fmtDate(ev.createdAt)}</td>
+          <td>${escHtml(ev.label || ev.eventType || '—')}</td>
+          <td>${orderLink}</td>
+          <td style="text-align:right;" class="${ptsClass}"><strong>${escHtml(ev.pointsFormatted || String(pts))}</strong></td>
+        </tr>`;
+      })
+      .join('');
+
+    tbody.querySelectorAll('.customer-points-order-link').forEach((btn) => {
+      btn.onclick = () => {
+        closeCustomerPointsModal();
+        openOrderModal(btn.dataset.orderId);
+      };
+    });
+  }
+
+  async function editCustomerPointsBalance(customerId, currentPoints) {
+    const raw = window.prompt('Set reward points for this customer:', String(currentPoints ?? 0));
+    if (raw == null) return;
+    const next = Math.max(0, Math.floor(Number(raw) || 0));
+    const res = await api(`/customers/${customerId}/points`, {
+      method: 'PATCH',
+      body: JSON.stringify({ points: next }),
+    });
+    if (res.ok) {
+      toast('Points updated');
+      loadCustomers();
+      const name = document.getElementById('customer-points-modal-title')?.textContent?.replace(/^Reward points — /, '') || 'Customer';
+      await openCustomerPointsModal(customerId, name);
+    } else {
+      toast(res.error || 'Failed to update points', 'error');
+    }
+  }
+
+  document.getElementById('customer-points-modal-close')?.addEventListener('click', closeCustomerPointsModal);
+  document.getElementById('customer-points-modal-cancel')?.addEventListener('click', closeCustomerPointsModal);
+  document.getElementById('customer-points-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'customer-points-modal') closeCustomerPointsModal();
+  });
+  document.getElementById('customer-points-edit-btn')?.addEventListener('click', () => {
+    if (!activeCustomerPointsId) return;
+    const balanceText = document.querySelector('#customer-points-summary .customer-points-stat strong')?.textContent;
+    editCustomerPointsBalance(activeCustomerPointsId, Number(balanceText) || 0);
+  });
+
   async function loadCustomers() {
     const statsData = await api('/customers/stats');
     if (statsData.ok) {
@@ -3606,7 +3805,7 @@
         return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="customer-row-check" data-customer-id="${c.id}" aria-label="Select ${safeName}"${checked}></td>
         <td>${safeName}</td><td>${escHtml(c.email || '')}</td><td>${escHtml(c.phone || '')}</td>
-        <td><button type="button" class="btn btn-outline btn-sm customer-points-btn" data-id="${c.id}" data-points="${c.rewardPoints}" title="Edit points">${c.rewardPoints}</button></td>
+        <td><button type="button" class="btn btn-outline btn-sm customer-points-btn" data-id="${c.id}" data-name="${safeName.replace(/"/g, '&quot;')}" data-points="${c.rewardPoints}" title="View point history">${c.rewardPoints}</button></td>
         <td>${c.orderCount}</td><td>${c.totalSpentFormatted}</td><td>${fmtDate(c.createdAt)}</td>
         <td><button type="button" class="btn btn-danger btn-xs customer-del-btn" data-id="${c.id}" data-name="${safeName.replace(/"/g, '&quot;')}" data-orders="${c.orderCount}" title="Delete account"><i class="ti ti-trash"></i> Delete</button></td></tr>`;
       })
@@ -3614,21 +3813,7 @@
     updateCustomersSelectionUi();
 
     document.querySelectorAll('.customer-points-btn').forEach((btn) => {
-      btn.onclick = async () => {
-        const id = btn.dataset.id;
-        const current = Number(btn.dataset.points) || 0;
-        const raw = window.prompt('Set reward points for this customer:', String(current));
-        if (raw == null) return;
-        const next = Math.max(0, Math.floor(Number(raw) || 0));
-        const res = await api(`/customers/${id}/points`, {
-          method: 'PATCH',
-          body: JSON.stringify({ points: next }),
-        });
-        if (res.ok) {
-          toast('Points updated');
-          loadCustomers();
-        } else toast(res.error || 'Failed to update points', 'error');
-      };
+      btn.onclick = () => openCustomerPointsModal(btn.dataset.id, btn.dataset.name || 'Customer');
     });
     document.querySelectorAll('.customer-del-btn').forEach((btn) => {
       btn.onclick = async () => {
@@ -4490,7 +4675,7 @@
       ['set-rp-video-review', 'reward_points_video_review', '100'],
       ['set-rp-referral', 'reward_points_referral', '50'],
       ['set-rp-referral-signup', 'reward_points_referral_signup', '50'],
-      ['set-rp-min-redeem', 'reward_points_min_redeem', '100'],
+      ['set-rp-min-redeem', 'reward_points_min_redeem', '500'],
       ['set-rp-max-percent', 'reward_points_max_order_percent', '50'],
     ];
     map.forEach(([id, key, fallback]) => {
@@ -4510,7 +4695,7 @@
       reward_points_video_review: document.getElementById('set-rp-video-review')?.value || '0',
       reward_points_referral: document.getElementById('set-rp-referral')?.value || '0',
       reward_points_referral_signup: document.getElementById('set-rp-referral-signup')?.value || '0',
-      reward_points_min_redeem: document.getElementById('set-rp-min-redeem')?.value || '100',
+      reward_points_min_redeem: document.getElementById('set-rp-min-redeem')?.value || '500',
       reward_points_max_order_percent: document.getElementById('set-rp-max-percent')?.value || '50',
     };
   }

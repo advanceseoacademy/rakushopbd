@@ -36,6 +36,7 @@ const { ensureContactMessagesTable } = require('./lib/ensureContactMessagesTable
 const { ensurePhoneSubscribersTable } = require('./lib/ensurePhoneSubscribersTable');
 const { ensureMarketingSettings } = require('./lib/ensureMarketingSettings');
 const { ensureRewardPointsColumn } = require('./lib/ensureRewardPointsColumn');
+const { ensureOrderAdminViewColumns } = require('./lib/ensureOrderAdminViewColumns');
 const { ensureRewardPointEvents } = require('./lib/ensureRewardPointEvents');
 const { ensureRewardPointSettings } = require('./lib/ensureRewardPointSettings');
 const { ensureReviewVideos } = require('./lib/ensureReviewVideos');
@@ -480,6 +481,7 @@ async function startServer() {
   ensurePhoneSubscribersTable().catch((err) => console.warn('phone subscribers table:', err.message));
   ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
   ensureRewardPointsColumn().catch((err) => console.warn('reward_points column:', err.message));
+  ensureOrderAdminViewColumns().catch((err) => console.warn('orders viewed_by_admin column:', err.message));
   ensureRewardPointEvents().catch((err) => console.warn('reward point events:', err.message));
   ensureRewardPointSettings().catch((err) => console.warn('reward point settings:', err.message));
   ensureReviewVideos().catch((err) => console.warn('review videos table:', err.message));

@@ -544,6 +544,22 @@
   color: var(--text-muted);
 }
 
+@media (max-width: 768px) {
+  .blog-card-image {
+    height: auto;
+    max-height: none;
+    object-fit: contain;
+    object-position: center;
+  }
+
+  .blog-article-hero-img {
+    max-height: none;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+  }
+}
+
 @media (max-width: 640px) {
   .blog-article-header {
     padding: 20px 18px 18px;

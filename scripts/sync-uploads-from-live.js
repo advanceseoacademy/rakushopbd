@@ -83,6 +83,17 @@ async function collectDbUploadUrls() {
     add(row.image_url);
     add(row.reviewer_avatar_url);
   }
+  try {
+    for (const row of await query(
+      `SELECT featured_image_url, og_image, content FROM blog_posts`
+    )) {
+      add(row.featured_image_url);
+      add(row.og_image);
+      add(row.content);
+    }
+  } catch (_) {
+    // blog_posts table may not exist on older databases
+  }
   for (const row of await query(`SELECT setting_value FROM site_settings`)) {
     const val = row.setting_value;
     add(val);

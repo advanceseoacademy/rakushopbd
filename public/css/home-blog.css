@@ -140,7 +140,13 @@
     max-width: 100%;
   }
 
-  .home-blog-track .home-blog-card-image,
+  .home-blog-track .home-blog-card-image {
+    height: auto;
+    max-height: none;
+    object-fit: contain;
+    object-position: center;
+  }
+
   .home-blog-track .home-blog-card-image--placeholder {
     height: 160px;
   }

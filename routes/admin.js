@@ -8,7 +8,7 @@ const { normalizeStoreUrl } = require('../lib/normalizeStoreUrl');
 const { clearSiteSettingsCache } = require('../lib/siteSettings');
 const { normalizeSiteBaseUrl } = require('../lib/seo');
 const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
-const { setUserRewardPoints } = require('../lib/rewardPoints');
+const { setUserRewardPoints, listUserRewardPointHistory, describeRewardPointEvent } = require('../lib/rewardPoints');
 const { sendAdminEmail, loadNotifySettings } = require('../lib/emailNotify');
 const { sanitizeSmtpForAdminResponse } = require('../lib/smtpSettings');
 const { requireAdmin, requireSuperAdmin } = require('../middleware/requireAdmin');
@@ -333,6 +333,9 @@ router.delete('/admins/:id', requireAdmin, requireSuperAdmin, async (req, res) =
 router.get('/dashboard', requireAdmin, async (req, res) => {
   try {
     const totalOrders = await scalarCount('SELECT COUNT(*) AS totalOrders FROM orders');
+    const unreadOrders = await scalarCount(
+      'SELECT COUNT(*) AS unreadOrders FROM orders WHERE COALESCE(viewed_by_admin, false) = false'
+    );
     const pendingOrders = await scalarCount(
       "SELECT COUNT(*) AS pendingOrders FROM orders WHERE status IN ('pending','confirmed')"
     );
@@ -383,6 +386,7 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
       activity,
       stats: {
         totalOrders,
+        unreadOrders,
         pendingOrders,
         totalRevenue,
         totalRevenueFormatted: formatPrice(totalRevenue),
@@ -419,6 +423,18 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
 });
 
 // ——— Orders ———
+router.get('/orders/unread-count', requireAdmin, async (req, res) => {
+  try {
+    const unreadCount = await scalarCount(
+      'SELECT COUNT(*) AS unreadCount FROM orders WHERE COALESCE(viewed_by_admin, false) = false'
+    );
+    res.json({ ok: true, unreadCount });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load unread order count' });
+  }
+});
+
 router.get('/orders', requireAdmin, async (req, res) => {
   try {
     const { status, search, payment, page = 1, limit = 20 } = req.query;
@@ -447,6 +463,9 @@ router.get('/orders', requireAdmin, async (req, res) => {
     }
     const [{ total }] = await query(countSql, params);
     const [{ totalOrders }] = await query('SELECT COUNT(*) AS totalOrders FROM orders');
+    const [{ unreadCount }] = await query(
+      'SELECT COUNT(*) AS unreadCount FROM orders WHERE COALESCE(viewed_by_admin, false) = false'
+    );
     sql += ` ORDER BY o.created_at DESC LIMIT ${l} OFFSET ${offset}`;
     const orders = await query(sql, params);
 
@@ -462,6 +481,8 @@ router.get('/orders', requireAdmin, async (req, res) => {
           orderNumber: o.order_number,
           customerName: o.customer_name,
           customerPhone: o.customer_phone,
+          viewedByAdmin: Boolean(o.viewed_by_admin),
+          viewedAt: o.viewed_at || null,
           paymentMethod: o.payment_method,
           total: Number(o.total),
           totalFormatted: formatPrice(o.total),
@@ -477,6 +498,7 @@ router.get('/orders', requireAdmin, async (req, res) => {
       ok: true,
       orders: enriched,
       totalOrders: Number(totalOrders) || 0,
+      unreadCount: Number(unreadCount) || 0,
       pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) || 1 },
     });
   } catch (err) {
@@ -490,9 +512,14 @@ router.get('/orders/:id', requireAdmin, async (req, res) => {
     const rows = await query('SELECT * FROM orders WHERE id = ?', [req.params.id]);
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Order not found' });
     const o = rows[0];
+    await query('UPDATE orders SET viewed_by_admin = true, viewed_at = CURRENT_TIMESTAMP WHERE id = ?', [o.id]);
     const items = await query('SELECT * FROM order_items WHERE order_id = ?', [o.id]);
+    const unreadCount = await scalarCount(
+      'SELECT COUNT(*) AS unreadCount FROM orders WHERE COALESCE(viewed_by_admin, false) = false'
+    );
     res.json({
       ok: true,
+      unreadCount,
       order: {
         ...o,
         subtotal: Number(o.subtotal),
@@ -1236,11 +1263,72 @@ router.patch('/customers/:id/points', requireAdmin, async (req, res) => {
   try {
     const userId = Number(req.params.id);
     if (!userId) return res.status(400).json({ ok: false, error: 'Invalid customer' });
-    const points = await setUserRewardPoints(query, userId, req.body.points);
+    const points = await setUserRewardPoints(query, userId, req.body.points, { logSource: 'admin' });
     res.json({ ok: true, points });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not update points' });
+  }
+});
+
+router.get('/customers/:id/reward-points', requireAdmin, async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+    if (!userId) return res.status(400).json({ ok: false, error: 'Invalid customer' });
+
+    const users = await query(
+      'SELECT id, full_name, email, phone, COALESCE(reward_points, 0) AS reward_points FROM users WHERE id = ? LIMIT 1',
+      [userId]
+    );
+    const customer = users[0];
+    if (!customer) return res.status(404).json({ ok: false, error: 'Customer not found' });
+
+    const rows = await listUserRewardPointHistory(query, userId);
+    const events = rows.map((row) => {
+      const { label, detail } = describeRewardPointEvent(row.event_type, row.reference_key);
+      const points = Number(row.points) || 0;
+      return {
+        id: row.id,
+        eventType: row.event_type,
+        label,
+        detail,
+        points,
+        pointsFormatted: points > 0 ? `+${points}` : String(points),
+        referenceKey: row.reference_key,
+        createdAt: row.created_at,
+        synthesized: Boolean(row.synthesized),
+        orderId:
+          row.event_type === 'order_delivery' ||
+          row.event_type === 'first_order' ||
+          row.event_type === 'order_redeem'
+            ? Number(row.reference_key) || null
+            : null,
+      };
+    });
+
+    const earnedTotal = events.reduce((sum, ev) => sum + (ev.points > 0 ? ev.points : 0), 0);
+    const spentTotal = events.reduce((sum, ev) => sum + (ev.points < 0 ? Math.abs(ev.points) : 0), 0);
+
+    res.json({
+      ok: true,
+      customer: {
+        id: customer.id,
+        fullName: customer.full_name,
+        email: customer.email,
+        phone: customer.phone,
+        rewardPoints: Number(customer.reward_points) || 0,
+      },
+      summary: {
+        balance: Number(customer.reward_points) || 0,
+        earnedTotal,
+        spentTotal,
+        eventCount: events.length,
+      },
+      events,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load reward point history' });
   }
 });
 

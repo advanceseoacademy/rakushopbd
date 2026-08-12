@@ -2494,6 +2494,59 @@
     }
   }
 
+  function syncRewardRedeemUi(reward) {
+    const row = document.getElementById('checkout-reward-redeem-row');
+    const note = document.getElementById('checkout-reward-redeem-note');
+    if (!row || !note) return;
+    const input = row.querySelector('.js-reward-input');
+    const applyBtn = row.querySelector('.js-reward-apply');
+    const removeBtn = row.querySelector('.js-reward-remove');
+    const badge = row.querySelector('.js-reward-applied-badge');
+    const cfg = reward || {};
+    window._rakuRewardSnapshot = cfg;
+    if (!cfg.enabled) {
+      row.hidden = true;
+      note.hidden = true;
+      return;
+    }
+    row.hidden = false;
+    const minRedeem = Math.max(500, Number(cfg.minRedeem) || 500);
+    const balance = Math.max(0, Number(cfg.balance) || 0);
+    const maxUsable = Math.max(0, Number(cfg.maxUsable) || 0);
+    const applied = Math.max(0, Number(cfg.applied) || 0);
+    const canApply = cfg.loggedIn && balance >= minRedeem && maxUsable >= minRedeem && applied <= 0;
+    if (input) {
+      input.min = String(minRedeem);
+      input.max = String(Math.max(minRedeem, Math.min(balance, maxUsable)));
+      input.placeholder = `Min ${minRedeem} points`;
+      input.value = applied > 0 ? String(applied) : '';
+      input.readOnly = applied > 0;
+    }
+    if (applyBtn) {
+      applyBtn.hidden = applied > 0;
+      applyBtn.disabled = !canApply;
+    }
+    if (removeBtn) removeBtn.hidden = applied <= 0;
+    if (badge) badge.hidden = applied <= 0;
+    row.classList.toggle('savings-card--applied', applied > 0);
+    note.classList.toggle('savings-note--warn', !canApply && applied <= 0);
+
+    let message = '';
+    if (!cfg.loggedIn) {
+      message = `Login to use reward points. Minimum ${minRedeem} points required.`;
+    } else if (balance < minRedeem) {
+      message = `You have ${balance} points. Need at least ${minRedeem} to redeem.`;
+    } else if (maxUsable < minRedeem) {
+      message = `Minimum ${minRedeem} points can be redeemed on larger orders only.`;
+    } else if (applied > 0) {
+      message = `${applied} points applied — you save ৳${applied}.`;
+    } else {
+      message = `Available: ${balance} points · use up to ${maxUsable} on this order.`;
+    }
+    note.hidden = false;
+    note.textContent = message;
+  }
+
   async function renderCheckout() {
     const data = await apiFetch('/cart');
     if (!data.ok) return;
@@ -2519,6 +2572,7 @@
       applyTotalsToSummary(data.totals, '#page-checkout');
       syncCouponInputs(data.totals.couponCode);
       syncCouponNote(data.totals.couponNote);
+      syncRewardRedeemUi(data.totals.reward);
     }
     updateCheckoutRewardPoints(data.cart);
     bindDeliveryZone('#page-checkout');
@@ -2583,17 +2637,14 @@
     if (totals.couponNote !== undefined || totals.couponCode !== undefined) {
       syncCouponNote(totals.couponNote || null);
     }
+    if (totals.reward !== undefined) {
+      syncRewardRedeemUi(totals.reward);
+    }
   }
 
   function syncCouponNote(note) {
     const text = note || '';
-    document.querySelectorAll('.c-coupon-row').forEach((row) => {
-      let el = row.nextElementSibling;
-      if (!el || !el.classList.contains('c-coupon-note')) {
-        el = document.createElement('p');
-        el.className = 'c-coupon-note';
-        row.insertAdjacentElement('afterend', el);
-      }
+    document.querySelectorAll('.js-coupon-note').forEach((el) => {
       if (text) {
         el.hidden = false;
         el.textContent = text;
@@ -2615,6 +2666,12 @@
     });
     document.querySelectorAll('.js-coupon-remove').forEach((btn) => {
       btn.hidden = !applied;
+    });
+    document.querySelectorAll('.js-coupon-applied-badge').forEach((badge) => {
+      badge.hidden = !applied;
+    });
+    document.querySelectorAll('.savings-card--coupon').forEach((card) => {
+      card.classList.toggle('savings-card--applied', applied);
     });
   }
 
@@ -3536,8 +3593,8 @@
       if (btn._rakuBound) return;
       btn._rakuBound = true;
       btn.onclick = async () => {
-        const row = btn.closest('.c-coupon-row');
-        const input = row?.querySelector('.js-coupon-input');
+        const card = btn.closest('.savings-card--coupon');
+        const input = card?.querySelector('.js-coupon-input');
         const code = input?.value?.trim();
         if (!code) return alert('Enter a coupon code');
         const data = await apiFetch('/cart/coupon', { method: 'POST', body: JSON.stringify({ code }) });
@@ -3564,6 +3621,53 @@
     });
   }
 
+  function bindRewardRedeemApply() {
+    document.querySelectorAll('.js-reward-apply').forEach((btn) => {
+      if (btn._rakuBound) return;
+      btn._rakuBound = true;
+      btn.onclick = async () => {
+        const card = btn.closest('.savings-card--reward');
+        const input = card?.querySelector('.js-reward-input');
+        const snap = window._rakuRewardSnapshot || {};
+        const minRedeem = Math.max(500, Number(snap.minRedeem) || 500);
+        const balance = Math.max(0, Number(snap.balance) || 0);
+        const maxUsable = Math.max(0, Number(snap.maxUsable) || 0);
+        const points = Math.max(0, Math.floor(Number(input?.value) || 0));
+        if (!snap.loggedIn) return alert('Please log in to use reward points.');
+        if (balance < minRedeem) {
+          return alert(`You have ${balance} points. Minimum ${minRedeem} points required to redeem.`);
+        }
+        if (!points) return alert(`Enter at least ${minRedeem} points to apply.`);
+        if (points < minRedeem) {
+          return alert(`Minimum redeem is ${minRedeem} points.`);
+        }
+        if (points > balance) {
+          return alert(`You only have ${balance} points. You cannot use ${points} points.`);
+        }
+        if (points > maxUsable) {
+          return alert(`You can use at most ${maxUsable} points on this order.`);
+        }
+        const data = await apiFetch('/cart/reward-points', {
+          method: 'POST',
+          body: JSON.stringify({ points }),
+        });
+        if (data.ok) {
+          await refreshSummariesAfterCoupon();
+        } else {
+          alert(data.error || 'Could not apply reward points');
+        }
+      };
+    });
+    document.querySelectorAll('.js-reward-remove').forEach((btn) => {
+      if (btn._rakuBound) return;
+      btn._rakuBound = true;
+      btn.onclick = async () => {
+        const data = await apiFetch('/cart/reward-points', { method: 'DELETE' });
+        if (data.ok) await refreshSummariesAfterCoupon();
+      };
+    });
+  }
+
   let storefrontBootstrapStarted = false;
 
   function flushPendingRelatedProduct() {
@@ -3581,6 +3685,7 @@
     bindCheckout();
     bindTrackOrderModal();
     bindCouponApply();
+    bindRewardRedeemApply();
     hookNavigation();
 
     const pathParts = (location.pathname || '/').split('/').filter(Boolean);

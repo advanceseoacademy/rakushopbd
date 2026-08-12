@@ -54,11 +54,11 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <noscript><link rel="stylesheet" href="/css/popup-themes.css?v=1"></noscript>
 <link rel="stylesheet" href="/css/home-today-deals.css?v=5" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-today-deals.css?v=5"></noscript>
-<link rel="stylesheet" href="/css/home-blog.css?v=5" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="/css/home-blog.css?v=5"></noscript>
+<link rel="stylesheet" href="/css/home-blog.css?v=6" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/css/home-blog.css?v=6"></noscript>
 <% const _pagesCssPages = ['faq', 'blog', 'about', 'contact', 'track', 'privacy', 'terms', 'return', 'preorder', 'points', 'appointment']; %>
 <% if (_pagesCssPages.includes(_initialPage)) { %>
-<link rel="stylesheet" href="/css/pages.css?v=10">
+<link rel="stylesheet" href="/css/pages.css?v=11">
 <% } %>
 <% if (_initialPage === 'appointment') { %>
 <link rel="stylesheet" href="/css/appointment.css?v=4">
@@ -967,10 +967,25 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
  <span class="c-summary-free summary-delivery">Free</span>
  </div>
 
- <div class="c-coupon-row">
- <input class="c-coupon-input js-coupon-input" type="text" placeholder="e.g. RakuShopBD10" autocomplete="off">
- <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
- <button type="button" class="c-coupon-remove js-coupon-remove" hidden>Remove</button>
+ <div class="checkout-savings checkout-savings--cart">
+   <div class="savings-card savings-card--coupon" id="cart-coupon-card">
+     <div class="savings-card-head">
+       <span class="savings-card-icon savings-card-icon--coupon"><i class="ti ti-ticket"></i></span>
+       <div class="savings-card-titles">
+         <strong>Coupon code</strong>
+         <span>Save on this order</span>
+       </div>
+       <span class="savings-applied-badge js-coupon-applied-badge" hidden><i class="ti ti-check"></i> Applied</span>
+     </div>
+     <div class="savings-card-body">
+       <div class="savings-input-row">
+         <input class="savings-input js-coupon-input" type="text" placeholder="e.g. RakuShopBD10" autocomplete="off">
+         <button type="button" class="savings-btn js-coupon-apply">Apply</button>
+       </div>
+       <button type="button" class="savings-remove js-coupon-remove" hidden><i class="ti ti-x"></i> Remove coupon</button>
+       <p class="savings-note js-coupon-note" id="cart-coupon-note" hidden></p>
+     </div>
+   </div>
  </div>
 
  <div class="c-total-row">
@@ -1115,10 +1130,43 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
           <span><i class="ti ti-award"></i> Reward points <small style="font-weight:500;opacity:.85;">(after delivery)</small></span>
           <span class="summary-reward-points" id="checkout-reward-points">0</span>
         </div>
-        <div class="c-coupon-row cm-coupon-row">
-          <input class="c-coupon-input js-coupon-input" type="text" placeholder="Coupon code" autocomplete="off">
-          <button type="button" class="c-coupon-btn js-coupon-apply">Apply</button>
-          <button type="button" class="c-coupon-remove js-coupon-remove" hidden>Remove</button>
+        <div class="checkout-savings">
+          <div class="savings-card savings-card--coupon" id="checkout-coupon-card">
+            <div class="savings-card-head">
+              <span class="savings-card-icon savings-card-icon--coupon"><i class="ti ti-ticket"></i></span>
+              <div class="savings-card-titles">
+                <strong>Coupon code</strong>
+                <span>Get extra discount</span>
+              </div>
+              <span class="savings-applied-badge js-coupon-applied-badge" hidden><i class="ti ti-check"></i> Applied</span>
+            </div>
+            <div class="savings-card-body">
+              <div class="savings-input-row">
+                <input class="savings-input js-coupon-input" type="text" placeholder="Enter coupon code" autocomplete="off">
+                <button type="button" class="savings-btn js-coupon-apply">Apply</button>
+              </div>
+              <button type="button" class="savings-remove js-coupon-remove" hidden><i class="ti ti-x"></i> Remove coupon</button>
+              <p class="savings-note js-coupon-note" id="checkout-coupon-note" hidden></p>
+            </div>
+          </div>
+          <div class="savings-card savings-card--reward" id="checkout-reward-redeem-row">
+            <div class="savings-card-head">
+              <span class="savings-card-icon savings-card-icon--reward"><i class="ti ti-award"></i></span>
+              <div class="savings-card-titles">
+                <strong>Reward points</strong>
+                <span>1 point = ৳1 off</span>
+              </div>
+              <span class="savings-applied-badge savings-applied-badge--reward js-reward-applied-badge" hidden><i class="ti ti-check"></i> Applied</span>
+            </div>
+            <div class="savings-card-body">
+              <div class="savings-input-row">
+                <input class="savings-input js-reward-input" type="number" min="500" step="1" placeholder="Min 500 points">
+                <button type="button" class="savings-btn savings-btn--reward js-reward-apply">Apply</button>
+              </div>
+              <button type="button" class="savings-remove js-reward-remove" hidden><i class="ti ti-x"></i> Remove points</button>
+              <p class="savings-note" id="checkout-reward-redeem-note" hidden></p>
+            </div>
+          </div>
         </div>
         <div class="cm-summary-row cm-total"><span>Total</span><span class="summary-total">৳0</span></div>
       </div>
@@ -1751,7 +1799,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script>window.__RAKU_BLOG_SLUG=<%- JSON.stringify(blogSlug) %>;</script>
 <% } %>
 <script>window.RAKU_API_BASE = '';</script>
-<script src="/js/lazy-route-assets.js?v=13" defer></script>
+<script src="/js/lazy-route-assets.js?v=14" defer></script>
 <script src="/js/maintenance-view.js?v=4" defer></script>
 <script src="/js/seo.js?v=10" defer></script>
 <script src="/js/mobile-menu.js?v=2" defer></script>
@@ -1761,8 +1809,8 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script src="/js/home-hero-slider.js?v=11" defer></script>
 <script src="/js/home-today-deals.js?v=6" defer></script>
 <script src="/js/image-delivery.js?v=3" defer></script>
-<script src="/js/storefront-dynamic.js?v=66" defer></script>
-<script src="/js/api.js?v=138" defer></script>
+<script src="/js/storefront-dynamic.js?v=67" defer></script>
+<script src="/js/api.js?v=141" defer></script>
 <script src="/js/footer-settings.js?v=15" defer></script>
 <script src="/js/search.js?v=10" defer></script>
 <script>

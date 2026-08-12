@@ -90,13 +90,13 @@
       css: ['/css/pages.css?v=10'],
     },
     cart: {
-      css: ['/css/cart.css?v=8'],
+      css: ['/css/cart.css?v=9'],
     },
     wishlist: {
       css: ['/css/wishlist.css?v=4'],
     },
     checkout: {
-      css: ['/css/checkout-modal.css?v=17'],
+      css: ['/css/checkout-modal.css?v=18'],
     },
     product: {
       css: ['/css/reviews.css?v=7'],

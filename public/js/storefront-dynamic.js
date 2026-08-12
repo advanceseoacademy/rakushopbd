@@ -564,6 +564,45 @@
     return null;
   }
 
+  function parseKnownSpecSequence(text) {
+    const raw = String(text || '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!raw) return [];
+
+    const knownLabels = [
+      'Brand',
+      'Item Weight',
+      'Scent',
+      'Age Range',
+      'Skin Type',
+      'Product Benefits',
+      'Special Feature',
+      'Item Form',
+    ];
+    const labelPattern = knownLabels
+      .map((l) => l.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s+'))
+      .join('|');
+    const rx = new RegExp(`\\b(${labelPattern})\\b`, 'gi');
+    const hits = [];
+    let m;
+    while ((m = rx.exec(raw))) {
+      hits.push({ label: m[1], index: m.index });
+    }
+    if (hits.length < 2) return [];
+
+    const out = [];
+    for (let i = 0; i < hits.length; i += 1) {
+      const start = hits[i];
+      const valueStart = start.index + start.label.length;
+      const valueEnd = i + 1 < hits.length ? hits[i + 1].index : raw.length;
+      const value = raw.slice(valueStart, valueEnd).trim().replace(/^[,:-]\s*/, '');
+      if (!value) continue;
+      out.push({ label: start.label.replace(/\s+/g, ' ').trim(), value });
+    }
+    return out;
+  }
+
   function isHtmlContent(s) {
     return /<[a-z][\s\S]*>/i.test(String(s || ''));
   }
@@ -683,6 +722,9 @@
     }
 
     const short = isHtmlContent(raw) ? htmlToPlainText(raw) : raw;
+
+    const knownSpecs = parseKnownSpecSequence(short);
+    if (knownSpecs.length >= 2) return knownSpecs;
 
     const strict = parseProductDescription(short, { loose: false });
     if (strict.specs.length && !strict.prose.length) return strict.specs;

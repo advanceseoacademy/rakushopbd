@@ -227,6 +227,55 @@
     setTimeout(() => el.classList.remove('show'), 3000);
   }
 
+  let confirmWaiter = null;
+
+  function closeConfirmModal(result) {
+    const modal = document.getElementById('confirm-modal');
+    if (modal) {
+      modal.classList.remove('open');
+      modal.setAttribute('aria-hidden', 'true');
+    }
+    const waiter = confirmWaiter;
+    confirmWaiter = null;
+    if (waiter) waiter(Boolean(result));
+  }
+
+  function askConfirm(message, okLabel = 'Delete') {
+    const modal = document.getElementById('confirm-modal');
+    const text = document.getElementById('confirm-modal-text');
+    const okBtn = document.getElementById('confirm-modal-ok');
+    const cancelBtn = document.getElementById('confirm-modal-cancel');
+    if (!modal || !text) return Promise.resolve(false);
+    if (confirmWaiter) return Promise.resolve(false);
+    text.textContent = message;
+    if (okBtn) okBtn.textContent = okLabel;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => cancelBtn?.focus(), 20);
+    return new Promise((resolve) => {
+      confirmWaiter = resolve;
+    });
+  }
+
+  document.getElementById('confirm-modal-cancel')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeConfirmModal(false);
+  });
+  document.getElementById('confirm-modal-ok')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    closeConfirmModal(true);
+  });
+  document.getElementById('confirm-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'confirm-modal') closeConfirmModal(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !confirmWaiter) return;
+    e.preventDefault();
+    closeConfirmModal(false);
+  });
+
   function fmtDate(d) {
     return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   }
@@ -242,24 +291,48 @@
     return '<span class="badge badge-amber">New</span>';
   }
 
-  function setOrderBadge(count) {
-    const badge = document.getElementById('order-badge');
+  function setNavNewBadge(id, count) {
+    const badge = document.getElementById(id);
     if (!badge) return;
     const n = Math.max(0, Number(count) || 0);
-    badge.textContent = n > 99 ? '99+' : String(n);
+    if (n <= 0) {
+      badge.hidden = true;
+      badge.textContent = '0 New';
+      return;
+    }
+    badge.hidden = false;
+    badge.textContent = n > 99 ? '99+ New' : `${n} New`;
+  }
+
+  function setOrderBadge(count) {
+    setNavNewBadge('order-badge', count);
+  }
+
+  async function refreshUnreadCount(path, setter) {
+    const data = await api(path);
+    if (!data.ok) return;
+    setter(data.unreadCount);
+  }
+
+  async function refreshAllUnreadBadges() {
+    await Promise.all([
+      refreshUnreadCount('/orders/unread-count', setOrderBadge),
+      refreshUnreadCount('/appointments/unread-count', setAppointmentBadge),
+      refreshUnreadCount('/contact-messages/unread-count', setContactBadge),
+      refreshUnreadCount('/reviews/unread-count', setReviewBadge),
+      refreshUnreadCount('/review-videos/unread-count', setReviewVideoBadge),
+    ]);
   }
 
   async function refreshOrderUnreadBadge() {
-    const data = await api('/orders/unread-count');
-    if (!data.ok) return;
-    setOrderBadge(data.unreadCount);
+    await refreshUnreadCount('/orders/unread-count', setOrderBadge);
   }
 
   function startOrderBadgePolling() {
     if (orderBadgePollTimer) clearInterval(orderBadgePollTimer);
-    void refreshOrderUnreadBadge();
+    void refreshAllUnreadBadges();
     orderBadgePollTimer = setInterval(() => {
-      void refreshOrderUnreadBadge();
+      void refreshAllUnreadBadges();
     }, 15000);
   }
 
@@ -279,6 +352,10 @@
     stopOrderBadgePolling();
     setAdminToken('');
     setOrderBadge(0);
+    setAppointmentBadge(0);
+    setContactBadge(0);
+    setReviewBadge(0);
+    setReviewVideoBadge(0);
     showLoginPanel();
   }
 
@@ -760,20 +837,9 @@
         <div><div class="stat-num">${s.totalProducts}</div><div class="stat-label">Products (${s.lowStock} low stock)</div></div></div>`;
 
     setOrderBadge(s.unreadOrders ?? 0);
-    api('/appointments?limit=1&page=1').then((d) => {
-      if (d.ok) setAppointmentBadge(d.unreadCount ?? d.pendingCount ?? 0);
-    });
-    api('/contact-messages?limit=1&page=1').then((d) => {
-      if (d.ok) setContactBadge(d.unreadCount ?? d.newCount ?? 0);
-    });
+    void refreshAllUnreadBadges();
     api('/phone-subscribers?limit=1&page=1').then((d) => {
       if (d.ok && d.newCount != null) setSubscriberBadge(d.newCount);
-    });
-    api('/review-videos?status=pending').then((d) => {
-      if (d.ok && d.pendingCount != null) {
-        const badge = document.getElementById('review-video-badge');
-        if (badge) badge.textContent = d.pendingCount;
-      }
     });
 
     await loadDashboardRecentOrders(dashRecentOrdersPage);
@@ -913,7 +979,7 @@
   }
 
   async function deleteOrder(id) {
-    if (!confirm('Delete this order permanently? This cannot be undone.')) return;
+    if (!(await askConfirm('Delete this order permanently? This cannot be undone.'))) return;
     const data = await api('/orders/' + id, { method: 'DELETE' });
     if (data.ok) {
       toast('Order deleted');
@@ -933,7 +999,7 @@
   async function deleteSelectedOrders() {
     const ids = [...selectedOrderIds];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected order(s) permanently? This cannot be undone.`)) return;
+    if (!(await askConfirm(`Delete ${ids.length} selected order(s) permanently? This cannot be undone.`))) return;
     const data = await api('/orders/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
     if (data.ok) {
       toast(`${data.deleted || ids.length} order(s) deleted`);
@@ -961,7 +1027,7 @@
     if (search) q.set('search', search);
     const data = await api('/orders?' + q.toString());
     if (!data.ok) return;
-    if (data.unreadCount != null) setOrderBadge(data.unreadCount);
+    void refreshOrderUnreadBadge();
     document.getElementById('orders-tbody').innerHTML = data.orders.length
       ? data.orders
           .map((o) => {
@@ -970,7 +1036,7 @@
             const seenBadge = orderViewBadgeHtml(o.viewedByAdmin);
             return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="order-row-check" data-order-id="${o.id}" aria-label="Select order ${escHtml(o.orderNumber)}"${checked}></td>
-        <td><b>${escHtml(o.orderNumber)}</b><br><small style="margin-top:4px;display:inline-block;">${seenBadge}</small></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
+        <td><b>${escHtml(o.orderNumber)}</b><br><small style="margin-top:4px;display:inline-block;" data-order-seen="${o.id}">${seenBadge}</small></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
         <td>${escHtml(o.itemsPreview)}</td><td>${escHtml(o.paymentMethod)}</td><td>${fmtDate(o.createdAt)}</td>
         <td>${escHtml(o.totalFormatted)}</td><td>${statusBadgeHtml(o.status)}</td>
         <td class="tbl-actions">
@@ -1040,6 +1106,7 @@
       const delBtn = e.target.closest('[data-del-order]');
       if (delBtn) {
         e.preventDefault();
+        e.stopPropagation();
         void deleteOrder(delBtn.dataset.delOrder);
         return;
       }
@@ -1049,19 +1116,19 @@
   }
 
   function setAppointmentBadge(n) {
-    const el = document.getElementById('appointment-badge');
-    if (!el) return;
-    const c = Number(n) || 0;
-    el.textContent = c > 99 ? '99+' : String(c);
-    el.style.display = c > 0 ? '' : 'none';
+    setNavNewBadge('appointment-badge', n);
   }
 
   function setContactBadge(n) {
-    const el = document.getElementById('contact-badge');
-    if (!el) return;
-    const c = Number(n) || 0;
-    el.textContent = c > 99 ? '99+' : String(c);
-    el.style.display = c > 0 ? '' : 'none';
+    setNavNewBadge('contact-badge', n);
+  }
+
+  function setReviewBadge(n) {
+    setNavNewBadge('review-badge', n);
+  }
+
+  function setReviewVideoBadge(n) {
+    setNavNewBadge('review-video-badge', n);
   }
 
   function setSubscriberBadge(n) {
@@ -1122,6 +1189,36 @@
     });
   }
 
+  async function markReviewsViewed(ids) {
+    const cleanIds = [...new Set((ids || []).map(Number).filter(Boolean))];
+    if (!cleanIds.length) return;
+    const data = await api('/reviews/mark-viewed', {
+      method: 'POST',
+      body: JSON.stringify({ ids: cleanIds }),
+    });
+    if (!data.ok) return;
+    if (data.unreadCount != null) setReviewBadge(data.unreadCount);
+    cleanIds.forEach((id) => {
+      const badge = document.querySelector(`[data-review-seen="${id}"]`);
+      if (badge) badge.innerHTML = seenStatusBadgeHtml(true);
+    });
+  }
+
+  async function markReviewVideosViewed(ids) {
+    const cleanIds = [...new Set((ids || []).map(Number).filter(Boolean))];
+    if (!cleanIds.length) return;
+    const data = await api('/review-videos/mark-viewed', {
+      method: 'POST',
+      body: JSON.stringify({ ids: cleanIds }),
+    });
+    if (!data.ok) return;
+    if (data.unreadCount != null) setReviewVideoBadge(data.unreadCount);
+    cleanIds.forEach((id) => {
+      const badge = document.querySelector(`[data-review-video-seen="${id}"]`);
+      if (badge) badge.innerHTML = seenStatusBadgeHtml(true);
+    });
+  }
+
   async function loadAppointments(page) {
     if (page) appointmentsPage = page;
     const status = document.getElementById('appointments-status-filter')?.value || 'all';
@@ -1131,9 +1228,7 @@
     if (search) q.set('search', search);
     const data = await api('/appointments?' + q.toString());
     if (!data.ok) return;
-    if (data.unreadCount != null || data.pendingCount != null) {
-      setAppointmentBadge(data.unreadCount ?? data.pendingCount ?? 0);
-    }
+    void refreshUnreadCount('/appointments/unread-count', setAppointmentBadge);
     const tbody = document.getElementById('appointments-tbody');
     if (!tbody) return;
 
@@ -1184,6 +1279,9 @@
         });
         if (res.ok) {
           toast('Appointment updated');
+          if (res.unreadCount != null) setAppointmentBadge(res.unreadCount);
+          const seen = document.querySelector(`[data-appointment-seen="${id}"]`);
+          if (seen) seen.innerHTML = seenStatusBadgeHtml(true);
           loadAppointments();
         } else toast(res.error || 'Update failed', true);
       };
@@ -1191,7 +1289,7 @@
 
     tbody.querySelectorAll('[data-del-appointment]').forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm('Delete this appointment?')) return;
+        if (!(await askConfirm('Delete this appointment?'))) return;
         const id = Number(btn.dataset.delAppointment);
         const res = await api('/appointments/' + id, { method: 'DELETE' });
         if (res.ok) {
@@ -1202,13 +1300,6 @@
         } else toast(res.error || 'Delete failed', 'error');
       };
     });
-
-    const unseenAppointmentIds = (data.appointments || [])
-      .filter((a) => !a.viewedByAdmin)
-      .map((a) => a.id);
-    if (unseenAppointmentIds.length) {
-      void markAppointmentsViewed(unseenAppointmentIds);
-    }
 
     const pag = data.pagination;
     const pagEl = document.getElementById('appointments-pagination');
@@ -1250,7 +1341,7 @@
   async function deleteSelectedAppointments() {
     const ids = [...selectedAppointmentIds];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected appointment(s) permanently? This cannot be undone.`)) return;
+    if (!(await askConfirm(`Delete ${ids.length} selected appointment(s) permanently? This cannot be undone.`))) return;
     const data = await api('/appointments/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
     if (data.ok) {
       toast(`${data.deleted || ids.length} appointment(s) deleted`);
@@ -1293,12 +1384,18 @@
     appointmentsTbody._rakuAppointmentActionsBound = true;
     appointmentsTbody.addEventListener('click', (e) => {
       const check = e.target.closest('.appointment-row-check');
-      if (!check) return;
-      const id = Number(check.dataset.appointmentId);
-      if (check.checked) selectedAppointmentIds.add(id);
-      else selectedAppointmentIds.delete(id);
-      check.closest('tr')?.classList.toggle('row-selected', check.checked);
-      updateAppointmentsSelectionUi();
+      if (check) {
+        const id = Number(check.dataset.appointmentId);
+        if (check.checked) selectedAppointmentIds.add(id);
+        else selectedAppointmentIds.delete(id);
+        check.closest('tr')?.classList.toggle('row-selected', check.checked);
+        updateAppointmentsSelectionUi();
+        return;
+      }
+      if (e.target.closest('[data-del-appointment], [data-appt-status], button, select, input, a, textarea')) return;
+      const row = e.target.closest('tr');
+      const id = Number(row?.querySelector('[data-appointment-id]')?.dataset.appointmentId);
+      if (id) void markAppointmentsViewed([id]);
     });
   }
 
@@ -1331,7 +1428,7 @@
   }
 
   async function deleteContactMessage(id) {
-    if (!confirm('Delete this message permanently?')) return;
+    if (!(await askConfirm('Delete this message permanently?'))) return;
     const data = await api('/contact-messages/' + id, { method: 'DELETE' });
     if (data.ok) {
       toast('Message deleted');
@@ -1346,7 +1443,7 @@
   async function deleteSelectedContactMessages() {
     const ids = [...selectedContactIds];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected message(s) permanently? This cannot be undone.`)) return;
+    if (!(await askConfirm(`Delete ${ids.length} selected message(s) permanently? This cannot be undone.`))) return;
     const data = await api('/contact-messages/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
     if (data.ok) {
       toast(`${data.deleted || ids.length} message(s) deleted`);
@@ -1367,9 +1464,7 @@
     if (search) q.set('search', search);
     const data = await api('/contact-messages?' + q.toString());
     if (!data.ok) return;
-    if (data.unreadCount != null || data.newCount != null) {
-      setContactBadge(data.unreadCount ?? data.newCount ?? 0);
-    }
+    void refreshUnreadCount('/contact-messages/unread-count', setContactBadge);
     const tbody = document.getElementById('contacts-tbody');
     if (!tbody) return;
 
@@ -1401,13 +1496,6 @@
         .join('');
     }
     updateContactsSelectionUi();
-
-    const unseenMessageIds = (data.messages || [])
-      .filter((m) => !m.viewedByAdmin)
-      .map((m) => m.id);
-    if (unseenMessageIds.length) {
-      void markContactMessagesViewed(unseenMessageIds);
-    }
 
     const pag = data.pagination;
     const pagEl = document.getElementById('contacts-pagination');
@@ -1464,7 +1552,12 @@
       if (delBtn) {
         e.preventDefault();
         void deleteContactMessage(delBtn.dataset.delContact);
+        return;
       }
+      if (e.target.closest('button, select, input, a, textarea')) return;
+      const row = e.target.closest('tr');
+      const id = Number(row?.querySelector('[data-contact-id]')?.dataset.contactId);
+      if (id) void markContactMessagesViewed([id]);
     });
   }
 
@@ -2317,7 +2410,7 @@
       });
       tbody.querySelectorAll('.subscriber-del').forEach((btn) => {
         btn.onclick = async () => {
-          if (!confirm('Delete this subscriber?')) return;
+          if (!(await askConfirm('Delete this subscriber?'))) return;
           const r = await api('/phone-subscribers/' + btn.dataset.id, { method: 'DELETE' });
           if (r.ok) {
             toast('Deleted');
@@ -2401,7 +2494,7 @@
 
     tbody.querySelectorAll('[data-del-faq]').forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm('Delete this FAQ?')) return;
+        if (!(await askConfirm('Delete this FAQ?'))) return;
         const res = await api('/faqs/' + btn.dataset.delFaq, { method: 'DELETE' });
         if (res.ok) {
           toast('FAQ deleted');
@@ -2693,7 +2786,7 @@
 
       tbody.querySelectorAll('[data-del-blog]').forEach((btn) => {
         btn.onclick = async () => {
-          if (!confirm('Delete this blog post?')) return;
+          if (!(await askConfirm('Delete this blog post?'))) return;
           const res = await api('/blog/posts/' + btn.dataset.delBlog, { method: 'DELETE' });
           if (res.ok) {
             toast('Blog post deleted');
@@ -2762,11 +2855,13 @@
     const data = await api('/orders/' + id);
     if (!data.ok) return;
     if (data.unreadCount != null) setOrderBadge(data.unreadCount);
+    const seenEl = document.querySelector(`[data-order-seen="${id}"]`);
+    if (seenEl) seenEl.innerHTML = orderViewBadgeHtml(true);
     const o = data.order;
     document.getElementById('order-status-select').value = o.status;
     document.getElementById('order-modal-body').innerHTML = `
       <p><b>${o.order_number}</b> — ${fmtDate(o.created_at)}</p>
-      <p>Seen: ${o.viewed_by_admin ? '<span class="badge badge-blue">Viewed</span>' : '<span class="badge badge-amber">New</span>'}</p>
+      <p>Seen: <span class="badge badge-blue">Viewed</span></p>
       <p>${o.customer_name} · ${o.customer_phone}</p>
       <p>${o.address_line}, ${o.district}</p>
       <p>Payment: <b>${o.payment_method}</b></p>
@@ -2790,7 +2885,9 @@
     }
   };
 
-  document.getElementById('order-delete-btn').onclick = () => {
+  document.getElementById('order-delete-btn').onclick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (currentOrderId) void deleteOrder(currentOrderId);
   };
 
@@ -3232,7 +3329,7 @@
     if (canDeleteProducts()) {
       document.querySelectorAll('[data-del-product]').forEach((btn) => {
         btn.onclick = async () => {
-          if (!confirm('Delete this product?')) return;
+          if (!(await askConfirm('Delete this product?'))) return;
           const r = await api('/products/' + btn.dataset.delProduct, { method: 'DELETE' });
           if (r.ok) {
             toast('Product deleted');
@@ -3394,7 +3491,7 @@
   async function deleteSelectedProducts() {
     const ids = [...selectedProductIds];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected product(s)? Products with existing orders will be skipped.`)) return;
+    if (!(await askConfirm(`Delete ${ids.length} selected product(s)? Products with existing orders will be skipped.`))) return;
     const data = await api('/products/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
     if (data.ok) {
       let msg = `${data.deleted || ids.length} product(s) deleted`;
@@ -3650,9 +3747,9 @@
     const ids = [...selectedCustomerIds];
     if (!ids.length) return;
     if (
-      !confirm(
+      !(await askConfirm(
         `Delete ${ids.length} selected customer account(s) permanently? Their orders will stay in the store but will no longer be linked to these accounts. This cannot be undone.`
-      )
+      ))
     ) {
       return;
     }
@@ -3825,7 +3922,7 @@
           msg += ` They have ${orders} order(s) — orders will stay in the store but will no longer be linked to this account.`;
         }
         msg += ' This cannot be undone.';
-        if (!confirm(msg)) return;
+        if (!(await askConfirm(msg))) return;
         const res = await api(`/customers/${id}`, { method: 'DELETE' });
         if (res.ok) {
           toast('Customer deleted');
@@ -4103,7 +4200,7 @@
   }
 
   async function deleteCategory(catId) {
-    if (!confirm('Delete category?')) return;
+    if (!(await askConfirm('Delete category?'))) return;
     const r = await api('/categories/' + catId, { method: 'DELETE' });
     if (r.ok) {
       toast('Deleted');
@@ -4229,7 +4326,7 @@
   async function deleteSelectedCoupons() {
     const ids = [...selectedCouponIds];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected coupon(s) permanently? This cannot be undone.`)) return;
+    if (!(await askConfirm(`Delete ${ids.length} selected coupon(s) permanently? This cannot be undone.`))) return;
     const data = await api('/coupons/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
     if (data.ok) {
       toast(`${data.deleted || ids.length} coupon(s) deleted`);
@@ -4294,7 +4391,7 @@
     });
     document.querySelectorAll('[data-del-coupon]').forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm('Delete coupon?')) return;
+        if (!(await askConfirm('Delete coupon?'))) return;
         const r = await api('/coupons/' + btn.dataset.delCoupon, { method: 'DELETE' });
         if (r.ok) {
           toast('Coupon deleted');
@@ -4675,8 +4772,9 @@
       ['set-rp-video-review', 'reward_points_video_review', '100'],
       ['set-rp-referral', 'reward_points_referral', '50'],
       ['set-rp-referral-signup', 'reward_points_referral_signup', '50'],
-      ['set-rp-min-redeem', 'reward_points_min_redeem', '500'],
+      ['set-rp-min-redeem', 'reward_points_min_redeem', '1'],
       ['set-rp-max-percent', 'reward_points_max_order_percent', '50'],
+      ['set-rp-balance-percent', 'reward_points_max_balance_percent', '50'],
     ];
     map.forEach(([id, key, fallback]) => {
       const el = document.getElementById(id);
@@ -4695,8 +4793,11 @@
       reward_points_video_review: document.getElementById('set-rp-video-review')?.value || '0',
       reward_points_referral: document.getElementById('set-rp-referral')?.value || '0',
       reward_points_referral_signup: document.getElementById('set-rp-referral-signup')?.value || '0',
-      reward_points_min_redeem: document.getElementById('set-rp-min-redeem')?.value || '500',
+      reward_points_min_redeem: String(Math.max(1, Number(document.getElementById('set-rp-min-redeem')?.value) || 1)),
       reward_points_max_order_percent: document.getElementById('set-rp-max-percent')?.value || '50',
+      reward_points_max_balance_percent: String(
+        Math.min(100, Math.max(1, Number(document.getElementById('set-rp-balance-percent')?.value) || 50))
+      ),
     };
   }
 
@@ -4849,7 +4950,7 @@
   async function deleteSelectedReviews() {
     const ids = [...selectedReviewIds];
     if (!ids.length) return;
-    if (!confirm(`Delete ${ids.length} selected review(s) permanently? This cannot be undone.`)) return;
+    if (!(await askConfirm(`Delete ${ids.length} selected review(s) permanently? This cannot be undone.`))) return;
     const data = await api('/reviews/bulk-delete', { method: 'POST', body: JSON.stringify({ ids }) });
     if (data.ok) {
       toast(`${data.deleted || ids.length} review(s) deleted`);
@@ -4868,8 +4969,7 @@
     if (status !== 'all') q.set('status', status);
     const data = await api('/reviews?' + q.toString());
     if (!data.ok) return toast(data.error || 'Load failed', 'error');
-    const rb = document.getElementById('review-badge');
-    if (rb) rb.textContent = data.pendingCount || 0;
+    void refreshUnreadCount('/reviews/unread-count', setReviewBadge);
     const tbody = document.getElementById('reviews-tbody');
     if (!data.reviews?.length) {
       tbody.innerHTML =
@@ -4887,10 +4987,11 @@
         const avatar = r.reviewer_avatar_url
           ? `<img src="${escHtml(r.reviewer_avatar_url)}" alt="" class="tbl-avatar" loading="lazy" decoding="async" onerror="this.remove();">`
           : `<div class="tbl-avatar-fallback">${escHtml(String(r.customer_name || 'C')[0] || 'C')}</div>`;
+        const seenBadge = seenStatusBadgeHtml(r.viewedByAdmin);
         return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="review-row-check" data-review-id="${r.id}" aria-label="Select review from ${escHtml(r.customer_name)}"${checked}></td>
         <td>${avatar}</td>
-        <td>${escHtml(r.customer_name)}</td><td>${escHtml(r.product_name)}</td><td style="color:#EF9F27;">${stars}</td>
+        <td>${escHtml(r.customer_name)}<br><small data-review-seen="${r.id}">${seenBadge}</small></td><td>${escHtml(r.product_name)}</td><td style="color:#EF9F27;">${stars}</td>
         <td>${escHtml(String(r.comment || '').slice(0, 40))}</td><td>${fmtDate(r.created_at)}</td>
         <td><span class="badge badge-${r.status === 'approved' ? 'green' : r.status === 'pending' ? 'amber' : 'red'}">${escHtml(r.status)}</span></td>
         <td>${r.status === 'pending' ? `<button class="btn btn-primary btn-xs" data-approve="${r.id}">Approve</button>` : ''}
@@ -4913,13 +5014,15 @@
 
     document.querySelectorAll('[data-approve]').forEach((b) => {
       b.onclick = async () => {
-        await api('/reviews/' + b.dataset.approve, { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) });
+        const id = Number(b.dataset.approve);
+        const res = await api('/reviews/' + id, { method: 'PATCH', body: JSON.stringify({ status: 'approved' }) });
+        if (res.ok && res.unreadCount != null) setReviewBadge(res.unreadCount);
         loadReviews();
       };
     });
     document.querySelectorAll('[data-del-review]').forEach((b) => {
       b.onclick = async () => {
-        if (!confirm('Delete review?')) return;
+        if (!(await askConfirm('Delete review?'))) return;
         await api('/reviews/' + b.dataset.delReview, { method: 'DELETE' });
         selectedReviewIds.delete(Number(b.dataset.delReview));
         updateReviewsSelectionUi();
@@ -4967,12 +5070,18 @@
     reviewsTbody._rakuReviewActionsBound = true;
     reviewsTbody.addEventListener('click', (e) => {
       const check = e.target.closest('.review-row-check');
-      if (!check) return;
-      const id = Number(check.dataset.reviewId);
-      if (check.checked) selectedReviewIds.add(id);
-      else selectedReviewIds.delete(id);
-      check.closest('tr')?.classList.toggle('row-selected', check.checked);
-      updateReviewsSelectionUi();
+      if (check) {
+        const id = Number(check.dataset.reviewId);
+        if (check.checked) selectedReviewIds.add(id);
+        else selectedReviewIds.delete(id);
+        check.closest('tr')?.classList.toggle('row-selected', check.checked);
+        updateReviewsSelectionUi();
+        return;
+      }
+      if (e.target.closest('[data-del-review], button, select, input, a, textarea')) return;
+      const row = e.target.closest('tr');
+      const id = Number(row?.querySelector('[data-review-id]')?.dataset.reviewId);
+      if (id) void markReviewsViewed([id]);
     });
   }
 
@@ -4982,8 +5091,7 @@
     const status = document.getElementById('review-videos-filter')?.value || 'pending';
     const data = await api('/review-videos?status=' + encodeURIComponent(status));
     if (!data.ok) return toast(data.error || 'Load failed', 'error');
-    const badge = document.getElementById('review-video-badge');
-    if (badge) badge.textContent = data.pendingCount || 0;
+    void refreshUnreadCount('/review-videos/unread-count', setReviewVideoBadge);
     const tbody = document.getElementById('review-videos-tbody');
     if (!tbody) return;
     if (!data.videos?.length) {
@@ -4996,7 +5104,7 @@
         const statusCls =
           v.status === 'approved' ? 'green' : v.status === 'pending' ? 'amber' : 'red';
         const videoCell = v.videoUrl
-          ? `<a href="${escHtml(v.videoUrl)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs"><i class="ti ti-player-play"></i> Watch</a>`
+          ? `<a href="${escHtml(v.videoUrl)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs" data-watch-rv="${v.id}"><i class="ti ti-player-play"></i> Watch</a>`
           : '—';
         const approveBtn =
           v.status === 'pending'
@@ -5006,8 +5114,8 @@
           v.status === 'pending'
             ? `<button type="button" class="btn btn-outline btn-xs" data-reject-rv="${v.id}">Reject</button>`
             : '';
-        return `<tr>
-          <td>${escHtml(v.customerName || 'Customer')}</td>
+        return `<tr data-review-video-id="${v.id}">
+          <td>${escHtml(v.customerName || 'Customer')}<br><small data-review-video-seen="${v.id}">${seenStatusBadgeHtml(v.viewedByAdmin)}</small></td>
           <td>#${escHtml(v.orderNumber || v.orderId || '')}</td>
           <td>${escHtml(v.productName || '')}</td>
           <td>${videoCell}</td>
@@ -5031,6 +5139,7 @@
               ? `Approved — ${res.pointsAwarded} points awarded`
               : 'Review video approved'
           );
+          if (res.unreadCount != null) setReviewVideoBadge(res.unreadCount);
           loadReviewVideos();
         } else toast(res.error || 'Approve failed', 'error');
       };
@@ -5044,16 +5153,33 @@
         });
         if (res.ok) {
           toast('Review video rejected');
+          if (res.unreadCount != null) setReviewVideoBadge(res.unreadCount);
           loadReviewVideos();
         } else toast(res.error || 'Reject failed', 'error');
       };
     });
     tbody.querySelectorAll('[data-del-rv]').forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm('Delete this review video?')) return;
+        if (!(await askConfirm('Delete this review video?'))) return;
         await api('/review-videos/' + btn.dataset.delRv, { method: 'DELETE' });
         loadReviewVideos();
       };
+    });
+    tbody.querySelectorAll('[data-watch-rv]').forEach((link) => {
+      link.addEventListener('click', () => {
+        void markReviewVideosViewed([Number(link.dataset.watchRv)]);
+      });
+    });
+  }
+
+  const reviewVideosTbody = document.getElementById('review-videos-tbody');
+  if (reviewVideosTbody && !reviewVideosTbody._rakuReviewVideoActionsBound) {
+    reviewVideosTbody._rakuReviewVideoActionsBound = true;
+    reviewVideosTbody.addEventListener('click', (e) => {
+      if (e.target.closest('[data-del-rv], [data-approve-rv], [data-reject-rv], button, select, input, a, textarea')) return;
+      const row = e.target.closest('tr');
+      const id = Number(row?.dataset.reviewVideoId);
+      if (id) void markReviewVideosViewed([id]);
     });
   }
 
@@ -5105,6 +5231,8 @@
     }
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
+    const rid = Number(review?.id);
+    if (rid) void markReviewsViewed([rid]);
   }
 
   document.getElementById('add-review-btn')?.addEventListener('click', () => openReviewModal(null));
@@ -5319,7 +5447,7 @@
     });
     document.querySelectorAll('[data-del-bn]').forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm('Delete this banner?')) return;
+        if (!(await askConfirm('Delete this banner?'))) return;
         const r = await api('/banners/' + btn.dataset.delBn, { method: 'DELETE' });
         if (r.ok) {
           toast('Banner deleted');
@@ -5492,7 +5620,7 @@
 
     tbody.querySelectorAll('[data-del-msg]').forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm('Delete this chat screenshot?')) return;
+        if (!(await askConfirm('Delete this chat screenshot?'))) return;
         const r = await api('/messenger-chats/' + btn.dataset.delMsg, { method: 'DELETE' });
         if (r.ok) {
           toast('Screenshot deleted');
@@ -5685,7 +5813,7 @@
       .join('');
     tbody.querySelectorAll('[data-team-del]').forEach((btn) => {
       btn.onclick = async () => {
-        if (!confirm('Remove this product editor account?')) return;
+        if (!(await askConfirm('Remove this product editor account?', 'Remove'))) return;
         const res = await api('/admins/' + btn.dataset.teamDel, { method: 'DELETE' });
         if (res.ok) {
           toast('Account removed');

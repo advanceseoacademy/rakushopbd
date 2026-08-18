@@ -85,6 +85,7 @@ CREATE TABLE orders (
   total DECIMAL(12,2) NOT NULL,
   notes TEXT,
   status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  stock_committed BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
 );
 

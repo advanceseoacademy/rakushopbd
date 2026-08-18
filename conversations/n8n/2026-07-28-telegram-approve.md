@@ -7,7 +7,8 @@
 ```text
 09:00 / 20:00 Asia/Dhaka
   → if Status=pending exists in fb-pending: stop
-  → pick product → AI caption + product-image edit (gpt-image-1)
+  → pick next **in-stock** product (website `stock <= 0` / Pre-order **skipped**)
+  → AI caption + product-image edit (gpt-image-1)
   → save draft (/home/node/.n8n-files/fb-drafts + fb-pending)
   → Telegram photo + ✅ Approve / ❌ Reject
       ✅ → clear buttons immediately → FB post → comment URL

@@ -17,6 +17,7 @@ const { firstInsertId } = require('../config/db');
 const { saveSession } = require('../lib/sessionSave');
 const { signAdminToken, getAdminIdFromRequest, setAdminAuthCookie, clearAdminAuthCookie } = require('../lib/adminToken');
 const { attachGalleryToProduct, syncProductGallery } = require('../lib/productImages');
+const { releaseCommittedOrderStock, takeStockForExistingOrder } = require('../lib/productStock');
 const { ensureProductImagesTable } = require('../lib/ensureProductImagesTable');
 const { ensureProductSyntheticReviewsColumn } = require('../lib/ensureProductSyntheticReviewsColumn');
 const {
@@ -80,6 +81,16 @@ async function scalarCount(sql, params = []) {
   const row = rows[0];
   const val = Object.values(row)[0];
   return Number(val) || 0;
+}
+
+function isViewedByAdmin(val) {
+  return val === true || val === 1 || val === '1' || val === 't' || val === 'true';
+}
+
+async function countUnreadOrders() {
+  return scalarCount(
+    'SELECT COUNT(*) AS c FROM orders WHERE viewed_by_admin IS NOT TRUE'
+  );
 }
 
 function rowVal(row, ...keys) {
@@ -333,9 +344,7 @@ router.delete('/admins/:id', requireAdmin, requireSuperAdmin, async (req, res) =
 router.get('/dashboard', requireAdmin, async (req, res) => {
   try {
     const totalOrders = await scalarCount('SELECT COUNT(*) AS totalOrders FROM orders');
-    const unreadOrders = await scalarCount(
-      'SELECT COUNT(*) AS unreadOrders FROM orders WHERE COALESCE(viewed_by_admin, false) = false'
-    );
+    const unreadOrders = await countUnreadOrders();
     const pendingOrders = await scalarCount(
       "SELECT COUNT(*) AS pendingOrders FROM orders WHERE status IN ('pending','confirmed')"
     );
@@ -425,13 +434,33 @@ router.get('/dashboard', requireAdmin, async (req, res) => {
 // ——— Orders ———
 router.get('/orders/unread-count', requireAdmin, async (req, res) => {
   try {
-    const unreadCount = await scalarCount(
-      'SELECT COUNT(*) AS unreadCount FROM orders WHERE COALESCE(viewed_by_admin, false) = false'
-    );
+    const unreadCount = await countUnreadOrders();
     res.json({ ok: true, unreadCount });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not load unread order count' });
+  }
+});
+
+router.post('/orders/mark-viewed', requireAdmin, async (req, res) => {
+  try {
+    const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
+    if (!ids.length) {
+      const unreadCount = await countUnreadOrders();
+      return res.json({ ok: true, unreadCount, updated: 0 });
+    }
+    const placeholders = ids.map(() => '?').join(',');
+    await query(
+      `UPDATE orders
+       SET viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
+       WHERE id IN (${placeholders})`,
+      ids
+    );
+    const unreadCount = await countUnreadOrders();
+    res.json({ ok: true, unreadCount, updated: ids.length });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update order view status' });
   }
 });
 
@@ -463,9 +492,7 @@ router.get('/orders', requireAdmin, async (req, res) => {
     }
     const [{ total }] = await query(countSql, params);
     const [{ totalOrders }] = await query('SELECT COUNT(*) AS totalOrders FROM orders');
-    const [{ unreadCount }] = await query(
-      'SELECT COUNT(*) AS unreadCount FROM orders WHERE COALESCE(viewed_by_admin, false) = false'
-    );
+    const unreadCount = await countUnreadOrders();
     sql += ` ORDER BY o.created_at DESC LIMIT ${l} OFFSET ${offset}`;
     const orders = await query(sql, params);
 
@@ -481,7 +508,7 @@ router.get('/orders', requireAdmin, async (req, res) => {
           orderNumber: o.order_number,
           customerName: o.customer_name,
           customerPhone: o.customer_phone,
-          viewedByAdmin: Boolean(o.viewed_by_admin),
+          viewedByAdmin: isViewedByAdmin(o.viewed_by_admin),
           viewedAt: o.viewed_at || null,
           paymentMethod: o.payment_method,
           total: Number(o.total),
@@ -498,7 +525,7 @@ router.get('/orders', requireAdmin, async (req, res) => {
       ok: true,
       orders: enriched,
       totalOrders: Number(totalOrders) || 0,
-      unreadCount: Number(unreadCount) || 0,
+      unreadCount,
       pagination: { page: p, limit: l, total, pages: Math.ceil(total / l) || 1 },
     });
   } catch (err) {
@@ -514,9 +541,7 @@ router.get('/orders/:id', requireAdmin, async (req, res) => {
     const o = rows[0];
     await query('UPDATE orders SET viewed_by_admin = true, viewed_at = CURRENT_TIMESTAMP WHERE id = ?', [o.id]);
     const items = await query('SELECT * FROM order_items WHERE order_id = ?', [o.id]);
-    const unreadCount = await scalarCount(
-      'SELECT COUNT(*) AS unreadCount FROM orders WHERE COALESCE(viewed_by_admin, false) = false'
-    );
+    const unreadCount = await countUnreadOrders();
     res.json({
       ok: true,
       unreadCount,
@@ -546,7 +571,16 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
     const rows = await query('SELECT id, user_id, status FROM orders WHERE id = ?', [id]);
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Order not found' });
     const prevStatus = String(rows[0].status || '').toLowerCase();
+    if (prevStatus === 'cancelled' && status !== 'cancelled') {
+      const restock = await takeStockForExistingOrder(id);
+      if (!restock.ok) {
+        return res.status(400).json({ ok: false, error: restock.error || 'Not enough stock to reopen this order' });
+      }
+    }
     await query('UPDATE orders SET status = ? WHERE id = ?', [status, id]);
+    if (status === 'cancelled' && prevStatus !== 'cancelled') {
+      await releaseCommittedOrderStock(id);
+    }
 
     let pointsAwarded = 0;
     let bonusPoints = 0;
@@ -569,6 +603,7 @@ router.delete('/orders/:id', requireAdmin, async (req, res) => {
     if (!id) return res.status(400).json({ ok: false, error: 'Invalid order id' });
     const rows = await query('SELECT id FROM orders WHERE id = ?', [id]);
     if (!rows.length) return res.status(404).json({ ok: false, error: 'Order not found' });
+    await releaseCommittedOrderStock(id);
     await query('DELETE FROM order_items WHERE order_id = ?', [id]);
     await query('DELETE FROM orders WHERE id = ?', [id]);
     res.json({ ok: true });
@@ -582,6 +617,9 @@ router.post('/orders/bulk-delete', requireAdmin, async (req, res) => {
   try {
     const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
     if (!ids.length) return res.status(400).json({ ok: false, error: 'No orders selected' });
+    for (const id of ids) {
+      await releaseCommittedOrderStock(id);
+    }
     const placeholders = ids.map(() => '?').join(',');
     await query(`DELETE FROM order_items WHERE order_id IN (${placeholders})`, ids);
     await query(`DELETE FROM orders WHERE id IN (${placeholders})`, ids);

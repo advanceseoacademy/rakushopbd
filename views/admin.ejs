@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/tabler-icons-subset.css?v=3">
 <link rel="stylesheet" href="/css/brand-tokens.css?v=3">
-<link rel="stylesheet" href="/css/admin.css?v=35">
+<link rel="stylesheet" href="/css/admin.css?v=38">
 <link rel="stylesheet" href="/css/popup-themes.css?v=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;transition:opacity .2s;}.toast.show{opacity:1;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
@@ -56,9 +56,9 @@
     </div>
     <div class="sidebar-section" data-super-only>Main</div>
     <div class="nav-item active" data-page="dashboard" data-super-only><i class="ti ti-dashboard"></i> Dashboard</div>
-    <div class="nav-item" data-page="orders" data-super-only><i class="ti ti-shopping-bag"></i> Orders <span class="nav-badge" id="order-badge">0</span></div>
-    <div class="nav-item" data-page="appointments" data-super-only><i class="ti ti-calendar"></i> Appointments <span class="nav-badge nav-badge-amber" id="appointment-badge">0</span></div>
-    <div class="nav-item" data-page="contacts" data-super-only><i class="ti ti-mail"></i> Contact Messages <span class="nav-badge nav-badge-amber" id="contact-badge">0</span></div>
+    <div class="nav-item" data-page="orders" data-super-only><i class="ti ti-shopping-bag"></i> Orders <span class="nav-badge nav-badge-new" id="order-badge" hidden>0 New</span></div>
+    <div class="nav-item" data-page="appointments" data-super-only><i class="ti ti-calendar"></i> Appointments <span class="nav-badge nav-badge-new" id="appointment-badge" hidden>0 New</span></div>
+    <div class="nav-item" data-page="contacts" data-super-only><i class="ti ti-mail"></i> Contact Messages <span class="nav-badge nav-badge-new" id="contact-badge" hidden>0 New</span></div>
     <div class="nav-item" data-page="products"><i class="ti ti-box"></i> Products</div>
     <div class="nav-item" data-page="gallery" data-super-only><i class="ti ti-photo"></i> Image Gallery</div>
     <div class="nav-item" data-page="customers" data-super-only><i class="ti ti-users"></i> Customers</div>
@@ -81,8 +81,8 @@
     </div>
     <div class="nav-item" data-page="blog" data-super-only><i class="ti ti-file-text"></i> Blog</div>
     <div class="nav-item" data-page="coupons" data-super-only><i class="ti ti-discount"></i> Coupons</div>
-    <div class="nav-item" data-page="reviews" data-super-only><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-amber" id="review-badge">0</span></div>
-    <div class="nav-item" data-page="review-videos" data-super-only><i class="ti ti-video"></i> Review Videos <span class="nav-badge nav-badge-amber" id="review-video-badge">0</span></div>
+    <div class="nav-item" data-page="reviews" data-super-only><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-new" id="review-badge" hidden>0 New</span></div>
+    <div class="nav-item" data-page="review-videos" data-super-only><i class="ti ti-video"></i> Review Videos <span class="nav-badge nav-badge-new" id="review-video-badge" hidden>0 New</span></div>
     <div class="nav-item" data-page="banners" data-super-only><i class="ti ti-photo"></i> Banners</div>
     <div class="nav-item" data-page="marketing" data-super-only><i class="ti ti-speakerphone"></i> Marketing <span class="nav-badge nav-badge-amber" id="subscriber-badge">0</span></div>
     <div class="nav-item" data-page="messenger" data-super-only><i class="ti ti-brand-messenger"></i> Messenger Chats</div>
@@ -1078,11 +1078,22 @@
                   </div>
                   <div class="settings-subsection">
                     <div class="settings-subsection-label"><i class="ti ti-shopping-cart"></i> Redeem rules (checkout)</div>
-                    <div class="form-2col">
-                      <div class="form-group"><label class="form-label">Minimum points to redeem</label><input class="form-input" id="set-rp-min-redeem" type="number" min="1"></div>
-                      <div class="form-group"><label class="form-label">Max % of order payable with points</label><input class="form-input" id="set-rp-max-percent" type="number" min="0" max="100"></div>
+                    <div class="form-3col">
+                      <div class="form-group">
+                        <label class="form-label">Maximum % of customer points they can use</label>
+                        <input class="form-input" id="set-rp-balance-percent" type="number" min="1" max="100" value="50">
+                        <small class="form-hint">Example: <code>50</code> = 100 points → 50 usable.</small>
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Minimum points to redeem</label>
+                        <input class="form-input" id="set-rp-min-redeem" type="number" min="1" value="1">
+                      </div>
+                      <div class="form-group">
+                        <label class="form-label">Max % of order payable with points</label>
+                        <input class="form-input" id="set-rp-max-percent" type="number" min="0" max="100">
+                      </div>
                     </div>
-                    <small class="form-hint">Redeem-at-checkout uses these limits when that feature is enabled on the storefront.</small>
+                    <small class="form-hint">Checkout uses the lowest of these limits. Change the first field to 30, 50, or 100 anytime.</small>
                   </div>
                 </div>
                 <div class="settings-card-foot">
@@ -1423,11 +1434,22 @@
   </div>
 </div>
 
+<div class="modal-overlay confirm-overlay" id="confirm-modal" aria-hidden="true">
+  <div class="modal-box confirm-modal-box" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <h3 id="confirm-modal-title">Are you sure?</h3>
+    <p id="confirm-modal-text">This action cannot be undone.</p>
+    <div class="confirm-modal-actions">
+      <button type="button" class="btn btn-outline" id="confirm-modal-cancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="confirm-modal-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
 <script src="/js/admin-rich-editor.js?v=14"></script>
-<script src="/js/admin.js?v=125"></script>
+<script src="/js/admin.js?v=131"></script>
 </body>
 </html>

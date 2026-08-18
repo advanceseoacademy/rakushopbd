@@ -13,6 +13,16 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     return { page: p, limit: l, offset: (p - 1) * l };
   }
 
+  async function countSql(sql, params = []) {
+    const rows = await query(sql, params);
+    if (!rows?.[0]) return 0;
+    return Number(Object.values(rows[0])[0]) || 0;
+  }
+
+  function isViewedByAdmin(val) {
+    return val === true || val === 1 || val === '1' || val === 't' || val === 'true';
+  }
+
   // ——— Dashboard activity ———
   router.get('/activity', requireAdmin, async (req, res) => {
     try {
@@ -186,14 +196,25 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
 
       const [{ total }] = await query(countSql, params).catch(() => [{ total: 0 }]);
       const reviews = await query(sql, [...params, limit, offset]);
-      const [{ pending }] = await query(
-        "SELECT COUNT(*) AS pending FROM product_reviews WHERE status='pending'"
-      ).catch(() => [{ pending: 0 }]);
+      const pendingCount = await countSql(
+        "SELECT COUNT(*) AS c FROM product_reviews WHERE status='pending'"
+      ).catch(() => 0);
+      let unreadCount = 0;
+      try {
+        const { ensureViewedByAdminColumns, countUnreadByAdmin, isViewedByAdmin: isViewed } =
+          require('../lib/ensureViewedByAdminColumns');
+        await ensureViewedByAdminColumns('product_reviews');
+        unreadCount = await countUnreadByAdmin('product_reviews');
+        reviews.forEach((r) => {
+          r.viewedByAdmin = isViewed(r.viewed_by_admin);
+        });
+      } catch (_) {}
       const totalNum = Number(total) || 0;
       res.json({
         ok: true,
         reviews,
-        pendingCount: pending,
+        pendingCount,
+        unreadCount,
         pagination: {
           page,
           limit,
@@ -204,6 +225,31 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     } catch (err) {
       console.error(err);
       res.status(500).json({ ok: false, error: 'Reviews table missing — run db setup' });
+    }
+  });
+
+  router.get('/reviews/unread-count', requireAdmin, async (req, res) => {
+    try {
+      const { ensureViewedByAdminColumns, countUnreadByAdmin } = require('../lib/ensureViewedByAdminColumns');
+      await ensureViewedByAdminColumns('product_reviews');
+      const unreadCount = await countUnreadByAdmin('product_reviews');
+      res.json({ ok: true, unreadCount });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not load unread review count' });
+    }
+  });
+
+  router.post('/reviews/mark-viewed', requireAdmin, async (req, res) => {
+    try {
+      const { ensureViewedByAdminColumns, markRowsViewedByAdmin } = require('../lib/ensureViewedByAdminColumns');
+      await ensureViewedByAdminColumns('product_reviews');
+      const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+      const result = await markRowsViewedByAdmin('product_reviews', ids);
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not update review view status' });
     }
   });
 
@@ -237,6 +283,12 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       );
 
       const id = result?.insertId || result?.[0]?.id;
+      if (id) {
+        await query(
+          'UPDATE product_reviews SET viewed_by_admin = true, viewed_at = CURRENT_TIMESTAMP WHERE id = ?',
+          [id]
+        ).catch(() => {});
+      }
       const { syncProductReviewStats } = require('../lib/productReviews');
       await syncProductReviewStats(query, productId);
       const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
@@ -278,7 +330,8 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
 
       await query(
         `UPDATE product_reviews
-         SET product_id=?, customer_name=?, rating=?, comment=?, image_url=?, reviewer_avatar_url=?, reviewer_city=?, status=?
+         SET product_id=?, customer_name=?, rating=?, comment=?, image_url=?, reviewer_avatar_url=?, reviewer_city=?, status=?,
+             viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
          WHERE id=?`,
         [productId, customerName, rating, comment, imageUrl, avatarUrl, city, status, id]
       );
@@ -308,7 +361,10 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       const rows = await query('SELECT * FROM product_reviews WHERE id = ? LIMIT 1', [req.params.id]);
       if (!rows.length) return res.status(404).json({ ok: false, error: 'Review not found' });
       const prev = rows[0];
-      await query('UPDATE product_reviews SET status = ? WHERE id = ?', [status, req.params.id]);
+      await query(
+        'UPDATE product_reviews SET status = ?, viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP) WHERE id = ?',
+        [status, req.params.id]
+      );
       if (rows.length) {
         const { syncProductReviewStats } = require('../lib/productReviews');
         await syncProductReviewStats(query, rows[0].product_id || rows[0].productId);
@@ -319,7 +375,12 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       }
       const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
       clearStoreBootstrapCache();
-      res.json({ ok: true });
+      let unreadCount = 0;
+      try {
+        const { countUnreadByAdmin } = require('../lib/ensureViewedByAdminColumns');
+        unreadCount = await countUnreadByAdmin('product_reviews');
+      } catch (_) {}
+      res.json({ ok: true, unreadCount });
     } catch (err) {
       res.status(500).json({ ok: false, error: 'Could not update review' });
     }
@@ -371,13 +432,46 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
   router.get('/review-videos', requireAdmin, async (req, res) => {
     try {
       const status = String(req.query.status || 'pending').trim() || 'pending';
-      const { listAdminReviewVideos, countPendingReviewVideos } = require('../lib/reviewVideos');
+      const { listAdminReviewVideos, countPendingReviewVideos, countUnreadReviewVideos } = require('../lib/reviewVideos');
       const videos = await listAdminReviewVideos(query, status);
       const pendingCount = await countPendingReviewVideos(query);
-      res.json({ ok: true, videos, pendingCount });
+      let unreadCount = 0;
+      try {
+        const { ensureViewedByAdminColumns, countUnreadByAdmin } = require('../lib/ensureViewedByAdminColumns');
+        await ensureViewedByAdminColumns('product_review_videos');
+        unreadCount = await countUnreadByAdmin('product_review_videos');
+      } catch (_) {
+        unreadCount = await countUnreadReviewVideos(query).catch(() => 0);
+      }
+      res.json({ ok: true, videos, pendingCount, unreadCount });
     } catch (err) {
       console.error('admin review videos list', err);
       res.status(500).json({ ok: false, error: 'Could not load review videos' });
+    }
+  });
+
+  router.get('/review-videos/unread-count', requireAdmin, async (req, res) => {
+    try {
+      const { ensureViewedByAdminColumns, countUnreadByAdmin } = require('../lib/ensureViewedByAdminColumns');
+      await ensureViewedByAdminColumns('product_review_videos');
+      const unreadCount = await countUnreadByAdmin('product_review_videos');
+      res.json({ ok: true, unreadCount });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not load unread review video count' });
+    }
+  });
+
+  router.post('/review-videos/mark-viewed', requireAdmin, async (req, res) => {
+    try {
+      const { ensureViewedByAdminColumns, markRowsViewedByAdmin } = require('../lib/ensureViewedByAdminColumns');
+      await ensureViewedByAdminColumns('product_review_videos');
+      const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+      const result = await markRowsViewedByAdmin('product_review_videos', ids);
+      res.json({ ok: true, ...result });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not update review video view status' });
     }
   });
 
@@ -395,7 +489,8 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       const note = adminNote != null ? String(adminNote).trim().slice(0, 500) : prev.admin_note;
 
       await query(
-        `UPDATE product_review_videos SET status = ?, admin_note = ?, reviewed_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        `UPDATE product_review_videos SET status = ?, admin_note = ?, reviewed_at = CURRENT_TIMESTAMP,
+         viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP) WHERE id = ?`,
         [status, note || '', req.params.id]
       );
 
@@ -406,7 +501,13 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
         pointsAwarded = award.awarded || 0;
       }
 
-      res.json({ ok: true, pointsAwarded });
+      let unreadCount = 0;
+      try {
+        const { countUnreadByAdmin } = require('../lib/ensureViewedByAdminColumns');
+        unreadCount = await countUnreadByAdmin('product_review_videos');
+      } catch (_) {}
+
+      res.json({ ok: true, pointsAwarded, unreadCount });
     } catch (err) {
       console.error('admin review video patch', err);
       res.status(500).json({ ok: false, error: 'Could not update review video' });
@@ -564,15 +665,10 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
         [...params, l, offset]
       );
 
-      const pendingRows = await query(
-        `SELECT COUNT(*) AS c FROM appointments WHERE status = 'pending'`
+      const pendingCount = await countSql(`SELECT COUNT(*) AS c FROM appointments WHERE status = 'pending'`);
+      const unreadCount = await countSql(
+        `SELECT COUNT(*) AS c FROM appointments WHERE viewed_by_admin IS NOT TRUE`
       );
-      const pendingCount =
-        Number(pendingRows[0]?.c ?? Object.values(pendingRows[0] || {})[0]) || 0;
-      const unreadRows = await query(
-        `SELECT COUNT(*) AS c FROM appointments WHERE COALESCE(viewed_by_admin, false) = false`
-      );
-      const unreadCount = Number(unreadRows[0]?.c ?? Object.values(unreadRows[0] || {})[0]) || 0;
 
       res.json({
         ok: true,
@@ -588,7 +684,7 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
           serviceLabel: serviceLabel(r.service_type || r.serviceType),
           notes: r.notes,
           status: r.status,
-          viewedByAdmin: Boolean(r.viewed_by_admin),
+          viewedByAdmin: isViewedByAdmin(r.viewed_by_admin),
           viewedAt: r.viewed_at || null,
           createdAt: r.created_at || r.createdAt,
         })),
@@ -607,6 +703,20 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
+  router.get('/appointments/unread-count', requireAdmin, async (req, res) => {
+    try {
+      const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
+      await ensureAppointmentsTable();
+      const unreadCount = await countSql(
+        `SELECT COUNT(*) AS c FROM appointments WHERE viewed_by_admin IS NOT TRUE`
+      );
+      res.json({ ok: true, unreadCount });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not load unread appointment count' });
+    }
+  });
+
   router.patch('/appointments/:id', requireAdmin, async (req, res) => {
     try {
       const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
@@ -616,8 +726,16 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       if (!allowed.includes(status)) {
         return res.status(400).json({ ok: false, error: 'Invalid status' });
       }
-      await query('UPDATE appointments SET status = ? WHERE id = ?', [status, req.params.id]);
-      res.json({ ok: true });
+      await query(
+        `UPDATE appointments
+         SET status = ?, viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
+         WHERE id = ?`,
+        [status, req.params.id]
+      );
+      const unreadCount = await countSql(
+        `SELECT COUNT(*) AS c FROM appointments WHERE viewed_by_admin IS NOT TRUE`
+      );
+      res.json({ ok: true, unreadCount });
     } catch (err) {
       console.error('admin appointment patch', err);
       res.status(500).json({ ok: false, error: 'Could not update appointment' });
@@ -629,18 +747,18 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
       await ensureAppointmentsTable();
       const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
-      if (!ids.length) return res.json({ ok: true, unreadCount: 0, updated: 0 });
-      const placeholders = ids.map(() => '?').join(',');
-      await query(
-        `UPDATE appointments
-         SET viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
-         WHERE id IN (${placeholders})`,
-        ids
+      if (ids.length) {
+        const placeholders = ids.map(() => '?').join(',');
+        await query(
+          `UPDATE appointments
+           SET viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
+           WHERE id IN (${placeholders})`,
+          ids
+        );
+      }
+      const unreadCount = await countSql(
+        `SELECT COUNT(*) AS c FROM appointments WHERE viewed_by_admin IS NOT TRUE`
       );
-      const unreadRows = await query(
-        `SELECT COUNT(*) AS c FROM appointments WHERE COALESCE(viewed_by_admin, false) = false`
-      );
-      const unreadCount = Number(unreadRows[0]?.c ?? Object.values(unreadRows[0] || {})[0]) || 0;
       res.json({ ok: true, unreadCount, updated: ids.length });
     } catch (err) {
       console.error('admin appointment mark-viewed', err);
@@ -951,14 +1069,10 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
         [...params, l, offset]
       );
 
-      const newRows = await query(
-        `SELECT COUNT(*) AS c FROM contact_messages WHERE status = 'new'`
+      const newCount = await countSql(`SELECT COUNT(*) AS c FROM contact_messages WHERE status = 'new'`);
+      const unreadCount = await countSql(
+        `SELECT COUNT(*) AS c FROM contact_messages WHERE viewed_by_admin IS NOT TRUE`
       );
-      const newCount = Number(newRows[0]?.c ?? Object.values(newRows[0] || {})[0]) || 0;
-      const unreadRows = await query(
-        `SELECT COUNT(*) AS c FROM contact_messages WHERE COALESCE(viewed_by_admin, false) = false`
-      );
-      const unreadCount = Number(unreadRows[0]?.c ?? Object.values(unreadRows[0] || {})[0]) || 0;
 
       res.json({
         ok: true,
@@ -978,6 +1092,20 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
+  router.get('/contact-messages/unread-count', requireAdmin, async (req, res) => {
+    try {
+      const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
+      await ensureContactMessagesTable();
+      const unreadCount = await countSql(
+        `SELECT COUNT(*) AS c FROM contact_messages WHERE viewed_by_admin IS NOT TRUE`
+      );
+      res.json({ ok: true, unreadCount });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not load unread contact count' });
+    }
+  });
+
   router.patch('/contact-messages/:id', requireAdmin, async (req, res) => {
     try {
       const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
@@ -987,8 +1115,16 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       if (!allowed.includes(status)) {
         return res.status(400).json({ ok: false, error: 'Invalid status' });
       }
-      await query('UPDATE contact_messages SET status = ? WHERE id = ?', [status, req.params.id]);
-      res.json({ ok: true });
+      await query(
+        `UPDATE contact_messages
+         SET status = ?, viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
+         WHERE id = ?`,
+        [status, req.params.id]
+      );
+      const unreadCount = await countSql(
+        `SELECT COUNT(*) AS c FROM contact_messages WHERE viewed_by_admin IS NOT TRUE`
+      );
+      res.json({ ok: true, unreadCount });
     } catch (err) {
       console.error('admin contact message patch', err);
       res.status(500).json({ ok: false, error: 'Could not update message' });
@@ -1000,18 +1136,18 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
       const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
       await ensureContactMessagesTable();
       const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];
-      if (!ids.length) return res.json({ ok: true, unreadCount: 0, updated: 0 });
-      const placeholders = ids.map(() => '?').join(',');
-      await query(
-        `UPDATE contact_messages
-         SET viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
-         WHERE id IN (${placeholders})`,
-        ids
+      if (ids.length) {
+        const placeholders = ids.map(() => '?').join(',');
+        await query(
+          `UPDATE contact_messages
+           SET viewed_by_admin = true, viewed_at = COALESCE(viewed_at, CURRENT_TIMESTAMP)
+           WHERE id IN (${placeholders})`,
+          ids
+        );
+      }
+      const unreadCount = await countSql(
+        `SELECT COUNT(*) AS c FROM contact_messages WHERE viewed_by_admin IS NOT TRUE`
       );
-      const unreadRows = await query(
-        `SELECT COUNT(*) AS c FROM contact_messages WHERE COALESCE(viewed_by_admin, false) = false`
-      );
-      const unreadCount = Number(unreadRows[0]?.c ?? Object.values(unreadRows[0] || {})[0]) || 0;
       res.json({ ok: true, unreadCount, updated: ids.length });
     } catch (err) {
       console.error('admin contact mark-viewed', err);

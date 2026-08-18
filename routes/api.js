@@ -28,6 +28,7 @@ const { optimizeAndSaveImage } = require('../lib/imageOptimize');
 const { getAdminIdFromRequest } = require('../lib/adminToken');
 const { registerAdminAuthApiRouter } = require('../lib/registerAdminAuth');
 const { sql: sqlDialect, returningId, likeFragment } = require('../lib/db-dialect');
+const { takeStockLines, releaseStockLines, markOrderStockCommitted } = require('../lib/productStock');
 const { firstInsertId } = require('../config/db');
 const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
 const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
@@ -145,7 +146,8 @@ async function rewardRedemptionSnapshot(req, cart, settings) {
   const disabled = {
     enabled: false,
     loggedIn: Boolean(req.session.userId),
-    minRedeem: 500,
+    minRedeem: 1,
+    maxBalancePercent: 50,
     balance: 0,
     maxUsable: 0,
     applied: 0,
@@ -157,27 +159,31 @@ async function rewardRedemptionSnapshot(req, cart, settings) {
   const userId = Number(req.session.userId) || 0;
   if (!userId) {
     clearSessionRewardRedemption(req);
-    return { ...disabled, enabled: true, loggedIn: false, minRedeem: cfg.minRedeem || 500 };
+    return { ...disabled, enabled: true, loggedIn: false, minRedeem: cfg.minRedeem || 1, maxBalancePercent: cfg.maxBalancePercent || 50 };
   }
   const district = req.session.checkoutDistrict || null;
   const baseTotals = calcTotalsWithSettings(cart, settings, district, 0);
   const balance = await getUserRewardPoints(query, userId);
+  const minRedeem = Math.max(1, Number(cfg.minRedeem) || 1);
+  const maxBalancePercent = Math.min(100, Math.max(1, Number(cfg.maxBalancePercent) || 50));
   const absoluteMax = Math.floor(Math.max(0, baseTotals.subtotal + baseTotals.delivery));
   const percentMax =
     Number(cfg.maxOrderPercent) > 0
       ? Math.floor((absoluteMax * Number(cfg.maxOrderPercent)) / 100)
       : absoluteMax;
-  const maxUsable = Math.max(0, Math.min(balance, absoluteMax, percentMax || absoluteMax));
+  const balanceCap = Math.floor((Math.max(0, balance) * maxBalancePercent) / 100);
+  const maxUsable = Math.max(0, Math.min(balance, balanceCap, absoluteMax, percentMax || absoluteMax));
   let applied = Math.max(0, Math.floor(Number(req.session.rewardPointsUsed) || 0));
-  if (balance < cfg.minRedeem) applied = 0;
+  if (maxUsable < minRedeem) applied = 0;
   else if (applied > balance) applied = 0;
   else if (applied > maxUsable) applied = maxUsable;
-  if (applied > 0 && applied < cfg.minRedeem) applied = 0;
+  if (applied > 0 && applied < minRedeem) applied = 0;
   req.session.rewardPointsUsed = applied;
   return {
     enabled: true,
     loggedIn: true,
-    minRedeem: cfg.minRedeem,
+    minRedeem,
+    maxBalancePercent,
     balance,
     maxUsable,
     applied,
@@ -927,16 +933,10 @@ router.post('/cart/reward-points', async (req, res) => {
     const reward = await rewardRedemptionSnapshot(req, cart, settings);
     if (!reward.enabled) return res.status(400).json({ ok: false, error: 'Reward points are currently disabled' });
     if (!reward.loggedIn) return res.status(401).json({ ok: false, error: 'Please log in to use reward points' });
-    if (reward.balance < reward.minRedeem) {
-      return res.status(400).json({
-        ok: false,
-        error: `You have ${reward.balance} points. Minimum ${reward.minRedeem} points required to redeem.`,
-      });
-    }
     if (reward.maxUsable < reward.minRedeem) {
       return res.status(400).json({
         ok: false,
-        error: `This order is too small for minimum ${reward.minRedeem} point redemption`,
+        error: `You can use at most ${reward.maxBalancePercent}% of your points on this order.`,
       });
     }
     const requestedRaw = req.body?.points;
@@ -953,7 +953,7 @@ router.post('/cart/reward-points', async (req, res) => {
     if (requested > reward.maxUsable) {
       return res.status(400).json({
         ok: false,
-        error: `You can use at most ${reward.maxUsable} points on this order.`,
+        error: `You can use at most ${reward.maxUsable} points (${reward.maxBalancePercent}% of your balance) on this order.`,
       });
     }
     if (requested < reward.minRedeem) {
@@ -1070,6 +1070,8 @@ router.delete('/cart/:productId', async (req, res) => {
 });
 
 router.post('/orders', async (req, res) => {
+  let stockTaken = [];
+  let orderSaved = false;
   try {
     const cart = getCart(req);
     if (!cart.length) return res.status(400).json({ ok: false, error: 'Cart is empty' });
@@ -1122,18 +1124,11 @@ router.post('/orders', async (req, res) => {
       if (!userId) {
         return res.status(400).json({ ok: false, error: 'Please log in to use reward points' });
       }
-      if (reward.balance < reward.minRedeem || rewardDiscount < reward.minRedeem) {
+      if (rewardDiscount < reward.minRedeem || rewardDiscount > reward.maxUsable) {
         clearSessionRewardRedemption(req);
         return res.status(400).json({
           ok: false,
-          error: `Minimum ${reward.minRedeem} reward points required to redeem`,
-        });
-      }
-      if (rewardDiscount > reward.balance || rewardDiscount > reward.maxUsable) {
-        clearSessionRewardRedemption(req);
-        return res.status(400).json({
-          ok: false,
-          error: 'Reward points could not be applied. Please try again.',
+          error: `You can use at most ${reward.maxUsable} points (${reward.maxBalancePercent}% of your balance) on this order.`,
         });
       }
     }
@@ -1143,6 +1138,12 @@ router.post('/orders', async (req, res) => {
     const couponNote = req.session.couponCode ? `Coupon: ${req.session.couponCode} (-৳${couponDiscount})` : '';
     const rewardNote = rewardDiscount > 0 ? `Reward points used: ${rewardDiscount}` : '';
     const orderNotes = [notes, couponNote, rewardNote].filter(Boolean).join(' | ') || null;
+
+    const stockResult = await takeStockLines(cart);
+    if (!stockResult.ok) {
+      return res.status(400).json({ ok: false, error: stockResult.error });
+    }
+    stockTaken = stockResult.taken;
 
     const orderResult = await query(
       `INSERT INTO orders (user_id, order_number, customer_name, customer_phone, customer_email,
@@ -1170,6 +1171,17 @@ router.post('/orders', async (req, res) => {
       const found = await query('SELECT id FROM orders WHERE order_number = ?', [orderNumber]);
       orderId = found[0]?.id;
     }
+    for (const item of cart) {
+      await query(
+        `INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, line_total)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [orderId, item.productId, item.name, item.qty, item.price, item.price * item.qty]
+      );
+    }
+
+    await markOrderStockCommitted(orderId, true);
+    orderSaved = true;
+
     if (req.session.couponId) {
       await query('UPDATE coupons SET used_count = used_count + 1 WHERE id = ?', [req.session.couponId]);
       clearSessionCoupon(req);
@@ -1180,13 +1192,6 @@ router.post('/orders', async (req, res) => {
       await setUserRewardPoints(query, userId, next);
       await recordRewardPointEvent(query, userId, 'order_redeem', -rewardDiscount, String(orderId));
       clearSessionRewardRedemption(req);
-    }
-    for (const item of cart) {
-      await query(
-        `INSERT INTO order_items (order_id, product_id, product_name, quantity, unit_price, line_total)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-        [orderId, item.productId, item.name, item.qty, item.price, item.price * item.qty]
-      );
     }
 
     const orderItems = cart.map((item) => ({
@@ -1237,6 +1242,9 @@ router.post('/orders', async (req, res) => {
         userId && pointCfg?.enabled ? pointsFromCartItems(cart, pointCfg) : 0,
     });
   } catch (err) {
+    if (stockTaken.length && !orderSaved) {
+      await releaseStockLines(stockTaken).catch(() => {});
+    }
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not place order' });
   }

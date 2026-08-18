@@ -37,6 +37,8 @@ const { ensurePhoneSubscribersTable } = require('./lib/ensurePhoneSubscribersTab
 const { ensureMarketingSettings } = require('./lib/ensureMarketingSettings');
 const { ensureRewardPointsColumn } = require('./lib/ensureRewardPointsColumn');
 const { ensureOrderAdminViewColumns } = require('./lib/ensureOrderAdminViewColumns');
+const { ensureOrderStockCommittedColumn } = require('./lib/productStock');
+const { ensureViewedByAdminColumns } = require('./lib/ensureViewedByAdminColumns');
 const { ensureRewardPointEvents } = require('./lib/ensureRewardPointEvents');
 const { ensureRewardPointSettings } = require('./lib/ensureRewardPointSettings');
 const { ensureReviewVideos } = require('./lib/ensureReviewVideos');
@@ -482,6 +484,12 @@ async function startServer() {
   ensureMarketingSettings().catch((err) => console.warn('marketing settings:', err.message));
   ensureRewardPointsColumn().catch((err) => console.warn('reward_points column:', err.message));
   ensureOrderAdminViewColumns().catch((err) => console.warn('orders viewed_by_admin column:', err.message));
+  ensureOrderStockCommittedColumn().catch((err) =>
+    console.warn('orders stock_committed column:', err.message)
+  );
+  ensureViewedByAdminColumns('product_reviews').catch((err) =>
+    console.warn('product_reviews viewed_by_admin column:', err.message)
+  );
   ensureRewardPointEvents().catch((err) => console.warn('reward point events:', err.message));
   ensureRewardPointSettings().catch((err) => console.warn('reward point settings:', err.message));
   ensureReviewVideos().catch((err) => console.warn('review videos table:', err.message));

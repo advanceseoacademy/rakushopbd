@@ -86,7 +86,7 @@ Do **not** ask quantity. Default = **1**.
 - Backup: `/opt/n8n/locked/products_list_backup_*.json`
 
 ### 7b. FB daily AI product post + Telegram approve (2026-07-28) — PRODUCTION
-- `FbDailyAiPost01` — **09:00 & 20:00 Asia/Dhaka** → AI draft → Telegram ask approve (no direct FB post)
+- `FbDailyAiPost01` — **09:00 & 20:00 Asia/Dhaka** → AI draft → Telegram ask approve (no direct FB post); **skips website Pre-order / stock 0**
 - `FbTgApprove01` — Telegram callback → Approve posts to Page / Reject regenerates same product
 - Image: `gpt-image-1` edits from real product image; Caption Bangla + English names (no URL in caption; URL in FB comment)
 - Draft files: `/home/node/.n8n-files/fb-drafts`; sheets: `fb-pending`, `fb-post`

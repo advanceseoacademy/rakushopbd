@@ -2510,15 +2510,16 @@
       return;
     }
     row.hidden = false;
-    const minRedeem = Math.max(500, Number(cfg.minRedeem) || 500);
+    const minRedeem = Math.max(1, Number(cfg.minRedeem) || 1);
     const balance = Math.max(0, Number(cfg.balance) || 0);
     const maxUsable = Math.max(0, Number(cfg.maxUsable) || 0);
     const applied = Math.max(0, Number(cfg.applied) || 0);
-    const canApply = cfg.loggedIn && balance >= minRedeem && maxUsable >= minRedeem && applied <= 0;
+    const maxPct = Math.min(100, Math.max(1, Number(cfg.maxBalancePercent) || 50));
+    const canApply = cfg.loggedIn && maxUsable >= minRedeem && applied <= 0;
     if (input) {
       input.min = String(minRedeem);
-      input.max = String(Math.max(minRedeem, Math.min(balance, maxUsable)));
-      input.placeholder = `Min ${minRedeem} points`;
+      input.max = String(Math.max(minRedeem, maxUsable));
+      input.placeholder = maxUsable > 0 ? `Up to ${maxUsable} points` : 'Points to use';
       input.value = applied > 0 ? String(applied) : '';
       input.readOnly = applied > 0;
     }
@@ -2533,15 +2534,13 @@
 
     let message = '';
     if (!cfg.loggedIn) {
-      message = `Login to use reward points. Minimum ${minRedeem} points required.`;
-    } else if (balance < minRedeem) {
-      message = `You have ${balance} points. Need at least ${minRedeem} to redeem.`;
+      message = `Login to use reward points. You can redeem up to ${maxPct}% of your points.`;
     } else if (maxUsable < minRedeem) {
-      message = `Minimum ${minRedeem} points can be redeemed on larger orders only.`;
+      message = `You have ${balance} points. Up to ${maxPct}% (${Math.floor((balance * maxPct) / 100)} points) can be used on this order.`;
     } else if (applied > 0) {
       message = `${applied} points applied — you save ৳${applied}.`;
     } else {
-      message = `Available: ${balance} points · use up to ${maxUsable} on this order.`;
+      message = `You have ${balance} points · you can use up to ${maxPct}% (${maxUsable} points).`;
     }
     note.hidden = false;
     note.textContent = message;
@@ -3629,15 +3628,16 @@
         const card = btn.closest('.savings-card--reward');
         const input = card?.querySelector('.js-reward-input');
         const snap = window._rakuRewardSnapshot || {};
-        const minRedeem = Math.max(500, Number(snap.minRedeem) || 500);
+        const minRedeem = Math.max(1, Number(snap.minRedeem) || 1);
         const balance = Math.max(0, Number(snap.balance) || 0);
         const maxUsable = Math.max(0, Number(snap.maxUsable) || 0);
-        const points = Math.max(0, Math.floor(Number(input?.value) || 0));
+        const maxPct = Math.min(100, Math.max(1, Number(snap.maxBalancePercent) || 50));
+        const points = Math.max(0, Math.floor(Number(input?.value) || 0)) || maxUsable;
         if (!snap.loggedIn) return alert('Please log in to use reward points.');
-        if (balance < minRedeem) {
-          return alert(`You have ${balance} points. Minimum ${minRedeem} points required to redeem.`);
+        if (maxUsable < minRedeem) {
+          return alert(`You can use at most ${maxPct}% of your ${balance} points on this order.`);
         }
-        if (!points) return alert(`Enter at least ${minRedeem} points to apply.`);
+        if (!points) return alert(`Enter how many points to use (max ${maxUsable}).`);
         if (points < minRedeem) {
           return alert(`Minimum redeem is ${minRedeem} points.`);
         }
@@ -3645,7 +3645,7 @@
           return alert(`You only have ${balance} points. You cannot use ${points} points.`);
         }
         if (points > maxUsable) {
-          return alert(`You can use at most ${maxUsable} points on this order.`);
+          return alert(`You can use at most ${maxUsable} points (${maxPct}% of your balance) on this order.`);
         }
         const data = await apiFetch('/cart/reward-points', {
           method: 'POST',

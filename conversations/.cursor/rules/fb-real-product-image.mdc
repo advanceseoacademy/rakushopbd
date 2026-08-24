@@ -8,8 +8,9 @@ alwaysApply: true
 When working on FB daily AI post / Telegram approve image generation:
 
 - The poster **MUST** be generated from the sheet **Product Image URL** (real pack photo) as reference `#1`.
+- Use **gpt-image-2** (`/v1/images/edits`, `quality=high`, `1024x1024`) when generating AI posters.
 - **Never** change, redesign, beautify-into-a-different-pack, or swap the product bottle/tube/box/label.
 - Only the **scene** may change (background, model, badges, CTA, props).
-- Keep `input_fidelity=high` and product binary as the **first** `image[]` input.
-- Style reference is layout/scene inspiration only — never copy another product from it.
+- Product binary must be the **first** `image[]` input. Style reference is layout/scene only — never copy another product from it.
+- Do not pass `input_fidelity` for gpt-image-2 (already high-fidelity by default).
 - Do not relax this rule for “prettier” creatives.

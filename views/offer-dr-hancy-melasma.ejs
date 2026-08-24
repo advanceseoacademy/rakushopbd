@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="bn-BD">
+<head>
+<%- include('partials/storefront-standalone-head', { seo: typeof seo !== 'undefined' ? seo : null, pagesCss: '/css/offer-dr-hancy.css?v=2' }) %>
+<%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
+</head>
+<body class="offer-page">
+<%- include('partials/tracking-body', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
+
+<!-- ── HERO HEADER ── -->
+<div class="lp-hero-header">
+  <a href="/" aria-label="RakuShopBD">
+    <picture>
+      <source srcset="/images/rakushopbd-logo-280.webp?v=14" type="image/webp">
+      <img src="/images/rakushopbd-logo.png?v=14" alt="RakuShopBD" width="140" height="65" class="lp-logo">
+    </picture>
+  </a>
+  <h1 class="lp-hero-title">Dr. Hancy Melasma &amp; Dark Spot Whitening Cream</h1>
+  <p class="lp-hero-sub">Japan Market — বিশ্বস্ত Skincare, এখন Bangladesh-এ</p>
+</div>
+
+<!-- ── VIDEO ── -->
+<div class="lp-video-wrap">
+  <p class="lp-video-label"><i class="ti ti-player-play-filled"></i> Product Video দেখুন</p>
+  <video class="lp-video" controls playsinline preload="metadata" poster="<%= product.imageUrl %>">
+    <source src="/videos/dr-hancy-offer.mp4" type="video/mp4">
+  </video>
+</div>
+
+<!-- ── PRODUCT IMAGE ── -->
+<div class="lp-img-wrap">
+  <img id="lp-main-img" src="<%= product.imageUrl %>" alt="<%= product.shortName %>" width="500" height="500">
+  <% if (typeof gallery !== 'undefined' && gallery && gallery.length > 1) { %>
+  <div class="lp-thumbs">
+    <% gallery.forEach(function(src, idx) { %>
+    <button type="button" class="lp-thumb<%= idx === 0 ? ' is-active' : '' %>" data-src="<%= src %>" aria-label="Image <%= idx + 1 %>">
+      <img src="<%= src %>" alt="" width="64" height="64" loading="lazy">
+    </button>
+    <% }); %>
+  </div>
+  <% } %>
+</div>
+
+<!-- ── COUNTDOWN ── -->
+<div class="lp-timer-wrap">
+  <p class="lp-timer-label"><i class="ti ti-clock"></i> অফার শেষ হচ্ছে</p>
+  <div class="lp-timer" id="lp-timer" data-ends="<%= offerEndsAt %>">
+    <div class="lp-timer-unit"><span id="lp-td">00</span><em>Days</em></div>
+    <div class="lp-timer-sep">:</div>
+    <div class="lp-timer-unit"><span id="lp-th">00</span><em>Hours</em></div>
+    <div class="lp-timer-sep">:</div>
+    <div class="lp-timer-unit"><span id="lp-tm">00</span><em>Minutes</em></div>
+    <div class="lp-timer-sep">:</div>
+    <div class="lp-timer-unit"><span id="lp-ts">00</span><em>Seconds</em></div>
+  </div>
+</div>
+
+<!-- ── PRICE & TOP CTA ── -->
+<div class="lp-price-block">
+  <div class="lp-price-row">
+    <span class="lp-price">৳<%= product.price %></span>
+    <% if (product.oldPrice) { %>
+    <span class="lp-old-price">মূল্য ৳<%= product.oldPrice %></span>
+    <% if (product.oldPrice > product.price) { %>
+    <span class="lp-discount-badge">বর্তমান ডিসকাউন্ট ৳<%= product.oldPrice - product.price %> টাকা</span>
+    <% } %>
+    <% } %>
+  </div>
+  <button type="button" class="lp-btn-cta" data-offer-buy>
+    <i class="ti ti-shopping-cart"></i>
+    <span class="lp-btn-label">এখনই অর্ডার করি</span>
+  </button>
+</div>
+
+<!-- ── WHY SECTION ── -->
+<section class="lp-section lp-section--green">
+  <h2 class="lp-section-title"><%= product.shortName %> কেন কিনবেন?</h2>
+  <p class="lp-section-intro">সব ধরনের skin-এর জন্য suitable, বিশেষ করে যারা melasma, dark spot ও uneven tone-এ ভুগছেন তাদের জন্য এই cream অত্যন্ত কার্যকর।</p>
+  <ul class="lp-checklist">
+    <li>Melasma, dark spot ও freckles-এর appearance কমাতে scientifically proven formula</li>
+    <li>Regular use-এ skin brighter, smoother ও more even-looking হয়ে ওঠে</li>
+    <li>Dry, sensitive ও normal skin-এ ব্যবহারযোগ্য gentle daily cream</li>
+    <li>Japan Amazon-এ available — authentic Japan skincare এখন সরাসরি আপনার হাতে</li>
+    <li>প্রতিটি product quality check করে পাঠানো হয়</li>
+    <li>Fast delivery সারা Bangladesh-এ</li>
+    <li>Cash on Delivery (COD) সুবিধা আছে</li>
+  </ul>
+</section>
+
+<!-- ── MID CTA ── -->
+<div class="lp-mid-cta">
+  <p class="lp-price-big">১ পিস — ৳<%= product.price %> টাকা মাত্র</p>
+  <button type="button" class="lp-btn-cta" data-offer-buy>
+    <i class="ti ti-shopping-cart"></i>
+    <span class="lp-btn-label">এখনই অর্ডার করি</span>
+  </button>
+</div>
+
+<!-- ── WHY RAKUSHOPBD ── -->
+<section class="lp-section lp-section--green">
+  <h2 class="lp-section-title">আমাদের কাছে কেনো কিনবেন?</h2>
+  <ul class="lp-checklist">
+    <li>সর্বোচ্চ মানের authentic Japan-market product গ্যারান্টি</li>
+    <li>সারা বাংলাদেশে দ্রুত ডেলিভারি — Inside Dhaka ৳<%= deliveryFee %>, Outside ৳<%= deliveryFeeOutside %></li>
+    <li>Cash on Delivery সুবিধা — টাকা পেয়ে তারপর দিন</li>
+    <li>পণ্য পেয়ে সমস্যা হলে সরাসরি support পাবেন</li>
+    <li>হাজারো satisfied customer-এর বিশ্বস্ত choice</li>
+  </ul>
+</section>
+
+<!-- ── PRODUCT REPEAT IMAGE ── -->
+<div class="lp-img-wrap lp-img-wrap--narrow">
+  <img src="<%= product.imageUrl %>" alt="<%= product.shortName %>" width="400" height="400" loading="lazy">
+</div>
+
+<!-- ── CONTACT ── -->
+<div class="lp-contact-bar">
+  <i class="ti ti-phone"></i>
+  যে কোন প্রয়োজনে যোগাযোগ করুন <a href="tel:<%= contactTel %>"><%= contactPhone %></a>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- ──  ORDER FORM  ── -->
+<!-- ═══════════════════════════════════════════ -->
+<section class="lp-form-section">
+  <h2 class="lp-form-title">অর্ডার করতে নিচের ফর্মটি পূরণ করুন</h2>
+
+  <div class="lp-form-wrap" id="lp-form-wrap">
+    <form id="lp-order-form" novalidate>
+      <div class="lp-form-cols">
+        <!-- LEFT: billing -->
+        <div class="lp-form-col">
+          <h3 class="lp-form-col-title">Billing details</h3>
+
+          <div class="lp-field">
+            <label class="lp-label" for="lp-name">আপনার নাম <span class="lp-req">*</span></label>
+            <input class="lp-input" id="lp-name" name="name" type="text" placeholder="আপনার পুরো নাম লিখুন" autocomplete="name" required>
+          </div>
+
+          <div class="lp-field">
+            <label class="lp-label" for="lp-country">Country / Region <span class="lp-req">*</span></label>
+            <select class="lp-input" id="lp-country" name="country" required>
+              <option value="BD" selected>Bangladesh</option>
+            </select>
+          </div>
+
+          <div class="lp-field">
+            <label class="lp-label" for="lp-address">Street address <span class="lp-req">*</span></label>
+            <input class="lp-input" id="lp-address" name="address" type="text" placeholder="আপনার পূর্ণ ঠিকানা লিখুন" autocomplete="street-address" required>
+          </div>
+
+          <div class="lp-field">
+            <label class="lp-label" for="lp-phone">মোবাইল নম্বর <span class="lp-req">*</span></label>
+            <input class="lp-input" id="lp-phone" name="phone" type="tel" placeholder="01XXXXXXXXX" autocomplete="tel" required>
+          </div>
+
+          <div class="lp-field">
+            <label class="lp-label">Delivery Area <span class="lp-req">*</span></label>
+            <div class="lp-zone-grid">
+              <button type="button" class="lp-zone-tile selected" data-district="Dhaka">
+                Inside Dhaka <span class="lp-zone-fee">৳<%= deliveryFee %></span>
+              </button>
+              <button type="button" class="lp-zone-tile" data-district="outside">
+                Outside Dhaka <span class="lp-zone-fee">৳<%= deliveryFeeOutside %></span>
+              </button>
+            </div>
+            <input type="hidden" id="lp-district" name="district" value="Dhaka">
+          </div>
+
+          <div class="lp-field">
+            <label class="lp-label" for="lp-products">Your Products</label>
+            <div class="lp-cart-preview" id="lp-cart-preview">
+              <div class="lp-cart-row">
+                <img src="<%= product.imageUrl %>" alt="" width="48" height="48" class="lp-cart-thumb">
+                <span class="lp-cart-name"><%= product.shortName %> × <span id="lp-qty-display">1</span></span>
+                <span class="lp-cart-price" id="lp-cart-line">৳<%= product.price %></span>
+              </div>
+              <div class="lp-qty-row">
+                <label class="lp-label" for="lp-qty">Quantity:</label>
+                <div class="lp-qty-ctrl">
+                  <button type="button" class="lp-qty-btn" id="lp-qty-minus">−</button>
+                  <input class="lp-qty-input" id="lp-qty" name="qty" type="number" value="1" min="1" max="10">
+                  <button type="button" class="lp-qty-btn" id="lp-qty-plus">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: order summary + payment -->
+        <div class="lp-form-col">
+          <h3 class="lp-form-col-title">Your order</h3>
+          <div class="lp-order-summary" id="lp-order-summary">
+            <div class="lp-summ-row lp-summ-head">
+              <span>Product</span><span>Subtotal</span>
+            </div>
+            <div class="lp-summ-row">
+              <span id="lp-summ-name"><%= product.shortName %> × 1</span>
+              <span id="lp-summ-subtotal">৳<%= product.price %></span>
+            </div>
+            <div class="lp-summ-row">
+              <span>Subtotal</span><span id="lp-summ-subtotal2">৳<%= product.price %></span>
+            </div>
+            <div class="lp-summ-row">
+              <span>Shipping</span><span id="lp-summ-delivery">৳<%= deliveryFee %></span>
+            </div>
+            <div class="lp-summ-row lp-summ-total">
+              <span>Total</span><span id="lp-summ-total">৳<%= product.price + deliveryFee %></span>
+            </div>
+          </div>
+
+          <div class="lp-payment-section">
+            <div class="lp-pay-tile selected" data-method="cod">
+              <i class="ti ti-cash"></i> Cash on delivery
+            </div>
+            <div class="lp-pay-tile" data-method="bkash">
+              <img src="/images/payments/bkash.svg" alt="bKash" width="60" height="24" onerror="this.style.display='none'">
+              <span>bKash</span>
+            </div>
+            <div class="lp-pay-tile" data-method="nagad">
+              <img src="/images/payments/nagad.svg" alt="Nagad" width="60" height="24" onerror="this.style.display='none'">
+              <span>Nagad</span>
+            </div>
+            <div class="lp-pay-tile" data-method="rocket">
+              <img src="/images/payments/rocket.svg" alt="Rocket" width="60" height="24" onerror="this.style.display='none'">
+              <span>Rocket</span>
+            </div>
+            <input type="hidden" id="lp-paymethod" name="paymentMethod" value="cod">
+          </div>
+
+          <div class="lp-field lp-field--hidden" id="lp-trx-wrap">
+            <label class="lp-label" for="lp-trxid">Transaction ID (TrxID)</label>
+            <input class="lp-input" id="lp-trxid" name="trxId" type="text" placeholder="আপনার TrxID লিখুন">
+          </div>
+
+          <div id="lp-form-error" class="lp-form-error" hidden></div>
+
+          <button type="submit" class="lp-btn-cta lp-btn-cta--place" id="lp-place-btn">
+            <i class="ti ti-check"></i>
+            <span class="lp-btn-label">Place order ৳<%= product.price + deliveryFee %></span>
+          </button>
+        </div>
+      </div>
+    </form>
+
+    <!-- Success state -->
+    <div id="lp-success" class="lp-success" hidden>
+      <div class="lp-success-icon"><i class="ti ti-circle-check"></i></div>
+      <h2>অর্ডার নিশ্চিত হয়েছে!</h2>
+      <p id="lp-success-order-num"></p>
+      <p>আমরা শীঘ্রই আপনার সাথে যোগাযোগ করব।</p>
+      <a href="/" class="lp-btn-cta lp-btn-cta--back">হোমপেজে ফিরুন</a>
+    </div>
+  </div>
+</section>
+
+<footer class="lp-footer">
+  <a href="/">
+    <img src="/images/rakushopbd-logo.png?v=14" alt="RakuShopBD" width="100" height="46">
+  </a>
+  <p>© <%= new Date().getFullYear() %> RakuShopBD — Comfort Your Life</p>
+  <p><a href="/privacy-policy">Privacy Policy</a> · <a href="/return-policy">Return Policy</a></p>
+</footer>
+
+<script>
+window.__OFFER_DR_HANCY__ = {
+  productId: <%= product.id %>,
+  price: <%= product.price %>,
+  shortName: '<%= product.shortName.replace(/'/g, "\\'") %>',
+  productUrl: '<%= product.productUrl %>',
+  deliveryFee: <%= deliveryFee %>,
+  deliveryFeeOutside: <%= deliveryFeeOutside %>
+};
+</script>
+<script src="/js/offer-dr-hancy.js?v=2" defer></script>
+<%- include('partials/tracking-footer', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
+<%- include('partials/messenger-chat') %>
+</body>
+</html>

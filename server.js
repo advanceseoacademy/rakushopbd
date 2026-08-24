@@ -17,7 +17,7 @@ const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
-const { getStoreBootstrap, getProductByRef } = require('./lib/storeBootstrap');
+const { getStoreBootstrap, getProductByRef, getProductById } = require('./lib/storeBootstrap');
 const { buildHomePageSsr } = require('./lib/homePageSsr');
 const { isNumericProductRef } = require('./lib/productUrl');
 const { registerAdminAuth } = require('./lib/registerAdminAuth');
@@ -53,7 +53,7 @@ const { ensureLegalPages } = require('./lib/ensureLegalPages');
 const { ensureCategoryParent } = require('./lib/ensureCategoryParent');
 const { ensureCategoryIconUrl } = require('./lib/ensureCategoryIconUrl');
 const { buildTrackingScripts } = require('./lib/trackingScripts');
-const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, getCategoryBySlug, resolvePageType } = require('./lib/seo');
+const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, absoluteUrl, getCategoryBySlug, resolvePageType } = require('./lib/seo');
 const { buildProductPageVm } = require('./lib/productPageSsr');
 const pageRenderCache = require('./lib/pageRenderCache');
 const { initRedis, isRedisReady, redisConfigured } = require('./lib/redis');
@@ -367,6 +367,110 @@ async function renderStorefront(req, res) {
 }
 
 app.get('/', (req, res) => renderStorefront(req, res));
+
+const DR_HANCY_OFFER = {
+  productId: 93,
+  slug: 'dr-hancy-melasma-dark-spot-whitening-cream-melasma-care-available-on-japan-market',
+  fallbackName: 'Dr. Hancy Melasma & Dark Spot Whitening Cream',
+  shortName: 'Dr. Hancy Melasma Cream',
+  fallbackPrice: 850,
+  comparePrice: 1500,
+  fallbackImage: '/uploads/1785381059287-IMG_3698.webp',
+  offerEndsAt: '2026-09-07T23:59:59+06:00',
+  gallery: [
+    '/uploads/1785381059287-IMG_3698.webp',
+    '/uploads/1785577877597-Dr-Hancy-White-Spot-Cream-Melasma.webp',
+    '/uploads/1785577881261-Dr-Hancy-White-Spot-Cream-Melasma1.webp',
+  ],
+};
+
+async function renderDrHancyOffer(req, res) {
+  let dbProduct = null;
+  try {
+    dbProduct = await getProductById(DR_HANCY_OFFER.productId);
+  } catch (err) {
+    console.warn('offer dr-hancy product lookup failed', err.message);
+  }
+
+  const slug = dbProduct?.slug || DR_HANCY_OFFER.slug;
+  const product = {
+    id: dbProduct?.id || DR_HANCY_OFFER.productId,
+    name: dbProduct?.name_bn || DR_HANCY_OFFER.fallbackName,
+    slug,
+    price: Number(dbProduct?.price) || DR_HANCY_OFFER.fallbackPrice,
+    oldPrice:
+      dbProduct?.old_price != null
+        ? Number(dbProduct.old_price)
+        : DR_HANCY_OFFER.comparePrice,
+    shortName: DR_HANCY_OFFER.shortName,
+    stock: dbProduct?.stock != null ? Number(dbProduct.stock) : 100,
+    imageUrl: dbProduct?.image_url || DR_HANCY_OFFER.fallbackImage,
+    inStock: dbProduct ? Number(dbProduct.stock) > 0 : true,
+    productUrl: `/product/${slug}`,
+  };
+
+  const settings = await getSiteSettings(query).catch(() => ({}));
+  const siteName = settings.site_name || 'RakuShopBD';
+  const base = getSiteBaseUrl(req, settings);
+  const canonical = absoluteUrl(base, '/offer/dr-hancy-melasma');
+  const ogImage = absoluteUrl(base, product.imageUrl);
+  const description =
+    'Japan market-এ available Dr. Hancy Melasma & Dark Spot Whitening Cream — melasma, dark spot ও uneven tone-এর জন্য। RakuShopBD থেকে অর্ডার করুন, দ্রুত ডেলিভারি।';
+
+  const seo = {
+    title: `Dr. Hancy Melasma Cream — Special Offer | ${siteName}`,
+    description: description.length > 160 ? `${description.slice(0, 157)}…` : description,
+    keywords: 'Dr Hancy, melasma cream, dark spot cream, whitening cream, Japan skincare, RakuShopBD',
+    robots: 'index, follow',
+    canonical,
+    ogType: 'product',
+    ogSiteName: siteName,
+    ogTitle: `Dr. Hancy Melasma & Dark Spot Whitening Cream — ৳${product.price}`,
+    ogDescription: description,
+    ogUrl: canonical,
+    ogImage,
+    ogImageAlt: product.name,
+    twitterCard: 'summary_large_image',
+    jsonLd: JSON.stringify([
+      {
+        '@context': 'https://schema.org',
+        '@type': 'Product',
+        name: product.name,
+        image: ogImage,
+        offers: {
+          '@type': 'Offer',
+          price: product.price,
+          priceCurrency: 'BDT',
+          availability: product.inStock
+            ? 'https://schema.org/InStock'
+            : 'https://schema.org/OutOfStock',
+          url: canonical,
+        },
+      },
+    ]),
+  };
+
+  const trackingScripts = buildTrackingScripts(settings);
+  const contactPhone = String(settings.contact_phone || '+880 1339-411587').trim();
+  res.render('offer-dr-hancy-melasma', {
+    product,
+    seo,
+    trackingScripts,
+    gallery: DR_HANCY_OFFER.gallery,
+    offerEndsAt: DR_HANCY_OFFER.offerEndsAt,
+    contactPhone,
+    contactTel: contactPhone.replace(/[^\d+]/g, ''),
+    deliveryFee: Number(settings.delivery_fee) || 60,
+    deliveryFeeOutside: Number(settings.delivery_fee_outside) || 120,
+  });
+}
+
+app.get('/offer/dr-hancy-melasma', (req, res) => {
+  renderDrHancyOffer(req, res).catch((err) => {
+    console.error('renderDrHancyOffer', err);
+    res.status(500).send('Unable to load offer page');
+  });
+});
 
 app.get('/admin', (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate');

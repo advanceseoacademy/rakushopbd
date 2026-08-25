@@ -196,9 +196,10 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
 
       const [{ total }] = await query(countSql, params).catch(() => [{ total: 0 }]);
       const reviews = await query(sql, [...params, limit, offset]);
-      const pendingCount = await countSql(
+      const pendingRows = await query(
         "SELECT COUNT(*) AS c FROM product_reviews WHERE status='pending'"
-      ).catch(() => 0);
+      ).catch(() => [{ c: 0 }]);
+      const pendingCount = Number(pendingRows[0]?.c) || 0;
       let unreadCount = 0;
       try {
         const { ensureViewedByAdminColumns, countUnreadByAdmin, isViewedByAdmin: isViewed } =

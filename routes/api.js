@@ -123,6 +123,7 @@ function cartHasIneligibleCouponItems(cart) {
 }
 
 function computeCouponDiscountAmount(coupon, eligibleSubtotal) {
+  if (coupon?.discount_type === 'free_delivery') return 0;
   const eligible = Math.max(0, Number(eligibleSubtotal) || 0);
   if (eligible <= 0) return 0;
   if (coupon.discount_type === 'percent') {
@@ -135,6 +136,15 @@ function clearSessionCoupon(req) {
   delete req.session.couponCode;
   delete req.session.couponId;
   delete req.session.couponDiscount;
+  delete req.session.couponFreeDelivery;
+}
+
+function cartSubtotal(cart) {
+  return (cart || []).reduce((s, i) => s + Number(i.price) * Number(i.qty), 0);
+}
+
+function isFreeDeliveryCoupon(coupon) {
+  return String(coupon?.discount_type || '') === 'free_delivery';
 }
 
 function clearSessionRewardRedemption(req) {
@@ -162,7 +172,9 @@ async function rewardRedemptionSnapshot(req, cart, settings) {
     return { ...disabled, enabled: true, loggedIn: false, minRedeem: cfg.minRedeem || 1, maxBalancePercent: cfg.maxBalancePercent || 50 };
   }
   const district = req.session.checkoutDistrict || null;
-  const baseTotals = calcTotalsWithSettings(cart, settings, district, 0);
+  const baseTotals = calcTotalsWithSettings(cart, settings, district, 0, {
+    freeDelivery: Boolean(req.session.couponFreeDelivery),
+  });
   const balance = await getUserRewardPoints(query, userId);
   const minRedeem = Math.max(1, Number(cfg.minRedeem) || 1);
   const maxBalancePercent = Math.min(100, Math.max(1, Number(cfg.maxBalancePercent) || 50));
@@ -237,12 +249,6 @@ async function recomputeSessionCoupon(req, cart) {
   await refreshCartCouponEligibility(cart);
   persistCart(req, cart);
 
-  const eligible = eligibleCouponSubtotal(cart);
-  if (eligible <= 0) {
-    clearSessionCoupon(req);
-    return;
-  }
-
   const coupon = couponId
     ? await loadActiveCoupon(couponId, true)
     : await loadActiveCoupon(code, false);
@@ -250,7 +256,16 @@ async function recomputeSessionCoupon(req, cart) {
     clearSessionCoupon(req);
     return;
   }
-  if (Number(eligible) < Number(coupon.min_order)) {
+
+  const freeDelivery = isFreeDeliveryCoupon(coupon);
+  const eligible = eligibleCouponSubtotal(cart);
+  const orderBase = freeDelivery ? cartSubtotal(cart) : eligible;
+
+  if (!freeDelivery && eligible <= 0) {
+    clearSessionCoupon(req);
+    return;
+  }
+  if (Number(orderBase) < Number(coupon.min_order)) {
     clearSessionCoupon(req);
     return;
   }
@@ -261,7 +276,8 @@ async function recomputeSessionCoupon(req, cart) {
 
   req.session.couponCode = coupon.code;
   req.session.couponId = coupon.id;
-  req.session.couponDiscount = computeCouponDiscountAmount(coupon, eligible);
+  req.session.couponFreeDelivery = freeDelivery;
+  req.session.couponDiscount = freeDelivery ? 0 : computeCouponDiscountAmount(coupon, eligible);
 }
 
 function sendNoStoreJson(res, payload) {
@@ -296,11 +312,12 @@ function productToWishlistItem(p) {
   };
 }
 
-function calcTotalsWithSettings(cart, settings, district, discount = 0) {
+function calcTotalsWithSettings(cart, settings, district, discount = 0, opts = {}) {
   const subtotal = cart.reduce((s, i) => s + i.price * i.qty, 0);
   if (!cart.length) return { subtotal: 0, delivery: 0, discount: 0, total: 0 };
   const { freeMin, fee } = deliveryConfig(settings, district);
-  const delivery = subtotal >= freeMin ? 0 : fee;
+  let delivery = subtotal >= freeMin ? 0 : fee;
+  if (opts.freeDelivery) delivery = 0;
   const disc = Math.min(Number(discount) || 0, subtotal + delivery);
   return { subtotal, delivery, discount: disc, total: Math.max(0, subtotal + delivery - disc), freeMin };
 }
@@ -324,16 +341,20 @@ async function cartTotalsResponse(cart, req) {
   const couponDiscount = req.session.couponDiscount || 0;
   const discount = couponDiscount + (reward.applied || 0);
   const district = req.session.checkoutDistrict || null;
-  const totals = calcTotalsWithSettings(cart, settings, district, discount);
+  const freeDelivery = Boolean(req.session.couponFreeDelivery);
+  const totals = calcTotalsWithSettings(cart, settings, district, discount, { freeDelivery });
   const eligible = eligibleCouponSubtotal(cart);
   const ineligible = cartHasIneligibleCouponItems(cart);
   const couponCode = req.session.couponCode || null;
+  let couponNote = null;
+  if (couponCode && freeDelivery) couponNote = 'Free delivery applied';
+  else if (couponCode && ineligible) couponNote = 'Applied only to non-discounted items';
   return {
     ...totals,
     couponCode,
+    couponFreeDelivery: freeDelivery,
     couponEligibleSubtotal: eligible,
-    couponNote:
-      couponCode && ineligible ? 'Applied only to non-discounted items' : null,
+    couponNote,
     reward,
     subtotalFormatted: formatPrice(totals.subtotal),
     deliveryFormatted: totals.delivery === 0 ? 'Free' : formatPrice(totals.delivery),
@@ -512,27 +533,37 @@ router.post('/coupons/validate', async (req, res) => {
     const eligible = eligibleCouponSubtotal(cart);
     const c = await loadActiveCoupon(normalizedCode, false);
     if (!c) return res.json({ ok: false, error: 'Invalid coupon' });
-    if (eligible <= 0) {
+    const freeDelivery = isFreeDeliveryCoupon(c);
+    const orderBase = freeDelivery ? cartSubtotal(cart) : eligible;
+    if (!freeDelivery && eligible <= 0) {
       return res.json({
         ok: false,
         error: 'This coupon cannot be used on already discounted products',
       });
     }
-    if (Number(eligible) < Number(c.min_order)) {
-      return res.json({ ok: false, error: `Minimum order ৳${c.min_order} on non-discounted items` });
+    if (Number(orderBase) < Number(c.min_order)) {
+      return res.json({
+        ok: false,
+        error: freeDelivery
+          ? `Minimum order ৳${c.min_order}`
+          : `Minimum order ৳${c.min_order} on non-discounted items`,
+      });
     }
     if (c.usage_limit && c.used_count >= c.usage_limit) {
       return res.json({ ok: false, error: 'Coupon limit reached' });
     }
-    const discount = computeCouponDiscountAmount(c, eligible);
+    const discount = freeDelivery ? 0 : computeCouponDiscountAmount(c, eligible);
     res.json({
       ok: true,
       discount,
+      freeDelivery,
       code: c.code,
-      eligibleSubtotal: eligible,
-      note: cartHasIneligibleCouponItems(cart)
-        ? 'Applied only to non-discounted items'
-        : null,
+      eligibleSubtotal: orderBase,
+      note: freeDelivery
+        ? 'Free delivery'
+        : cartHasIneligibleCouponItems(cart)
+          ? 'Applied only to non-discounted items'
+          : null,
     });
   } catch (err) {
     res.json({ ok: false, error: 'Could not validate coupon' });
@@ -887,29 +918,35 @@ router.post('/cart/coupon', async (req, res) => {
     const eligible = eligibleCouponSubtotal(cart);
     const c = await loadActiveCoupon(code, false);
     if (!c) return res.json({ ok: false, error: 'Invalid coupon' });
-    if (eligible <= 0) {
+    const freeDelivery = isFreeDeliveryCoupon(c);
+    const orderBase = freeDelivery ? cartSubtotal(cart) : eligible;
+    if (!freeDelivery && eligible <= 0) {
       return res.json({
         ok: false,
         error: 'This coupon cannot be used on already discounted products',
       });
     }
-    if (Number(eligible) < Number(c.min_order)) {
+    if (Number(orderBase) < Number(c.min_order)) {
       return res.json({
         ok: false,
-        error: `Minimum order ৳${c.min_order} on non-discounted items`,
+        error: freeDelivery
+          ? `Minimum order ৳${c.min_order}`
+          : `Minimum order ৳${c.min_order} on non-discounted items`,
       });
     }
     if (c.usage_limit && c.used_count >= c.usage_limit) {
       return res.json({ ok: false, error: 'Coupon limit reached' });
     }
-    const discount = computeCouponDiscountAmount(c, eligible);
+    const discount = freeDelivery ? 0 : computeCouponDiscountAmount(c, eligible);
     req.session.couponCode = c.code;
     req.session.couponId = c.id;
+    req.session.couponFreeDelivery = freeDelivery;
     req.session.couponDiscount = discount;
     const totals = await cartTotalsResponse(cart, req);
     res.json({
       ok: true,
       discount: totals.discount,
+      freeDelivery,
       code: c.code,
       totals,
       note: totals.couponNote,
@@ -1133,9 +1170,16 @@ router.post('/orders', async (req, res) => {
       }
     }
     const discount = couponDiscount + rewardDiscount;
-    const { subtotal, delivery, total } = calcTotalsWithSettings(cart, settings, orderDistrict, discount);
+    const freeDelivery = Boolean(req.session.couponFreeDelivery);
+    const { subtotal, delivery, total } = calcTotalsWithSettings(cart, settings, orderDistrict, discount, {
+      freeDelivery,
+    });
     const orderNumber = `RKS-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`;
-    const couponNote = req.session.couponCode ? `Coupon: ${req.session.couponCode} (-৳${couponDiscount})` : '';
+    const couponNote = req.session.couponCode
+      ? freeDelivery
+        ? `Coupon: ${req.session.couponCode} (Free delivery)`
+        : `Coupon: ${req.session.couponCode} (-৳${couponDiscount})`
+      : '';
     const rewardNote = rewardDiscount > 0 ? `Reward points used: ${rewardDiscount}` : '';
     const orderNotes = [notes, couponNote, rewardNote].filter(Boolean).join(' | ') || null;
 

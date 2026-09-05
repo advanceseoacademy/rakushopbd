@@ -4338,6 +4338,21 @@
     }
   }
 
+  function syncCouponTypeUi() {
+    const type = document.getElementById('cp-type')?.value;
+    const valueInput = document.getElementById('cp-value');
+    const valueLabel = document.getElementById('cp-value-label');
+    const valueHint = document.getElementById('cp-value-hint');
+    const free = type === 'free_delivery';
+    if (valueInput) {
+      valueInput.required = !free;
+      valueInput.disabled = free;
+      if (free) valueInput.value = '0';
+    }
+    if (valueLabel) valueLabel.textContent = free ? 'Value' : 'Value *';
+    if (valueHint) valueHint.hidden = !free;
+  }
+
   function resetCouponForm() {
     document.getElementById('coupon-form-title').textContent = 'New Coupon';
     document.getElementById('cp-id').value = '';
@@ -4345,6 +4360,7 @@
     document.getElementById('cp-min').value = '0';
     const submitBtn = document.getElementById('cp-submit-btn');
     if (submitBtn) submitBtn.innerHTML = '<i class="ti ti-device-floppy"></i> Save Coupon';
+    syncCouponTypeUi();
   }
 
   async function loadCoupons() {
@@ -4362,10 +4378,22 @@
       .map((c) => {
         const checked = selectedCouponIds.has(Number(c.id)) ? ' checked' : '';
         const rowClass = checked ? ' class="row-selected"' : '';
+        const typeLabel =
+          c.discount_type === 'free_delivery'
+            ? 'Free Delivery'
+            : c.discount_type === 'percent'
+              ? 'Percent'
+              : 'Fixed';
+        const valueLabel =
+          c.discount_type === 'free_delivery'
+            ? 'Free shipping'
+            : c.discount_type === 'percent'
+              ? c.discount_value + '%'
+              : '৳' + c.discount_value;
         return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="coupon-row-check" data-coupon-id="${c.id}" aria-label="Select coupon ${escHtml(c.code)}"${checked}></td>
         <td><code style="background:#E8F3EA;padding:3px 8px;border-radius:4px;font-weight:700;">${escHtml(c.code)}</code></td>
-        <td>${escHtml(c.discount_type)}</td><td>${c.discount_type === 'percent' ? c.discount_value + '%' : '৳' + c.discount_value}</td>
+        <td>${escHtml(typeLabel)}</td><td>${escHtml(valueLabel)}</td>
         <td>৳${Number(c.min_order).toLocaleString()}</td>
         <td>${c.used_count}${c.usage_limit ? '/' + c.usage_limit : ''}</td>
         <td>${c.expires_at ? String(c.expires_at).slice(0, 10) : '—'}</td>
@@ -4386,6 +4414,7 @@
         document.getElementById('cp-min').value = c.min_order;
         document.getElementById('cp-limit').value = c.usage_limit || '';
         document.getElementById('cp-expires').value = c.expires_at ? String(c.expires_at).slice(0, 10) : '';
+        syncCouponTypeUi();
         openCouponModal();
       };
     });
@@ -4443,15 +4472,17 @@
     });
   }
 
+  document.getElementById('cp-type')?.addEventListener('change', syncCouponTypeUi);
   document.getElementById('cp-reset')?.addEventListener('click', resetCouponForm);
 
   document.getElementById('coupon-form').onsubmit = async (e) => {
     e.preventDefault();
     const id = document.getElementById('cp-id').value;
+    const discountType = document.getElementById('cp-type').value;
     const body = {
       code: document.getElementById('cp-code').value.trim(),
-      discountType: document.getElementById('cp-type').value,
-      discountValue: Number(document.getElementById('cp-value').value),
+      discountType,
+      discountValue: discountType === 'free_delivery' ? 0 : Number(document.getElementById('cp-value').value),
       minOrder: Number(document.getElementById('cp-min').value),
       usageLimit: document.getElementById('cp-limit').value || null,
       expiresAt: document.getElementById('cp-expires').value || null,

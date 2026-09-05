@@ -118,7 +118,7 @@ CREATE TABLE site_settings (
 CREATE TABLE coupons (
   id SERIAL PRIMARY KEY,
   code VARCHAR(40) NOT NULL UNIQUE,
-  discount_type VARCHAR(10) NOT NULL DEFAULT 'percent',
+  discount_type VARCHAR(20) NOT NULL DEFAULT 'percent',
   discount_value DECIMAL(10,2) NOT NULL,
   min_order DECIMAL(12,2) NOT NULL DEFAULT 0,
   usage_limit INT,

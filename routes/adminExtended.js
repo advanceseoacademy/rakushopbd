@@ -610,12 +610,17 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
   router.put('/coupons/:id', requireAdmin, async (req, res) => {
     try {
       const { code, discountType, discountValue, minOrder, usageLimit, expiresAt, isActive } = req.body;
+      const type = String(discountType || 'percent').trim();
+      if (!['percent', 'fixed', 'free_delivery'].includes(type)) {
+        return res.status(400).json({ ok: false, error: 'Invalid coupon type' });
+      }
+      const value = type === 'free_delivery' ? 0 : Number(discountValue);
       await query(
         `UPDATE coupons SET code=?, discount_type=?, discount_value=?, min_order=?, usage_limit=?, expires_at=?, is_active=? WHERE id=?`,
         [
-          code.toUpperCase(),
-          discountType,
-          discountValue,
+          String(code || '').trim().toUpperCase(),
+          type,
+          value,
           minOrder,
           usageLimit || null,
           expiresAt || null,

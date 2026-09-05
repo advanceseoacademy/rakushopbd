@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS site_settings (
 CREATE TABLE IF NOT EXISTS coupons (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   code VARCHAR(40) NOT NULL UNIQUE,
-  discount_type ENUM('percent','fixed') NOT NULL DEFAULT 'percent',
+  discount_type ENUM('percent','fixed','free_delivery') NOT NULL DEFAULT 'percent',
   discount_value DECIMAL(10,2) NOT NULL,
   min_order DECIMAL(12,2) NOT NULL DEFAULT 0,
   usage_limit INT UNSIGNED DEFAULT NULL,

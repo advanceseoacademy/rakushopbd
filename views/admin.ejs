@@ -1218,10 +1218,14 @@
       <input type="hidden" id="cp-id" value="">
       <div class="form-group"><label class="form-label">Code *</label><input class="form-input" id="cp-code" required placeholder="SAVE10" autocomplete="off"></div>
       <div class="form-group"><label class="form-label">Type</label>
-        <select class="form-input form-select" id="cp-type"><option value="percent">Percent (%)</option><option value="fixed">Fixed (৳)</option></select>
+        <select class="form-input form-select" id="cp-type">
+          <option value="percent">Percent (%)</option>
+          <option value="fixed">Fixed (৳)</option>
+          <option value="free_delivery">Free Delivery</option>
+        </select>
       </div>
       <div class="form-2col">
-        <div class="form-group"><label class="form-label">Value *</label><input class="form-input" id="cp-value" type="number" min="0" required></div>
+        <div class="form-group" id="cp-value-group"><label class="form-label" id="cp-value-label">Value *</label><input class="form-input" id="cp-value" type="number" min="0" required><small class="form-hint" id="cp-value-hint" hidden>Not needed for free delivery coupons.</small></div>
         <div class="form-group"><label class="form-label">Min order (৳)</label><input class="form-input" id="cp-min" type="number" min="0" value="0"></div>
       </div>
       <div class="form-2col">
@@ -1450,6 +1454,6 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
 <script src="/js/admin-rich-editor.js?v=14"></script>
-<script src="/js/admin.js?v=131"></script>
+<script src="/js/admin.js?v=132"></script>
 </body>
 </html>

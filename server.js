@@ -40,6 +40,7 @@ const { ensureOrderAdminViewColumns } = require('./lib/ensureOrderAdminViewColum
 const { ensureOrderStockCommittedColumn } = require('./lib/productStock');
 const { ensureViewedByAdminColumns } = require('./lib/ensureViewedByAdminColumns');
 const { ensureRewardPointEvents } = require('./lib/ensureRewardPointEvents');
+const { ensureCouponFreeDeliveryType } = require('./lib/ensureCouponFreeDeliveryType');
 const { ensureRewardPointSettings } = require('./lib/ensureRewardPointSettings');
 const { ensureReviewVideos } = require('./lib/ensureReviewVideos');
 const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
@@ -595,6 +596,9 @@ async function startServer() {
     console.warn('product_reviews viewed_by_admin column:', err.message)
   );
   ensureRewardPointEvents().catch((err) => console.warn('reward point events:', err.message));
+  ensureCouponFreeDeliveryType()
+    .then(() => console.log('coupons free_delivery type ready'))
+    .catch((err) => console.warn('coupons free_delivery type:', err.message));
   ensureRewardPointSettings().catch((err) => console.warn('reward point settings:', err.message));
   ensureReviewVideos().catch((err) => console.warn('review videos table:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));

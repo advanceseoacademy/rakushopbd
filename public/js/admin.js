@@ -82,6 +82,7 @@
   const selectedReviewIds = new Set();
 
   let ordersPage = 1;
+  let resellerOrdersPage = 1;
   let reviewsPage = 1;
   let dashRecentOrdersPage = 1;
   let appointmentsPage = 1;
@@ -417,7 +418,10 @@
     if (page === 'faq') loadFaqs();
     if (page === 'blog') loadBlogPosts();
     if (page === 'coupons') loadCoupons();
-    if (page === 'resellers') loadResellers();
+    if (page === 'resellers') {
+      loadResellers();
+      loadResellerOrders(1);
+    }
     if (page === 'reseller-payouts') loadResellerPayouts();
     if (page === 'settings') loadSettings();
     if (page === 'legal') {
@@ -1024,12 +1028,10 @@
     if (page) ordersPage = page;
     const status = document.getElementById('orders-status-filter').value;
     const payment = document.getElementById('orders-payment-filter')?.value || 'all';
-    const source = document.getElementById('orders-source-filter')?.value || 'all';
     const search = document.getElementById('orders-search').value.trim();
-    const q = new URLSearchParams({ page: ordersPage, limit: 20 });
+    const q = new URLSearchParams({ page: ordersPage, limit: 20, source: 'store' });
     if (status !== 'all') q.set('status', status);
     if (payment !== 'all') q.set('payment', payment);
-    if (source !== 'all') q.set('source', source);
     if (search) q.set('search', search);
     const data = await api('/orders?' + q.toString());
     if (!data.ok) return;
@@ -1040,13 +1042,10 @@
             const checked = selectedOrderIds.has(Number(o.id)) ? ' checked' : '';
             const rowClass = checked ? ' class="row-selected"' : '';
             const seenBadge = orderViewBadgeHtml(o.viewedByAdmin);
-            const resellerBadge = o.resellerId
-              ? `<span class="badge badge-blue" style="margin-left:4px;">Reseller${o.resellerName ? ': ' + escHtml(o.resellerName) : ''}</span>`
-              : '';
             return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="order-row-check" data-order-id="${o.id}" aria-label="Select order ${escHtml(o.orderNumber)}"${checked}></td>
-        <td><b>${escHtml(o.orderNumber)}</b>${resellerBadge}<br><small style="margin-top:4px;display:inline-block;" data-order-seen="${o.id}">${seenBadge}</small></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
-        <td>${escHtml(o.itemsPreview)}${o.resellerId ? `<br><small style="color:#166534">Profit ৳${Number(o.resellerProfit || 0).toLocaleString()}</small>` : ''}</td><td>${escHtml(o.paymentMethod)}</td><td>${fmtDate(o.createdAt)}</td>
+        <td><b>${escHtml(o.orderNumber)}</b><br><small style="margin-top:4px;display:inline-block;" data-order-seen="${o.id}">${seenBadge}</small></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
+        <td>${escHtml(o.itemsPreview)}</td><td>${escHtml(o.paymentMethod)}</td><td>${fmtDate(o.createdAt)}</td>
         <td>${escHtml(o.totalFormatted)}</td><td>${statusBadgeHtml(o.status)}</td>
         <td class="tbl-actions">
           <button type="button" class="btn btn-outline btn-xs" data-order-details="${o.id}">Details</button>
@@ -1071,7 +1070,6 @@
 
   document.getElementById('orders-status-filter').onchange = () => loadOrders(1);
   document.getElementById('orders-payment-filter')?.addEventListener('change', () => loadOrders(1));
-  document.getElementById('orders-source-filter')?.addEventListener('change', () => loadOrders(1));
   document.getElementById('orders-search').oninput = debounce(() => loadOrders(1), 400);
 
   document.getElementById('orders-select-all')?.addEventListener('change', (e) => {
@@ -2875,6 +2873,7 @@
       <p>${o.customer_name} · ${o.customer_phone}</p>
       <p>${o.address_line}, ${o.district}</p>
       <p>Payment: <b>${o.payment_method}</b></p>
+      ${o.reseller_id ? `<p><span class="badge badge-blue">Reseller order</span> Profit on items is credited to the reseller wallet when delivered.</p>` : ''}
       <hr style="margin:12px 0;border:none;border-top:1px solid #e2e8f0;">
       ${data.order.items
         .map((i) => `<p>${i.product_name} ×${i.quantity} — ৳${Number(i.line_total).toLocaleString()}</p>`)
@@ -2891,6 +2890,7 @@
       toast('Order updated');
       document.getElementById('order-modal').classList.remove('open');
       loadOrders();
+      if (document.getElementById('sec-resellers')?.classList.contains('active')) loadResellerOrders();
       loadDashboard();
     }
   };
@@ -4409,6 +4409,75 @@
     });
   }
 
+  async function loadResellerOrders(page) {
+    if (page) resellerOrdersPage = page;
+    const status = document.getElementById('reseller-orders-status-filter')?.value || 'pending';
+    const search = document.getElementById('reseller-orders-search')?.value.trim() || '';
+    const q = new URLSearchParams({ page: resellerOrdersPage, limit: 20, source: 'reseller' });
+    if (status !== 'all') q.set('status', status);
+    if (search) q.set('search', search);
+    const data = await api('/orders?' + q.toString());
+    const tbody = document.getElementById('reseller-orders-tbody');
+    if (!tbody) return;
+    if (!data.ok) {
+      tbody.innerHTML = `<tr><td colspan="8">${escHtml(data.error || 'Failed')}</td></tr>`;
+      return;
+    }
+    if (!data.orders?.length) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No reseller orders.</td></tr>';
+    } else {
+      tbody.innerHTML = data.orders
+        .map((o) => {
+          const statuses = ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+          const options = statuses
+            .map((s) => `<option value="${s}"${s === o.status ? ' selected' : ''}>${s}</option>`)
+            .join('');
+          return `<tr>
+            <td><b>${escHtml(o.orderNumber)}</b><br><small>${fmtDate(o.createdAt)}</small></td>
+            <td>${escHtml(o.resellerName || 'Reseller')}</td>
+            <td>${escHtml(o.customerName)}<br><small>${escHtml(o.customerPhone)}</small></td>
+            <td>${escHtml(o.itemsPreview)}</td>
+            <td style="color:#166534;font-weight:700;">৳${Number(o.resellerProfit || 0).toLocaleString()}</td>
+            <td>${escHtml(o.totalFormatted)}</td>
+            <td>${statusBadgeHtml(o.status)}</td>
+            <td>
+              <select class="form-input form-select" data-rs-order-status="${o.id}" style="width:auto;margin-bottom:6px;">${options}</select>
+              <button type="button" class="btn btn-outline btn-xs" data-order-details="${o.id}">Details</button>
+            </td>
+          </tr>`;
+        })
+        .join('');
+      tbody.querySelectorAll('[data-rs-order-status]').forEach((sel) => {
+        sel.onchange = async () => {
+          const r = await api('/orders/' + sel.dataset.rsOrderStatus, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: sel.value }),
+          });
+          if (r.ok) {
+            toast('Order updated');
+            loadResellerOrders();
+          } else {
+            toast(r.error || 'Failed', 'error');
+            loadResellerOrders();
+          }
+        };
+      });
+      tbody.querySelectorAll('[data-order-details]').forEach((btn) => {
+        btn.onclick = () => openOrderModal(btn.dataset.orderDetails);
+      });
+    }
+    const pag = data.pagination;
+    const pagEl = document.getElementById('reseller-orders-pagination');
+    if (pagEl && pag) {
+      pagEl.innerHTML = `<span>Page ${pag.page} of ${pag.pages} (${pag.total} reseller orders)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page <= 1 ? 'disabled' : ''} data-rop="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${pag.page >= pag.pages ? 'disabled' : ''} data-rop="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-rop]').forEach((b) => {
+        b.onclick = () => loadResellerOrders(resellerOrdersPage + Number(b.dataset.rop));
+      });
+    }
+  }
+
   async function loadResellerPayouts() {
     const status = document.getElementById('reseller-payouts-status-filter')?.value || 'requested';
     const data = await api('/reseller-payouts?status=' + encodeURIComponent(status));
@@ -4454,6 +4523,8 @@
   }
 
   document.getElementById('resellers-status-filter')?.addEventListener('change', () => loadResellers());
+  document.getElementById('reseller-orders-status-filter')?.addEventListener('change', () => loadResellerOrders(1));
+  document.getElementById('reseller-orders-search')?.addEventListener('input', debounce(() => loadResellerOrders(1), 400));
   document.getElementById('reseller-payouts-status-filter')?.addEventListener('change', () => loadResellerPayouts());
 
   function resetCouponForm() {

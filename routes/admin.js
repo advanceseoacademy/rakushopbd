@@ -90,7 +90,7 @@ function isViewedByAdmin(val) {
 
 async function countUnreadOrders() {
   return scalarCount(
-    'SELECT COUNT(*) AS c FROM orders WHERE viewed_by_admin IS NOT TRUE'
+    'SELECT COUNT(*) AS c FROM orders WHERE viewed_by_admin IS NOT TRUE AND reseller_id IS NULL'
   );
 }
 

@@ -4364,7 +4364,7 @@
   }
 
   async function loadResellers() {
-    const status = document.getElementById('resellers-status-filter')?.value || 'pending';
+    const status = document.getElementById('resellers-status-filter')?.value || 'all';
     const data = await api('/resellers?status=' + encodeURIComponent(status));
     const tbody = document.getElementById('resellers-tbody');
     if (!data.ok) {
@@ -4411,7 +4411,7 @@
 
   async function loadResellerOrders(page) {
     if (page) resellerOrdersPage = page;
-    const status = document.getElementById('reseller-orders-status-filter')?.value || 'pending';
+    const status = document.getElementById('reseller-orders-status-filter')?.value || 'all';
     const search = document.getElementById('reseller-orders-search')?.value.trim() || '';
     const q = new URLSearchParams({ page: resellerOrdersPage, limit: 20, source: 'reseller' });
     if (status !== 'all') q.set('status', status);

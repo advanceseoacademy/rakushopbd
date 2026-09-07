@@ -161,6 +161,8 @@
     'blog-form': 'New Blog Post',
     legal: 'Legal Pages',
     coupons: 'Coupons',
+    resellers: 'Resellers',
+    'reseller-payouts': 'Reseller Payouts',
     reviews: 'Reviews',
     'review-videos': 'Review Videos',
     banners: 'Banners',
@@ -415,6 +417,8 @@
     if (page === 'faq') loadFaqs();
     if (page === 'blog') loadBlogPosts();
     if (page === 'coupons') loadCoupons();
+    if (page === 'resellers') loadResellers();
+    if (page === 'reseller-payouts') loadResellerPayouts();
     if (page === 'settings') loadSettings();
     if (page === 'legal') {
       loadLegalPages();
@@ -4352,6 +4356,99 @@
     if (valueLabel) valueLabel.textContent = free ? 'Value' : 'Value *';
     if (valueHint) valueHint.hidden = !free;
   }
+
+  async function loadResellers() {
+    const status = document.getElementById('resellers-status-filter')?.value || 'pending';
+    const data = await api('/resellers?status=' + encodeURIComponent(status));
+    const tbody = document.getElementById('resellers-tbody');
+    if (!data.ok) {
+      tbody.innerHTML = `<tr><td colspan="7">${escHtml(data.error || 'Failed')}</td></tr>`;
+      return;
+    }
+    if (!data.resellers?.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">No resellers.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.resellers
+      .map((r) => {
+        const actions =
+          r.status === 'pending'
+            ? `<button type="button" class="btn btn-primary btn-xs" data-rs-status="${r.id}" data-status="approved">Approve</button>
+               <button type="button" class="btn btn-danger btn-xs" data-rs-status="${r.id}" data-status="suspended">Reject</button>`
+            : r.status === 'approved'
+              ? `<button type="button" class="btn btn-danger btn-xs" data-rs-status="${r.id}" data-status="suspended">Suspend</button>`
+              : `<button type="button" class="btn btn-primary btn-xs" data-rs-status="${r.id}" data-status="approved">Re-approve</button>`;
+        return `<tr>
+          <td><b>${escHtml(r.fullName)}</b></td>
+          <td>${escHtml(r.email)}<br>${escHtml(r.phone || '')}</td>
+          <td>${escHtml(r.status)}</td>
+          <td>৳${Number(r.walletBalance).toLocaleString()}</td>
+          <td>৳${Number(r.pendingBalance).toLocaleString()}</td>
+          <td style="max-width:180px;font-size:12px;">${escHtml(r.applyNote || '—')}</td>
+          <td>${actions}</td>
+        </tr>`;
+      })
+      .join('');
+    tbody.querySelectorAll('[data-rs-status]').forEach((btn) => {
+      btn.onclick = async () => {
+        const r = await api('/resellers/' + btn.dataset.rsStatus, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: btn.dataset.status }),
+        });
+        if (r.ok) {
+          toast('Updated');
+          loadResellers();
+        } else toast(r.error || 'Failed', 'error');
+      };
+    });
+  }
+
+  async function loadResellerPayouts() {
+    const status = document.getElementById('reseller-payouts-status-filter')?.value || 'requested';
+    const data = await api('/reseller-payouts?status=' + encodeURIComponent(status));
+    const tbody = document.getElementById('reseller-payouts-tbody');
+    if (!data.ok) {
+      tbody.innerHTML = `<tr><td colspan="7">${escHtml(data.error || 'Failed')}</td></tr>`;
+      return;
+    }
+    if (!data.payouts?.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:24px;">No payouts.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.payouts
+      .map((p) => {
+        const actions =
+          p.status === 'requested' || p.status === 'processing'
+            ? `<button type="button" class="btn btn-primary btn-xs" data-po-action="${p.id}" data-action="paid">Mark paid</button>
+               <button type="button" class="btn btn-danger btn-xs" data-po-action="${p.id}" data-action="rejected">Reject</button>`
+            : '—';
+        return `<tr>
+          <td><b>${escHtml(p.fullName)}</b><br><small>${escHtml(p.email)}</small></td>
+          <td>৳${Number(p.amount).toLocaleString()}</td>
+          <td>${escHtml(p.method)}</td>
+          <td>${escHtml(p.accountNumber)}</td>
+          <td>${escHtml(p.status)}</td>
+          <td>${escHtml(String(p.requestedAt || '').slice(0, 10))}</td>
+          <td>${actions}</td>
+        </tr>`;
+      })
+      .join('');
+    tbody.querySelectorAll('[data-po-action]').forEach((btn) => {
+      btn.onclick = async () => {
+        const r = await api('/reseller-payouts/' + btn.dataset.poAction, {
+          method: 'PATCH',
+          body: JSON.stringify({ action: btn.dataset.action }),
+        });
+        if (r.ok) {
+          toast('Updated');
+          loadResellerPayouts();
+        } else toast(r.error || 'Failed', 'error');
+      };
+    });
+  }
+
+  document.getElementById('resellers-status-filter')?.addEventListener('change', () => loadResellers());
+  document.getElementById('reseller-payouts-status-filter')?.addEventListener('change', () => loadResellerPayouts());
 
   function resetCouponForm() {
     document.getElementById('coupon-form-title').textContent = 'New Coupon';

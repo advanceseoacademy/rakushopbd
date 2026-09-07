@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="bn-BD">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>RakuShopBD Reseller</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="/images/rakushopbd-logo.png?v=14" type="image/png">
+  <link rel="stylesheet" href="/css/brand-tokens.css?v=3">
+  <link rel="stylesheet" href="/css/tabler-icons-subset.css?v=3">
+  <link rel="stylesheet" href="/css/reseller.css?v=1">
+</head>
+<body class="rs-body">
+  <header class="rs-header">
+    <a href="/" class="rs-logo" data-nav="home">
+      <img src="/images/rakushopbd-logo.png?v=14" alt="RakuShopBD" height="40">
+      <span>Reseller</span>
+    </a>
+    <nav class="rs-nav" id="rs-nav" hidden>
+      <a href="#dashboard" data-nav="dashboard">Dashboard</a>
+      <a href="#products" data-nav="products">Products</a>
+      <a href="#place-order" data-nav="place-order">Place Order</a>
+      <a href="#payouts" data-nav="payouts">Payouts</a>
+      <button type="button" class="rs-link-btn" id="rs-logout">Logout</button>
+    </nav>
+  </header>
+
+  <main class="rs-main">
+    <!-- Auth -->
+    <section class="rs-page" id="page-auth">
+      <div class="rs-card rs-auth">
+        <h1>Reseller Portal</h1>
+        <p class="rs-muted">শুধু অনুমোদিত রিসেলারদের জন্য</p>
+        <div class="rs-tabs">
+          <button type="button" class="rs-tab is-active" data-auth-tab="login">Login</button>
+          <button type="button" class="rs-tab" data-auth-tab="register">Register</button>
+        </div>
+        <form id="rs-login-form" class="rs-form">
+          <label>Email<input name="email" type="email" required autocomplete="email"></label>
+          <label>Password<input name="password" type="password" required autocomplete="current-password"></label>
+          <button type="submit" class="rs-btn">Log in</button>
+        </form>
+        <form id="rs-register-form" class="rs-form" hidden>
+          <label>Full name<input name="fullName" type="text" required></label>
+          <label>Email<input name="email" type="email" required></label>
+          <label>Phone<input name="phone" type="tel" placeholder="01XXXXXXXXX"></label>
+          <label>Password<input name="password" type="password" required minlength="6"></label>
+          <button type="submit" class="rs-btn">Create account</button>
+        </form>
+        <p class="rs-err" id="rs-auth-err" hidden></p>
+      </div>
+    </section>
+
+    <!-- Apply / pending / suspended -->
+    <section class="rs-page" id="page-gate" hidden>
+      <div class="rs-card">
+        <h1 id="rs-gate-title">Become a Reseller</h1>
+        <p id="rs-gate-msg" class="rs-muted"></p>
+        <form id="rs-apply-form" class="rs-form" hidden>
+          <label>How will you sell?<textarea name="note" rows="3" placeholder="Facebook, WhatsApp groups, etc."></textarea></label>
+          <button type="submit" class="rs-btn">Submit application</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Dashboard -->
+    <section class="rs-page" id="page-dashboard" hidden>
+      <h1 class="rs-h1">Dashboard</h1>
+      <div class="rs-stats" id="rs-stats"></div>
+      <div class="rs-card">
+        <h2>My markup</h2>
+        <form id="rs-markup-form" class="rs-form rs-form-inline">
+          <label>Default markup %
+            <input name="markup" type="number" min="0" max="500" step="0.5" id="rs-markup-input">
+          </label>
+          <button type="submit" class="rs-btn rs-btn-sm">Save</button>
+        </form>
+        <p class="rs-muted" id="rs-markup-preview"></p>
+      </div>
+      <div class="rs-card">
+        <h2>Recent orders</h2>
+        <div id="rs-orders-list" class="rs-table-wrap">Loading…</div>
+      </div>
+    </section>
+
+    <!-- Products -->
+    <section class="rs-page" id="page-products" hidden>
+      <h1 class="rs-h1">Products</h1>
+      <div class="rs-toolbar">
+        <input type="search" id="rs-product-q" placeholder="Search products…" class="rs-input">
+        <select id="rs-product-cat" class="rs-input"><option value="">All categories</option></select>
+      </div>
+      <div id="rs-product-grid" class="rs-grid">Loading…</div>
+    </section>
+
+    <!-- Place order -->
+    <section class="rs-page" id="page-place-order" hidden>
+      <h1 class="rs-h1">Place order</h1>
+      <form id="rs-order-form" class="rs-card rs-form">
+        <h2>Customer</h2>
+        <label>Name *<input name="name" required></label>
+        <label>Mobile *<input name="phone" required placeholder="01XXXXXXXXX"></label>
+        <label>Address *<textarea name="address" rows="2" required></textarea></label>
+        <label>Delivery area *
+          <select name="district" id="rs-district">
+            <option value="Dhaka">Inside Dhaka</option>
+            <option value="outside">Outside Dhaka</option>
+          </select>
+        </label>
+        <label>Notes<textarea name="notes" rows="2"></textarea></label>
+
+        <h2>Products</h2>
+        <div class="rs-toolbar">
+          <input type="search" id="rs-order-product-q" class="rs-input" placeholder="Search to add…">
+        </div>
+        <div id="rs-order-suggest" class="rs-suggest" hidden></div>
+        <div id="rs-order-lines" class="rs-order-lines"></div>
+        <div class="rs-order-total" id="rs-order-total"></div>
+        <p class="rs-err" id="rs-order-err" hidden></p>
+        <button type="submit" class="rs-btn" id="rs-order-submit">Place COD order</button>
+      </form>
+      <div class="rs-card" id="rs-order-success" hidden>
+        <h2>Order placed</h2>
+        <p id="rs-order-success-msg"></p>
+        <button type="button" class="rs-btn" data-nav="dashboard">Back to dashboard</button>
+      </div>
+    </section>
+
+    <!-- Payouts -->
+    <section class="rs-page" id="page-payouts" hidden>
+      <h1 class="rs-h1">Payouts</h1>
+      <div class="rs-card">
+        <p>Wallet: <strong id="rs-wallet-bal">৳0</strong> · Min: <span id="rs-min-payout">৳500</span></p>
+        <form id="rs-payout-form" class="rs-form">
+          <label>Amount<input name="amount" type="number" min="1" required></label>
+          <label>Method
+            <select name="method">
+              <option value="bkash">bKash</option>
+              <option value="nagad">Nagad</option>
+              <option value="rocket">Rocket</option>
+            </select>
+          </label>
+          <label>Account number<input name="accountNumber" required placeholder="01XXXXXXXXX"></label>
+          <button type="submit" class="rs-btn">Request payout</button>
+        </form>
+        <p class="rs-err" id="rs-payout-err" hidden></p>
+      </div>
+      <div class="rs-card">
+        <h2>History</h2>
+        <div id="rs-payout-list">Loading…</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="rs-footer">© RakuShopBD Reseller · <a href="https://www.rakushopbd.com" rel="noopener">Main store</a></footer>
+  <script>window.RAKU_RESELLER_API='/api/reseller';</script>
+  <script src="/js/reseller-app.js?v=1" defer></script>
+</body>
+</html>

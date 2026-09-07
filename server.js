@@ -16,6 +16,7 @@ const cookieSession = require('cookie-session');
 const apiRoutes = require('./routes/api');
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const resellerRoutes = require('./routes/reseller');
 const { renderMaintenanceIfNeeded } = require('./lib/maintenanceGate');
 const { getStoreBootstrap, getProductByRef, getProductById } = require('./lib/storeBootstrap');
 const { buildHomePageSsr } = require('./lib/homePageSsr');
@@ -41,6 +42,7 @@ const { ensureOrderStockCommittedColumn } = require('./lib/productStock');
 const { ensureViewedByAdminColumns } = require('./lib/ensureViewedByAdminColumns');
 const { ensureRewardPointEvents } = require('./lib/ensureRewardPointEvents');
 const { ensureCouponFreeDeliveryType } = require('./lib/ensureCouponFreeDeliveryType');
+const { ensureResellerTables } = require('./lib/ensureResellerTables');
 const { ensureRewardPointSettings } = require('./lib/ensureRewardPointSettings');
 const { ensureReviewVideos } = require('./lib/ensureReviewVideos');
 const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
@@ -168,19 +170,24 @@ app.use(express.static(publicDir, expressStaticOptions(ONE_MONTH_SEC)));
 
 const sessionMaxAge = 7 * 24 * 60 * 60 * 1000;
 const sessionSecret = process.env.SESSION_SECRET || 'rakushopbd-dev-secret-change-me';
+const { isResellerRequest, stripResellerPath } = require('./lib/resellerHost');
 
-// Signed cookie session — survives page reload & cPanel multi-worker (no shared memory/DB store)
-app.use(
-  cookieSession({
-    name: 'rakushopbd.sid',
+// Host-aware session cookie (reseller subdomain / local /r / reseller API share one cookie)
+app.use((req, res, next) => {
+  const reseller =
+    isResellerRequest(req) || String(req.path || '').startsWith('/api/reseller');
+  req.isResellerHost = isResellerRequest(req);
+  const name = reseller ? 'rakushopbd.reseller.sid' : 'rakushopbd.sid';
+  return cookieSession({
+    name,
     keys: [sessionSecret],
     maxAge: sessionMaxAge,
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
     secure: process.env.COOKIE_SECURE === 'true',
-  })
-);
+  })(req, res, next);
+});
 
 // Public utility pages — registered before maintenance gate (always reachable)
 
@@ -481,6 +488,31 @@ app.get('/admin', (req, res) => {
 app.use('/api', apiRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/reseller', resellerRoutes);
+
+function renderResellerApp(req, res) {
+  res.set('Cache-Control', 'no-store');
+  res.render('reseller/index');
+}
+
+// Local path prefix: /r → reseller app
+app.get('/r', (req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && !isResellerRequest(req)) return next();
+  return renderResellerApp(req, res);
+});
+app.get(/^\/r\/.*/, (req, res, next) => {
+  if (process.env.NODE_ENV === 'production' && !isResellerRequest(req)) return next();
+  return renderResellerApp(req, res);
+});
+
+// Reseller subdomain (and RESELLER_HOSTS) — serve reseller app for HTML GETs
+app.use((req, res, next) => {
+  if (!req.isResellerHost) return next();
+  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
+  if (req.path.startsWith('/api') || req.path.startsWith('/admin')) return next();
+  if (path.extname(req.path)) return next();
+  return renderResellerApp(req, res);
+});
 
 // Storefront SPA — clean URLs (no hash); reload on /blog, /faq, etc. must serve the app shell
 const STOREFRONT_SPA_PATH_LIST = [...STOREFRONT_SPA_EXACT_PATHS];
@@ -599,6 +631,9 @@ async function startServer() {
   ensureCouponFreeDeliveryType()
     .then(() => console.log('coupons free_delivery type ready'))
     .catch((err) => console.warn('coupons free_delivery type:', err.message));
+  ensureResellerTables()
+    .then(() => console.log('reseller tables ready'))
+    .catch((err) => console.warn('reseller tables:', err.message));
   ensureRewardPointSettings().catch((err) => console.warn('reward point settings:', err.message));
   ensureReviewVideos().catch((err) => console.warn('review videos table:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));

@@ -81,6 +81,8 @@
     </div>
     <div class="nav-item" data-page="blog" data-super-only><i class="ti ti-file-text"></i> Blog</div>
     <div class="nav-item" data-page="coupons" data-super-only><i class="ti ti-discount"></i> Coupons</div>
+    <div class="nav-item" data-page="resellers" data-super-only><i class="ti ti-users-group"></i> Resellers</div>
+    <div class="nav-item" data-page="reseller-payouts" data-super-only><i class="ti ti-cash"></i> Reseller Payouts</div>
     <div class="nav-item" data-page="reviews" data-super-only><i class="ti ti-star"></i> Reviews <span class="nav-badge nav-badge-new" id="review-badge" hidden>0 New</span></div>
     <div class="nav-item" data-page="review-videos" data-super-only><i class="ti ti-video"></i> Review Videos <span class="nav-badge nav-badge-new" id="review-video-badge" hidden>0 New</span></div>
     <div class="nav-item" data-page="banners" data-super-only><i class="ti ti-photo"></i> Banners</div>
@@ -322,7 +324,7 @@
               </div>
               <div class="form-group"><label class="form-label">Sale price (৳) *</label><input class="form-input" id="pf-price" type="number" min="0" step="0.01" required><small class="form-hint">Customer-facing price — auto-calculated from MRP and discount when both are set</small></div>
               <div class="form-section-title">Internal — admin only</div>
-              <div class="form-group"><label class="form-label">Purchase / buy price (৳)</label><input class="form-input" id="pf-buy-price" type="number" min="0" step="0.01" placeholder="Your cost price per unit"><small class="form-hint">Internal use only — not visible to customers on the website</small></div>
+              <div class="form-group"><label class="form-label">Reseller base / buy price (৳)</label><input class="form-input" id="pf-buy-price" type="number" min="0" step="0.01" placeholder="Wholesale cost for resellers"><small class="form-hint">Not shown on public storefront. Required for reseller catalog (≥ selling only if set).</small></div>
               <div class="form-2col">
                 <div class="form-group"><label class="form-label">SKU</label><input class="form-input" id="pf-sku" placeholder="PROD-001"></div>
                 <div class="form-group"><label class="form-label">Stock</label><input class="form-input" id="pf-stock" type="number" min="0" value="100"></div>
@@ -603,6 +605,46 @@
             <th class="tbl-check-col"><input type="checkbox" id="coupons-select-all" title="Select all on this page" aria-label="Select all coupons on this page"></th>
             <th>Code</th><th>Type</th><th>Value</th><th>Min order</th><th>Used</th><th>Expires</th><th>Actions</th></tr></thead>
           <tbody id="coupons-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-resellers">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Reseller Applications</h3>
+            <div class="table-actions">
+              <select class="form-input form-select" id="resellers-status-filter" style="width:auto;">
+                <option value="all">All</option>
+                <option value="pending" selected>Pending</option>
+                <option value="approved">Approved</option>
+                <option value="suspended">Suspended</option>
+              </select>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr>
+            <th>Name</th><th>Contact</th><th>Status</th><th>Wallet</th><th>Pending</th><th>Note</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="resellers-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-reseller-payouts">
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Reseller Payouts</h3>
+            <div class="table-actions">
+              <select class="form-input form-select" id="reseller-payouts-status-filter" style="width:auto;">
+                <option value="requested" selected>Requested</option>
+                <option value="paid">Paid</option>
+                <option value="rejected">Rejected</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr>
+            <th>Reseller</th><th>Amount</th><th>Method</th><th>Account</th><th>Status</th><th>Requested</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="reseller-payouts-tbody"></tbody></table>
         </div>
       </div>
 
@@ -1454,6 +1496,6 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
 <script src="/js/admin-rich-editor.js?v=14"></script>
-<script src="/js/admin.js?v=132"></script>
+<script src="/js/admin.js?v=133"></script>
 </body>
 </html>

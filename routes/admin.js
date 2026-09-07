@@ -28,6 +28,7 @@ const {
 } = require('../lib/categoryHelpers');
 const { setProductTodaySellingSlot, setTodaySellingProducts, normalizeSlot } = require('../lib/todaySellingSlots');
 const { awardOrderPointsOnDelivery } = require('../lib/rewardPoints');
+const { creditWalletOnDelivered, reversePendingOnCancel } = require('../lib/reseller');
 const { formatAdminPublic, ROLES, normalizeAdminRole } = require('../lib/adminRoles');
 
 const router = express.Router();
@@ -580,6 +581,9 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
     await query('UPDATE orders SET status = ? WHERE id = ?', [status, id]);
     if (status === 'cancelled' && prevStatus !== 'cancelled') {
       await releaseCommittedOrderStock(id);
+      await reversePendingOnCancel(id, {
+        alreadyDelivered: prevStatus === 'delivered',
+      }).catch((err) => console.warn('reseller pending reverse:', err.message));
     }
 
     let pointsAwarded = 0;
@@ -588,6 +592,9 @@ router.patch('/orders/:id', requireAdmin, async (req, res) => {
       const award = await awardOrderPointsOnDelivery(query, id);
       pointsAwarded = award.earned || 0;
       bonusPoints = award.bonus || 0;
+      await creditWalletOnDelivered(id).catch((err) =>
+        console.warn('reseller wallet credit:', err.message)
+      );
     }
 
     res.json({ ok: true, pointsAwarded, bonusPoints });
@@ -1691,6 +1698,127 @@ require('./adminExtended')(router, {
   slugify,
   requireAdmin,
   statusBadge,
+});
+
+// ——— Resellers ———
+router.get('/resellers', requireAdmin, async (req, res) => {
+  try {
+    const status = String(req.query.status || 'all');
+    let sql = `SELECT r.*, u.full_name, u.email, u.phone
+      FROM resellers r JOIN users u ON u.id = r.user_id WHERE 1=1`;
+    const params = [];
+    if (status && status !== 'all') {
+      sql += ' AND r.status = ?';
+      params.push(status);
+    }
+    sql += ' ORDER BY r.created_at DESC LIMIT 200';
+    const rows = await query(sql, params);
+    res.json({
+      ok: true,
+      resellers: rows.map((r) => ({
+        id: r.id,
+        userId: r.user_id,
+        fullName: r.full_name,
+        email: r.email,
+        phone: r.phone,
+        status: r.status,
+        markup: Number(r.default_markup_percent) || 0,
+        walletBalance: Number(r.wallet_balance) || 0,
+        pendingBalance: Number(r.pending_balance) || 0,
+        totalEarned: Number(r.total_earned) || 0,
+        applyNote: r.apply_note,
+        createdAt: r.created_at,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load resellers' });
+  }
+});
+
+router.patch('/resellers/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const status = String(req.body?.status || '').toLowerCase();
+    if (!['pending', 'approved', 'suspended'].includes(status)) {
+      return res.status(400).json({ ok: false, error: 'Invalid status' });
+    }
+    await query(
+      `UPDATE resellers SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      [status, id]
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: 'Could not update reseller' });
+  }
+});
+
+router.get('/reseller-payouts', requireAdmin, async (req, res) => {
+  try {
+    const status = String(req.query.status || 'requested');
+    let sql = `SELECT p.*, r.user_id, u.full_name, u.email, u.phone
+      FROM reseller_payouts p
+      JOIN resellers r ON r.id = p.reseller_id
+      JOIN users u ON u.id = r.user_id WHERE 1=1`;
+    const params = [];
+    if (status && status !== 'all') {
+      sql += ' AND p.status = ?';
+      params.push(status);
+    }
+    sql += ' ORDER BY p.requested_at DESC LIMIT 100';
+    const rows = await query(sql, params);
+    res.json({
+      ok: true,
+      payouts: rows.map((p) => ({
+        id: p.id,
+        resellerId: p.reseller_id,
+        fullName: p.full_name,
+        email: p.email,
+        phone: p.phone,
+        amount: Number(p.amount),
+        method: p.method,
+        accountNumber: p.account_number,
+        status: p.status,
+        requestedAt: p.requested_at,
+        paidAt: p.paid_at,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load payouts' });
+  }
+});
+
+router.patch('/reseller-payouts/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const action = String(req.body?.action || req.body?.status || '').toLowerCase();
+    const rows = await query('SELECT * FROM reseller_payouts WHERE id = ? LIMIT 1', [id]);
+    if (!rows[0]) return res.status(404).json({ ok: false, error: 'Payout not found' });
+    const p = rows[0];
+    if (p.status !== 'requested' && p.status !== 'processing') {
+      return res.status(400).json({ ok: false, error: 'Payout already finalized' });
+    }
+    if (action === 'paid' || action === 'approve') {
+      await query(
+        `UPDATE reseller_payouts SET status = 'paid', paid_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [id]
+      );
+      return res.json({ ok: true });
+    }
+    if (action === 'rejected' || action === 'reject') {
+      await query(
+        `UPDATE resellers SET wallet_balance = wallet_balance + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [Number(p.amount), p.reseller_id]
+      );
+      await query(`UPDATE reseller_payouts SET status = 'rejected' WHERE id = ?`, [id]);
+      return res.json({ ok: true });
+    }
+    return res.status(400).json({ ok: false, error: 'Use action paid or rejected' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update payout' });
+  }
 });
 
 module.exports = router;

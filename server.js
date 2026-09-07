@@ -374,7 +374,10 @@ async function renderStorefront(req, res) {
   }
 }
 
-app.get('/', (req, res) => renderStorefront(req, res));
+app.get('/', (req, res) => {
+  if (req.isResellerHost) return renderResellerApp(req, res);
+  return renderStorefront(req, res);
+});
 
 const DR_HANCY_OFFER = {
   productId: 93,
@@ -505,26 +508,30 @@ app.get(/^\/r\/.*/, (req, res, next) => {
   return renderResellerApp(req, res);
 });
 
-// Reseller subdomain (and RESELLER_HOSTS) — serve reseller app for HTML GETs
-app.use((req, res, next) => {
-  if (!req.isResellerHost) return next();
-  if (req.method !== 'GET' && req.method !== 'HEAD') return next();
-  if (req.path.startsWith('/api') || req.path.startsWith('/admin')) return next();
-  if (path.extname(req.path)) return next();
-  return renderResellerApp(req, res);
-});
-
 // Storefront SPA — clean URLs (no hash); reload on /blog, /faq, etc. must serve the app shell
 const STOREFRONT_SPA_PATH_LIST = [...STOREFRONT_SPA_EXACT_PATHS];
-app.get(STOREFRONT_SPA_PATH_LIST, (req, res) => renderStorefront(req, res));
-app.get('/product/:ref', (req, res) => renderStorefront(req, res));
-app.get('/category/:slug', (req, res) => renderStorefront(req, res));
-app.get('/blog/:slug', (req, res) => renderStorefront(req, res));
+app.get(STOREFRONT_SPA_PATH_LIST, (req, res) => {
+  if (req.isResellerHost) return renderResellerApp(req, res);
+  return renderStorefront(req, res);
+});
+app.get('/product/:ref', (req, res) => {
+  if (req.isResellerHost) return renderResellerApp(req, res);
+  return renderStorefront(req, res);
+});
+app.get('/category/:slug', (req, res) => {
+  if (req.isResellerHost) return renderResellerApp(req, res);
+  return renderStorefront(req, res);
+});
+app.get('/blog/:slug', (req, res) => {
+  if (req.isResellerHost) return renderResellerApp(req, res);
+  return renderStorefront(req, res);
+});
 
 app.use((req, res, next) => {
   if (req.method !== 'GET') return next();
   if (req.path.startsWith('/api') || req.path.startsWith('/admin')) return next();
   if (path.extname(req.path)) return next();
+  if (req.isResellerHost) return renderResellerApp(req, res);
   if (!isStorefrontSpaPath(req.path)) return next();
   return renderStorefront(req, res);
 });

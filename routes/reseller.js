@@ -1,5 +1,6 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
 const archiver = require('archiver');
@@ -159,9 +160,35 @@ router.post('/register', async (req, res) => {
       const found = await query('SELECT id FROM users WHERE email = ?', [emailNorm]);
       userId = found[0]?.id;
     }
+    const settings = await getSiteSettings(query);
+    const suggest = Number(settings.reseller_default_markup_suggest) || 20;
+    const applyResult = await query(
+      `INSERT INTO resellers (user_id, status, default_markup_percent, apply_note)
+       VALUES (?, 'pending', ?, ?)${returningId()}`,
+      [userId, suggest, 'Registered from reseller portal']
+    );
+    let resellerId = firstInsertId(applyResult);
+    const resellerRow = resellerId
+      ? (await query('SELECT * FROM resellers WHERE id = ?', [resellerId]))[0]
+      : await getResellerByUserId(userId);
+
+    try {
+      const { sendAdminEmail } = require('../lib/emailNotify');
+      await sendAdminEmail(settings, {
+        subject: 'New reseller approval request',
+        text: `A new reseller asked for approval.\nName: ${String(fullName).trim()}\nEmail: ${emailNorm}\nPhone: ${phoneNorm || '—'}\n\nApprove them in Admin → Resellers.`,
+      });
+    } catch (err) {
+      console.warn('reseller approval email:', err.message);
+    }
+
     req.session.userId = userId;
     saveSession(req, () => {
-      res.json({ ok: true, user: { id: userId, fullName: String(fullName).trim(), email: emailNorm, phone: phoneNorm } });
+      res.json({
+        ok: true,
+        user: { id: userId, fullName: String(fullName).trim(), email: emailNorm, phone: phoneNorm },
+        reseller: sanitizeReseller(resellerRow),
+      });
     });
   } catch (err) {
     console.error(err);
@@ -196,6 +223,100 @@ router.post('/login', async (req, res) => {
 router.post('/logout', (req, res) => {
   req.session = null;
   res.json({ ok: true });
+});
+
+const forgotHits = new Map();
+
+function rateLimitForgot(req, res, next) {
+  const key = String(req.ip || 'anon');
+  const now = Date.now();
+  const bucket = forgotHits.get(key);
+  if (!bucket || now - bucket.start > 15 * 60_000) {
+    forgotHits.set(key, { start: now, count: 1 });
+    return next();
+  }
+  bucket.count += 1;
+  if (bucket.count > 5) {
+    return res.status(429).json({ ok: false, error: 'Too many reset requests. Try again later.' });
+  }
+  next();
+}
+
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
+function resellerResetBase(req) {
+  const proto = req.get('x-forwarded-proto') || req.protocol || 'https';
+  const host = req.get('host') || 'reseller.rakushopbd.com';
+  if (host.includes('reseller.')) return `${proto}://${host}`;
+  return `${proto}://${host}/r`;
+}
+
+router.post('/password/forgot', rateLimitForgot, async (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    if (!email) return res.status(400).json({ ok: false, error: 'Email is required' });
+
+    const users = await query('SELECT id, email FROM users WHERE email = ? LIMIT 1', [email]);
+    if (users[0]) {
+      const token = crypto.randomBytes(32).toString('hex');
+      const tokenHash = hashResetToken(token);
+      const expires = new Date(Date.now() + 60 * 60 * 1000);
+      await query('DELETE FROM password_resets WHERE user_id = ? AND used_at IS NULL', [users[0].id]);
+      await query(
+        `INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)`,
+        [users[0].id, tokenHash, expires]
+      );
+
+      const settings = await getSiteSettings(query);
+      const { getTransporter } = require('../lib/emailNotify');
+      const mailer = getTransporter(settings);
+      if (!mailer) {
+        return res.status(503).json({ ok: false, error: 'Reset email is not set up yet. Contact support.' });
+      }
+      const link = `${resellerResetBase(req)}/reset?token=${token}`;
+      const label = 'RakuShopBD';
+      await mailer.transport.sendMail({
+        from: `"${label}" <${mailer.from}>`,
+        to: email,
+        subject: `${label} reseller password reset`,
+        text: `Reset your reseller password:\n${link}\n\nThis link expires in 1 hour. If you did not ask for this, ignore this email.`,
+        html: `<p>Reset your reseller password:</p><p><a href="${link}">${link}</a></p><p>This link expires in 1 hour.</p>`,
+      });
+    }
+
+    res.json({ ok: true, message: 'If that email is registered, a reset link has been sent.' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not send reset email' });
+  }
+});
+
+router.post('/password/reset', async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    const password = String(req.body?.password || '');
+    if (!token) return res.status(400).json({ ok: false, error: 'Reset link is invalid' });
+    if (password.length < 6) {
+      return res.status(400).json({ ok: false, error: 'Password must be at least 6 characters' });
+    }
+    const rows = await query(
+      `SELECT id, user_id, expires_at, used_at FROM password_resets WHERE token_hash = ? LIMIT 1`,
+      [hashResetToken(token)]
+    );
+    const row = rows[0];
+    if (!row || row.used_at || new Date(row.expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ ok: false, error: 'Reset link is invalid or expired' });
+    }
+    const hash = await bcrypt.hash(password, 10);
+    await query('UPDATE users SET password_hash = ? WHERE id = ?', [hash, row.user_id]);
+    await query('UPDATE password_resets SET used_at = CURRENT_TIMESTAMP WHERE id = ?', [row.id]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not reset password' });
+  }
 });
 
 router.post('/apply', requireLogin, async (req, res) => {

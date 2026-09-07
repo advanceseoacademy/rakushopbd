@@ -32,19 +32,39 @@
   function showPage(name) {
     state.page = name;
     document.querySelectorAll('.rs-page').forEach((el) => {
-      el.hidden = el.id !== 'page-' + name;
+      const on = el.id === 'page-' + name;
+      el.classList.toggle('is-on', on);
+      el.hidden = !on;
     });
     document.querySelectorAll('[data-nav]').forEach((a) => {
       a.classList.toggle('is-active', a.getAttribute('data-nav') === name);
     });
-    if (location.hash.replace('#', '') !== name && name !== 'auth' && name !== 'gate') {
-      history.replaceState(null, '', '#' + name);
-    }
   }
 
   function setNavVisible(on) {
     const nav = $('rs-nav');
     if (nav) nav.hidden = !on;
+    document.body.classList.toggle('rs-guest', !on);
+  }
+
+  function resetTokenFromUrl() {
+    return new URLSearchParams(location.search).get('token') || '';
+  }
+
+  function showAuthChoice(choice) {
+    const allowed = { login: 1, register: 1, forgot: 1, reset: 1 };
+    const page = allowed[choice] ? choice : 'login';
+    ['rs-login-err', 'rs-register-err', 'rs-forgot-err', 'rs-reset-err'].forEach((id) => {
+      const el = $(id);
+      if (el) el.hidden = true;
+    });
+    showPage(page);
+    const keepSearch = page === 'reset' && resetTokenFromUrl() ? location.search : '';
+    const nextHash = page === 'login' ? '' : '#' + page;
+    const next = (nextHash || location.pathname) + keepSearch;
+    if (location.hash !== nextHash || (page !== 'reset' && location.search)) {
+      history.replaceState(null, '', nextHash ? location.pathname + keepSearch + nextHash : location.pathname);
+    }
   }
 
   async function refreshMe() {
@@ -59,7 +79,13 @@
     await refreshMe();
     if (!state.user) {
       setNavVisible(false);
-      showPage('auth');
+      if (state.page === 'register' || state.page === 'forgot' || state.page === 'reset') return;
+      if (resetTokenFromUrl() || /\/reset\/?$/.test(location.pathname)) {
+        showAuthChoice('reset');
+        return;
+      }
+      const guestPage = (location.hash || '').replace('#', '');
+      showAuthChoice(guestPage === 'register' || guestPage === 'forgot' ? guestPage : 'login');
       return;
     }
     if (!state.reseller) {
@@ -72,8 +98,8 @@
     }
     if (state.reseller.status === 'pending') {
       setNavVisible(false);
-      $('rs-gate-title').textContent = 'Under review';
-      $('rs-gate-msg').textContent = 'Your application is under review. We will approve you soon.';
+      $('rs-gate-title').textContent = 'Waiting for admin approval';
+      $('rs-gate-msg').textContent = 'Your registration request has been sent to admin. You will get the reseller dashboard after approval.';
       $('rs-apply-form').hidden = true;
       showPage('gate');
       return;
@@ -256,7 +282,26 @@
     </tbody></table>`;
   }
 
-  // Events
+  // Events — bind early so Login/Register always open their own page
+  document.addEventListener('click', (e) => {
+    const eye = e.target.closest('[data-pass-toggle]');
+    if (eye) {
+      e.preventDefault();
+      const input = eye.parentElement?.querySelector('input');
+      if (!input) return;
+      const show = input.type === 'password';
+      input.type = show ? 'text' : 'password';
+      const icon = eye.querySelector('i');
+      if (icon) icon.className = show ? 'ti ti-eye-off' : 'ti ti-eye';
+      eye.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+      return;
+    }
+    const btn = e.target.closest('[data-auth-choice]');
+    if (!btn) return;
+    e.preventDefault();
+    showAuthChoice(btn.getAttribute('data-auth-choice'));
+  });
+
   $('rs-login-form').onsubmit = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);
@@ -265,8 +310,9 @@
       body: { email: fd.get('email'), password: fd.get('password') },
     });
     if (!data.ok) {
-      $('rs-auth-err').hidden = false;
-      $('rs-auth-err').textContent = data.error || 'Login failed';
+      const err = $('rs-login-err');
+      err.hidden = false;
+      err.textContent = data.error || 'Login failed';
       return;
     }
     await routeAfterAuth();
@@ -285,11 +331,58 @@
       },
     });
     if (!data.ok) {
-      $('rs-auth-err').hidden = false;
-      $('rs-auth-err').textContent = data.error || 'Register failed';
+      const err = $('rs-register-err');
+      err.hidden = false;
+      err.textContent = data.error || 'Register failed';
       return;
     }
     await routeAfterAuth();
+  };
+
+  $('rs-forgot-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const err = $('rs-forgot-err');
+    const ok = $('rs-forgot-ok');
+    err.hidden = true;
+    ok.hidden = true;
+    const data = await api('/password/forgot', {
+      method: 'POST',
+      body: { email: new FormData(e.target).get('email') },
+    });
+    if (!data.ok) {
+      err.hidden = false;
+      err.textContent = data.error || 'Could not send reset link';
+      return;
+    }
+    ok.hidden = false;
+    ok.textContent = data.message || 'If that email is registered, a reset link has been sent.';
+  };
+
+  $('rs-reset-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const fd = new FormData(e.target);
+    const err = $('rs-reset-err');
+    err.hidden = true;
+    if (fd.get('password') !== fd.get('confirm')) {
+      err.hidden = false;
+      err.textContent = 'Passwords do not match';
+      return;
+    }
+    const data = await api('/password/reset', {
+      method: 'POST',
+      body: { token: resetTokenFromUrl(), password: fd.get('password') },
+    });
+    if (!data.ok) {
+      err.hidden = false;
+      err.textContent = data.error || 'Could not reset password';
+      return;
+    }
+    history.replaceState(null, '', location.pathname);
+    showAuthChoice('login');
+    const loginErr = $('rs-login-err');
+    loginErr.hidden = false;
+    loginErr.style.color = '#166534';
+    loginErr.textContent = 'Password updated. Log in with your new password.';
   };
 
   $('rs-apply-form').onsubmit = async (e) => {
@@ -300,11 +393,13 @@
     else alert(data.error || 'Failed');
   };
 
-  $('rs-logout').onclick = async () => {
+  async function logoutReseller() {
     await api('/logout', { method: 'POST' });
     state = { ...state, user: null, reseller: null, orderLines: [] };
     await routeAfterAuth();
-  };
+  }
+  $('rs-logout').onclick = logoutReseller;
+  $('rs-gate-logout').onclick = logoutReseller;
 
   document.querySelectorAll('[data-nav]').forEach((el) => {
     el.addEventListener('click', (e) => {
@@ -480,6 +575,13 @@
     await loadPayouts();
     alert('Payout requested');
   };
+
+  window.addEventListener('hashchange', () => {
+    if (state.user) return;
+    const page = (location.hash || '').replace('#', '');
+    if (page === 'register' || page === 'forgot' || page === 'reset') showAuthChoice(page);
+    else showAuthChoice('login');
+  });
 
   routeAfterAuth();
 })();

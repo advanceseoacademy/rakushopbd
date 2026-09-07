@@ -27,6 +27,8 @@
 }
 .rs-logo img { display: block; height: 36px; width: auto; }
 .rs-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#rs-nav[hidden],
+body.rs-guest #rs-nav { display: none !important; }
 .rs-nav a, .rs-link-btn {
   font-size: 13px;
   font-weight: 700;
@@ -40,6 +42,8 @@
 }
 .rs-nav a.is-active { color: var(--primary, #E91E8C); }
 .rs-main { max-width: 960px; margin: 0 auto; padding: 20px 16px 48px; }
+.rs-page { display: none; }
+.rs-page.is-on { display: block; }
 .rs-h1 { margin: 0 0 16px; font-size: 22px; font-weight: 900; color: var(--brand-dark, #143318); }
 .rs-card {
   background: #fff;
@@ -51,24 +55,50 @@
 }
 .rs-card h2 { margin: 0 0 12px; font-size: 16px; }
 .rs-muted { color: #64748b; font-size: 14px; line-height: 1.5; }
-.rs-auth { max-width: 760px; margin: 32px auto; text-align: center; }
-.rs-auth h1 { margin: 0 0 6px; }
-.rs-auth-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-top: 18px;
-  text-align: left;
-}
-.rs-auth-box {
-  border: 1px solid #e2e8f0;
+.rs-auth { max-width: 420px; margin: 48px auto; text-align: center; }
+.rs-auth h1 { margin: 0 0 20px; }
+.rs-auth-choices { display: flex; flex-direction: row; gap: 12px; }
+.rs-choice {
+  flex: 1;
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  border: 1.5px solid var(--brand, #1E4620);
   border-radius: 12px;
-  padding: 16px;
-  background: #f8fafc;
+  padding: 14px 16px;
+  font: inherit;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+  background: #fff;
+  color: var(--brand, #1E4620);
 }
+.rs-choice.is-active {
+  background: var(--brand, #1E4620);
+  color: #fff;
+}
+.rs-auth .rs-form { margin-top: 16px; }
+.rs-forgot { display: block; margin: 12px auto 0; }
+.rs-ok { color: #166534; font-size: 14px; }
 .rs-auth-box h2 { margin: 0 0 4px; font-size: 18px; color: var(--brand-dark, #143318); }
+body.rs-guest .rs-footer { display: none; }
 .rs-form { display: grid; gap: 12px; text-align: left; }
 .rs-form label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: #334155; }
+.rs-pass { position: relative; display: block; }
+.rs-pass input { padding-right: 42px; }
+.rs-eye {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 18px;
+  line-height: 1;
+}
 .rs-form input, .rs-form textarea, .rs-form select, .rs-input {
   width: 100%;
   padding: 10px 12px;
@@ -193,5 +223,4 @@
 @media (max-width: 640px) {
   .rs-order-line { grid-template-columns: 1fr 1fr; }
   .rs-form-inline { grid-template-columns: 1fr; }
-  .rs-auth-grid { grid-template-columns: 1fr; }
 }

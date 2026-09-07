@@ -182,7 +182,8 @@
     }
     const raw = String(link.href || '#').trim();
     const href = escapeHtml(raw.startsWith('/') ? shopHref(raw) : raw);
-    return `<li><a href="${href}"><i class="ti ti-chevron-right"></i>${label}</a></li>`;
+    const external = /^https?:\/\//i.test(raw);
+    return `<li><a href="${href}"${external ? ' target="_blank" rel="noopener"' : ''}><i class="ti ti-chevron-right"></i>${label}</a></li>`;
   }
 
   const DEFAULT_LOGO_WEBP = '/images/rakushopbd-logo-280.webp?v=14';

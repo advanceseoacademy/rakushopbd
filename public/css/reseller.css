@@ -135,39 +135,106 @@ body.rs-guest .rs-footer { display: none; }
 }
 .rs-stat b { display: block; font-size: 20px; margin-top: 4px; color: var(--brand-dark, #143318); }
 .rs-stat span { font-size: 12px; color: #64748b; font-weight: 700; }
+.rs-page-head { margin-bottom: 14px; }
+.rs-page-head .rs-h1 { margin-bottom: 4px; }
 .rs-toolbar { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.rs-product-toolbar {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 10px;
+  margin-bottom: 16px;
+}
+.rs-product-toolbar .rs-input { flex: 1; min-width: 180px; }
 .rs-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.rs-empty {
+  grid-column: 1 / -1;
+  background: #fff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 28px 16px;
+  text-align: center;
+  color: #64748b;
 }
 .rs-product {
   background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border: 1px solid #e7eee8;
+  border-radius: 18px;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  box-shadow: 0 10px 28px rgba(20, 51, 24, 0.06);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
-.rs-product img { width: 100%; aspect-ratio: 1; object-fit: contain; background: #f8fafc; }
-.rs-product-body { padding: 12px; display: grid; gap: 6px; flex: 1; }
-.rs-product-body h3 { margin: 0; font-size: 14px; line-height: 1.35; }
-.rs-price-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 800; }
-.rs-price-row .base { color: #64748b; }
-.rs-price-row .sell { color: var(--primary-dark, #C21872); }
-.rs-product-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.rs-product-actions button {
-  flex: 1;
-  min-width: 90px;
-  border: 1px solid #cbd5e1;
+.rs-product:hover { transform: translateY(-3px); box-shadow: 0 16px 32px rgba(20, 51, 24, 0.1); }
+.rs-product.out { opacity: 0.78; }
+.rs-product-media { position: relative; background: linear-gradient(180deg, #f7fbf8, #fff); }
+.rs-product img { width: 100%; aspect-ratio: 1; object-fit: contain; display: block; }
+.rs-stock {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 8px;
+  border-radius: 999px;
   background: #fff;
-  border-radius: 8px;
-  padding: 8px;
+}
+.rs-stock.in { color: #166534; }
+.rs-stock.out { color: #991b1b; }
+.rs-product-body { padding: 14px; display: grid; gap: 8px; flex: 1; }
+.rs-cat { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.02em; color: var(--brand, #1E4620); }
+.rs-product-body h3 {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.35;
+  min-height: 38px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.rs-price-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.rs-price-grid div {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 8px 6px;
+  text-align: center;
+}
+.rs-price-grid span { display: block; font-size: 10px; font-weight: 700; color: #64748b; }
+.rs-price-grid b { display: block; margin-top: 2px; font-size: 13px; }
+.rs-price-grid .sell { color: var(--primary-dark, #C21872); }
+.rs-price-grid .profit { color: #166534; }
+.rs-product-actions { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: auto; }
+.rs-product-actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 1px solid #dbe4de;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px 4px;
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
   font-family: inherit;
+  color: var(--brand-dark, #143318);
 }
+.rs-product-actions button.rs-add {
+  background: var(--brand, #1E4620);
+  color: #fff;
+  border-color: transparent;
+}
+.rs-product-actions button:disabled { opacity: 0.45; cursor: not-allowed; }
 .rs-table-wrap { overflow-x: auto; font-size: 13px; }
 .rs-table { width: 100%; border-collapse: collapse; }
 .rs-table th, .rs-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }

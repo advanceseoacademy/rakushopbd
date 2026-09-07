@@ -193,25 +193,42 @@
       return;
     }
     state.products = data.products || [];
+    const countEl = $('rs-product-count');
+    if (countEl) {
+      countEl.textContent = state.products.length
+        ? `${state.products.length} products · your markup ${Number(data.markupPercent || 0)}%`
+        : 'No products with a reseller base price yet';
+    }
     if (!state.products.length) {
-      grid.innerHTML = '<p class="rs-muted">No products with base price yet.</p>';
+      grid.innerHTML = '<div class="rs-empty">No products found. Try another search or category.</div>';
       return;
     }
     grid.innerHTML = state.products
-      .map(
-        (p) => `<article class="rs-product">
-      <img src="${esc(p.imageUrl || '/images/rakushopbd-logo.png')}" alt="" loading="lazy">
+      .map((p) => {
+        const stock = Number(p.stock) || 0;
+        const stockClass = stock > 0 ? 'in' : 'out';
+        const stockLabel = stock > 0 ? `${stock} in stock` : 'Out of stock';
+        return `<article class="rs-product ${stockClass}">
+      <div class="rs-product-media">
+        <img src="${esc(p.imageUrl || '/images/rakushopbd-logo.png')}" alt="" loading="lazy">
+        <span class="rs-stock ${stockClass}">${esc(stockLabel)}</span>
+      </div>
       <div class="rs-product-body">
+        <p class="rs-cat">${esc(p.categoryName || 'Product')}</p>
         <h3>${esc(p.name)}</h3>
-        <div class="rs-price-row"><span class="base">Base ${money(p.basePrice)}</span><span class="sell">Sell ${money(p.sellingPrice)}</span></div>
+        <div class="rs-price-grid">
+          <div><span>Base</span><b>${money(p.basePrice)}</b></div>
+          <div><span>Sell</span><b class="sell">${money(p.sellingPrice)}</b></div>
+          <div><span>Profit</span><b class="profit">${money(p.profit)}</b></div>
+        </div>
         <div class="rs-product-actions">
-          <button type="button" data-copy="${p.id}">Copy text</button>
-          <button type="button" data-dl="${p.id}">Download images</button>
-          <button type="button" data-add="${p.id}">Add to order</button>
+          <button type="button" data-copy="${p.id}"><i class="ti ti-copy"></i><span>Copy</span></button>
+          <button type="button" data-dl="${p.id}"><i class="ti ti-download"></i><span>Images</span></button>
+          <button type="button" class="rs-add" data-add="${p.id}" ${stock > 0 ? '' : 'disabled'}><i class="ti ti-plus"></i><span>Add</span></button>
         </div>
       </div>
-    </article>`
-      )
+    </article>`;
+      })
       .join('');
   }
 
@@ -437,6 +454,7 @@
     const id = Number(btn.dataset.copy || btn.dataset.dl || btn.dataset.add);
     const p = state.products.find((x) => x.id === id);
     if (!p) return;
+    const label = btn.querySelector('span');
     if (btn.dataset.copy) {
       const text = `${p.name}\nBase: ${money(p.basePrice)}\nSell: ${money(p.sellingPrice)}\n\n${String(p.description || '')
         .replace(/<[^>]+>/g, ' ')
@@ -444,13 +462,15 @@
         .trim()
         .slice(0, 500)}`;
       await navigator.clipboard.writeText(text);
-      btn.textContent = 'Copied!';
-      setTimeout(() => (btn.textContent = 'Copy text'), 1200);
+      if (label) label.textContent = 'Copied';
+      setTimeout(() => {
+        if (label) label.textContent = 'Copy';
+      }, 1200);
     }
     if (btn.dataset.dl) {
-      const prev = btn.textContent;
+      const prev = label ? label.textContent : 'Images';
       btn.disabled = true;
-      btn.textContent = 'Preparing zip…';
+      if (label) label.textContent = 'Zip…';
       try {
         const a = document.createElement('a');
         a.href = `${API}/products/${p.id}/images.zip`;
@@ -460,7 +480,7 @@
         a.remove();
       } finally {
         btn.disabled = false;
-        btn.textContent = prev || 'Download images';
+        if (label) label.textContent = prev || 'Images';
       }
     }
     if (btn.dataset.add) {

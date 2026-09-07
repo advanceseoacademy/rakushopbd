@@ -8,7 +8,7 @@
   <link rel="icon" href="/images/rakushopbd-logo.png?v=14" type="image/png">
   <link rel="stylesheet" href="/css/brand-tokens.css?v=3">
   <link rel="stylesheet" href="/css/tabler-icons-subset.css?v=3">
-  <link rel="stylesheet" href="/css/reseller.css?v=10">
+  <link rel="stylesheet" href="/css/reseller.css?v=11">
 </head>
 <body class="rs-body rs-guest">
   <header class="rs-header">
@@ -143,8 +143,13 @@
 
     <!-- Products -->
     <section class="rs-page" id="page-products" hidden>
-      <h1 class="rs-h1">Products</h1>
-      <div class="rs-toolbar">
+      <div class="rs-page-head">
+        <div>
+          <h1 class="rs-h1">Products</h1>
+          <p class="rs-muted" id="rs-product-count">Wholesale catalog with your selling price</p>
+        </div>
+      </div>
+      <div class="rs-toolbar rs-product-toolbar">
         <input type="search" id="rs-product-q" placeholder="Search products…" class="rs-input">
         <select id="rs-product-cat" class="rs-input"><option value="">All categories</option></select>
       </div>
@@ -212,6 +217,6 @@
 
   <footer class="rs-footer">© RakuShopBD Reseller · <a href="https://www.rakushopbd.com" rel="noopener">Main store</a></footer>
   <script>window.RAKU_RESELLER_API='/api/reseller';</script>
-  <script src="/js/reseller-app.js?v=11" defer></script>
+  <script src="/js/reseller-app.js?v=12" defer></script>
 </body>
 </html>

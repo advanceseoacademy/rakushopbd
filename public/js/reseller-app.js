@@ -363,16 +363,19 @@
       setTimeout(() => (btn.textContent = 'Copy text'), 1200);
     }
     if (btn.dataset.dl) {
-      const urls = p.images?.length ? p.images : p.imageUrl ? [p.imageUrl] : [];
-      for (const u of urls) {
+      const prev = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Preparing zip…';
+      try {
         const a = document.createElement('a');
-        a.href = u;
-        a.download = '';
-        a.target = '_blank';
-        a.rel = 'noopener';
+        a.href = `${API}/products/${p.id}/images.zip`;
+        a.download = `${p.slug || 'product'}-images.zip`;
         document.body.appendChild(a);
         a.click();
         a.remove();
+      } finally {
+        btn.disabled = false;
+        btn.textContent = prev || 'Download images';
       }
     }
     if (btn.dataset.add) {

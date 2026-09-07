@@ -1024,10 +1024,12 @@
     if (page) ordersPage = page;
     const status = document.getElementById('orders-status-filter').value;
     const payment = document.getElementById('orders-payment-filter')?.value || 'all';
+    const source = document.getElementById('orders-source-filter')?.value || 'all';
     const search = document.getElementById('orders-search').value.trim();
     const q = new URLSearchParams({ page: ordersPage, limit: 20 });
     if (status !== 'all') q.set('status', status);
     if (payment !== 'all') q.set('payment', payment);
+    if (source !== 'all') q.set('source', source);
     if (search) q.set('search', search);
     const data = await api('/orders?' + q.toString());
     if (!data.ok) return;
@@ -1038,10 +1040,13 @@
             const checked = selectedOrderIds.has(Number(o.id)) ? ' checked' : '';
             const rowClass = checked ? ' class="row-selected"' : '';
             const seenBadge = orderViewBadgeHtml(o.viewedByAdmin);
+            const resellerBadge = o.resellerId
+              ? `<span class="badge badge-blue" style="margin-left:4px;">Reseller${o.resellerName ? ': ' + escHtml(o.resellerName) : ''}</span>`
+              : '';
             return `<tr${rowClass}>
         <td class="tbl-check-col"><input type="checkbox" class="order-row-check" data-order-id="${o.id}" aria-label="Select order ${escHtml(o.orderNumber)}"${checked}></td>
-        <td><b>${escHtml(o.orderNumber)}</b><br><small style="margin-top:4px;display:inline-block;" data-order-seen="${o.id}">${seenBadge}</small></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
-        <td>${escHtml(o.itemsPreview)}</td><td>${escHtml(o.paymentMethod)}</td><td>${fmtDate(o.createdAt)}</td>
+        <td><b>${escHtml(o.orderNumber)}</b>${resellerBadge}<br><small style="margin-top:4px;display:inline-block;" data-order-seen="${o.id}">${seenBadge}</small></td><td>${escHtml(o.customerName)}<br><small style="color:#94a3b8">${escHtml(o.customerPhone)}</small></td>
+        <td>${escHtml(o.itemsPreview)}${o.resellerId ? `<br><small style="color:#166534">Profit ৳${Number(o.resellerProfit || 0).toLocaleString()}</small>` : ''}</td><td>${escHtml(o.paymentMethod)}</td><td>${fmtDate(o.createdAt)}</td>
         <td>${escHtml(o.totalFormatted)}</td><td>${statusBadgeHtml(o.status)}</td>
         <td class="tbl-actions">
           <button type="button" class="btn btn-outline btn-xs" data-order-details="${o.id}">Details</button>
@@ -1066,6 +1071,7 @@
 
   document.getElementById('orders-status-filter').onchange = () => loadOrders(1);
   document.getElementById('orders-payment-filter')?.addEventListener('change', () => loadOrders(1));
+  document.getElementById('orders-source-filter')?.addEventListener('change', () => loadOrders(1));
   document.getElementById('orders-search').oninput = debounce(() => loadOrders(1), 400);
 
   document.getElementById('orders-select-all')?.addEventListener('change', (e) => {
@@ -4805,6 +4811,10 @@
     document.getElementById('set-delivery-fee').value = s.delivery_fee || '60';
     const outFee = document.getElementById('set-delivery-outside');
     if (outFee) outFee.value = s.delivery_fee_outside || '120';
+    const rsMin = document.getElementById('set-reseller-min-payout');
+    if (rsMin) rsMin.value = s.reseller_min_payout || '500';
+    const rsMarkup = document.getElementById('set-reseller-markup-suggest');
+    if (rsMarkup) rsMarkup.value = s.reseller_default_markup_suggest || '20';
     document.getElementById('set-maintenance').checked = s.maintenance_mode === '1';
     document.getElementById('set-guest').checked = s.feature_guest_checkout !== '0';
     document.getElementById('set-cod').checked = s.feature_cod !== '0';
@@ -5876,6 +5886,9 @@
       free_delivery_min: document.getElementById('set-free-min').value,
       delivery_fee: document.getElementById('set-delivery-fee').value,
       delivery_fee_outside: document.getElementById('set-delivery-outside')?.value || '120',
+      reseller_min_payout: document.getElementById('set-reseller-min-payout')?.value || '500',
+      reseller_default_markup_suggest:
+        document.getElementById('set-reseller-markup-suggest')?.value || '20',
       maintenance_mode: document.getElementById('set-maintenance').checked ? '1' : '0',
       feature_guest_checkout: document.getElementById('set-guest').checked ? '1' : '0',
       feature_cod: document.getElementById('set-cod').checked ? '1' : '0',

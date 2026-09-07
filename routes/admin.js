@@ -467,31 +467,46 @@ router.post('/orders/mark-viewed', requireAdmin, async (req, res) => {
 
 router.get('/orders', requireAdmin, async (req, res) => {
   try {
-    const { status, search, payment, page = 1, limit = 20 } = req.query;
+    const { status, search, payment, page = 1, limit = 20, source } = req.query;
     const p = Math.max(1, parseInt(page, 10) || 1);
     const l = Math.min(100, Math.max(5, parseInt(limit, 10) || 20));
     const offset = (p - 1) * l;
 
-    let sql = `SELECT o.* FROM orders o WHERE 1=1`;
+    let sql = `SELECT o.*, u.full_name AS reseller_name
+      FROM orders o
+      LEFT JOIN resellers r ON r.id = o.reseller_id
+      LEFT JOIN users u ON u.id = r.user_id
+      WHERE 1=1`;
     let countSql = `SELECT COUNT(*) AS total FROM orders o WHERE 1=1`;
     const params = [];
+    const countParams = [];
     if (status && status !== 'all') {
       sql += ' AND o.status = ?';
       countSql += ' AND o.status = ?';
       params.push(status);
+      countParams.push(status);
     }
     if (payment && payment !== 'all') {
       sql += ' AND o.payment_method = ?';
       countSql += ' AND o.payment_method = ?';
       params.push(payment);
+      countParams.push(payment);
+    }
+    if (source === 'reseller') {
+      sql += ' AND o.reseller_id IS NOT NULL';
+      countSql += ' AND o.reseller_id IS NOT NULL';
+    } else if (source === 'store') {
+      sql += ' AND o.reseller_id IS NULL';
+      countSql += ' AND o.reseller_id IS NULL';
     }
     if (search) {
       sql += ' AND (o.order_number LIKE ? OR o.customer_name LIKE ? OR o.customer_phone LIKE ?)';
       countSql += ' AND (o.order_number LIKE ? OR o.customer_name LIKE ? OR o.customer_phone LIKE ?)';
       const q = `%${search}%`;
       params.push(q, q, q);
+      countParams.push(q, q, q);
     }
-    const [{ total }] = await query(countSql, params);
+    const [{ total }] = await query(countSql, countParams);
     const [{ totalOrders }] = await query('SELECT COUNT(*) AS totalOrders FROM orders');
     const unreadCount = await countUnreadOrders();
     sql += ` ORDER BY o.created_at DESC LIMIT ${l} OFFSET ${offset}`;
@@ -500,10 +515,14 @@ router.get('/orders', requireAdmin, async (req, res) => {
     const enriched = await Promise.all(
       orders.map(async (o) => {
         const items = await query(
-          'SELECT product_name, quantity FROM order_items WHERE order_id = ?',
+          'SELECT product_name, quantity, reseller_profit_snapshot FROM order_items WHERE order_id = ?',
           [o.id]
         );
         const preview = items.map((i) => `${i.product_name} ×${i.quantity}`).join(', ');
+        const resellerProfit = items.reduce(
+          (s, i) => s + (Number(i.reseller_profit_snapshot) || 0) * (Number(i.quantity) || 0),
+          0
+        );
         return {
           id: o.id,
           orderNumber: o.order_number,
@@ -518,6 +537,9 @@ router.get('/orders', requireAdmin, async (req, res) => {
           statusBadge: statusBadge(o.status),
           itemsPreview: preview || '—',
           createdAt: o.created_at,
+          resellerId: o.reseller_id || null,
+          resellerName: o.reseller_name || null,
+          resellerProfit,
         };
       })
     );

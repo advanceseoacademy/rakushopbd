@@ -2,6 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const fs = require('fs');
+const archiver = require('archiver');
 const { query, firstInsertId } = require('../config/db');
 const { returningId } = require('../lib/db-dialect');
 const { saveSession } = require('../lib/sessionSave');
@@ -16,6 +17,25 @@ const {
 } = require('../lib/reseller');
 
 const router = express.Router();
+const publicDir = path.join(__dirname, '..', 'public');
+
+function resolveLocalPublicFile(url) {
+  if (!url || typeof url !== 'string') return null;
+  let pathname = url.trim();
+  try {
+    if (/^https?:\/\//i.test(pathname)) {
+      pathname = new URL(pathname).pathname;
+    }
+  } catch (_) {
+    return null;
+  }
+  if (!pathname.startsWith('/')) pathname = '/' + pathname;
+  if (pathname.includes('..')) return null;
+  const abs = path.join(publicDir, pathname.replace(/^\//, ''));
+  if (!abs.startsWith(publicDir)) return null;
+  if (!fs.existsSync(abs) || !fs.statSync(abs).isFile()) return null;
+  return abs;
+}
 
 const placeOrderHits = new Map();
 
@@ -283,6 +303,66 @@ router.get('/products', requireApprovedReseller, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not load products' });
+  }
+});
+
+router.get('/products/:id/images.zip', requireApprovedReseller, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid product' });
+    const rows = await query(
+      `SELECT id, slug, name_bn, image_url, buy_price FROM products WHERE id = ? LIMIT 1`,
+      [id]
+    );
+    const product = rows[0];
+    if (!product || !(Number(product.buy_price) > 0)) {
+      return res.status(404).json({ ok: false, error: 'Product not found' });
+    }
+
+    const urls = [];
+    if (product.image_url) urls.push(product.image_url);
+    try {
+      const gallery = await query(
+        `SELECT image_url FROM product_images WHERE product_id = ? ORDER BY id ASC`,
+        [id]
+      );
+      for (const g of gallery) {
+        if (g.image_url && !urls.includes(g.image_url)) urls.push(g.image_url);
+      }
+    } catch (_) {}
+
+    const files = [];
+    for (const u of urls) {
+      const abs = resolveLocalPublicFile(u);
+      if (abs) files.push({ abs, name: path.basename(abs) });
+    }
+    if (!files.length) {
+      return res.status(404).json({ ok: false, error: 'No downloadable images on server' });
+    }
+
+    const safeSlug = String(product.slug || `product-${id}`).replace(/[^\w.-]+/g, '_');
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="${safeSlug}-images.zip"`);
+
+    const archive = archiver('zip', { zlib: { level: 6 } });
+    archive.on('error', (err) => {
+      console.error('reseller image zip', err);
+      if (!res.headersSent) res.status(500).json({ ok: false, error: 'Zip failed' });
+      else res.end();
+    });
+    archive.pipe(res);
+
+    const usedNames = new Set();
+    files.forEach((f, i) => {
+      let name = f.name || `image-${i + 1}.jpg`;
+      if (usedNames.has(name)) name = `${i + 1}-${name}`;
+      usedNames.add(name);
+      archive.file(f.abs, { name });
+    });
+    await archive.finalize();
+  } catch (err) {
+    console.error(err);
+    if (!res.headersSent) res.status(500).json({ ok: false, error: 'Could not build image zip' });
   }
 });
 

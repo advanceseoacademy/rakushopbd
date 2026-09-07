@@ -8,7 +8,7 @@
   <link rel="icon" href="/images/rakushopbd-logo.png?v=14" type="image/png">
   <link rel="stylesheet" href="/css/brand-tokens.css?v=3">
   <link rel="stylesheet" href="/css/tabler-icons-subset.css?v=3">
-  <link rel="stylesheet" href="/css/reseller.css?v=1">
+  <link rel="stylesheet" href="/css/reseller.css?v=2">
 </head>
 <body class="rs-body">
   <header class="rs-header">
@@ -30,23 +30,23 @@
     <section class="rs-page" id="page-auth">
       <div class="rs-card rs-auth">
         <h1>Reseller Portal</h1>
-        <p class="rs-muted">শুধু অনুমোদিত রিসেলারদের জন্য</p>
-        <div class="rs-tabs">
-          <button type="button" class="rs-tab is-active" data-auth-tab="login">Login</button>
-          <button type="button" class="rs-tab" data-auth-tab="register">Register</button>
+        <p class="rs-muted">Login or create an account — same page</p>
+        <div class="rs-auth-grid">
+          <form id="rs-login-form" class="rs-form rs-auth-box">
+            <h2>Login</h2>
+            <label>Email<input name="email" type="email" required autocomplete="username"></label>
+            <label>Password<input name="password" type="password" required autocomplete="current-password"></label>
+            <button type="submit" class="rs-btn">Log in</button>
+          </form>
+          <form id="rs-register-form" class="rs-form rs-auth-box">
+            <h2>Register</h2>
+            <label>Full name<input name="fullName" type="text" required autocomplete="name"></label>
+            <label>Email<input name="email" type="email" required autocomplete="email"></label>
+            <label>Phone<input name="phone" type="tel" placeholder="01XXXXXXXXX"></label>
+            <label>Password<input name="password" type="password" required minlength="6" autocomplete="new-password"></label>
+            <button type="submit" class="rs-btn">Create account</button>
+          </form>
         </div>
-        <form id="rs-login-form" class="rs-form">
-          <label>Email<input name="email" type="email" required autocomplete="email"></label>
-          <label>Password<input name="password" type="password" required autocomplete="current-password"></label>
-          <button type="submit" class="rs-btn">Log in</button>
-        </form>
-        <form id="rs-register-form" class="rs-form" hidden>
-          <label>Full name<input name="fullName" type="text" required></label>
-          <label>Email<input name="email" type="email" required></label>
-          <label>Phone<input name="phone" type="tel" placeholder="01XXXXXXXXX"></label>
-          <label>Password<input name="password" type="password" required minlength="6"></label>
-          <button type="submit" class="rs-btn">Create account</button>
-        </form>
         <p class="rs-err" id="rs-auth-err" hidden></p>
       </div>
     </section>
@@ -154,6 +154,6 @@
 
   <footer class="rs-footer">© RakuShopBD Reseller · <a href="https://www.rakushopbd.com" rel="noopener">Main store</a></footer>
   <script>window.RAKU_RESELLER_API='/api/reseller';</script>
-  <script src="/js/reseller-app.js?v=1" defer></script>
+  <script src="/js/reseller-app.js?v=2" defer></script>
 </body>
 </html>

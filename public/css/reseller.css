@@ -51,19 +51,22 @@
 }
 .rs-card h2 { margin: 0 0 12px; font-size: 16px; }
 .rs-muted { color: #64748b; font-size: 14px; line-height: 1.5; }
-.rs-auth { max-width: 420px; margin: 40px auto; text-align: center; }
+.rs-auth { max-width: 760px; margin: 32px auto; text-align: center; }
 .rs-auth h1 { margin: 0 0 6px; }
-.rs-tabs { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
-.rs-tab {
-  border: 1px solid #cbd5e1;
-  background: #f8fafc;
-  border-radius: 999px;
-  padding: 8px 14px;
-  font-weight: 800;
-  cursor: pointer;
-  font-family: inherit;
+.rs-auth-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 18px;
+  text-align: left;
 }
-.rs-tab.is-active { background: var(--brand, #1E4620); color: #fff; border-color: transparent; }
+.rs-auth-box {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  background: #f8fafc;
+}
+.rs-auth-box h2 { margin: 0 0 4px; font-size: 18px; color: var(--brand-dark, #143318); }
 .rs-form { display: grid; gap: 12px; text-align: left; }
 .rs-form label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; color: #334155; }
 .rs-form input, .rs-form textarea, .rs-form select, .rs-input {
@@ -190,4 +193,5 @@
 @media (max-width: 640px) {
   .rs-order-line { grid-template-columns: 1fr 1fr; }
   .rs-form-inline { grid-template-columns: 1fr; }
+  .rs-auth-grid { grid-template-columns: 1fr; }
 }

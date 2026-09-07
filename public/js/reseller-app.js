@@ -257,16 +257,6 @@
   }
 
   // Events
-  document.querySelectorAll('[data-auth-tab]').forEach((btn) => {
-    btn.onclick = () => {
-      document.querySelectorAll('[data-auth-tab]').forEach((b) => b.classList.toggle('is-active', b === btn));
-      const tab = btn.dataset.authTab;
-      $('rs-login-form').hidden = tab !== 'login';
-      $('rs-register-form').hidden = tab !== 'register';
-      $('rs-auth-err').hidden = true;
-    };
-  });
-
   $('rs-login-form').onsubmit = async (e) => {
     e.preventDefault();
     const fd = new FormData(e.target);

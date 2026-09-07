@@ -1758,6 +1758,75 @@ router.get('/resellers', requireAdmin, async (req, res) => {
   }
 });
 
+router.get('/resellers/:id', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const rows = await query(
+      `SELECT r.*, u.full_name, u.email, u.phone
+       FROM resellers r JOIN users u ON u.id = r.user_id WHERE r.id = ? LIMIT 1`,
+      [id]
+    );
+    if (!rows[0]) return res.status(404).json({ ok: false, error: 'Reseller not found' });
+    const r = rows[0];
+    const orders = await query(
+      `SELECT o.id, o.order_number, o.customer_name, o.customer_phone, o.status, o.total, o.created_at,
+        COALESCE((
+          SELECT SUM(COALESCE(oi.reseller_profit_snapshot, 0) * oi.quantity)
+          FROM order_items oi WHERE oi.order_id = o.id
+        ), 0) AS profit
+       FROM orders o
+       WHERE o.reseller_id = ?
+       ORDER BY o.created_at DESC
+       LIMIT 100`,
+      [id]
+    );
+    const payouts = await query(
+      `SELECT id, amount, method, account_number, status, requested_at, paid_at
+       FROM reseller_payouts WHERE reseller_id = ? ORDER BY requested_at DESC LIMIT 50`,
+      [id]
+    );
+    res.json({
+      ok: true,
+      reseller: {
+        id: r.id,
+        userId: r.user_id,
+        fullName: r.full_name,
+        email: r.email,
+        phone: r.phone,
+        status: r.status,
+        markup: Number(r.default_markup_percent) || 0,
+        walletBalance: Number(r.wallet_balance) || 0,
+        pendingBalance: Number(r.pending_balance) || 0,
+        totalEarned: Number(r.total_earned) || 0,
+        applyNote: r.apply_note,
+        createdAt: r.created_at,
+      },
+      orders: orders.map((o) => ({
+        id: o.id,
+        orderNumber: o.order_number,
+        customerName: o.customer_name,
+        customerPhone: o.customer_phone,
+        status: o.status,
+        total: Number(o.total) || 0,
+        profit: Number(o.profit) || 0,
+        createdAt: o.created_at,
+      })),
+      payouts: payouts.map((p) => ({
+        id: p.id,
+        amount: Number(p.amount) || 0,
+        method: p.method,
+        accountNumber: p.account_number,
+        status: p.status,
+        requestedAt: p.requested_at,
+        paidAt: p.paid_at,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load reseller' });
+  }
+});
+
 router.patch('/resellers/:id', requireAdmin, async (req, res) => {
   try {
     const id = Number(req.params.id);

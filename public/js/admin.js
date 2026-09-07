@@ -163,6 +163,7 @@
     legal: 'Legal Pages',
     coupons: 'Coupons',
     resellers: 'Resellers',
+    'reseller-detail': 'Reseller details',
     'reseller-payouts': 'Reseller Payouts',
     reviews: 'Reviews',
     'review-videos': 'Review Videos',
@@ -387,7 +388,9 @@
     if (isProductEditorAdmin() && page !== 'products' && page !== 'product-form') {
       page = 'products';
     }
-    if (!validPages.has(page) && page !== 'product-form' && page !== 'blog-form') page = isProductEditorAdmin() ? 'products' : 'dashboard';
+    if (!validPages.has(page) && page !== 'product-form' && page !== 'blog-form' && page !== 'reseller-detail') {
+      page = isProductEditorAdmin() ? 'products' : 'dashboard';
+    }
     document.querySelectorAll('.adm-section').forEach((s) => s.classList.remove('active'));
     const sec = document.getElementById('sec-' + page);
     if (sec) sec.classList.add('active');
@@ -397,7 +400,8 @@
         'active',
         navPage === page ||
           (page === 'product-form' && navPage === 'products') ||
-          (page === 'blog-form' && navPage === 'blog')
+          (page === 'blog-form' && navPage === 'blog') ||
+          (page === 'reseller-detail' && navPage === 'resellers')
       );
     });
     updatePagesNavActive(page, opts.legalTab);
@@ -405,7 +409,7 @@
     document.getElementById('page-title').textContent = title;
     document.getElementById('breadcrumb-current').textContent = title;
     window.scrollTo(0, 0);
-    if (page !== 'product-form' && page !== 'blog-form') saveActivePage(page);
+    if (page !== 'product-form' && page !== 'blog-form' && page !== 'reseller-detail') saveActivePage(page);
 
     if (page === 'dashboard') loadDashboard();
     if (page === 'orders') loadOrders();
@@ -422,6 +426,7 @@
       loadResellers();
       loadResellerOrders(1);
     }
+    if (page === 'reseller-detail') loadResellerDetail(opts.resellerId);
     if (page === 'reseller-payouts') loadResellerPayouts();
     if (page === 'settings') loadSettings();
     if (page === 'legal') {
@@ -4391,10 +4396,16 @@
           <td>৳${Number(r.walletBalance).toLocaleString()}</td>
           <td>৳${Number(r.pendingBalance).toLocaleString()}</td>
           <td style="max-width:180px;font-size:12px;">${escHtml(r.applyNote || '—')}</td>
-          <td>${actions}</td>
+          <td class="tbl-actions">
+            <button type="button" class="btn btn-outline btn-xs" data-rs-view="${r.id}" title="View details"><i class="ti ti-eye"></i></button>
+            ${actions}
+          </td>
         </tr>`;
       })
       .join('');
+    tbody.querySelectorAll('[data-rs-view]').forEach((btn) => {
+      btn.onclick = () => switchPage('reseller-detail', { resellerId: btn.dataset.rsView });
+    });
     tbody.querySelectorAll('[data-rs-status]').forEach((btn) => {
       btn.onclick = async () => {
         const r = await api('/resellers/' + btn.dataset.rsStatus, {
@@ -4408,6 +4419,70 @@
       };
     });
   }
+
+  async function loadResellerDetail(id) {
+    const body = document.getElementById('rs-detail-body');
+    const title = document.getElementById('rs-detail-title');
+    if (!body) return;
+    body.innerHTML = 'Loading…';
+    const data = await api('/resellers/' + id);
+    if (!data.ok) {
+      body.innerHTML = escHtml(data.error || 'Could not load reseller');
+      return;
+    }
+    const r = data.reseller;
+    if (title) title.textContent = r.fullName || 'Reseller details';
+    const label = r.fullName || 'Reseller details';
+    document.getElementById('page-title').textContent = label;
+    const bc = document.getElementById('breadcrumb-current');
+    if (bc) bc.textContent = label;
+    const orders = (data.orders || [])
+      .map(
+        (o) => `<tr>
+          <td><b>${escHtml(o.orderNumber)}</b><br><small>${fmtDate(o.createdAt)}</small></td>
+          <td>${escHtml(o.customerName)}<br><small>${escHtml(o.customerPhone)}</small></td>
+          <td>${escHtml(o.status)}</td>
+          <td>৳${Number(o.profit).toLocaleString()}</td>
+          <td>৳${Number(o.total).toLocaleString()}</td>
+          <td><button type="button" class="btn btn-outline btn-xs" data-order-details="${o.id}">Details</button></td>
+        </tr>`
+      )
+      .join('');
+    const payouts = (data.payouts || [])
+      .map(
+        (p) => `<tr>
+          <td>${escHtml(String(p.requestedAt || '').slice(0, 10))}</td>
+          <td>৳${Number(p.amount).toLocaleString()}</td>
+          <td>${escHtml(p.method)} ${escHtml(p.accountNumber)}</td>
+          <td>${escHtml(p.status)}</td>
+        </tr>`
+      )
+      .join('');
+    body.innerHTML = `
+      <div class="form-2col" style="margin-bottom:16px;">
+        <div><div class="form-label">Name</div><b>${escHtml(r.fullName)}</b></div>
+        <div><div class="form-label">Status</div><b>${escHtml(r.status)}</b></div>
+        <div><div class="form-label">Email</div>${escHtml(r.email || '—')}</div>
+        <div><div class="form-label">Phone</div>${escHtml(r.phone || '—')}</div>
+        <div><div class="form-label">Markup</div>${Number(r.markup)}%</div>
+        <div><div class="form-label">Joined</div>${fmtDate(r.createdAt)}</div>
+        <div><div class="form-label">Wallet</div><b>৳${Number(r.walletBalance).toLocaleString()}</b></div>
+        <div><div class="form-label">Pending profit</div><b>৳${Number(r.pendingBalance).toLocaleString()}</b></div>
+        <div><div class="form-label">Total earned</div><b>৳${Number(r.totalEarned).toLocaleString()}</b></div>
+      </div>
+      <p class="form-hint" style="margin-bottom:16px;">${escHtml(r.applyNote || 'No application note.')}</p>
+      <h4 style="margin:0 0 8px;">Orders</h4>
+      <table class="tbl"><thead><tr><th>Order</th><th>Customer</th><th>Status</th><th>Profit</th><th>Total</th><th></th></tr></thead>
+      <tbody>${orders || '<tr><td colspan="6">No orders yet.</td></tr>'}</tbody></table>
+      <h4 style="margin:16px 0 8px;">Payouts</h4>
+      <table class="tbl"><thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
+      <tbody>${payouts || '<tr><td colspan="4">No payouts yet.</td></tr>'}</tbody></table>`;
+    body.querySelectorAll('[data-order-details]').forEach((btn) => {
+      btn.onclick = () => openOrderModal(btn.dataset.orderDetails);
+    });
+  }
+
+  document.getElementById('rs-detail-back')?.addEventListener('click', () => switchPage('resellers'));
 
   async function loadResellerOrders(page) {
     if (page) resellerOrdersPage = page;

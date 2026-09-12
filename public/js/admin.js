@@ -3321,7 +3321,7 @@
             <div><div style="font-weight:600;">${escHtml(p.name_bn)}</div><small style="color:#94a3b8">${escHtml(p.slug)}</small></div></div></td>
           <td>${formatProductCategoryLabel(p)}</td>
           <td><input type="number" class="stock-quick-edit price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-price="${p.price}" value="${Number(p.price)}" aria-label="Sale price for ${escHtml(p.name_bn)}"></td>
-          <td>${p.buy_price != null && p.buy_price !== '' ? '৳' + Number(p.buy_price).toLocaleString() : '<span style="color:#94a3b8">—</span>'}</td>
+          <td><input type="number" class="stock-quick-edit buy-price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-buy-price="${p.buy_price != null && p.buy_price !== '' ? Number(p.buy_price) : ''}" value="${p.buy_price != null && p.buy_price !== '' ? Number(p.buy_price) : ''}" placeholder="—" aria-label="Buy price for ${escHtml(p.name_bn)}"></td>
           <td><input type="number" class="stock-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-stock="${p.stock}" value="${p.stock}" aria-label="Stock for ${escHtml(p.name_bn)}"></td>
           <td><span class="badge ${stockCls}" data-stock-badge="${p.id}">${stockLbl}</span></td>
           <td class="tbl-actions">
@@ -3390,7 +3390,59 @@
       input.addEventListener('blur', savePrice);
     });
 
-    document.querySelectorAll('.stock-quick-edit:not(.price-quick-edit)').forEach((input) => {
+    document.querySelectorAll('.buy-price-quick-edit').forEach((input) => {
+      const saveBuyPrice = async () => {
+        const id = Number(input.dataset.productId);
+        const prevRaw = input.dataset.prevBuyPrice;
+        const prev = prevRaw === '' || prevRaw == null ? null : Number(prevRaw);
+        const raw = String(input.value).trim();
+        let buyPrice = null;
+        if (raw !== '') {
+          buyPrice = Number(raw);
+          if (!Number.isFinite(buyPrice) || buyPrice < 0) {
+            input.value = prev == null ? '' : prev;
+            toast('Buy price must be 0 or more', 'error');
+            return;
+          }
+          buyPrice = Math.round(buyPrice);
+          input.value = buyPrice;
+        } else {
+          input.value = '';
+        }
+        const prevNorm = prev == null ? null : prev;
+        if (buyPrice === prevNorm || input.dataset.saving === '1') return;
+        input.dataset.saving = '1';
+        input.classList.add('is-saving');
+        const r = await api('/products/' + id + '/buy-price', {
+          method: 'PATCH',
+          body: JSON.stringify({ buyPrice }),
+        });
+        input.dataset.saving = '0';
+        input.classList.remove('is-saving');
+        if (!r.ok) {
+          input.value = prev == null ? '' : prev;
+          toast(r.error || 'Could not update buy price', 'error');
+          return;
+        }
+        input.dataset.prevBuyPrice = buyPrice == null ? '' : String(buyPrice);
+        const row = data.products?.find((x) => Number(x.id) === id);
+        if (row) row.buy_price = buyPrice;
+        toast('Buy price updated');
+      };
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+        if (e.key === 'Escape') {
+          input.value = input.dataset.prevBuyPrice || '';
+          input.blur();
+        }
+      });
+      input.addEventListener('blur', saveBuyPrice);
+    });
+
+    document.querySelectorAll('.stock-quick-edit:not(.price-quick-edit):not(.buy-price-quick-edit)').forEach((input) => {
       const saveStock = async () => {
         const id = Number(input.dataset.productId);
         const prev = Number(input.dataset.prevStock);

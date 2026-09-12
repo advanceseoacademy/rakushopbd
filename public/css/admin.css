@@ -325,7 +325,8 @@ table.tbl { width:100%; border-collapse:collapse; }
   background: #fff;
   color: #374151;
 }
-.stock-quick-edit.price-quick-edit { width: 88px; }
+.stock-quick-edit.price-quick-edit,
+.stock-quick-edit.buy-price-quick-edit { width: 88px; }
 .stock-quick-edit:focus {
   border-color: var(--primary);
   outline: none;

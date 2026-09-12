@@ -1156,6 +1156,26 @@ router.patch('/products/:id/price', requireAdmin, async (req, res) => {
   }
 });
 
+router.patch('/products/:id/buy-price', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid product' });
+    const raw = req.body?.buyPrice;
+    const buyPrice = parseBuyPrice(raw === '' || raw === undefined ? null : raw);
+    if (raw !== null && raw !== undefined && raw !== '' && buyPrice == null) {
+      return res.status(400).json({ ok: false, error: 'Buy price must be 0 or more' });
+    }
+    const rows = await query('SELECT id FROM products WHERE id = ? LIMIT 1', [id]);
+    if (!rows[0]) return res.status(404).json({ ok: false, error: 'Product not found' });
+    await query('UPDATE products SET buy_price = ? WHERE id = ?', [buyPrice, id]);
+    clearStoreBootstrapCache();
+    res.json({ ok: true, buyPrice });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update buy price' });
+  }
+});
+
 router.post('/products/bulk-delete', requireAdmin, async (req, res) => {
   try {
     const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];

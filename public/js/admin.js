@@ -3321,8 +3321,8 @@
             <div><div style="font-weight:600;">${escHtml(p.name_bn)}</div><small style="color:#94a3b8">${escHtml(p.slug)}</small></div></div></td>
           <td>${formatProductCategoryLabel(p)}</td><td>৳${Number(p.price).toLocaleString()}</td>
           <td>${p.buy_price != null && p.buy_price !== '' ? '৳' + Number(p.buy_price).toLocaleString() : '<span style="color:#94a3b8">—</span>'}</td>
-          <td>${p.stock}</td>
-          <td><span class="badge ${stockCls}">${stockLbl}</span></td>
+          <td><input type="number" class="stock-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-stock="${p.stock}" value="${p.stock}" aria-label="Stock for ${escHtml(p.name_bn)}"></td>
+          <td><span class="badge ${stockCls}" data-stock-badge="${p.id}">${stockLbl}</span></td>
           <td class="tbl-actions">
             <a href="/product/${encodeURIComponent(p.slug || p.id)}" target="_blank" rel="noopener" class="btn btn-outline btn-xs">View</a>
             <button type="button" class="btn btn-outline btn-xs" data-edit-product="${p.id}">Edit</button>
@@ -3339,6 +3339,56 @@
         if (!p) return;
         openProductForm(p);
       };
+    });
+
+    document.querySelectorAll('.stock-quick-edit').forEach((input) => {
+      const saveStock = async () => {
+        const id = Number(input.dataset.productId);
+        const prev = Number(input.dataset.prevStock);
+        let stock = Number(input.value);
+        if (!Number.isFinite(stock) || stock < 0) {
+          input.value = prev;
+          toast('Stock must be 0 or more', 'error');
+          return;
+        }
+        stock = Math.floor(stock);
+        input.value = stock;
+        if (stock === prev || input.dataset.saving === '1') return;
+        input.dataset.saving = '1';
+        input.classList.add('is-saving');
+        const r = await api('/products/' + id + '/stock', {
+          method: 'PATCH',
+          body: JSON.stringify({ stock }),
+        });
+        input.dataset.saving = '0';
+        input.classList.remove('is-saving');
+        if (!r.ok) {
+          input.value = prev;
+          toast(r.error || 'Could not update stock', 'error');
+          return;
+        }
+        input.dataset.prevStock = String(stock);
+        const badge = document.querySelector(`[data-stock-badge="${id}"]`);
+        if (badge) {
+          badge.className =
+            'badge ' + (stock <= 0 ? 'badge-red' : stock <= 5 ? 'badge-amber' : 'badge-green');
+          badge.textContent = stock <= 0 ? 'Out of stock' : stock <= 5 ? 'Low' : 'Active';
+        }
+        const row = data.products?.find((x) => Number(x.id) === id);
+        if (row) row.stock = stock;
+        toast('Stock updated');
+      };
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+        if (e.key === 'Escape') {
+          input.value = input.dataset.prevStock;
+          input.blur();
+        }
+      });
+      input.addEventListener('blur', saveStock);
     });
 
     if (canDeleteProducts()) {

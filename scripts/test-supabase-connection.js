@@ -12,7 +12,7 @@ async function main() {
 main().catch((e) => {
   console.error('❌', e.message);
   console.error('\n→ Supabase Dashboard → Database → Reset password to:');
-  console.error('   RakuShopBd_Supabase_2026_Xk9');
+  console.error('   [YOUR-DB-PASSWORD]');
   console.error('   (must match DATABASE_URL in .env)');
   process.exit(1);
 });

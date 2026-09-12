@@ -20,7 +20,7 @@ const parts = [
 ];
 
 async function main() {
-  const adminPass = process.env.ADMIN_PASSWORD || 'BDRakuadmin2026%%';
+  const adminPass = process.env.ADMIN_PASSWORD || 'CHANGE_ME_ADMIN_PASSWORD';
   const hash = await bcrypt.hash(adminPass, 10);
 
   const header = `-- ═══════════════════════════════════════════════════════════
@@ -29,7 +29,7 @@ async function main() {
 --
 -- Admin login after import:
 --   Username: admin@rakushopbd.com
---   Password: BDRakuadmin2026%%
+--   Password: CHANGE_ME_ADMIN_PASSWORD
 --
 -- Generated: ${new Date().toISOString().slice(0, 10)}
 -- ═══════════════════════════════════════════════════════════

@@ -34,7 +34,7 @@ DB_SSL=true
 SESSION_SECRET=your-secret-32-chars
 ADMIN_USERNAME=admin@rakushopbd.com
 ADMIN_EMAIL=admin@rakushopbd.com
-ADMIN_PASSWORD=BDRakuadmin2026%%
+ADMIN_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
 ```
 
 Remove or comment out `DB_HOST`, `DB_USER`, `DB_NAME` when using Supabase.

@@ -19,7 +19,7 @@ Database name (আপনার): rakushop_rakushopbd
    https://rakushopbd.com/api/admin/ping
    https://rakushopbd.com/admin
    User: admin@rakushopbd.com
-   Pass: BDRakuadmin2026%%
+   Pass: CHANGE_ME_ADMIN_PASSWORD
 
 ───────────────────────────────────────────────────────────
 পদ্ধতি A — টেবিল মুছে npm দিয়ে বানান
@@ -39,7 +39,7 @@ Database name (আপনার): rakushop_rakushopbd
      DB_PASSWORD=(আপনার)
      ADMIN_USERNAME=admin@rakushopbd.com
      ADMIN_EMAIL=admin@rakushopbd.com
-     ADMIN_PASSWORD=BDRakuadmin2026%%
+     ADMIN_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
      SESSION_SECRET=(দীর্ঘ random string)
      NODE_ENV=production
    → SAVE
@@ -58,10 +58,10 @@ DB_PORT=3306
 DB_USER=rakushop_rakushopbd
 DB_PASSWORD=এখানে_আপনার_DB_PASSWORD
 DB_NAME=rakushop_rakushopbd
-SESSION_SECRET=rakushopbd-local-dev-secret-8f3a9c2e1b7d4f6a
+SESSION_SECRET=CHANGE_ME_SESSION_SECRET
 ADMIN_USERNAME=admin@rakushopbd.com
 ADMIN_EMAIL=admin@rakushopbd.com
-ADMIN_PASSWORD=BDRakuadmin2026%%
+ADMIN_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
 EOF
 # উপরে DB_PASSWORD ঠিক করে নিন, তারপর:
 
@@ -75,7 +75,7 @@ CONFIRM_FRESH_DB=YES npm run db:fresh
    https://rakushopbd.com/api/products    → products list
    https://rakushopbd.com/admin
      User: admin@rakushopbd.com
-     Pass: BDRakuadmin2026%%
+     Pass: CHANGE_ME_ADMIN_PASSWORD
 
 ───────────────────────────────────────────────────────────
 পদ্ধতি B — cPanel থেকে পুরো Database delete + নতুন

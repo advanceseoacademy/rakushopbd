@@ -30,10 +30,13 @@
     }
   }
 
-  async function track(orderNumber) {
+  async function track(orderNumber, phone) {
     const id = String(orderNumber || '').trim();
+    const phoneVal = String(phone || '').trim();
     if (!id) return { ok: false, error: 'Please enter your Order ID' };
-    const res = await fetch(`${API}/orders/track?orderNumber=${encodeURIComponent(id)}`, {
+    if (!phoneVal) return { ok: false, error: 'Please enter the phone used for this order' };
+    const q = new URLSearchParams({ orderNumber: id, phone: phoneVal });
+    const res = await fetch(`${API}/orders/track?${q.toString()}`, {
       credentials: 'same-origin',
     });
     try {
@@ -88,10 +91,11 @@
 
   async function runTrack() {
     const input = $('trk-order-id');
+    const phone = $('trk-phone');
     const submit = $('trk-submit');
     if (!submit) return;
     submit.disabled = true;
-    const res = await track(input?.value);
+    const res = await track(input?.value, phone?.value);
     submit.disabled = false;
     renderResult(res);
   }

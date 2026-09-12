@@ -41,18 +41,25 @@ git fetch origin main || true
 git reset --hard origin/main || git pull origin main || true
 npm install
 
-cat > "$APP_DIR/.env" << 'ENVFILE'
+if [ -f "$APP_DIR/.env" ]; then
+  echo ">>> Keeping existing .env (not overwriting secrets)"
+else
+  echo ">>> Creating .env template — EDIT passwords before relying on production"
+  cat > "$APP_DIR/.env" << 'ENVFILE'
 PORT=3001
 NODE_ENV=production
-DATABASE_URL=postgresql://postgres.dymliuodmmmgvwjbonjn:RakuShopBd_Supabase_2026_Xk9@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres
-SUPABASE_URL=https://dymliuodmmmgvwjbonjn.supabase.co
-SESSION_SECRET=rakushopbd-live-secret-8f3a9c2e1b7d4f6a
+DATABASE_URL=postgresql://postgres.YOUR_PROJECT:[YOUR-DB-PASSWORD]@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres
+SUPABASE_URL=https://YOUR_PROJECT.supabase.co
+SESSION_SECRET=CHANGE_ME_SESSION_SECRET
 ADMIN_USERNAME=admin@rakushopbd.com
 ADMIN_EMAIL=admin@rakushopbd.com
-ADMIN_PASSWORD=BDRakuadmin2026%%
+ADMIN_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
 REDIS_URL=redis://127.0.0.1:6379
 REDIS_KEY_PREFIX=rakushopbd:
+# Optional: unlock /api/db-check without admin session
+# DIAGNOSTIC_KEY=long-random-string
 ENVFILE
+fi
 
 mkdir -p "$APP_DIR/public/uploads"
 chmod -R 755 "$APP_DIR/public/uploads"
@@ -68,7 +75,7 @@ pm2 startup systemd -u root --hp /root 2>/dev/null || true
 echo ""
 echo ">>> Waiting for Node on :$PORT ..."
 for i in 1 2 3 4 5 6 7 8 9 10; do
-  if curl -sf "http://127.0.0.1:${PORT}/api/db-check" | grep -q '"ok":true'; then
+  if curl -sf "http://127.0.0.1:${PORT}/api/health" | grep -q '"ok":true'; then
     echo "    Node OK"
     break
   fi
@@ -126,15 +133,15 @@ sleep 3
 echo ""
 echo "=== TEST RESULTS ==="
 echo -n "Local Node:  "
-curl -sf "http://127.0.0.1:${PORT}/api/db-check" || echo "FAILED"
+curl -sf "http://127.0.0.1:${PORT}/api/health" || echo "FAILED"
 echo ""
 echo -n "Domain HTTP: "
-curl -sf "http://${DOMAIN}/api/db-check" || curl -s "http://${DOMAIN}/api/db-check" | head -c 200
+curl -sf "http://${DOMAIN}/api/health" || curl -s "http://${DOMAIN}/api/health" | head -c 200
 echo ""
 echo ""
 pm2 status
 echo ""
 echo "=============================================="
-echo " Browser: https://${DOMAIN}/api/db-check"
+echo " Health:  https://${DOMAIN}/api/health"
 echo " Admin:   https://${DOMAIN}/admin"
 echo "=============================================="

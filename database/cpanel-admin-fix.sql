@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS admins (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Password: BDRakuadmin2026%%
+-- Password: CHANGE_ME_ADMIN_PASSWORD
 INSERT INTO admins (username, email, password_hash, full_name)
 VALUES (
   'admin@rakushopbd.com',

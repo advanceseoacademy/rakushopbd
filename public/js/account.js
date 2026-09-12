@@ -627,13 +627,13 @@
     el.innerHTML = buildTrackResultHtml(data);
   }
 
-  async function fetchOrderTrack(orderNumber) {
+  async function fetchOrderTrack(orderNumber, phone) {
     const id = String(orderNumber || '').trim();
     if (!id) return { ok: false, error: 'Please enter your Order ID' };
-    const res = await fetch(
-      `${STORE_API}/orders/track?orderNumber=${encodeURIComponent(id)}`,
-      { credentials: 'same-origin' }
-    );
+    const q = new URLSearchParams({ orderNumber: id });
+    const phoneVal = String(phone || '').trim();
+    if (phoneVal) q.set('phone', phoneVal);
+    const res = await fetch(`${STORE_API}/orders/track?${q.toString()}`, { credentials: 'same-origin' });
     try {
       return await res.json();
     } catch {
@@ -643,6 +643,7 @@
 
   async function runAccountTrack(orderNumber) {
     const input = document.getElementById('acc-track-order-id');
+    const phoneInput = document.getElementById('acc-track-phone');
     const submit = document.getElementById('acc-track-submit');
     const q = orderNumber != null ? String(orderNumber).trim() : input?.value.trim();
     if (input && orderNumber != null) input.value = q;
@@ -651,7 +652,7 @@
       return;
     }
     if (submit) submit.disabled = true;
-    const data = await fetchOrderTrack(q);
+    const data = await fetchOrderTrack(q, phoneInput?.value);
     if (submit) submit.disabled = false;
     renderTrackResult(data);
     document.getElementById('acc-track-result')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

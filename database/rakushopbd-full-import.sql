@@ -4,7 +4,7 @@
 --
 -- Admin login after import:
 --   Username: admin@rakushopbd.com
---   Password: BDRakuadmin2026%%
+--   Password: CHANGE_ME_ADMIN_PASSWORD
 --
 -- Generated: 2026-05-26
 -- ═══════════════════════════════════════════════════════════

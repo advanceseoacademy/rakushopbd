@@ -158,7 +158,7 @@ database/rakushopbd-full-import.sql
 
 - পুরনো টেবিল DROP (যদি থাকে)
 - সব টেবিল + sample products
-- Admin user (password: `BDRakuadmin2026%%` — SQL header-এ লেখা)
+- Admin user (password: `CHANGE_ME_ADMIN_PASSWORD` — SQL header-এ লেখা)
 
 ### Import সফল কিনা দেখুন
 
@@ -265,7 +265,7 @@ Node.js App-এ **Application URL** = `rakushopbd.com` সেট থাকলে
 |--|--|
 | **URL** | https://rakushopbd.com/admin |
 | **Username** | `admin@rakushopbd.com` |
-| **Password** | SQL import করলে: `BDRakuadmin2026%%` (অথবা env `ADMIN_PASSWORD`) |
+| **Password** | SQL import করলে: `CHANGE_ME_ADMIN_PASSWORD` (অথবা env `ADMIN_PASSWORD`) |
 
 Login পর dashboard খুললে ✅ সফল।
 

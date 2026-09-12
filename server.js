@@ -169,7 +169,10 @@ app.use('/uploads', express.static(path.join(publicDir, 'uploads'), expressStati
 app.use(express.static(publicDir, expressStaticOptions(ONE_MONTH_SEC)));
 
 const sessionMaxAge = 7 * 24 * 60 * 60 * 1000;
-const sessionSecret = process.env.SESSION_SECRET || 'rakushopbd-dev-secret-change-me';
+const { resolveSessionSecret, cookiesShouldBeSecure } = require('./lib/securityConfig');
+const { requireAdminOrLocal } = require('./lib/requestGuards');
+const sessionSecret = resolveSessionSecret();
+const cookieSecure = cookiesShouldBeSecure();
 const { isResellerRequest, stripResellerPath } = require('./lib/resellerHost');
 
 // Host-aware session cookie (reseller subdomain / local /r / reseller API share one cookie)
@@ -185,7 +188,7 @@ app.use((req, res, next) => {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',
-    secure: process.env.COOKIE_SECURE === 'true',
+    secure: cookieSecure,
   })(req, res, next);
 });
 
@@ -207,8 +210,8 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-/** Live diagnostic (works after git pull + restart) */
-app.get('/api/db-check', async (req, res) => {
+/** Live diagnostic — localhost or admin only */
+app.get('/api/db-check', requireAdminOrLocal, async (req, res) => {
   const { getPool, usePostgres, query } = require('./config/db');
   const info = {
     ok: false,

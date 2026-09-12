@@ -12,6 +12,7 @@ const {
   assignReferralCode,
   getRewardPointConfig,
 } = require('../lib/rewardPoints');
+const { createRateLimiter } = require('../lib/simpleRateLimit');
 const { videoUpload } = require('../lib/uploadVideo');
 const { saveVideoFile } = require('../lib/saveVideoFile');
 const {
@@ -21,6 +22,18 @@ const {
 } = require('../lib/reviewVideos');
 
 const router = express.Router();
+
+const rateLimitAuthLogin = createRateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  message: 'Too many login attempts — try again in a few minutes',
+});
+
+const rateLimitAuthRegister = createRateLimiter({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: 'Too many registrations from this network — try again later',
+});
 
 function sanitizeUser(row) {
   if (!row) return null;
@@ -67,7 +80,7 @@ router.get('/me', async (req, res) => {
   }
 });
 
-router.post('/register', async (req, res) => {
+router.post('/register', rateLimitAuthRegister, async (req, res) => {
   try {
     const { fullName, email, phone, password, referralCode } = req.body;
     if (!fullName || !email || !password) {
@@ -117,7 +130,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/login', rateLimitAuthLogin, async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) {

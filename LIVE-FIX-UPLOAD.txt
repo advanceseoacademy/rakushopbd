@@ -14,4 +14,4 @@
 টেস্ট: https://rakushopbd.com/api/admin/version
 দেখতে হবে: "source":"server-bootstrap"
 
-Login: admin@rakushopbd.com / BDRakuadmin2026%%
+Login: admin@rakushopbd.com / CHANGE_ME_ADMIN_PASSWORD

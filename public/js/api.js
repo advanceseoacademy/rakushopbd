@@ -3097,10 +3097,13 @@
     document.body.classList.remove('trk-open');
   }
 
-  async function trackOrderById(orderNumber) {
+  async function trackOrderById(orderNumber, phone) {
     const id = String(orderNumber || '').trim();
+    const phoneVal = String(phone || '').trim();
     if (!id) return { ok: false, error: 'Enter your Order ID' };
-    return await apiFetch(`/orders/track?orderNumber=${encodeURIComponent(id)}`);
+    if (!phoneVal) return { ok: false, error: 'Enter the phone used for this order' };
+    const q = new URLSearchParams({ orderNumber: id, phone: phoneVal });
+    return await apiFetch(`/orders/track?${q.toString()}`);
   }
 
   function renderTrackModalResult(data) {
@@ -3153,6 +3156,7 @@
     const closeBtn = document.getElementById('trk-close');
     const submit = modal.querySelector('#trk-modal-submit');
     const input = modal.querySelector('#trk-modal-order-id');
+    const phone = modal.querySelector('#trk-modal-phone');
 
     if (closeBtn) closeBtn.onclick = closeTrackOrderModal;
     modal.addEventListener('click', (e) => {
@@ -3165,7 +3169,7 @@
     async function run() {
       if (!submit) return;
       submit.disabled = true;
-      const res = await trackOrderById(input?.value);
+      const res = await trackOrderById(input?.value, phone?.value);
       submit.disabled = false;
       renderTrackModalResult(res);
     }

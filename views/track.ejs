@@ -75,7 +75,7 @@
     <div class="trk-card">
       <div class="trk-head">
         <h1 class="trk-title"><i class="ti ti-truck-delivery"></i> Track your order</h1>
-        <p class="trk-sub">Enter your Order ID (example: <b>RKS-2026-12345678</b>) to see status and details.</p>
+        <p class="trk-sub">Enter your Order ID and the phone number used when ordering.</p>
       </div>
       <div class="trk-body">
         <form class="trk-form" id="trk-form" onsubmit="return false;">
@@ -83,9 +83,13 @@
             <i class="ti ti-receipt"></i>
             <input class="trk-input" id="trk-order-id" type="text" placeholder="RKS-2026-........" autocomplete="off">
           </div>
+          <div class="trk-input-wrap" style="margin-top:10px;">
+            <i class="ti ti-phone"></i>
+            <input class="trk-input" id="trk-phone" type="tel" placeholder="01XXXXXXXXX" autocomplete="tel">
+          </div>
           <button type="button" class="trk-btn" id="trk-submit"><i class="ti ti-search"></i> Track</button>
         </form>
-        <div class="trk-hint">Tip: Order ID আপনার Success page‑এ “Order ID” এর পাশে থাকে।</div>
+        <div class="trk-hint">Tip: Order ID Success page‑এ থাকে; ফোন নম্বর অর্ডারের সময় যেটা দিয়েছিলেন।</div>
         <div class="trk-result" id="trk-result" hidden></div>
       </div>
     </div>
@@ -105,6 +109,6 @@
 </div>
 
 <%- include('partials/storefront-footer') %>
-<%- include('partials/storefront-standalone-scripts', { bootstrapJson: typeof bootstrapJson !== 'undefined' ? bootstrapJson : null, pageScript: '/js/track.js?v=1' }) %>
+<%- include('partials/storefront-standalone-scripts', { bootstrapJson: typeof bootstrapJson !== 'undefined' ? bootstrapJson : null, pageScript: '/js/track.js?v=2' }) %>
 </body>
 </html>

@@ -11,7 +11,7 @@ https://supabase.com/dashboard/project/dymliuodmmmgvwjbonjn/database/settings
 → Reset database password
 → নতুন password দিন (Mac/cPanel env এর মতো):
 
-   RakuShopBd_Supabase_2026_Xk9
+   [YOUR-DB-PASSWORD]
 
 → Save
 
@@ -45,7 +45,7 @@ https://rakushopbd.com/api/admin/ping   → adminCount:1
 https://rakushopbd.com/api/products     → ok:true
 https://rakushopbd.com/admin            → login
 
-Admin: admin@rakushopbd.com / BDRakuadmin2026%%
+Admin: admin@rakushopbd.com / CHANGE_ME_ADMIN_PASSWORD
 
 ───────────────────────────────────────────────────────────
 Mac local

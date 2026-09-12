@@ -63,11 +63,11 @@ DB_PORT=3306
 DB_USER=আপনার_cpanel_mysql_user
 DB_PASSWORD=আপনার_mysql_password
 DB_NAME=আপনার_database_name
-SESSION_SECRET=rakushopbd-local-dev-secret-8f3a9c2e1b7d4f6a
+SESSION_SECRET=CHANGE_ME_SESSION_SECRET
 NODE_ENV=production
 ADMIN_USERNAME=admin@rakushopbd.com
 ADMIN_EMAIL=admin@rakushopbd.com
-ADMIN_PASSWORD=BDRakuadmin2026%%
+ADMIN_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
 ```
 
 তারপর: **STOP** → **Run NPM Install** → **START** → **Restart**
@@ -115,7 +115,7 @@ npm run admin:sync
 **Admin login:**
 
 - Username: `admin@rakushopbd.com`
-- Password: `BDRakuadmin2026%%`
+- Password: `CHANGE_ME_ADMIN_PASSWORD`
 
 Login → **F5 reload** → dashboard থাকা উচিত।
 

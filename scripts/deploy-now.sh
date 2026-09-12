@@ -20,10 +20,10 @@ node scripts/seed-messenger-chats.js 2>/dev/null || true
 pm2 restart rakushopbd
 sleep 3
 echo "--- recommended API ---"
-curl -s "http://127.0.0.1:3001/api/products/recommended?limit=2"
+curl -s "http://127.0.0.1:3001/api/products/recommended?limit=2" | head -c 200
 echo
-echo "--- db-check ---"
-curl -s "http://127.0.0.1:3001/api/db-check" | head -c 200
+echo "--- health ---"
+curl -s "http://127.0.0.1:3001/api/health" | head -c 200
 echo
 pm2 status
 REMOTE

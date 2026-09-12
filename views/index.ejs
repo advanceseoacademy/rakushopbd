@@ -69,7 +69,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <% } %>
 <% if (_initialPage === 'account') { %>
 <link rel="stylesheet" href="/css/account.css?v=14">
-<script src="/js/account.js?v=22" defer></script>
+<script src="/js/account.js?v=23" defer></script>
 <% } %>
 <%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </head>
@@ -1019,7 +1019,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
     <div class="trk-head">
       <div>
         <div class="trk-title" id="trk-title"><i class="ti ti-truck-delivery"></i> Track your order</div>
-        <div class="trk-sub">Enter your Order ID (example: <b>RKS-2026-12345678</b>)</div>
+        <div class="trk-sub">Enter Order ID + phone used for the order</div>
       </div>
       <button type="button" class="trk-close" id="trk-close" aria-label="Close">×</button>
     </div>
@@ -1029,6 +1029,10 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
         <div class="trk-input-wrap">
           <i class="ti ti-receipt"></i>
           <input class="trk-input" id="trk-modal-order-id" type="text" placeholder="RKS-2026-........" autocomplete="off" aria-label="Order ID">
+        </div>
+        <div class="trk-input-wrap" style="margin-top:10px;">
+          <i class="ti ti-phone"></i>
+          <input class="trk-input" id="trk-modal-phone" type="tel" placeholder="01XXXXXXXXX" autocomplete="tel" aria-label="Phone number">
         </div>
         <button type="button" class="trk-btn" id="trk-modal-submit"><i class="ti ti-search"></i> Track</button>
       </form>
@@ -1480,7 +1484,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
         <div class="acc-panel-head">
           <div>
             <h2 class="acc-panel-title">Track Order</h2>
-            <p class="acc-panel-sub">Enter your Order ID to view status, items, and delivery details.</p>
+            <p class="acc-panel-sub">Enter your Order ID and order phone to view status (logged-in orders from My Orders work without re-entering phone).</p>
           </div>
         </div>
         <div class="acc-section-card acc-trk-card">
@@ -1492,11 +1496,18 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
                 <input class="acc-input" type="text" id="acc-track-order-id" placeholder="RKS-2026-xxxxxxxx" autocomplete="off" required>
               </div>
             </div>
+            <div class="acc-field" style="margin-bottom:0;flex:1;min-width:160px;">
+              <label class="acc-label" for="acc-track-phone">Phone</label>
+              <div class="acc-input-wrap">
+                <i class="ti ti-phone"></i>
+                <input class="acc-input" type="tel" id="acc-track-phone" placeholder="01XXXXXXXXX" autocomplete="tel">
+              </div>
+            </div>
             <button type="submit" class="acc-btn acc-btn-primary acc-trk-submit" id="acc-track-submit">
               <i class="ti ti-search"></i> Track
             </button>
           </form>
-          <p class="acc-trk-hint"><i class="ti ti-info-circle"></i> Order ID is shown on your order confirmation and success page (e.g. RKS-2026-12345678).</p>
+          <p class="acc-trk-hint"><i class="ti ti-info-circle"></i> Use the phone number from the order. From My Orders, Track works with your login.</p>
           <div id="acc-track-result" class="acc-trk-result" hidden></div>
         </div>
       </section>
@@ -1810,7 +1821,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script src="/js/home-today-deals.js?v=6" defer></script>
 <script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/storefront-dynamic.js?v=67" defer></script>
-<script src="/js/api.js?v=143" defer></script>
+<script src="/js/api.js?v=144" defer></script>
 <script src="/js/footer-settings.js?v=16" defer></script>
 <script src="/js/search.js?v=10" defer></script>
 <script>

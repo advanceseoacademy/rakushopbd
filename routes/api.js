@@ -2,6 +2,9 @@ const express = require('express');
 const { query, getPool } = require('../config/db');
 const { formatPrice } = require('../lib/format');
 const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
+const { sanitizePublicSettings } = require('../lib/smtpSettings');
+const { requireAdminOrLocal } = require('../lib/requestGuards');
+const { createRateLimiter } = require('../lib/simpleRateLimit');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
 const { getHomeProductSections, getBestSellingProducts, getNewArrivalProducts } = require('../lib/homeProducts');
 const { getTodaySellingProducts, getTodaySellingMeta } = require('../lib/todaySelling');
@@ -54,14 +57,12 @@ const router = express.Router();
 // Live cPanel: runs before /api/admin router — login returns token even if server.js is old
 registerAdminAuthApiRouter(router);
 
-/** Safe DB diagnostic — https://rakushopbd.com/api/db-check */
-router.get('/db-check', async (req, res) => {
+/** Diagnostic — localhost or admin only (not public on the internet). */
+router.get('/db-check', requireAdminOrLocal, async (req, res) => {
   const info = {
     ok: false,
-    dbHost: process.env.DB_HOST || 'localhost',
-    dbName: process.env.DB_NAME || null,
-    dbUser: process.env.DB_USER || null,
-    hasPassword: Boolean(process.env.DB_PASSWORD),
+    hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+    hasMysqlConfig: Boolean(process.env.DB_HOST || process.env.DB_NAME),
     nodeEnv: process.env.NODE_ENV || null,
   };
   try {
@@ -453,13 +454,23 @@ router.post('/reviews/upload-image', async (req, res) => {
   });
 });
 
+function allowUploadPath(url) {
+  if (!url) return null;
+  const value = String(url).trim();
+  if (!value) return null;
+  if (value.startsWith('/uploads/') && !value.includes('..') && !value.includes('\\')) {
+    return value.slice(0, 500);
+  }
+  return null;
+}
+
 router.post('/products/:id/reviews', async (req, res) => {
   try {
     const productId = Number(req.params.id);
     const rating = Math.min(5, Math.max(1, Number(req.body.rating) || 0));
     const comment = (req.body.comment || '').trim();
-    const imageUrl = String(req.body.imageUrl || '').trim() || null;
-    const avatarUrl = String(req.body.avatarUrl || '').trim() || null;
+    const imageUrl = allowUploadPath(req.body.imageUrl);
+    const avatarUrl = allowUploadPath(req.body.avatarUrl);
     let customerName = (req.body.customerName || '').trim();
     let userId = null;
 
@@ -696,7 +707,7 @@ router.get('/bootstrap', async (req, res) => {
 
 router.get('/settings', async (req, res) => {
   try {
-    const settings = await getSiteSettings(query);
+    const settings = sanitizePublicSettings(await getSiteSettings(query));
     cachePublic(res, 300);
     const maintenance = settings.maintenance_mode === '1' && !getAdminIdFromRequest(req);
     res.json({ ok: true, settings, maintenance });
@@ -1294,18 +1305,18 @@ router.post('/orders', async (req, res) => {
   }
 });
 
-// Public order tracking by Order ID (order_number)
-// Example: GET /api/orders/track?orderNumber=RKS-2026-12345678
+// Public order tracking — Order ID + phone, or logged-in owner
 router.get('/orders/track', async (req, res) => {
   try {
     const orderNumberRaw = String(req.query.orderNumber || '').trim();
+    const phoneRaw = String(req.query.phone || '').trim();
     if (!orderNumberRaw) {
       return res.status(400).json({ ok: false, error: 'Order ID is required' });
     }
     const orderNumber = orderNumberRaw.toUpperCase();
 
     const rows = await query(
-      `SELECT id, order_number, customer_name, district, status, payment_method, total, created_at
+      `SELECT id, user_id, order_number, customer_name, customer_phone, district, status, payment_method, total, created_at
        FROM orders WHERE order_number = ? LIMIT 1`,
       [orderNumber]
     );
@@ -1313,13 +1324,25 @@ router.get('/orders/track', async (req, res) => {
       return res.status(404).json({ ok: false, error: 'Order not found' });
     }
     const o = rows[0];
+    const sessionUserId = req.session?.userId ? Number(req.session.userId) : null;
+    const ownsOrder = sessionUserId && Number(o.user_id) === sessionUserId;
+    if (!ownsOrder) {
+      if (!phoneRaw) {
+        return res.status(400).json({ ok: false, error: 'Phone number is required' });
+      }
+      const phoneDigits = phoneRaw.replace(/\D/g, '');
+      const orderPhone = String(o.customer_phone || '').replace(/\D/g, '');
+      if (phoneDigits.length < 11 || !orderPhone || orderPhone.slice(-11) !== phoneDigits.slice(-11)) {
+        return res.status(404).json({ ok: false, error: 'Order not found' });
+      }
+    }
     const items = await query(
       `SELECT product_name, quantity, unit_price, line_total
        FROM order_items WHERE order_id = ? ORDER BY id ASC`,
       [o.id]
     );
 
-    cachePublic(res, 30);
+    res.set('Cache-Control', 'no-store');
     res.json({
       ok: true,
       order: {

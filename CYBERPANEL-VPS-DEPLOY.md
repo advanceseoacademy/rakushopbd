@@ -55,12 +55,12 @@ nano /home/rakushopbd.com/rakushopbd/.env
 ```env
 PORT=3001
 NODE_ENV=production
-DATABASE_URL=postgresql://postgres.dymliuodmmmgvwjbonjn:RakuShopBd_Supabase_2026_Xk9@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres
+DATABASE_URL=postgresql://postgres.dymliuodmmmgvwjbonjn:[YOUR-DB-PASSWORD]@aws-1-ap-northeast-1.pooler.supabase.com:6543/postgres
 SUPABASE_URL=https://dymliuodmmmgvwjbonjn.supabase.co
 SESSION_SECRET=your-long-secret
 ADMIN_USERNAME=admin@rakushopbd.com
 ADMIN_EMAIL=admin@rakushopbd.com
-ADMIN_PASSWORD=BDRakuadmin2026%%
+ADMIN_PASSWORD=CHANGE_ME_ADMIN_PASSWORD
 ```
 
 > CyberPanel-এ port **3000** অনেক সময় busy থাকে → **3001** ব্যবহার করুন।

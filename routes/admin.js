@@ -1104,6 +1104,25 @@ router.put('/products/:id', requireAdmin, async (req, res) => {
   }
 });
 
+router.patch('/products/:id/stock', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const stock = Number(req.body?.stock);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid product' });
+    if (!Number.isFinite(stock) || stock < 0 || !Number.isInteger(stock)) {
+      return res.status(400).json({ ok: false, error: 'Stock must be a whole number ≥ 0' });
+    }
+    const rows = await query('SELECT id FROM products WHERE id = ? LIMIT 1', [id]);
+    if (!rows[0]) return res.status(404).json({ ok: false, error: 'Product not found' });
+    await query('UPDATE products SET stock = ? WHERE id = ?', [stock, id]);
+    clearStoreBootstrapCache();
+    res.json({ ok: true, stock });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update stock' });
+  }
+});
+
 router.post('/products/bulk-delete', requireAdmin, async (req, res) => {
   try {
     const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];

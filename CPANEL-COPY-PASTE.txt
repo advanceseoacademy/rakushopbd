@@ -57,7 +57,7 @@ touch tmp/restart.txt
 
 ২) https://rakushopbd.com/admin
    User: admin@rakushopbd.com
-   Pass: BDRakuadmin2026%%
+   Pass: CHANGE_ME_ADMIN_PASSWORD
 
 ৩) public_html/index.html থাকলে DELETE
 

@@ -1123,6 +1123,39 @@ router.patch('/products/:id/stock', requireAdmin, async (req, res) => {
   }
 });
 
+router.patch('/products/:id/price', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    const price = Number(req.body?.price);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid product' });
+    if (!Number.isFinite(price) || price < 0) {
+      return res.status(400).json({ ok: false, error: 'Sale price must be 0 or more' });
+    }
+    const rows = await query(
+      'SELECT id, old_price, discount_percent FROM products WHERE id = ? LIMIT 1',
+      [id]
+    );
+    if (!rows[0]) return res.status(404).json({ ok: false, error: 'Product not found' });
+    const pricing = normalizeProductDiscount(price, rows[0].old_price, rows[0].discount_percent);
+    await query('UPDATE products SET price = ?, old_price = ?, discount_percent = ? WHERE id = ?', [
+      price,
+      pricing.oldPrice,
+      pricing.discountPercent,
+      id,
+    ]);
+    clearStoreBootstrapCache();
+    res.json({
+      ok: true,
+      price,
+      oldPrice: pricing.oldPrice,
+      discountPercent: pricing.discountPercent,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update sale price' });
+  }
+});
+
 router.post('/products/bulk-delete', requireAdmin, async (req, res) => {
   try {
     const ids = [...new Set((Array.isArray(req.body?.ids) ? req.body.ids : []).map(Number).filter(Boolean))];

@@ -3319,7 +3319,8 @@
           <td><div style="display:flex;align-items:center;gap:10px;">
             ${productThumbHtml(p)}
             <div><div style="font-weight:600;">${escHtml(p.name_bn)}</div><small style="color:#94a3b8">${escHtml(p.slug)}</small></div></div></td>
-          <td>${formatProductCategoryLabel(p)}</td><td>৳${Number(p.price).toLocaleString()}</td>
+          <td>${formatProductCategoryLabel(p)}</td>
+          <td><input type="number" class="stock-quick-edit price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-price="${p.price}" value="${Number(p.price)}" aria-label="Sale price for ${escHtml(p.name_bn)}"></td>
           <td>${p.buy_price != null && p.buy_price !== '' ? '৳' + Number(p.buy_price).toLocaleString() : '<span style="color:#94a3b8">—</span>'}</td>
           <td><input type="number" class="stock-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-stock="${p.stock}" value="${p.stock}" aria-label="Stock for ${escHtml(p.name_bn)}"></td>
           <td><span class="badge ${stockCls}" data-stock-badge="${p.id}">${stockLbl}</span></td>
@@ -3341,7 +3342,55 @@
       };
     });
 
-    document.querySelectorAll('.stock-quick-edit').forEach((input) => {
+    document.querySelectorAll('.price-quick-edit').forEach((input) => {
+      const savePrice = async () => {
+        const id = Number(input.dataset.productId);
+        const prev = Number(input.dataset.prevPrice);
+        let price = Number(input.value);
+        if (!Number.isFinite(price) || price < 0) {
+          input.value = prev;
+          toast('Sale price must be 0 or more', 'error');
+          return;
+        }
+        price = Math.round(price);
+        input.value = price;
+        if (price === prev || input.dataset.saving === '1') return;
+        input.dataset.saving = '1';
+        input.classList.add('is-saving');
+        const r = await api('/products/' + id + '/price', {
+          method: 'PATCH',
+          body: JSON.stringify({ price }),
+        });
+        input.dataset.saving = '0';
+        input.classList.remove('is-saving');
+        if (!r.ok) {
+          input.value = prev;
+          toast(r.error || 'Could not update sale price', 'error');
+          return;
+        }
+        input.dataset.prevPrice = String(price);
+        const row = data.products?.find((x) => Number(x.id) === id);
+        if (row) {
+          row.price = price;
+          if (r.oldPrice !== undefined) row.old_price = r.oldPrice;
+          if (r.discountPercent !== undefined) row.discount_percent = r.discountPercent;
+        }
+        toast('Sale price updated');
+      };
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+        if (e.key === 'Escape') {
+          input.value = input.dataset.prevPrice;
+          input.blur();
+        }
+      });
+      input.addEventListener('blur', savePrice);
+    });
+
+    document.querySelectorAll('.stock-quick-edit:not(.price-quick-edit)').forEach((input) => {
       const saveStock = async () => {
         const id = Number(input.dataset.productId);
         const prev = Number(input.dataset.prevStock);

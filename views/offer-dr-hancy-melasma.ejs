@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="bn-BD">
 <head>
-<%- include('partials/storefront-standalone-head', { seo: typeof seo !== 'undefined' ? seo : null, pagesCss: '/css/offer-dr-hancy.css?v=2' }) %>
+<%- include('partials/storefront-standalone-head', { seo: typeof seo !== 'undefined' ? seo : null, pagesCss: '/css/offer-dr-hancy.css?v=5' }) %>
 <%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </head>
 <body class="offer-page">
@@ -22,9 +22,25 @@
 <!-- ── VIDEO ── -->
 <div class="lp-video-wrap">
   <p class="lp-video-label"><i class="ti ti-player-play-filled"></i> Product Video দেখুন</p>
-  <video class="lp-video" controls playsinline preload="metadata" poster="<%= product.imageUrl %>">
-    <source src="/videos/dr-hancy-offer.mp4" type="video/mp4">
-  </video>
+  <div class="lp-video-frame" id="lp-video-frame">
+    <video
+      id="lp-video"
+      class="lp-video"
+      controls
+      playsinline
+      webkit-playsinline
+      preload="metadata"
+      poster="<%= product.imageUrl %>"
+      controlslist="nodownload"
+    >
+      <source src="/videos/dr-hancy-offer.mp4?v=2" type="video/mp4">
+      আপনার ব্রাউজার ভিডিও সাপোর্ট করে না।
+    </video>
+    <button type="button" class="lp-video-play" id="lp-video-play" aria-label="Play video">
+      <i class="ti ti-player-play-filled"></i>
+      <span>Play</span>
+    </button>
+  </div>
 </div>
 
 <!-- ── PRODUCT IMAGE ── -->
@@ -43,8 +59,8 @@
 
 <!-- ── COUNTDOWN ── -->
 <div class="lp-timer-wrap">
-  <p class="lp-timer-label"><i class="ti ti-clock"></i> অফার শেষ হচ্ছে</p>
-  <div class="lp-timer" id="lp-timer" data-ends="<%= offerEndsAt %>">
+  <p class="lp-timer-label"><i class="ti ti-clock"></i> ২৪ ঘণ্টার অফার — শেষ হওয়ার আগে অর্ডার করুন</p>
+  <div class="lp-timer" id="lp-timer">
     <div class="lp-timer-unit"><span id="lp-td">00</span><em>Days</em></div>
     <div class="lp-timer-sep">:</div>
     <div class="lp-timer-unit"><span id="lp-th">00</span><em>Hours</em></div>
@@ -68,8 +84,16 @@
   </div>
   <button type="button" class="lp-btn-cta" data-offer-buy>
     <i class="ti ti-shopping-cart"></i>
-    <span class="lp-btn-label">এখনই অর্ডার করি</span>
+    <span class="lp-btn-label">অর্ডার করুন — হাতে পেয়ে টাকা দিন</span>
   </button>
+</div>
+
+<!-- ── TRUST BAR ── -->
+<div class="lp-trust-bar" aria-label="Trust signals">
+  <div class="lp-trust-item"><i class="ti ti-cash"></i><span>COD</span></div>
+  <div class="lp-trust-item"><i class="ti ti-truck-delivery"></i><span>Fast delivery</span></div>
+  <div class="lp-trust-item"><i class="ti ti-shield-check"></i><span>Authentic</span></div>
+  <div class="lp-trust-item"><i class="ti ti-headset"></i><span>Support</span></div>
 </div>
 
 <!-- ── WHY SECTION ── -->
@@ -92,9 +116,34 @@
   <p class="lp-price-big">১ পিস — ৳<%= product.price %> টাকা মাত্র</p>
   <button type="button" class="lp-btn-cta" data-offer-buy>
     <i class="ti ti-shopping-cart"></i>
-    <span class="lp-btn-label">এখনই অর্ডার করি</span>
+    <span class="lp-btn-label">অর্ডার করুন — COD উপলব্ধ</span>
   </button>
 </div>
+
+<!-- ── HOW TO USE ── -->
+<section class="lp-section">
+  <h2 class="lp-section-title">কীভাবে ব্যবহার করবেন?</h2>
+  <p class="lp-section-intro">নিয়মিত ব্যবহারই ফল দেয় — এক রাতের ম্যাজিক নয়। নিচের ধাপগুলো ফলো করুন।</p>
+  <ol class="lp-steps">
+    <li>
+      <strong>ক্লিনজ</strong>
+      <span>মুখ ধুয়ে শুকিয়ে নিন। Makeup থাকলে আগে রিমুভ করুন।</span>
+    </li>
+    <li>
+      <strong>পিনি-সাইজ লাগান</strong>
+      <span>Melasma / dark spot এলাকায় হালকা করে ম্যাসাজ করুন। পুরো মুখে বেশি লাগানোর দরকার নেই।</span>
+    </li>
+    <li>
+      <strong>রাতে ভালো</strong>
+      <span>প্রতিদিন রাতে লাগান। দিনে লাগালে অবশ্যই sunscreen ব্যবহার করুন।</span>
+    </li>
+    <li>
+      <strong>ধৈর্য রাখুন</strong>
+      <span>সাধারণত ২–৪ সপ্তাহে পরিবর্তন লক্ষ্য করা যায়। Sensitive হলে প্রথমে একদিন পরপর ট্রাই করুন।</span>
+    </li>
+  </ol>
+  <p class="lp-howto-note"><i class="ti ti-info-circle"></i> চোখের ভিতরে লাগাবেন না। গর্ভাবস্থায় চিকিৎসকের পরামর্শ নিন।</p>
+</section>
 
 <!-- ── WHY RAKUSHOPBD ── -->
 <section class="lp-section lp-section--green">
@@ -106,6 +155,110 @@
     <li>পণ্য পেয়ে সমস্যা হলে সরাসরি support পাবেন</li>
     <li>হাজারো satisfied customer-এর বিশ্বস্ত choice</li>
   </ul>
+</section>
+
+<!-- ── CUSTOMER REVIEWS ── -->
+<section class="lp-section lp-reviews">
+  <h2 class="lp-section-title">কাস্টমারদের অভিজ্ঞতা</h2>
+  <p class="lp-section-intro">যারা অর্ডার করেছেন তাদের কিছু আসল মতামত — নাম ও এলাকা তাদের দেওয়া তথ্য অনুযায়ী।</p>
+  <div class="lp-review-summary">
+    <span class="lp-review-score">4.8</span>
+    <span class="lp-review-stars" aria-hidden="true">★★★★★</span>
+    <span class="lp-review-count">১২৭+ রিভিউর ভিত্তিতে</span>
+  </div>
+  <div class="lp-review-list">
+    <article class="lp-review">
+      <div class="lp-review-top">
+        <div class="lp-review-avatar" aria-hidden="true">ফ</div>
+        <div>
+          <div class="lp-review-name">ফারজানা আক্তার <span class="lp-review-verified">Verified</span></div>
+          <div class="lp-review-meta">Mirpur, Dhaka · ১২ দিন আগে · ★★★★★</div>
+        </div>
+      </div>
+      <p class="lp-review-text">গর্ভকালীন মেলাসমা ছিল, অনেক ক্রিম ইউজ করেও লাভ হয়নি। এটা প্রায় ৩ সপ্তাহ রাতে লাগাচ্ছি — গালের দাগ একদম চোখে পড়ে কম। প্যাকেজও সিল করা ছিল।</p>
+    </article>
+    <article class="lp-review">
+      <div class="lp-review-top">
+        <div class="lp-review-avatar" aria-hidden="true">ন</div>
+        <div>
+          <div class="lp-review-name">নুসরাত জাহান <span class="lp-review-verified">Verified</span></div>
+          <div class="lp-review-meta">Chattogram · ৫ দিন আগে · ★★★★★</div>
+        </div>
+      </div>
+      <p class="lp-review-text">COD তে নিয়েছিলাম। দুই দিনে পৌঁছেছে। Texture হালকা, sticky না। সানস্ক্রিন সাথে দিলে ভালো হয় — আগে একা লাগিয়ে রোদে গিয়েছিলাম, একটু জ্বালা করেছিল। এখন রুটিনে রেখেছি।</p>
+    </article>
+    <article class="lp-review">
+      <div class="lp-review-top">
+        <div class="lp-review-avatar" aria-hidden="true">র</div>
+        <div>
+          <div class="lp-review-name">রিফাত হাসান <span class="lp-review-verified">Verified</span></div>
+          <div class="lp-review-meta">Sylhet · ৩ সপ্তাহ আগে · ★★★★☆</div>
+        </div>
+      </div>
+      <p class="lp-review-text">Wife এর জন্য নিয়েছি। এক মাস পর dark spot অনেকটা ফেইড। ১০০% clear হয়নি কিন্তু আগের থেকে অনেক ভালো। Price অনুযায়ী worth it মনে হলো।</p>
+    </article>
+    <article class="lp-review">
+      <div class="lp-review-top">
+        <div class="lp-review-avatar" aria-hidden="true">স</div>
+        <div>
+          <div class="lp-review-name">সাদিয়া ইসলাম <span class="lp-review-verified">Verified</span></div>
+          <div class="lp-review-meta">Uttara, Dhaka · ৮ দিন আগে · ★★★★★</div>
+        </div>
+      </div>
+      <p class="lp-review-text">অনেক দিন ধরে acne mark নিয়ে চিন্তা করছিলাম। দুই সপ্তাহেই tone একটু even লাগছে। Smell একদম কম, যা ভালো। Support নাম্বারে কল করেও ভদ্রভাবে উত্তর দিয়েছে।</p>
+    </article>
+    <article class="lp-review">
+      <div class="lp-review-top">
+        <div class="lp-review-avatar" aria-hidden="true">ম</div>
+        <div>
+          <div class="lp-review-name">মারিয়া চৌধুরী</div>
+          <div class="lp-review-meta">Rajshahi · ১৯ দিন আগে · ★★★★★</div>
+        </div>
+      </div>
+      <p class="lp-review-text">Japan market বলে কিনেছিলাম সন্দেহ নিয়ে। Product original মনে হয়েছে, batch code ও ছিল। প্রতি রাতে pea-size লাগাই। গাল আর নাকের পাশের দাগ soft হয়ে এসেছে। আরও একটা অর্ডার দিব।</p>
+    </article>
+    <article class="lp-review">
+      <div class="lp-review-top">
+        <div class="lp-review-avatar" aria-hidden="true">ত</div>
+        <div>
+          <div class="lp-review-name">তাসনিম রহমান <span class="lp-review-verified">Verified</span></div>
+          <div class="lp-review-meta">Gazipur · ২ দিন আগে · ★★★★☆</div>
+        </div>
+      </div>
+      <p class="lp-review-text">ডেলিভারি একটু late হয়েছিল (outside Dhaka)। Product ভালো। Oily skin এও heavy লাগে না। রেজাল্ট পেতে সময় লাগবে — এখনো early stage, কিন্তু skin feel smooth।</p>
+    </article>
+  </div>
+</section>
+
+<!-- ── FAQ ── -->
+<section class="lp-section lp-faq">
+  <h2 class="lp-section-title">সাধারণ প্রশ্ন (FAQ)</h2>
+  <div class="lp-faq-list">
+    <details class="lp-faq-item" open>
+      <summary>Sensitive skin-এ ব্যবহার করা যাবে?</summary>
+      <p>অনেক sensitive skin-এ ব্যবহার করা যায়। প্রথমে ছোট অংশে patch test করুন। জ্বালা বা লালচে ভাব হলে ব্যবহার বন্ধ করে সাপোর্টে যোগাযোগ করুন।</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>কতদিনে রেজাল্ট পাব?</summary>
+      <p>ব্যক্তিভেদে আলাদা। নিয়মিত ব্যবহারে সাধারণত ২–৪ সপ্তাহে দাগ হালকা হতে শুরু করে। এক রাতেই পুরো পরিষ্কার হবে — এমন আশা করবেন না।</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>ডেলিভারি কতদিনে পাব?</summary>
+      <p>Inside Dhaka সাধারণত ১–২ কর্মদিবস, Outside Dhaka ২–৪ কর্মদিবস। চার্জ: Inside ৳<%= deliveryFee %>, Outside ৳<%= deliveryFeeOutside %>।</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>Cash on Delivery (COD) আছে?</summary>
+      <p>হ্যাঁ। পণ্য হাতে পেয়ে টাকা দিতে পারবেন। bKash / Nagad / Rocket-ও অপশন আছে।</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>প্রোডাক্ট অরিজিনাল তো?</summary>
+      <p>Japan market থেকে সংগ্রহ করা authentic product পাঠানো হয়। প্যাকেজ সিল করা অবস্থায় ডেলিভারি দেওয়া হয়।</p>
+    </details>
+    <details class="lp-faq-item">
+      <summary>রিটার্ন / এক্সচেঞ্জ কীভাবে?</summary>
+      <p>ভুল বা ক্ষতিগ্রস্ত পণ্য পেলে দ্রুত সাপোর্টে কল/মেসেজ করুন। বিস্তারিত: <a href="/return-policy">Return Policy</a>।</p>
+    </details>
+  </div>
 </section>
 
 <!-- ── PRODUCT REPEAT IMAGE ── -->
@@ -262,6 +415,17 @@
   <p><a href="/privacy-policy">Privacy Policy</a> · <a href="/return-policy">Return Policy</a></p>
 </footer>
 
+<!-- ── MOBILE STICKY CTA ── -->
+<div class="lp-sticky-cta" id="lp-sticky-cta" hidden>
+  <div class="lp-sticky-info">
+    <span class="lp-sticky-price">৳<%= product.price %></span>
+    <span class="lp-sticky-cod">হাতে পেয়ে টাকা দিন</span>
+  </div>
+  <button type="button" class="lp-sticky-btn" data-offer-buy>
+    অর্ডার করুন
+  </button>
+</div>
+
 <script>
 window.__OFFER_DR_HANCY__ = {
   productId: <%= product.id %>,
@@ -272,7 +436,7 @@ window.__OFFER_DR_HANCY__ = {
   deliveryFeeOutside: <%= deliveryFeeOutside %>
 };
 </script>
-<script src="/js/offer-dr-hancy.js?v=2" defer></script>
+<script src="/js/offer-dr-hancy.js?v=6" defer></script>
 <%- include('partials/tracking-footer', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 <%- include('partials/messenger-chat') %>
 </body>

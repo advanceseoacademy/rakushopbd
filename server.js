@@ -390,7 +390,6 @@ const DR_HANCY_OFFER = {
   fallbackPrice: 850,
   comparePrice: 1500,
   fallbackImage: '/uploads/1785381059287-IMG_3698.webp',
-  offerEndsAt: '2026-09-07T23:59:59+06:00',
   gallery: [
     '/uploads/1785381059287-IMG_3698.webp',
     '/uploads/1785577877597-Dr-Hancy-White-Spot-Cream-Melasma.webp',
@@ -471,7 +470,6 @@ async function renderDrHancyOffer(req, res) {
     seo,
     trackingScripts,
     gallery: DR_HANCY_OFFER.gallery,
-    offerEndsAt: DR_HANCY_OFFER.offerEndsAt,
     contactPhone,
     contactTel: contactPhone.replace(/[^\d+]/g, ''),
     deliveryFee: Number(settings.delivery_fee) || 60,

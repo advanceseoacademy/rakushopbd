@@ -6,27 +6,94 @@
   const deliveryFee = Number(cfg.deliveryFee) || 60;
   const deliveryFeeOutside = Number(cfg.deliveryFeeOutside) || 120;
 
-  /* ── COUNTDOWN ── */
+  /* ── VIDEO (mobile-friendly tap-to-play) ── */
+  (function initVideo() {
+    const video = document.getElementById('lp-video');
+    const frame = document.getElementById('lp-video-frame');
+    const playBtn = document.getElementById('lp-video-play');
+    if (!video || !frame) return;
+
+    const markPlaying = () => frame.classList.add('is-playing');
+    const markPaused = () => {
+      if (video.paused) frame.classList.remove('is-playing');
+    };
+
+    async function startPlay() {
+      try {
+        video.setAttribute('playsinline', '');
+        video.setAttribute('webkit-playsinline', '');
+        await video.play();
+        markPlaying();
+      } catch (err) {
+        // Fallback: open native fullscreen / show controls so user can tap again
+        video.controls = true;
+        frame.classList.remove('is-playing');
+        console.warn('Video play blocked', err);
+      }
+    }
+
+    playBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startPlay();
+    });
+    video.addEventListener('play', markPlaying);
+    video.addEventListener('playing', markPlaying);
+    video.addEventListener('pause', markPaused);
+    video.addEventListener('ended', () => {
+      frame.classList.remove('is-playing');
+      video.currentTime = 0;
+    });
+  })();
+
+  /* ── COUNTDOWN: always rolling 24-hour offer ── */
   (function initTimer() {
     const el = document.getElementById('lp-timer');
     if (!el) return;
-    const ends = new Date(el.dataset.ends || '').getTime();
-    if (!ends || isNaN(ends)) return;
     const d = document.getElementById('lp-td');
     const h = document.getElementById('lp-th');
     const m = document.getElementById('lp-tm');
     const s = document.getElementById('lp-ts');
     if (!d || !h || !m || !s) return;
 
-    function pad(n) { return String(Math.max(0, n)).padStart(2, '0'); }
+    const KEY = 'raku_dr_hancy_offer_end_v1';
+    const DURATION_MS = 24 * 60 * 60 * 1000;
+
+    function getEnd() {
+      let end = 0;
+      try {
+        end = Number(localStorage.getItem(KEY) || 0);
+      } catch (_) {}
+      const now = Date.now();
+      if (!end || !Number.isFinite(end) || end <= now) {
+        end = now + DURATION_MS;
+        try {
+          localStorage.setItem(KEY, String(end));
+        } catch (_) {}
+      }
+      return end;
+    }
+
+    function pad(n) {
+      return String(Math.max(0, Math.min(99, n))).padStart(2, '0');
+    }
+
     function tick() {
-      const diff = ends - Date.now();
-      if (diff <= 0) { d.textContent = h.textContent = m.textContent = s.textContent = '00'; return; }
+      let end = getEnd();
+      let diff = end - Date.now();
+      if (diff <= 0) {
+        try {
+          localStorage.removeItem(KEY);
+        } catch (_) {}
+        end = getEnd();
+        diff = end - Date.now();
+      }
       d.textContent = pad(Math.floor(diff / 86400000));
       h.textContent = pad(Math.floor((diff % 86400000) / 3600000));
       m.textContent = pad(Math.floor((diff % 3600000) / 60000));
       s.textContent = pad(Math.floor((diff % 60000) / 1000));
     }
+
     tick();
     setInterval(tick, 1000);
   })();
@@ -120,41 +187,54 @@
   const trxWrapInit = document.getElementById('lp-trx-wrap');
   if (trxWrapInit) trxWrapInit.style.display = 'none';
 
-  /* ── DIRECT BUY NOW (hero buttons above form) ── */
-  async function buyNow(btn) {
-    if (btn.disabled || !productId) return;
-    const label = btn.querySelector('.lp-btn-label');
-    const orig = label ? label.textContent : null;
-    btn.disabled = true;
-    if (label) label.textContent = 'Adding…';
-    try {
-      const res = await fetch('/api/cart/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ productId, qty: 1 }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (data.ok || data.alreadyInCart) {
-        window.location.href = '/checkout';
-        return;
-      }
-      if (res.status === 400 && /out of stock|pre-order/i.test(String(data.error || ''))) {
-        window.location.href = productUrl;
-        return;
-      }
-      window.alert(data.error || 'Could not add to cart. Please try again.');
-    } catch (_) {
-      window.alert('Network error. Please try again.');
-    } finally {
-      btn.disabled = false;
-      if (label && orig) label.textContent = orig;
-    }
+  /* ── CTA → scroll to on-page order form (no checkout redirect) ── */
+  function scrollToOrderForm() {
+    const formSection = document.getElementById('lp-form-wrap')
+      || document.querySelector('.lp-form-section')
+      || document.getElementById('lp-order-form');
+    if (!formSection) return;
+    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setTimeout(() => {
+      const nameInput = document.getElementById('lp-name');
+      if (nameInput && !nameInput.value) nameInput.focus({ preventScroll: true });
+    }, 450);
   }
 
   document.querySelectorAll('[data-offer-buy]').forEach((btn) => {
-    btn.addEventListener('click', () => buyNow(btn));
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      scrollToOrderForm();
+    });
   });
+
+  /* ── MOBILE STICKY CTA ── */
+  (function initStickyCta() {
+    const bar = document.getElementById('lp-sticky-cta');
+    const form = document.getElementById('lp-form-wrap') || document.querySelector('.lp-form-section');
+    const firstCta = document.querySelector('.lp-price-block');
+    if (!bar || !firstCta) return;
+
+    function update() {
+      if (window.matchMedia('(min-width: 768px)').matches) {
+        bar.hidden = true;
+        document.body.classList.remove('has-sticky-cta');
+        return;
+      }
+      const pastHero = firstCta.getBoundingClientRect().bottom < 0;
+      let nearForm = false;
+      if (form) {
+        const r = form.getBoundingClientRect();
+        nearForm = r.top < window.innerHeight * 0.75 && r.bottom > 80;
+      }
+      const show = pastHero && !nearForm;
+      bar.hidden = !show;
+      document.body.classList.toggle('has-sticky-cta', show);
+    }
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+  })();
 
   /* ── ORDER FORM SUBMIT ── */
   function showError(msg) {

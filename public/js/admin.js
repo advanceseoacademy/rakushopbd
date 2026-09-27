@@ -89,6 +89,7 @@
   let contactsPage = 1;
   let subscribersPage = 1;
   let productsPage = 1;
+  let productsLoadSeq = 0;
   let galleryPage = 1;
   let authRedirectHold = false;
   let orderBadgePollTimer = null;
@@ -3287,6 +3288,43 @@
     });
   });
 
+  function productDiscountPct(p) {
+    const price = Number(p.price) || 0;
+    const old = Number(p.old_price) || 0;
+    if (old > price && price >= 0) {
+      const stored = Number(p.discount_percent);
+      return Number.isFinite(stored) && stored > 0 ? Math.round(stored) : Math.round((1 - price / old) * 100);
+    }
+    return 0;
+  }
+
+  function profitCellHtml(price, buyPrice) {
+    if (buyPrice == null || buyPrice === '') return '<span style="color:#94a3b8">—</span>';
+    const sale = Number(price) || 0;
+    const buy = Number(buyPrice) || 0;
+    const profit = sale - buy;
+    const pct = sale > 0 ? Math.round((profit / sale) * 100) : 0;
+    const color = profit < 0 ? '#dc2626' : profit === 0 ? '#64748b' : '#15803d';
+    return `<div style="font-weight:600;color:${color}">${pct}%</div><small style="color:#94a3b8">৳${profit.toLocaleString('en-IN')}</small>`;
+  }
+
+  function refreshProductRowDerived(row) {
+    if (!row) return;
+    const cell = document.querySelector(`[data-profit-cell="${row.id}"]`);
+    if (cell) cell.innerHTML = profitCellHtml(row.price, row.buy_price);
+    const disc = document.querySelector(`.discount-quick-edit[data-product-id="${row.id}"]`);
+    if (disc && disc.dataset.saving !== '1' && document.activeElement !== disc) {
+      const pct = productDiscountPct(row);
+      disc.value = pct;
+      disc.dataset.prevDiscount = String(pct);
+    }
+    const priceInput = document.querySelector(`.price-quick-edit[data-product-id="${row.id}"]`);
+    if (priceInput && priceInput.dataset.saving !== '1' && document.activeElement !== priceInput) {
+      priceInput.value = Number(row.price);
+      priceInput.dataset.prevPrice = String(Number(row.price));
+    }
+  }
+
   async function loadProducts(page) {
     if (page) productsPage = page;
     if (!categories.length) await loadCategoriesList();
@@ -3295,13 +3333,18 @@
     const q = new URLSearchParams({ page: productsPage, limit: 6 });
     if (cat !== 'all') q.set('category', cat);
     if (search) q.set('search', search);
+    const loadId = ++productsLoadSeq;
     const data = await api('/products?' + q.toString());
-    if (!data.ok) return;
+    if (loadId !== productsLoadSeq) return;
+    if (!data.ok) {
+      toast(data.error || 'Could not load products', 'error');
+      return;
+    }
 
     const tbody = document.getElementById('products-tbody');
     if (!data.products?.length) {
       tbody.innerHTML =
-        '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No products found.</td></tr>';
+        '<tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:24px;">No products found.</td></tr>';
       updateProductsSelectionUi();
     } else {
       const allowDelete = canDeleteProducts();
@@ -3321,7 +3364,9 @@
             <div><div style="font-weight:600;">${escHtml(p.name_bn)}</div><small style="color:#94a3b8">${escHtml(p.slug)}</small></div></div></td>
           <td>${formatProductCategoryLabel(p)}</td>
           <td><input type="number" class="stock-quick-edit price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-price="${p.price}" value="${Number(p.price)}" aria-label="Sale price for ${escHtml(p.name_bn)}"></td>
+          <td><input type="number" class="stock-quick-edit discount-quick-edit" min="0" max="99" step="1" data-product-id="${p.id}" data-prev-discount="${productDiscountPct(p)}" value="${productDiscountPct(p)}" aria-label="Discount percent for ${escHtml(p.name_bn)}"></td>
           <td><input type="number" class="stock-quick-edit buy-price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-buy-price="${p.buy_price != null && p.buy_price !== '' ? Number(p.buy_price) : ''}" value="${p.buy_price != null && p.buy_price !== '' ? Number(p.buy_price) : ''}" placeholder="—" aria-label="Buy price for ${escHtml(p.name_bn)}"></td>
+          <td data-profit-cell="${p.id}">${profitCellHtml(p.price, p.buy_price)}</td>
           <td><input type="number" class="stock-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-stock="${p.stock}" value="${p.stock}" aria-label="Stock for ${escHtml(p.name_bn)}"></td>
           <td><span class="badge ${stockCls}" data-stock-badge="${p.id}">${stockLbl}</span></td>
           <td class="tbl-actions">
@@ -3374,6 +3419,7 @@
           row.price = price;
           if (r.oldPrice !== undefined) row.old_price = r.oldPrice;
           if (r.discountPercent !== undefined) row.discount_percent = r.discountPercent;
+          refreshProductRowDerived(row);
         }
         toast('Sale price updated');
       };
@@ -3388,6 +3434,56 @@
         }
       });
       input.addEventListener('blur', savePrice);
+    });
+
+    document.querySelectorAll('.discount-quick-edit').forEach((input) => {
+      const saveDiscount = async () => {
+        const id = Number(input.dataset.productId);
+        const prev = Number(input.dataset.prevDiscount) || 0;
+        const raw = String(input.value).trim();
+        let pct = raw === '' ? 0 : Number(raw);
+        if (!Number.isFinite(pct) || pct < 0 || pct >= 100) {
+          input.value = prev;
+          toast('Discount must be between 0 and 99', 'error');
+          return;
+        }
+        pct = Math.round(pct);
+        input.value = pct;
+        if (pct === prev || input.dataset.saving === '1') return;
+        input.dataset.saving = '1';
+        input.classList.add('is-saving');
+        const r = await api('/products/' + id + '/discount', {
+          method: 'PATCH',
+          body: JSON.stringify({ discountPercent: pct }),
+        });
+        input.dataset.saving = '0';
+        input.classList.remove('is-saving');
+        if (!r.ok) {
+          input.value = prev;
+          toast(r.error || 'Could not update discount', 'error');
+          return;
+        }
+        input.dataset.prevDiscount = String(pct);
+        const row = data.products?.find((x) => Number(x.id) === id);
+        if (row) {
+          row.price = r.price;
+          row.old_price = r.oldPrice;
+          row.discount_percent = r.discountPercent;
+          refreshProductRowDerived(row);
+        }
+        toast(pct > 0 ? `Discount ${pct}% applied — sale price ৳${r.price}` : 'Discount removed');
+      };
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+        if (e.key === 'Escape') {
+          input.value = input.dataset.prevDiscount;
+          input.blur();
+        }
+      });
+      input.addEventListener('blur', saveDiscount);
     });
 
     document.querySelectorAll('.buy-price-quick-edit').forEach((input) => {
@@ -3426,7 +3522,10 @@
         }
         input.dataset.prevBuyPrice = buyPrice == null ? '' : String(buyPrice);
         const row = data.products?.find((x) => Number(x.id) === id);
-        if (row) row.buy_price = buyPrice;
+        if (row) {
+          row.buy_price = buyPrice;
+          refreshProductRowDerived(row);
+        }
         toast('Buy price updated');
       };
       input.addEventListener('keydown', (e) => {
@@ -3442,7 +3541,7 @@
       input.addEventListener('blur', saveBuyPrice);
     });
 
-    document.querySelectorAll('.stock-quick-edit:not(.price-quick-edit):not(.buy-price-quick-edit)').forEach((input) => {
+    document.querySelectorAll('.stock-quick-edit:not(.price-quick-edit):not(.buy-price-quick-edit):not(.discount-quick-edit)').forEach((input) => {
       const saveStock = async () => {
         const id = Number(input.dataset.productId);
         const prev = Number(input.dataset.prevStock);

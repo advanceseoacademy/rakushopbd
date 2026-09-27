@@ -1156,6 +1156,44 @@ router.patch('/products/:id/price', requireAdmin, async (req, res) => {
   }
 });
 
+router.patch('/products/:id/discount', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid product' });
+    const raw = req.body?.discountPercent;
+    const pct = raw === null || raw === undefined || raw === '' ? 0 : Math.round(Number(raw));
+    if (!Number.isFinite(pct) || pct < 0 || pct >= 100) {
+      return res.status(400).json({ ok: false, error: 'Discount must be between 0 and 99' });
+    }
+    const rows = await query('SELECT id, price, old_price FROM products WHERE id = ? LIMIT 1', [id]);
+    if (!rows[0]) return res.status(404).json({ ok: false, error: 'Product not found' });
+    const currentPrice = Number(rows[0].price) || 0;
+    const storedOld = Number(rows[0].old_price) || 0;
+    const mrp = storedOld > currentPrice ? storedOld : currentPrice;
+    if (mrp <= 0) return res.status(400).json({ ok: false, error: 'Set a sale price first' });
+
+    let price = mrp;
+    let oldPrice = null;
+    let discountPercent = null;
+    if (pct > 0) {
+      price = Math.round(mrp * (1 - pct / 100));
+      oldPrice = mrp;
+      discountPercent = pct;
+    }
+    await query('UPDATE products SET price = ?, old_price = ?, discount_percent = ? WHERE id = ?', [
+      price,
+      oldPrice,
+      discountPercent,
+      id,
+    ]);
+    clearStoreBootstrapCache();
+    res.json({ ok: true, price, oldPrice, discountPercent });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update discount' });
+  }
+});
+
 router.patch('/products/:id/buy-price', requireAdmin, async (req, res) => {
   try {
     const id = Number(req.params.id);

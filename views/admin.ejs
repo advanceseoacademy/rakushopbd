@@ -19,7 +19,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/tabler-icons-subset.css?v=3">
 <link rel="stylesheet" href="/css/brand-tokens.css?v=3">
-<link rel="stylesheet" href="/css/admin.css?v=42">
+<link rel="stylesheet" href="/css/admin.css?v=45">
 <link rel="stylesheet" href="/css/popup-themes.css?v=1">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css">
 <style>body{font-family:'Inter',sans-serif;}.toast{position:fixed;bottom:24px;right:24px;background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;z-index:9999;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s,visibility .2s;}.toast.show{opacity:1;visibility:visible;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px;}.modal-overlay.open{display:flex;}.modal-box{background:#fff;border-radius:16px;max-width:520px;width:100%;max-height:90vh;overflow:auto;padding:24px;}.modal-box h3{margin-bottom:16px;font-size:18px;}</style>
@@ -62,7 +62,9 @@
     <div class="nav-item" data-page="products"><i class="ti ti-box"></i> Products</div>
     <div class="nav-item" data-page="gallery" data-super-only><i class="ti ti-photo"></i> Image Gallery</div>
     <div class="nav-item" data-page="customers" data-super-only><i class="ti ti-users"></i> Customers</div>
+    <div class="nav-item" data-page="customer-carts" data-super-only><i class="ti ti-shopping-cart"></i> Customer Carts <span class="nav-badge nav-badge-new" id="customer-carts-badge" hidden>0</span></div>
     <div class="nav-item" data-page="analytics" data-super-only><i class="ti ti-chart-bar"></i> Analytics</div>
+    <div class="nav-item" data-page="visitors" data-super-only><i class="ti ti-eye"></i> Visitor Activity <span class="nav-badge nav-badge-new" id="visitors-online-badge" hidden>0 online</span></div>
     <div class="sidebar-section" data-super-only>Manage</div>
     <div class="nav-item" data-page="categories" data-super-only><i class="ti ti-category"></i> Categories</div>
     <div class="nav-group" id="nav-group-pages" data-super-only>
@@ -253,7 +255,7 @@
           </div>
           <table class="tbl"><thead><tr>
             <th class="tbl-check-col"><input type="checkbox" id="products-select-all" title="Select all on this page" aria-label="Select all products on this page"></th>
-            <th>Product</th><th>Category</th><th>Sale price</th><th>Discount %</th><th>Buy price</th><th>Profit %</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
+            <th>Product</th><th>Category</th><th>MRP</th><th>Sale price</th><th>Discount %</th><th>Buy price</th><th>Profit %</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
           <tbody id="products-tbody"></tbody></table>
           <div class="pagination-bar" id="products-pagination"></div>
         </div>
@@ -421,6 +423,71 @@
           <div class="table-header"><h3>Top Selling Products</h3></div>
           <table class="tbl"><thead><tr><th>Rank</th><th>Product</th><th>Sold</th><th>Revenue</th></tr></thead>
           <tbody id="analytics-tbody"></tbody></table>
+        </div>
+      </div>
+
+      <div class="adm-section" id="sec-customer-carts">
+        <div class="stats-grid" id="customer-carts-stats" style="margin-bottom:20px;"></div>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>Products waiting in customers' carts</h3>
+            <div class="table-actions">
+              <input class="tbl-search" id="customer-carts-search" type="text" placeholder="Name, phone, email, product…">
+              <button type="button" class="btn btn-outline btn-sm" id="customer-carts-refresh"><i class="ti ti-refresh"></i> Refresh</button>
+            </div>
+          </div>
+          <table class="tbl cc-table"><thead><tr>
+            <th>Customer</th><th>Products in cart</th><th>Cart total</th><th>Cart updated</th><th>Orders</th><th>Contact</th></tr></thead>
+          <tbody id="customer-carts-tbody"></tbody></table>
+          <div class="pagination-bar" id="customer-carts-pagination"></div>
+        </div>
+        <p class="va-note">Shows logged-in customers who have products in their cart right now. A cart disappears from this list when the customer places the order or empties the cart.</p>
+      </div>
+
+      <div class="adm-section" id="sec-visitors">
+        <div id="visitors-list-view">
+          <div class="stats-grid va-stats" id="visitors-stats"></div>
+          <div class="table-wrap" style="margin:0;">
+            <div class="table-header">
+              <h3>Visitors</h3>
+              <div class="table-actions">
+                <select class="tbl-select" id="visitors-range">
+                  <option value="1h">Last 1 hour</option>
+                  <option value="today" selected>Today</option>
+                  <option value="24h">Last 24 hours</option>
+                  <option value="7d">Last 7 days</option>
+                  <option value="30d">Last 30 days</option>
+                  <option value="all">All (90 days)</option>
+                </select>
+                <select class="tbl-select" id="visitors-filter">
+                  <option value="all">All visitors</option>
+                  <option value="cart">Added to cart</option>
+                  <option value="checkout">Reached checkout</option>
+                  <option value="ordered">Placed an order</option>
+                  <option value="abandoned">Cart but no order</option>
+                  <option value="members">Logged-in customers</option>
+                </select>
+                <input class="tbl-search" id="visitors-search" type="text" placeholder="Name, phone, IP, page, product…">
+                <label class="va-auto"><input type="checkbox" id="visitors-auto" checked> Auto refresh</label>
+                <button type="button" class="btn btn-outline btn-sm" id="visitors-refresh"><i class="ti ti-refresh"></i> Refresh</button>
+              </div>
+            </div>
+            <table class="tbl va-table"><thead><tr>
+              <th>Visitor</th><th>Device / Source</th><th>Pages</th><th>Cart</th><th>Order</th><th>Last page</th><th>Last seen</th><th></th></tr></thead>
+            <tbody id="visitors-tbody"></tbody></table>
+            <div class="pagination-bar" id="visitors-pagination"></div>
+          </div>
+          <p class="va-note">Bots are skipped. Activity is kept for 90 days.</p>
+        </div>
+        <div id="visitors-detail-view" hidden>
+          <button type="button" class="btn btn-outline btn-sm" id="visitors-back"><i class="ti ti-arrow-left"></i> Back to visitors</button>
+          <div class="va-detail-head" id="visitors-detail-head"></div>
+          <div class="table-wrap va-timeline-wrap" style="margin:0;">
+            <div class="table-header"><h3>Activity timeline</h3>
+              <div class="table-actions"><button type="button" class="btn btn-outline btn-sm" id="visitors-detail-refresh"><i class="ti ti-refresh"></i> Refresh</button></div>
+            </div>
+            <div id="visitors-timeline"></div>
+          </div>
         </div>
       </div>
 
@@ -603,7 +670,7 @@
           </div>
           <table class="tbl"><thead><tr>
             <th class="tbl-check-col"><input type="checkbox" id="coupons-select-all" title="Select all on this page" aria-label="Select all coupons on this page"></th>
-            <th>Code</th><th>Type</th><th>Value</th><th>Min order</th><th>Used</th><th>Expires</th><th>Actions</th></tr></thead>
+            <th>Code</th><th>Type</th><th>Value</th><th>Free delivery</th><th>Min order</th><th>Used</th><th>Expires</th><th>Actions</th></tr></thead>
           <tbody id="coupons-tbody"></tbody></table>
         </div>
       </div>
@@ -1320,6 +1387,10 @@
         <div class="form-group"><label class="form-label">Usage limit</label><input class="form-input" id="cp-limit" type="number" min="0" placeholder="Unlimited"></div>
         <div class="form-group"><label class="form-label">Expires</label><input class="form-input" id="cp-expires" type="date"></div>
       </div>
+      <div class="settings-toggle-card" style="margin:4px 0 14px;">
+        <div class="settings-toggle-card-text"><strong>Free delivery</strong><span id="cp-free-delivery-hint">On = customer also gets free delivery with this coupon</span></div>
+        <label class="toggle"><input type="checkbox" id="cp-free-delivery"><span class="toggle-slider"></span></label>
+      </div>
       <div class="modal-form-actions">
         <button type="submit" class="btn btn-primary" id="cp-submit-btn"><i class="ti ti-device-floppy"></i> Save Coupon</button>
         <button type="button" class="btn btn-outline" id="cp-reset">Clear</button>
@@ -1542,6 +1613,6 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
 <script src="/js/admin-rich-editor.js?v=14"></script>
-<script src="/js/admin.js?v=142"></script>
+<script src="/js/admin.js?v=146"></script>
 </body>
 </html>

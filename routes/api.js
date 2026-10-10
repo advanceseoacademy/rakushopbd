@@ -5,6 +5,9 @@ const { getSiteSettings, deliveryConfig } = require('../lib/siteSettings');
 const { sanitizePublicSettings } = require('../lib/smtpSettings');
 const { requireAdminOrLocal } = require('../lib/requestGuards');
 const { createRateLimiter } = require('../lib/simpleRateLimit');
+const { logVisitorEvent, handleClientTrack } = require('../lib/visitorActivity');
+const { saveUserCart } = require('../lib/savedCarts');
+const { couponGivesFreeDelivery } = require('../lib/ensureCouponFreeDeliveryType');
 const { getStoreBootstrap } = require('../lib/storeBootstrap');
 const { getHomeProductSections, getBestSellingProducts, getNewArrivalProducts } = require('../lib/homeProducts');
 const { getTodaySellingProducts, getTodaySellingMeta } = require('../lib/todaySelling');
@@ -100,6 +103,7 @@ function getCart(req) {
 
 function persistCart(req, cart) {
   req.session.cart = Array.isArray(cart) ? cart : [];
+  if (req.session.userId) saveUserCart(req.session.userId, req.session.cart);
   return req.session.cart;
 }
 
@@ -148,6 +152,37 @@ function isFreeDeliveryCoupon(coupon) {
   return String(coupon?.discount_type || '') === 'free_delivery';
 }
 
+/**
+ * Discount part needs non-discounted items; the free-delivery part (type or on/off switch)
+ * still applies when every item is already discounted.
+ */
+function evaluateCoupon(coupon, cart) {
+  const freeDelivery = couponGivesFreeDelivery(coupon);
+  const eligible = eligibleCouponSubtotal(cart);
+  const discountApplies = !isFreeDeliveryCoupon(coupon) && eligible > 0;
+  if (!discountApplies && !freeDelivery) {
+    return { ok: false, error: 'This coupon cannot be used on already discounted products' };
+  }
+  const orderBase = discountApplies ? eligible : cartSubtotal(cart);
+  if (Number(orderBase) < Number(coupon.min_order)) {
+    return {
+      ok: false,
+      error: discountApplies
+        ? `Minimum order ৳${coupon.min_order} on non-discounted items`
+        : `Minimum order ৳${coupon.min_order}`,
+    };
+  }
+  if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+    return { ok: false, error: 'Coupon limit reached' };
+  }
+  const discount = discountApplies ? computeCouponDiscountAmount(coupon, eligible) : 0;
+  let note = null;
+  if (freeDelivery && discount > 0) note = 'Discount + free delivery';
+  else if (freeDelivery) note = 'Free delivery';
+  else if (cartHasIneligibleCouponItems(cart)) note = 'Applied only to non-discounted items';
+  return { ok: true, discount, freeDelivery, orderBase, note };
+}
+
 function clearSessionRewardRedemption(req) {
   delete req.session.rewardPointsUsed;
 }
@@ -179,6 +214,23 @@ async function rewardRedemptionSnapshot(req, cart, settings) {
   const balance = await getUserRewardPoints(query, userId);
   const minRedeem = Math.max(1, Number(cfg.minRedeem) || 1);
   const maxBalancePercent = Math.min(100, Math.max(1, Number(cfg.maxBalancePercent) || 50));
+  const priorOrders = await query(
+    `SELECT id FROM orders WHERE user_id = ? AND status != 'cancelled' LIMIT 1`,
+    [userId]
+  );
+  if (!priorOrders.length) {
+    clearSessionRewardRedemption(req);
+    return {
+      enabled: true,
+      loggedIn: true,
+      firstOrderLocked: true,
+      minRedeem,
+      maxBalancePercent,
+      balance,
+      maxUsable: 0,
+      applied: 0,
+    };
+  }
   const absoluteMax = Math.floor(Math.max(0, baseTotals.subtotal + baseTotals.delivery));
   const percentMax =
     Number(cfg.maxOrderPercent) > 0
@@ -203,19 +255,24 @@ async function rewardRedemptionSnapshot(req, cart, settings) {
   };
 }
 
-async function refreshCartCouponEligibility(cart) {
+/** Sync cart lines with current product data (price, discount, name, image). */
+async function refreshCartFromProducts(cart) {
   if (!Array.isArray(cart) || !cart.length) return cart;
   const ids = [...new Set(cart.map((item) => Number(item.productId)).filter(Boolean))];
   if (!ids.length) return cart;
   const placeholders = ids.map(() => '?').join(',');
   const rows = await query(
-    `SELECT id, price, old_price, discount_percent FROM products WHERE id IN (${placeholders})`,
+    `SELECT id, name_bn, image_url, price, old_price, discount_percent FROM products WHERE id IN (${placeholders})`,
     ids
   );
   const byId = new Map(rows.map((row) => [Number(row.id), row]));
   for (const item of cart) {
     const product = byId.get(Number(item.productId));
     if (product) {
+      const price = Number(product.price);
+      if (Number.isFinite(price) && price >= 0) item.price = price;
+      if (product.name_bn) item.name = product.name_bn;
+      if (product.image_url) item.imageUrl = product.image_url;
       item.couponEligible = !isProductDiscounted(product);
       item.discountPercent = Number(product.discount_percent) || 0;
       item.oldPrice = product.old_price != null ? Number(product.old_price) : null;
@@ -247,7 +304,7 @@ async function recomputeSessionCoupon(req, cart) {
   const couponId = req.session.couponId;
   if (!code && !couponId) return;
 
-  await refreshCartCouponEligibility(cart);
+  await refreshCartFromProducts(cart);
   persistCart(req, cart);
 
   const coupon = couponId
@@ -258,27 +315,16 @@ async function recomputeSessionCoupon(req, cart) {
     return;
   }
 
-  const freeDelivery = isFreeDeliveryCoupon(coupon);
-  const eligible = eligibleCouponSubtotal(cart);
-  const orderBase = freeDelivery ? cartSubtotal(cart) : eligible;
-
-  if (!freeDelivery && eligible <= 0) {
-    clearSessionCoupon(req);
-    return;
-  }
-  if (Number(orderBase) < Number(coupon.min_order)) {
-    clearSessionCoupon(req);
-    return;
-  }
-  if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+  const result = evaluateCoupon(coupon, cart);
+  if (!result.ok) {
     clearSessionCoupon(req);
     return;
   }
 
   req.session.couponCode = coupon.code;
   req.session.couponId = coupon.id;
-  req.session.couponFreeDelivery = freeDelivery;
-  req.session.couponDiscount = freeDelivery ? 0 : computeCouponDiscountAmount(coupon, eligible);
+  req.session.couponFreeDelivery = result.freeDelivery;
+  req.session.couponDiscount = result.discount;
 }
 
 function sendNoStoreJson(res, payload) {
@@ -333,6 +379,9 @@ async function cartTotalsResponse(cart, req) {
   if (!cart.length) {
     clearSessionCoupon(req);
     clearSessionRewardRedemption(req);
+  } else {
+    await refreshCartFromProducts(cart);
+    persistCart(req, cart);
   }
   if (req.session.couponCode || req.session.couponId) {
     await recomputeSessionCoupon(req, cart);
@@ -348,7 +397,8 @@ async function cartTotalsResponse(cart, req) {
   const ineligible = cartHasIneligibleCouponItems(cart);
   const couponCode = req.session.couponCode || null;
   let couponNote = null;
-  if (couponCode && freeDelivery) couponNote = 'Free delivery applied';
+  if (couponCode && freeDelivery && couponDiscount > 0) couponNote = 'Discount + free delivery applied';
+  else if (couponCode && freeDelivery) couponNote = 'Free delivery applied';
   else if (couponCode && ineligible) couponNote = 'Applied only to non-discounted items';
   return {
     ...totals,
@@ -539,42 +589,19 @@ router.post('/coupons/validate', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Coupon code is required' });
     }
     const cart = getCart(req);
-    await refreshCartCouponEligibility(cart);
+    await refreshCartFromProducts(cart);
     persistCart(req, cart);
-    const eligible = eligibleCouponSubtotal(cart);
     const c = await loadActiveCoupon(normalizedCode, false);
     if (!c) return res.json({ ok: false, error: 'Invalid coupon' });
-    const freeDelivery = isFreeDeliveryCoupon(c);
-    const orderBase = freeDelivery ? cartSubtotal(cart) : eligible;
-    if (!freeDelivery && eligible <= 0) {
-      return res.json({
-        ok: false,
-        error: 'This coupon cannot be used on already discounted products',
-      });
-    }
-    if (Number(orderBase) < Number(c.min_order)) {
-      return res.json({
-        ok: false,
-        error: freeDelivery
-          ? `Minimum order ৳${c.min_order}`
-          : `Minimum order ৳${c.min_order} on non-discounted items`,
-      });
-    }
-    if (c.usage_limit && c.used_count >= c.usage_limit) {
-      return res.json({ ok: false, error: 'Coupon limit reached' });
-    }
-    const discount = freeDelivery ? 0 : computeCouponDiscountAmount(c, eligible);
+    const result = evaluateCoupon(c, cart);
+    if (!result.ok) return res.json({ ok: false, error: result.error });
     res.json({
       ok: true,
-      discount,
-      freeDelivery,
+      discount: result.discount,
+      freeDelivery: result.freeDelivery,
       code: c.code,
-      eligibleSubtotal: orderBase,
-      note: freeDelivery
-        ? 'Free delivery'
-        : cartHasIneligibleCouponItems(cart)
-          ? 'Applied only to non-discounted items'
-          : null,
+      eligibleSubtotal: result.orderBase,
+      note: result.note,
     });
   } catch (err) {
     res.json({ ok: false, error: 'Could not validate coupon' });
@@ -870,6 +897,9 @@ router.get('/wishlist', (req, res) => {
   res.json({ ok: true, ...wishlistPayload(list) });
 });
 
+const rateLimitTrack = createRateLimiter({ windowMs: 60_000, max: 120, message: 'Too many requests' });
+router.post('/track', rateLimitTrack, handleClientTrack);
+
 router.post('/wishlist/toggle', async (req, res) => {
   try {
     const productId = Number(req.body.productId);
@@ -894,6 +924,10 @@ router.post('/wishlist/toggle', async (req, res) => {
       added = true;
     }
 
+    logVisitorEvent(req, added ? 'wishlist_add' : 'wishlist_remove', {
+      productId,
+      label: rows[0].name_bn,
+    });
     res.json({ ok: true, added, ...wishlistPayload(list) });
   } catch (err) {
     console.error(err);
@@ -903,12 +937,13 @@ router.post('/wishlist/toggle', async (req, res) => {
 
 router.get('/cart', async (req, res) => {
   const cart = getCart(req);
+  const totals = await cartTotalsResponse(cart, req);
   sendNoStoreJson(res, {
     ok: true,
     cart,
     count: cart.reduce((s, i) => s + i.qty, 0),
     checkoutDistrict: req.session.checkoutDistrict || null,
-    totals: await cartTotalsResponse(cart, req),
+    totals,
   });
 });
 
@@ -924,40 +959,25 @@ router.post('/cart/coupon', async (req, res) => {
     const cart = getCart(req);
     if (!cart.length) return res.status(400).json({ ok: false, error: 'Cart is empty' });
     const { code } = req.body;
-    await refreshCartCouponEligibility(cart);
+    await refreshCartFromProducts(cart);
     persistCart(req, cart);
-    const eligible = eligibleCouponSubtotal(cart);
     const c = await loadActiveCoupon(code, false);
     if (!c) return res.json({ ok: false, error: 'Invalid coupon' });
-    const freeDelivery = isFreeDeliveryCoupon(c);
-    const orderBase = freeDelivery ? cartSubtotal(cart) : eligible;
-    if (!freeDelivery && eligible <= 0) {
-      return res.json({
-        ok: false,
-        error: 'This coupon cannot be used on already discounted products',
-      });
-    }
-    if (Number(orderBase) < Number(c.min_order)) {
-      return res.json({
-        ok: false,
-        error: freeDelivery
-          ? `Minimum order ৳${c.min_order}`
-          : `Minimum order ৳${c.min_order} on non-discounted items`,
-      });
-    }
-    if (c.usage_limit && c.used_count >= c.usage_limit) {
-      return res.json({ ok: false, error: 'Coupon limit reached' });
-    }
-    const discount = freeDelivery ? 0 : computeCouponDiscountAmount(c, eligible);
+    const result = evaluateCoupon(c, cart);
+    if (!result.ok) return res.json({ ok: false, error: result.error });
     req.session.couponCode = c.code;
     req.session.couponId = c.id;
-    req.session.couponFreeDelivery = freeDelivery;
-    req.session.couponDiscount = discount;
+    req.session.couponFreeDelivery = result.freeDelivery;
+    req.session.couponDiscount = result.discount;
     const totals = await cartTotalsResponse(cart, req);
+    logVisitorEvent(req, 'coupon_apply', {
+      label: c.code,
+      meta: { discount: totals.discount, freeDelivery: result.freeDelivery },
+    });
     res.json({
       ok: true,
       discount: totals.discount,
-      freeDelivery,
+      freeDelivery: result.freeDelivery,
       code: c.code,
       totals,
       note: totals.couponNote,
@@ -981,6 +1001,12 @@ router.post('/cart/reward-points', async (req, res) => {
     const reward = await rewardRedemptionSnapshot(req, cart, settings);
     if (!reward.enabled) return res.status(400).json({ ok: false, error: 'Reward points are currently disabled' });
     if (!reward.loggedIn) return res.status(401).json({ ok: false, error: 'Please log in to use reward points' });
+    if (reward.firstOrderLocked) {
+      return res.status(400).json({
+        ok: false,
+        error: 'Reward points can be used from your 2nd order. Place your first order to unlock them.',
+      });
+    }
     if (reward.maxUsable < reward.minRedeem) {
       return res.status(400).json({
         ok: false,
@@ -1076,6 +1102,11 @@ router.post('/cart/add', async (req, res) => {
       });
 
     persistCart(req, cart);
+    logVisitorEvent(req, 'add_to_cart', {
+      productId: p.id,
+      label: p.name_bn,
+      meta: { qty: addQty, price: Number(p.price) },
+    });
 
     sendNoStoreJson(res, {
       ok: true,
@@ -1095,8 +1126,12 @@ router.patch('/cart/:productId', async (req, res) => {
   if (!item) return res.status(404).json({ ok: false, error: 'Item not found' });
 
   const qty = Math.max(1, Math.min(99, Number(req.body.qty) || 1));
+  const prevQty = item.qty;
   item.qty = qty;
   persistCart(req, cart);
+  if (prevQty !== qty) {
+    logVisitorEvent(req, 'cart_qty', { productId: item.productId, label: item.name, meta: { from: prevQty, to: qty } });
+  }
   sendNoStoreJson(res, {
     ok: true,
     cart,
@@ -1107,8 +1142,10 @@ router.patch('/cart/:productId', async (req, res) => {
 
 router.delete('/cart/:productId', async (req, res) => {
   const cart = getCart(req);
+  const removed = cart.find((i) => i.productId === Number(req.params.productId));
   const next = cart.filter((i) => i.productId !== Number(req.params.productId));
   persistCart(req, next);
+  if (removed) logVisitorEvent(req, 'cart_remove', { productId: removed.productId, label: removed.name });
   sendNoStoreJson(res, {
     ok: true,
     cart: req.session.cart,
@@ -1123,6 +1160,8 @@ router.post('/orders', async (req, res) => {
   try {
     const cart = getCart(req);
     if (!cart.length) return res.status(400).json({ ok: false, error: 'Cart is empty' });
+    await refreshCartFromProducts(cart);
+    persistCart(req, cart);
 
     const { name, phone, address, paymentMethod, notes, email, district, postalCode } = req.body;
 
@@ -1187,9 +1226,11 @@ router.post('/orders', async (req, res) => {
     });
     const orderNumber = `RKS-${new Date().getFullYear()}-${String(Date.now()).slice(-8)}`;
     const couponNote = req.session.couponCode
-      ? freeDelivery
-        ? `Coupon: ${req.session.couponCode} (Free delivery)`
-        : `Coupon: ${req.session.couponCode} (-৳${couponDiscount})`
+      ? freeDelivery && couponDiscount > 0
+        ? `Coupon: ${req.session.couponCode} (-৳${couponDiscount} + Free delivery)`
+        : freeDelivery
+          ? `Coupon: ${req.session.couponCode} (Free delivery)`
+          : `Coupon: ${req.session.couponCode} (-৳${couponDiscount})`
       : '';
     const rewardNote = rewardDiscount > 0 ? `Reward points used: ${rewardDiscount}` : '';
     const orderNotes = [notes, couponNote, rewardNote].filter(Boolean).join(' | ') || null;
@@ -1261,9 +1302,21 @@ router.post('/orders', async (req, res) => {
     }));
 
     req.session.cart = [];
+    if (userId) saveUserCart(userId, []);
     req.session.checkoutDistrict = null;
     clearSessionRewardRedemption(req);
     const pointCfg = userId ? await getRewardPointConfig(query) : null;
+    logVisitorEvent(req, 'order_placed', {
+      label: orderNumber,
+      meta: {
+        name,
+        phone,
+        total,
+        district: orderDistrict,
+        payment: paymentMethod,
+        items: orderItems.map((i) => `${i.name} × ${i.qty}`).slice(0, 20),
+      },
+    });
 
     await fireAdminEmail(query, notifyNewOrder, {
       orderNumber,

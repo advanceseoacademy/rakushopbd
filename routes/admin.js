@@ -1136,7 +1136,15 @@ router.patch('/products/:id/price', requireAdmin, async (req, res) => {
       [id]
     );
     if (!rows[0]) return res.status(404).json({ ok: false, error: 'Product not found' });
-    const pricing = normalizeProductDiscount(price, rows[0].old_price, rows[0].discount_percent);
+    const storedOld = Number(rows[0].old_price) || 0;
+    const pricing = { oldPrice: null, discountPercent: null };
+    if (storedOld > price && price > 0) {
+      const pct = Math.round((1 - price / storedOld) * 100);
+      if (pct > 0 && pct < 100) {
+        pricing.oldPrice = storedOld;
+        pricing.discountPercent = pct;
+      }
+    }
     await query('UPDATE products SET price = ?, old_price = ?, discount_percent = ? WHERE id = ?', [
       price,
       pricing.oldPrice,
@@ -1153,6 +1161,43 @@ router.patch('/products/:id/price', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not update sale price' });
+  }
+});
+
+router.patch('/products/:id/mrp', requireAdmin, async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ ok: false, error: 'Invalid product' });
+    const raw = req.body?.mrp;
+    const empty = raw === null || raw === undefined || raw === '';
+    const mrp = empty ? null : Math.round(Number(raw));
+    if (!empty && (!Number.isFinite(mrp) || mrp < 0)) {
+      return res.status(400).json({ ok: false, error: 'MRP must be 0 or more' });
+    }
+    const rows = await query('SELECT id, price FROM products WHERE id = ? LIMIT 1', [id]);
+    if (!rows[0]) return res.status(404).json({ ok: false, error: 'Product not found' });
+    const price = Number(rows[0].price) || 0;
+    if (mrp != null && mrp > 0 && mrp < price) {
+      return res.status(400).json({ ok: false, error: 'MRP cannot be lower than sale price' });
+    }
+
+    let oldPrice = null;
+    let discountPercent = null;
+    if (mrp != null && mrp > price && price > 0) {
+      oldPrice = mrp;
+      const pct = Math.round((1 - price / mrp) * 100);
+      discountPercent = pct > 0 && pct < 100 ? pct : null;
+    }
+    await query('UPDATE products SET old_price = ?, discount_percent = ? WHERE id = ?', [
+      oldPrice,
+      discountPercent,
+      id,
+    ]);
+    clearStoreBootstrapCache();
+    res.json({ ok: true, price, oldPrice, discountPercent });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not update MRP' });
   }
 });
 
@@ -1581,7 +1626,7 @@ router.get('/coupons', requireAdmin, async (req, res) => {
 
 router.post('/coupons', requireAdmin, async (req, res) => {
   try {
-    const { code, discountType, discountValue, minOrder, usageLimit, expiresAt, isActive } = req.body;
+    const { code, discountType, discountValue, minOrder, usageLimit, expiresAt, isActive, freeDelivery } = req.body;
     const type = String(discountType || 'percent').trim();
     if (!['percent', 'fixed', 'free_delivery'].includes(type)) {
       return res.status(400).json({ ok: false, error: 'Invalid coupon type' });
@@ -1590,9 +1635,12 @@ router.post('/coupons', requireAdmin, async (req, res) => {
     if (type !== 'free_delivery' && !(value >= 0)) {
       return res.status(400).json({ ok: false, error: 'Discount value is required' });
     }
+    const { ensureCouponFreeDeliveryType } = require('../lib/ensureCouponFreeDeliveryType');
+    await ensureCouponFreeDeliveryType();
+    const freeDeliveryOn = type === 'free_delivery' || Boolean(freeDelivery);
     await query(
-      `INSERT INTO coupons (code, discount_type, discount_value, min_order, usage_limit, expires_at, is_active)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO coupons (code, discount_type, discount_value, min_order, usage_limit, expires_at, is_active, free_delivery)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         String(code || '').trim().toUpperCase(),
         type,
@@ -1601,6 +1649,7 @@ router.post('/coupons', requireAdmin, async (req, res) => {
         usageLimit || null,
         expiresAt || null,
         isActive !== false ? 1 : 0,
+        freeDeliveryOn,
       ]
     );
     res.json({ ok: true });

@@ -176,6 +176,7 @@
     hideSuggest();
     updateClearBtn();
     if (!q) return;
+    window.rakuTrack?.('search', { label: q.slice(0, 200) });
 
     const cat = getCategory();
     if (window.openCategory) {

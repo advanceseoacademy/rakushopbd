@@ -156,7 +156,9 @@
     gallery: 'Image Gallery',
     'product-form': 'Add Product',
     customers: 'Customers',
+    'customer-carts': 'Customer Carts',
     analytics: 'Analytics',
+    visitors: 'Visitor Activity',
     categories: 'Categories',
     faq: 'FAQ',
     blog: 'Blog',
@@ -326,7 +328,22 @@
       refreshUnreadCount('/contact-messages/unread-count', setContactBadge),
       refreshUnreadCount('/reviews/unread-count', setReviewBadge),
       refreshUnreadCount('/review-videos/unread-count', setReviewVideoBadge),
+      refreshCustomerCartsBadge(),
     ]);
+  }
+
+  function setCustomerCartsBadge(n) {
+    const badge = document.getElementById('customer-carts-badge');
+    if (!badge) return;
+    const c = Math.max(0, Number(n) || 0);
+    badge.hidden = c === 0;
+    badge.textContent = c > 99 ? '99+' : String(c);
+  }
+
+  async function refreshCustomerCartsBadge() {
+    if (isProductEditorAdmin()) return;
+    const data = await api('/customer-carts?limit=5');
+    if (data.ok) setCustomerCartsBadge(data.stats.carts);
   }
 
   async function refreshOrderUnreadBadge() {
@@ -419,6 +436,7 @@
     if (page === 'products') loadProducts();
     if (page === 'gallery') loadImageGallery();
     if (page === 'customers') loadCustomers();
+    if (page === 'customer-carts') loadCustomerCarts(1);
     if (page === 'categories') loadCategories();
     if (page === 'faq') loadFaqs();
     if (page === 'blog') loadBlogPosts();
@@ -435,6 +453,8 @@
       if (opts.legalTab) switchLegalTab(opts.legalTab);
     }
     if (page === 'analytics') loadAnalytics();
+    if (page === 'visitors') openVisitorsPage();
+    else stopVisitorsAutoRefresh();
     if (page === 'reviews') loadReviews();
     if (page === 'review-videos') loadReviewVideos();
     if (page === 'banners') loadBanners();
@@ -873,13 +893,6 @@
             .join('')
         : '<p style="color:#94a3b8;font-size:13px;">No recent activity</p>';
     }
-  }
-
-  function timeAgo(d) {
-    const diff = (Date.now() - new Date(d)) / 1000;
-    if (diff < 3600) return Math.floor(diff / 60) + ' min ago';
-    if (diff < 86400) return Math.floor(diff / 3600) + ' hr ago';
-    return fmtDate(d);
   }
 
   function drawCharts(data) {
@@ -3298,6 +3311,12 @@
     return 0;
   }
 
+  function productMrpValue(p) {
+    const price = Number(p.price) || 0;
+    const old = Number(p.old_price) || 0;
+    return old > price ? old : '';
+  }
+
   function profitCellHtml(price, buyPrice) {
     if (buyPrice == null || buyPrice === '') return '<span style="color:#94a3b8">—</span>';
     const sale = Number(price) || 0;
@@ -3317,6 +3336,12 @@
       const pct = productDiscountPct(row);
       disc.value = pct;
       disc.dataset.prevDiscount = String(pct);
+    }
+    const mrpInput = document.querySelector(`.mrp-quick-edit[data-product-id="${row.id}"]`);
+    if (mrpInput && mrpInput.dataset.saving !== '1' && document.activeElement !== mrpInput) {
+      const mrp = productMrpValue(row);
+      mrpInput.value = mrp;
+      mrpInput.dataset.prevMrp = String(mrp);
     }
     const priceInput = document.querySelector(`.price-quick-edit[data-product-id="${row.id}"]`);
     if (priceInput && priceInput.dataset.saving !== '1' && document.activeElement !== priceInput) {
@@ -3344,7 +3369,7 @@
     const tbody = document.getElementById('products-tbody');
     if (!data.products?.length) {
       tbody.innerHTML =
-        '<tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:24px;">No products found.</td></tr>';
+        '<tr><td colspan="11" style="text-align:center;color:#94a3b8;padding:24px;">No products found.</td></tr>';
       updateProductsSelectionUi();
     } else {
       const allowDelete = canDeleteProducts();
@@ -3363,6 +3388,7 @@
             ${productThumbHtml(p)}
             <div><div style="font-weight:600;">${escHtml(p.name_bn)}</div><small style="color:#94a3b8">${escHtml(p.slug)}</small></div></div></td>
           <td>${formatProductCategoryLabel(p)}</td>
+          <td><input type="number" class="stock-quick-edit mrp-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-mrp="${productMrpValue(p)}" value="${productMrpValue(p)}" placeholder="—" aria-label="MRP for ${escHtml(p.name_bn)}"></td>
           <td><input type="number" class="stock-quick-edit price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-price="${p.price}" value="${Number(p.price)}" aria-label="Sale price for ${escHtml(p.name_bn)}"></td>
           <td><input type="number" class="stock-quick-edit discount-quick-edit" min="0" max="99" step="1" data-product-id="${p.id}" data-prev-discount="${productDiscountPct(p)}" value="${productDiscountPct(p)}" aria-label="Discount percent for ${escHtml(p.name_bn)}"></td>
           <td><input type="number" class="stock-quick-edit buy-price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-buy-price="${p.buy_price != null && p.buy_price !== '' ? Number(p.buy_price) : ''}" value="${p.buy_price != null && p.buy_price !== '' ? Number(p.buy_price) : ''}" placeholder="—" aria-label="Buy price for ${escHtml(p.name_bn)}"></td>
@@ -3434,6 +3460,60 @@
         }
       });
       input.addEventListener('blur', savePrice);
+    });
+
+    document.querySelectorAll('.mrp-quick-edit').forEach((input) => {
+      const saveMrp = async () => {
+        const id = Number(input.dataset.productId);
+        const prevRaw = input.dataset.prevMrp;
+        const prev = prevRaw === '' || prevRaw == null ? null : Number(prevRaw);
+        const raw = String(input.value).trim();
+        let mrp = null;
+        if (raw !== '') {
+          mrp = Number(raw);
+          if (!Number.isFinite(mrp) || mrp < 0) {
+            input.value = prev == null ? '' : prev;
+            toast('MRP must be 0 or more', 'error');
+            return;
+          }
+          mrp = Math.round(mrp);
+          input.value = mrp;
+        }
+        if (mrp === prev || input.dataset.saving === '1') return;
+        input.dataset.saving = '1';
+        input.classList.add('is-saving');
+        const r = await api('/products/' + id + '/mrp', {
+          method: 'PATCH',
+          body: JSON.stringify({ mrp }),
+        });
+        input.dataset.saving = '0';
+        input.classList.remove('is-saving');
+        if (!r.ok) {
+          input.value = prev == null ? '' : prev;
+          toast(r.error || 'Could not update MRP', 'error');
+          return;
+        }
+        const row = data.products?.find((x) => Number(x.id) === id);
+        if (row) {
+          row.old_price = r.oldPrice;
+          row.discount_percent = r.discountPercent;
+          refreshProductRowDerived(row);
+        }
+        input.dataset.prevMrp = String(row ? productMrpValue(row) : mrp ?? '');
+        input.value = input.dataset.prevMrp;
+        toast(r.discountPercent ? `MRP updated — ${r.discountPercent}% off` : 'MRP updated');
+      };
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          input.blur();
+        }
+        if (e.key === 'Escape') {
+          input.value = input.dataset.prevMrp || '';
+          input.blur();
+        }
+      });
+      input.addEventListener('blur', saveMrp);
     });
 
     document.querySelectorAll('.discount-quick-edit').forEach((input) => {
@@ -3541,7 +3621,7 @@
       input.addEventListener('blur', saveBuyPrice);
     });
 
-    document.querySelectorAll('.stock-quick-edit:not(.price-quick-edit):not(.buy-price-quick-edit):not(.discount-quick-edit)').forEach((input) => {
+    document.querySelectorAll('.stock-quick-edit:not(.price-quick-edit):not(.buy-price-quick-edit):not(.discount-quick-edit):not(.mrp-quick-edit)').forEach((input) => {
       const saveStock = async () => {
         const id = Number(input.dataset.productId);
         const prev = Number(input.dataset.prevStock);
@@ -4616,6 +4696,23 @@
     }
     if (valueLabel) valueLabel.textContent = free ? 'Value' : 'Value *';
     if (valueHint) valueHint.hidden = !free;
+    const fdInput = document.getElementById('cp-free-delivery');
+    const fdHint = document.getElementById('cp-free-delivery-hint');
+    if (fdInput) {
+      if (free) fdInput.checked = true;
+      fdInput.disabled = free;
+    }
+    if (fdHint) {
+      fdHint.textContent = free
+        ? 'Always on for Free Delivery coupons'
+        : 'On = customer also gets free delivery with this coupon';
+    }
+  }
+
+  function couponFreeDeliveryOn(c) {
+    if (c.discount_type === 'free_delivery') return true;
+    const v = c.free_delivery ?? c.freeDelivery;
+    return v === true || v === 1 || v === '1' || v === 't' || v === 'true';
   }
 
   async function loadResellers() {
@@ -4869,7 +4966,7 @@
     const tbody = document.getElementById('coupons-tbody');
     if (!coupons?.length) {
       tbody.innerHTML =
-        '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No coupons yet.</td></tr>';
+        '<tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:24px;">No coupons yet.</td></tr>';
       updateCouponsSelectionUi();
       return;
     }
@@ -4893,6 +4990,11 @@
         <td class="tbl-check-col"><input type="checkbox" class="coupon-row-check" data-coupon-id="${c.id}" aria-label="Select coupon ${escHtml(c.code)}"${checked}></td>
         <td><code style="background:#E8F3EA;padding:3px 8px;border-radius:4px;font-weight:700;">${escHtml(c.code)}</code></td>
         <td>${escHtml(typeLabel)}</td><td>${escHtml(valueLabel)}</td>
+        <td>${
+          c.discount_type === 'free_delivery'
+            ? '<span class="badge badge-green">Always on</span>'
+            : `<label class="toggle" title="Turn free delivery on/off for this coupon"><input type="checkbox" class="coupon-fd-toggle" data-coupon-id="${c.id}"${couponFreeDeliveryOn(c) ? ' checked' : ''}><span class="toggle-slider"></span></label>`
+        }</td>
         <td>৳${Number(c.min_order).toLocaleString()}</td>
         <td>${c.used_count}${c.usage_limit ? '/' + c.usage_limit : ''}</td>
         <td>${c.expires_at ? String(c.expires_at).slice(0, 10) : '—'}</td>
@@ -4913,6 +5015,7 @@
         document.getElementById('cp-min').value = c.min_order;
         document.getElementById('cp-limit').value = c.usage_limit || '';
         document.getElementById('cp-expires').value = c.expires_at ? String(c.expires_at).slice(0, 10) : '';
+        document.getElementById('cp-free-delivery').checked = couponFreeDeliveryOn(c);
         syncCouponTypeUi();
         openCouponModal();
       };
@@ -4960,6 +5063,25 @@
   const couponsTbody = document.getElementById('coupons-tbody');
   if (couponsTbody && !couponsTbody._rakuCouponActionsBound) {
     couponsTbody._rakuCouponActionsBound = true;
+    couponsTbody.addEventListener('change', async (e) => {
+      const fd = e.target.closest('.coupon-fd-toggle');
+      if (!fd) return;
+      const enabled = fd.checked;
+      fd.disabled = true;
+      const r = await api(`/coupons/${fd.dataset.couponId}/free-delivery`, {
+        method: 'PATCH',
+        body: JSON.stringify({ enabled }),
+      });
+      fd.disabled = false;
+      if (r.ok) {
+        const c = coupons.find((x) => x.id === Number(fd.dataset.couponId));
+        if (c) c.free_delivery = enabled;
+        toast(enabled ? 'Free delivery ON for this coupon' : 'Free delivery OFF for this coupon');
+      } else {
+        fd.checked = !enabled;
+        toast(r.error || 'Could not update free delivery', 'error');
+      }
+    });
     couponsTbody.addEventListener('click', (e) => {
       const check = e.target.closest('.coupon-row-check');
       if (!check) return;
@@ -4986,6 +5108,7 @@
       usageLimit: document.getElementById('cp-limit').value || null,
       expiresAt: document.getElementById('cp-expires').value || null,
       isActive: true,
+      freeDelivery: discountType === 'free_delivery' || document.getElementById('cp-free-delivery').checked,
     };
     const data = id
       ? await api('/coupons/' + id, { method: 'PUT', body: JSON.stringify(body) })
@@ -5455,6 +5578,368 @@
       .map((p) => `<tr><td>${p.rank === 1 ? '🥇' : p.rank === 2 ? '🥈' : p.rank === 3 ? '🥉' : p.rank}</td><td>${p.name}</td><td>${p.qty}</td><td>${p.revenueFormatted}</td></tr>`)
       .join('');
   }
+
+  // ——— Customer carts ———
+  let customerCartsPage = 1;
+  let customerCartsSeq = 0;
+
+  async function loadCustomerCarts(page = 1) {
+    const seq = ++customerCartsSeq;
+    customerCartsPage = Math.max(1, page);
+    const tbody = document.getElementById('customer-carts-tbody');
+    const params = new URLSearchParams({ page: String(customerCartsPage), limit: '20' });
+    const search = document.getElementById('customer-carts-search')?.value.trim();
+    if (search) params.set('search', search);
+    const data = await api('/customer-carts?' + params);
+    if (seq !== customerCartsSeq) return;
+    if (!data.ok) {
+      toast(data.error || 'Could not load customer carts', 'error');
+      return;
+    }
+    const s = data.stats;
+    setCustomerCartsBadge(s.carts);
+    document.getElementById('customer-carts-stats').innerHTML = `
+      <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;"><i class="ti ti-shopping-cart" style="color:#b45309;"></i></div><div><div class="stat-num">${s.carts}</div><div class="stat-label">Customers with a cart</div></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#e0f2fe;"><i class="ti ti-box" style="color:#0369a1;"></i></div><div><div class="stat-num">${s.items}</div><div class="stat-label">Products waiting</div></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;"><i class="ti ti-receipt" style="color:#166534;"></i></div><div><div class="stat-num">${escHtml(s.valueFormatted)}</div><div class="stat-label">Total cart value</div></div></div>
+      <div class="stat-card"><div class="stat-icon" style="background:#ede9fe;"><i class="ti ti-clock" style="color:#6d28d9;"></i></div><div><div class="stat-num">${s.last24h}</div><div class="stat-label">Updated in last 24h</div></div></div>`;
+
+    if (!data.carts.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">${search ? 'No carts match your search.' : 'No customer has products in the cart right now.'}</td></tr>`;
+    } else {
+      tbody.innerHTML = data.carts
+        .map((c) => {
+          const items = c.items
+            .map((it) => {
+              const img = it.imageUrl
+                ? `<img src="${escHtml(it.imageUrl)}" alt="" loading="lazy">`
+                : '<span class="cc-noimg"><i class="ti ti-box"></i></span>';
+              return `<div class="cc-item">${img}<div><a class="va-link" href="/product/${encodeURIComponent(it.productId)}" target="_blank" rel="noopener">${escHtml(it.name || 'Product')}</a><div class="va-sub">৳${Number(it.price || 0).toLocaleString('en-US')} × ${it.qty}</div></div></div>`;
+            })
+            .join('');
+          const phoneDigits = String(c.phone || '').replace(/\D/g, '');
+          const waNumber = phoneDigits.startsWith('0') ? '88' + phoneDigits : phoneDigits;
+          const contact = [
+            c.phone ? `<a class="btn btn-outline btn-xs" href="tel:${escHtml(c.phone)}"><i class="ti ti-phone"></i> Call</a>` : '',
+            waNumber ? `<a class="btn btn-outline btn-xs" href="https://wa.me/${escHtml(waNumber)}" target="_blank" rel="noopener"><i class="ti ti-brand-whatsapp"></i> WhatsApp</a>` : '',
+            c.email ? `<a class="btn btn-outline btn-xs" href="mailto:${escHtml(c.email)}"><i class="ti ti-mail"></i> Email</a>` : '',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          const orders = c.orderCount
+            ? `${c.orderCount} order${c.orderCount > 1 ? 's' : ''}<div class="va-sub">Last: ${escHtml(fmtDate(c.lastOrderAt))}</div>`
+            : '<span class="badge badge-amber">Never ordered</span>';
+          return `<tr>
+            <td><div class="va-name">${escHtml(c.name)}</div><div class="va-sub">${escHtml(c.phone || '')}${c.phone && c.email ? ' · ' : ''}${escHtml(c.email || '')}</div></td>
+            <td class="cc-items">${items}</td>
+            <td><strong>${escHtml(c.subtotalFormatted)}</strong><div class="va-sub">${c.itemCount} item${c.itemCount === 1 ? '' : 's'}</div></td>
+            <td title="${escHtml(fmtDateTime(c.updatedAt))}">${escHtml(timeAgo(c.updatedAt))}<div class="va-sub">Since ${escHtml(fmtDate(c.createdAt))}</div></td>
+            <td>${orders}</td>
+            <td><div class="cc-contact">${contact || '<span class="va-muted">—</span>'}</div></td>
+          </tr>`;
+        })
+        .join('');
+    }
+
+    const pages = Math.max(1, Math.ceil(data.total / data.limit));
+    const pagEl = document.getElementById('customer-carts-pagination');
+    if (pagEl) {
+      pagEl.innerHTML = `<span>Page ${data.page} of ${pages} (${data.total} carts)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${data.page <= 1 ? 'disabled' : ''} data-op="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${data.page >= pages ? 'disabled' : ''} data-op="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-op]').forEach((b) => {
+        b.onclick = () => loadCustomerCarts(customerCartsPage + Number(b.dataset.op));
+      });
+    }
+  }
+
+  document.getElementById('customer-carts-search')?.addEventListener('input', debounce(() => loadCustomerCarts(1), 400));
+  document.getElementById('customer-carts-refresh')?.addEventListener('click', () => loadCustomerCarts(customerCartsPage));
+
+  // ——— Visitor activity ———
+  let visitorsPage = 1;
+  let visitorsTimer = null;
+  let visitorsDetailId = null;
+  let visitorsLoadSeq = 0;
+
+  const VISITOR_EVENTS = {
+    page_view: { icon: 'ti-eye', label: 'Viewed page', tone: 'gray' },
+    search: { icon: 'ti-search', label: 'Searched', tone: 'blue' },
+    add_to_cart: { icon: 'ti-shopping-cart-plus', label: 'Added to cart', tone: 'amber' },
+    cart_qty: { icon: 'ti-refresh', label: 'Changed cart quantity', tone: 'amber' },
+    cart_remove: { icon: 'ti-trash', label: 'Removed from cart', tone: 'red' },
+    wishlist_add: { icon: 'ti-heart', label: 'Added to wishlist', tone: 'blue' },
+    wishlist_remove: { icon: 'ti-heart-off', label: 'Removed from wishlist', tone: 'gray' },
+    coupon_apply: { icon: 'ti-receipt', label: 'Applied coupon', tone: 'blue' },
+    begin_checkout: { icon: 'ti-credit-card', label: 'Opened checkout', tone: 'amber' },
+    order_placed: { icon: 'ti-shopping-bag', label: 'Placed order', tone: 'green' },
+    login: { icon: 'ti-login', label: 'Logged in', tone: 'blue' },
+    register: { icon: 'ti-user-plus', label: 'Created account', tone: 'green' },
+    logout: { icon: 'ti-logout', label: 'Logged out', tone: 'gray' },
+  };
+
+  function timeAgo(d) {
+    const sec = Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 1000));
+    if (sec < 60) return 'just now';
+    const min = Math.round(sec / 60);
+    if (min < 60) return `${min} min ago`;
+    const hr = Math.round(min / 60);
+    if (hr < 24) return `${hr} hr ago`;
+    return fmtDate(d);
+  }
+
+  function fmtDateTime(d) {
+    return new Date(d).toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      hour: 'numeric',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: true,
+    });
+  }
+
+  function visitorName(v) {
+    if (v.user?.name) return v.user.name;
+    if (v.contact?.name) return v.contact.name;
+    return `Guest #${String(v.visitorId || '').slice(0, 6)}`;
+  }
+
+  function visitorPhone(v) {
+    return v.user?.phone || v.contact?.phone || '';
+  }
+
+  function prettyPath(path) {
+    const p = String(path || '');
+    if (!p || p === '/') return 'Home';
+    try {
+      return decodeURIComponent(p);
+    } catch (_) {
+      return p;
+    }
+  }
+
+  function storefrontLink(path, text) {
+    if (!path) return escHtml(text || '');
+    return `<a href="${escHtml(path)}" target="_blank" rel="noopener" class="va-link">${escHtml(text || prettyPath(path))}</a>`;
+  }
+
+  function stopVisitorsAutoRefresh() {
+    clearInterval(visitorsTimer);
+    visitorsTimer = null;
+  }
+
+  function startVisitorsAutoRefresh() {
+    stopVisitorsAutoRefresh();
+    if (!document.getElementById('visitors-auto')?.checked) return;
+    visitorsTimer = setInterval(() => {
+      if (document.hidden) return;
+      if (visitorsDetailId) loadVisitorDetail(visitorsDetailId, { silent: true });
+      else loadVisitors(visitorsPage, { silent: true });
+    }, 30000);
+  }
+
+  function openVisitorsPage() {
+    showVisitorsList();
+    loadVisitors(1);
+    startVisitorsAutoRefresh();
+  }
+
+  function showVisitorsList() {
+    visitorsDetailId = null;
+    document.getElementById('visitors-list-view').hidden = false;
+    document.getElementById('visitors-detail-view').hidden = true;
+  }
+
+  function updateVisitorsOnlineBadge(n) {
+    const el = document.getElementById('visitors-online-badge');
+    if (!el) return;
+    el.textContent = `${n} online`;
+    el.hidden = !(n > 0);
+  }
+
+  async function loadVisitors(page = 1, { silent = false } = {}) {
+    const seq = ++visitorsLoadSeq;
+    visitorsPage = Math.max(1, page);
+    const tbody = document.getElementById('visitors-tbody');
+    if (!silent && tbody) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">Loading…</td></tr>';
+    }
+    const params = new URLSearchParams({
+      range: document.getElementById('visitors-range')?.value || 'today',
+      filter: document.getElementById('visitors-filter')?.value || 'all',
+      page: String(visitorsPage),
+      limit: '30',
+    });
+    const q = document.getElementById('visitors-search')?.value.trim();
+    if (q) params.set('q', q);
+    const data = await api('/visitors?' + params);
+    if (seq !== visitorsLoadSeq) return;
+    if (!data.ok) {
+      if (!silent) toast(data.error || 'Could not load visitors', 'error');
+      return;
+    }
+    const s = data.stats;
+    updateVisitorsOnlineBadge(s.online);
+    const stat = (icon, bg, color, num, label) =>
+      `<div class="stat-card"><div class="stat-icon" style="background:${bg};"><i class="ti ${icon}" style="color:${color};"></i></div><div><div class="stat-num">${num}</div><div class="stat-label">${label}</div></div></div>`;
+    document.getElementById('visitors-stats').innerHTML = [
+      stat('ti-world', '#dcfce7', '#166534', s.online, 'Online now (5 min)'),
+      stat('ti-users', '#E8F3EA', '#2D6B32', s.visitors, 'Visitors'),
+      stat('ti-eye', '#e0f2fe', '#0369a1', s.views, 'Page views'),
+      stat('ti-shopping-cart-plus', '#fef3c7', '#b45309', s.carts, 'Add to cart'),
+      stat('ti-credit-card', '#ede9fe', '#6d28d9', s.checkouts, 'Checkouts'),
+      stat('ti-shopping-bag', '#fee2e2', '#b91c1c', s.orders, 'Orders'),
+    ].join('');
+
+    if (!data.visitors.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:24px;">No visitor activity for this filter yet.</td></tr>';
+    } else {
+      tbody.innerHTML = data.visitors
+        .map((v) => {
+          const phone = visitorPhone(v);
+          const sub = [
+            v.user ? '<span class="badge badge-blue">Customer</span>' : '',
+            phone ? escHtml(phone) : '',
+            v.ip ? `<span class="va-muted">${escHtml(v.ip)}</span>` : '',
+          ]
+            .filter(Boolean)
+            .join(' · ');
+          const cart = v.carts ? `<span class="badge badge-amber">${v.carts}</span>` : '<span class="va-muted">—</span>';
+          const order = v.orders
+            ? `<span class="badge badge-green">${v.orders}${v.contact?.orderNumber ? ' · ' + escHtml(v.contact.orderNumber) : ''}</span>`
+            : v.checkouts
+              ? '<span class="badge badge-red">Checkout, no order</span>'
+              : '<span class="va-muted">—</span>';
+          return `<tr class="va-row" data-vid="${escHtml(v.visitorId)}">
+            <td><div class="va-name">${v.online ? '<span class="va-dot" title="Online now"></span>' : ''}${escHtml(visitorName(v))}</div><div class="va-sub">${sub}</div></td>
+            <td><div>${escHtml(v.device.label)}${v.device.mobile ? ' 📱' : ' 💻'}</div><div class="va-sub">From: ${escHtml(v.source)}</div></td>
+            <td>${v.views}</td>
+            <td>${cart}</td>
+            <td>${order}</td>
+            <td class="va-last">${v.lastPath ? storefrontLink(v.lastPath, v.lastTitle || prettyPath(v.lastPath)) : '<span class="va-muted">—</span>'}</td>
+            <td title="${escHtml(fmtDateTime(v.lastSeen))}">${escHtml(timeAgo(v.lastSeen))}</td>
+            <td><button type="button" class="btn btn-outline btn-xs va-view-btn" data-vid="${escHtml(v.visitorId)}">View log</button></td>
+          </tr>`;
+        })
+        .join('');
+      tbody.querySelectorAll('.va-view-btn').forEach((b) => {
+        b.onclick = () => loadVisitorDetail(b.dataset.vid);
+      });
+    }
+
+    const pages = Math.max(1, Math.ceil(data.total / data.limit));
+    const pagEl = document.getElementById('visitors-pagination');
+    if (pagEl) {
+      pagEl.innerHTML = `<span>Page ${data.page} of ${pages} (${data.total} visitors)</span><div>
+        <button type="button" class="btn btn-outline btn-sm" ${data.page <= 1 ? 'disabled' : ''} data-op="-1">← Prev</button>
+        <button type="button" class="btn btn-outline btn-sm" ${data.page >= pages ? 'disabled' : ''} data-op="1">Next →</button></div>`;
+      pagEl.querySelectorAll('button[data-op]').forEach((b) => {
+        b.onclick = () => loadVisitors(visitorsPage + Number(b.dataset.op));
+      });
+    }
+  }
+
+  function visitorEventDetail(e) {
+    const m = e.meta || {};
+    if (e.event === 'page_view') {
+      let extra = '';
+      try {
+        const sp = new URL(e.path, location.origin).searchParams;
+        if (sp.get('search')) extra = ` <span class="va-muted">(search: ${escHtml(sp.get('search'))})</span>`;
+      } catch (_) {}
+      return storefrontLink(e.path, e.label || prettyPath(e.path)) + (e.label ? ` <span class="va-muted">${escHtml(prettyPath(e.path))}</span>` : '') + extra;
+    }
+    if (e.event === 'search') return `“${escHtml(e.label || '')}”`;
+    if (e.event === 'add_to_cart') {
+      const name = e.productId ? storefrontLink(`/product/${e.productId}`, e.label || 'Product') : escHtml(e.label || 'Product');
+      return `${name}${m.qty ? ` × ${m.qty}` : ''}${m.price ? ` <span class="va-muted">৳${Number(m.price).toLocaleString('en-US')}</span>` : ''}`;
+    }
+    if (e.event === 'cart_qty') return `${escHtml(e.label || 'Product')} <span class="va-muted">${m.from} → ${m.to}</span>`;
+    if (e.event === 'coupon_apply') return `<strong>${escHtml(e.label || '')}</strong>${m.discount ? ` <span class="va-muted">−৳${m.discount}</span>` : ''}`;
+    if (e.event === 'begin_checkout') return `${escHtml(e.label || '')}${m.total ? ` · ৳${Number(m.total).toLocaleString('en-US')}` : ''}`;
+    if (e.event === 'order_placed') {
+      const items = Array.isArray(m.items) ? m.items.map((i) => escHtml(i)).join(', ') : '';
+      return `<strong>${escHtml(e.label || '')}</strong> · ৳${Number(m.total || 0).toLocaleString('en-US')}
+        <div class="va-sub">${escHtml(m.name || '')} ${m.phone ? '· ' + escHtml(m.phone) : ''} ${m.district ? '· ' + escHtml(m.district) : ''} ${m.payment ? '· ' + escHtml(m.payment) : ''}</div>
+        ${items ? `<div class="va-sub">${items}</div>` : ''}`;
+    }
+    if (e.event === 'login' || e.event === 'register') {
+      return `${escHtml(e.label || '')}${m.email ? ` <span class="va-muted">${escHtml(m.email)}</span>` : ''}`;
+    }
+    return escHtml(e.label || '');
+  }
+
+  async function loadVisitorDetail(vid, { silent = false } = {}) {
+    visitorsDetailId = vid;
+    document.getElementById('visitors-list-view').hidden = true;
+    document.getElementById('visitors-detail-view').hidden = false;
+    const timeline = document.getElementById('visitors-timeline');
+    if (!silent) {
+      timeline.innerHTML = '<div class="va-empty">Loading…</div>';
+      window.scrollTo(0, 0);
+    }
+    const data = await api('/visitors/' + encodeURIComponent(vid));
+    if (visitorsDetailId !== vid) return;
+    if (!data.ok) {
+      timeline.innerHTML = `<div class="va-empty">${escHtml(data.error || 'Could not load visitor')}</div>`;
+      return;
+    }
+    const online = Date.now() - new Date(data.lastSeen).getTime() < 5 * 60 * 1000;
+    const contact = data.events.find((e) => e.event === 'order_placed')?.meta || null;
+    const name = data.user?.name || contact?.name || `Guest #${vid.slice(0, 6)}`;
+    const phone = data.user?.phone || contact?.phone || '';
+    const counts = data.events.reduce((acc, e) => {
+      acc[e.event] = (acc[e.event] || 0) + 1;
+      return acc;
+    }, {});
+    document.getElementById('visitors-detail-head').innerHTML = `
+      <div class="va-detail-card">
+        <div class="va-detail-title">${online ? '<span class="va-dot"></span>' : ''}${escHtml(name)} ${data.user ? '<span class="badge badge-blue">Customer</span>' : '<span class="badge badge-gray">Guest</span>'}</div>
+        <div class="va-detail-grid">
+          ${phone ? `<div><span>Phone</span>${escHtml(phone)}</div>` : ''}
+          ${data.user?.email ? `<div><span>Email</span>${escHtml(data.user.email)}</div>` : ''}
+          <div><span>Device</span>${escHtml(data.device.label)}</div>
+          <div><span>Came from</span>${escHtml(data.source)}</div>
+          <div><span>IP</span>${escHtml(data.ip || '—')}</div>
+          <div><span>First seen</span>${escHtml(fmtDateTime(data.firstSeen))}</div>
+          <div><span>Last seen</span>${escHtml(fmtDateTime(data.lastSeen))} (${escHtml(timeAgo(data.lastSeen))})</div>
+          <div><span>Activity</span>${counts.page_view || 0} pages · ${counts.add_to_cart || 0} cart · ${counts.order_placed || 0} orders</div>
+        </div>
+        ${data.referrer ? `<div class="va-sub" style="margin-top:8px;">Referrer: ${escHtml(data.referrer)}</div>` : ''}
+      </div>`;
+
+    let lastDay = '';
+    timeline.innerHTML =
+      data.events
+        .map((e) => {
+          const meta = VISITOR_EVENTS[e.event] || { icon: 'ti-clock', label: e.event, tone: 'gray' };
+          const day = new Date(e.createdAt).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+          const dayHead = day !== lastDay ? `<div class="va-day">${escHtml(day)}</div>` : '';
+          lastDay = day;
+          const time = new Date(e.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+          return `${dayHead}<div class="va-ev va-ev-${meta.tone}">
+            <div class="va-ev-time">${escHtml(time)}</div>
+            <div class="va-ev-icon"><i class="ti ${meta.icon}"></i></div>
+            <div class="va-ev-body"><div class="va-ev-label">${escHtml(meta.label)}</div><div class="va-ev-detail">${visitorEventDetail(e)}</div></div>
+          </div>`;
+        })
+        .join('') + (data.truncated ? '<div class="va-empty">Showing the latest 1000 events.</div>' : '');
+  }
+
+  document.getElementById('visitors-range')?.addEventListener('change', () => loadVisitors(1));
+  document.getElementById('visitors-filter')?.addEventListener('change', () => loadVisitors(1));
+  document.getElementById('visitors-search')?.addEventListener('input', debounce(() => loadVisitors(1), 400));
+  document.getElementById('visitors-refresh')?.addEventListener('click', () => loadVisitors(visitorsPage));
+  document.getElementById('visitors-auto')?.addEventListener('change', startVisitorsAutoRefresh);
+  document.getElementById('visitors-back')?.addEventListener('click', () => {
+    showVisitorsList();
+    loadVisitors(visitorsPage, { silent: true });
+  });
+  document.getElementById('visitors-detail-refresh')?.addEventListener('click', () => {
+    if (visitorsDetailId) loadVisitorDetail(visitorsDetailId);
+  });
 
   function updateReviewsSelectionUi() {
     const count = selectedReviewIds.size;

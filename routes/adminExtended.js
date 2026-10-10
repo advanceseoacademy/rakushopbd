@@ -2,7 +2,7 @@ const path = require('path');
 const { brandGradient } = require('../lib/brandColors');
 const { upload } = require('../lib/upload');
 const { optimizeAndSaveImage } = require('../lib/imageOptimize');
-const { sql: sqlDialect } = require('../lib/db-dialect');
+const { sql: sqlDialect, likeFragment } = require('../lib/db-dialect');
 
 module.exports = function registerExtendedAdminRoutes(router, deps) {
   const { query, formatPrice, slugify, requireAdmin, statusBadge } = deps;
@@ -115,6 +115,381 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     } catch (err) {
       console.error(err);
       res.status(500).json({ ok: false, error: 'Could not load analytics' });
+    }
+  });
+
+  // ——— Visitor activity ———
+  const { ensureVisitorEventsTable, RETENTION_DAYS } = require('../lib/visitorActivity');
+
+  function col(row, snake) {
+    if (!row) return undefined;
+    if (row[snake] !== undefined) return row[snake];
+    const camel = snake.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+    if (row[camel] !== undefined) return row[camel];
+    return row[snake.toLowerCase()];
+  }
+
+  function visitorRangeStart(range) {
+    const now = Date.now();
+    const hour = 60 * 60 * 1000;
+    if (range === '1h') return new Date(now - hour);
+    if (range === '24h') return new Date(now - 24 * hour);
+    if (range === '7d') return new Date(now - 7 * 24 * hour);
+    if (range === '30d') return new Date(now - 30 * 24 * hour);
+    if (range === 'all') return new Date(now - RETENTION_DAYS * 24 * hour);
+    const dhakaOffset = 6 * hour;
+    const dhakaNow = new Date(now + dhakaOffset);
+    dhakaNow.setUTCHours(0, 0, 0, 0);
+    return new Date(dhakaNow.getTime() - dhakaOffset);
+  }
+
+  function describeDevice(ua) {
+    const s = String(ua || '');
+    let os = 'Unknown';
+    if (/iPhone/i.test(s)) os = 'iPhone';
+    else if (/iPad/i.test(s)) os = 'iPad';
+    else if (/Android/i.test(s)) os = 'Android';
+    else if (/Windows/i.test(s)) os = 'Windows';
+    else if (/Mac OS X|Macintosh/i.test(s)) os = 'Mac';
+    else if (/Linux/i.test(s)) os = 'Linux';
+    let browser = 'Browser';
+    if (/FBAN|FBAV|FB_IAB/i.test(s)) browser = 'Facebook app';
+    else if (/Instagram/i.test(s)) browser = 'Instagram app';
+    else if (/Edg\//i.test(s)) browser = 'Edge';
+    else if (/OPR\/|Opera/i.test(s)) browser = 'Opera';
+    else if (/SamsungBrowser/i.test(s)) browser = 'Samsung Internet';
+    else if (/Firefox|FxiOS/i.test(s)) browser = 'Firefox';
+    else if (/Chrome|CriOS/i.test(s)) browser = 'Chrome';
+    else if (/Safari/i.test(s)) browser = 'Safari';
+    const mobile = /Mobi|Android|iPhone|iPad/i.test(s);
+    return { os, browser, mobile, label: `${os} · ${browser}` };
+  }
+
+  function describeSource(entryPath, referrer) {
+    let params = null;
+    try {
+      params = new URL(entryPath || '/', 'http://x').searchParams;
+    } catch (_) {
+      params = null;
+    }
+    const utm = params?.get('utm_source');
+    if (params?.get('fbclid')) return utm ? `Facebook (${utm})` : 'Facebook';
+    if (params?.get('gclid')) return 'Google Ads';
+    if (utm) return utm;
+    if (referrer) {
+      try {
+        const host = new URL(referrer).hostname.replace(/^www\./, '').replace(/^(m|l|lm)\./, '');
+        if (/facebook\.com|fb\.com/.test(host)) return 'Facebook';
+        if (/instagram\.com/.test(host)) return 'Instagram';
+        if (/google\./.test(host)) return 'Google';
+        if (/youtube\.com/.test(host)) return 'YouTube';
+        return host;
+      } catch (_) {
+        return 'Other';
+      }
+    }
+    return 'Direct';
+  }
+
+  function parseMeta(raw) {
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function inList(n) {
+    return new Array(n).fill('?').join(',');
+  }
+
+  router.get('/visitors', requireAdmin, async (req, res) => {
+    try {
+      await ensureVisitorEventsTable();
+      const range = String(req.query.range || 'today');
+      const since = visitorRangeStart(range);
+      const filter = String(req.query.filter || 'all');
+      const q = String(req.query.q || '').trim().slice(0, 100);
+      const { page, limit, offset } = paginate(req.query.page, req.query.limit || 30);
+
+      const where = ['created_at >= ?'];
+      const params = [since];
+      if (q) {
+        const like = `%${q}%`;
+        where.push(`visitor_id IN (
+          SELECT visitor_id FROM visitor_events
+          WHERE created_at >= ? AND (
+            visitor_id = ? OR ip = ? OR ${likeFragment('label')} OR ${likeFragment('meta')} OR ${likeFragment('path')}
+            OR user_id IN (SELECT id FROM users WHERE ${likeFragment('full_name')} OR ${likeFragment('phone')} OR ${likeFragment('email')})
+          ))`);
+        params.push(since, q, q, like, like, like, like, like, like);
+      }
+      const having = [];
+      if (filter === 'cart') having.push("SUM(CASE WHEN event = 'add_to_cart' THEN 1 ELSE 0 END) > 0");
+      if (filter === 'checkout') having.push("SUM(CASE WHEN event = 'begin_checkout' THEN 1 ELSE 0 END) > 0");
+      if (filter === 'ordered') having.push("SUM(CASE WHEN event = 'order_placed' THEN 1 ELSE 0 END) > 0");
+      if (filter === 'abandoned') {
+        having.push("SUM(CASE WHEN event = 'add_to_cart' THEN 1 ELSE 0 END) > 0");
+        having.push("SUM(CASE WHEN event = 'order_placed' THEN 1 ELSE 0 END) = 0");
+      }
+      if (filter === 'members') having.push('MAX(user_id) IS NOT NULL');
+
+      const grouped = `SELECT visitor_id,
+          MIN(created_at) AS first_seen,
+          MAX(created_at) AS last_seen,
+          SUM(CASE WHEN event = 'page_view' THEN 1 ELSE 0 END) AS views,
+          SUM(CASE WHEN event = 'add_to_cart' THEN 1 ELSE 0 END) AS carts,
+          SUM(CASE WHEN event = 'begin_checkout' THEN 1 ELSE 0 END) AS checkouts,
+          SUM(CASE WHEN event = 'order_placed' THEN 1 ELSE 0 END) AS orders,
+          COUNT(*) AS total_events,
+          MAX(user_id) AS user_id
+        FROM visitor_events
+        WHERE ${where.join(' AND ')}
+        GROUP BY visitor_id
+        ${having.length ? `HAVING ${having.join(' AND ')}` : ''}`;
+
+      const [total, rows, statRows] = await Promise.all([
+        countSql(`SELECT COUNT(*) AS cnt FROM (${grouped}) t`, params),
+        query(`${grouped} ORDER BY MAX(created_at) DESC LIMIT ? OFFSET ?`, [...params, limit, offset]),
+        query(
+          `SELECT COUNT(DISTINCT visitor_id) AS visitors,
+             SUM(CASE WHEN event = 'page_view' THEN 1 ELSE 0 END) AS views,
+             SUM(CASE WHEN event = 'add_to_cart' THEN 1 ELSE 0 END) AS carts,
+             SUM(CASE WHEN event = 'begin_checkout' THEN 1 ELSE 0 END) AS checkouts,
+             SUM(CASE WHEN event = 'order_placed' THEN 1 ELSE 0 END) AS orders,
+             COUNT(DISTINCT CASE WHEN created_at >= ? THEN visitor_id END) AS online
+           FROM visitor_events WHERE created_at >= ?`,
+          [new Date(Date.now() - 5 * 60 * 1000), since]
+        ),
+      ]);
+
+      const vids = rows.map((r) => col(r, 'visitor_id'));
+      const details = new Map(vids.map((v) => [v, {}]));
+      if (vids.length) {
+        const evRows = await query(
+          `SELECT visitor_id, event, path, label, meta, referrer, ip, user_agent, created_at
+           FROM visitor_events
+           WHERE visitor_id IN (${inList(vids.length)}) AND created_at >= ?
+             AND (event IN ('page_view', 'order_placed', 'register', 'login') OR referrer IS NOT NULL)
+           ORDER BY created_at DESC LIMIT 5000`,
+          [...vids, since]
+        );
+        for (const e of evRows) {
+          const d = details.get(col(e, 'visitor_id'));
+          if (!d) continue;
+          const event = col(e, 'event');
+          if (!d.ip) {
+            d.ip = col(e, 'ip');
+            d.userAgent = col(e, 'user_agent');
+          }
+          if (event === 'page_view') {
+            if (!d.lastPath) {
+              d.lastPath = col(e, 'path');
+              d.lastTitle = col(e, 'label');
+            }
+            d.entryPath = col(e, 'path');
+          }
+          if (col(e, 'referrer')) d.referrer = col(e, 'referrer');
+          if (event === 'order_placed' && !d.contact) {
+            const m = parseMeta(col(e, 'meta')) || {};
+            d.contact = { name: m.name || null, phone: m.phone || null, orderNumber: col(e, 'label') };
+          }
+        }
+      }
+
+      const userIds = [...new Set(rows.map((r) => Number(col(r, 'user_id'))).filter(Boolean))];
+      const users = new Map();
+      if (userIds.length) {
+        const urows = await query(
+          `SELECT id, full_name, phone, email FROM users WHERE id IN (${inList(userIds.length)})`,
+          userIds
+        );
+        for (const u of urows) {
+          users.set(Number(u.id), {
+            id: Number(u.id),
+            name: col(u, 'full_name'),
+            phone: u.phone,
+            email: u.email,
+          });
+        }
+      }
+
+      const onlineCutoff = Date.now() - 5 * 60 * 1000;
+      const s = statRows[0] || {};
+      res.json({
+        ok: true,
+        range,
+        since,
+        retentionDays: RETENTION_DAYS,
+        stats: {
+          visitors: Number(col(s, 'visitors')) || 0,
+          views: Number(col(s, 'views')) || 0,
+          carts: Number(col(s, 'carts')) || 0,
+          checkouts: Number(col(s, 'checkouts')) || 0,
+          orders: Number(col(s, 'orders')) || 0,
+          online: Number(col(s, 'online')) || 0,
+        },
+        page,
+        limit,
+        total,
+        visitors: rows.map((r) => {
+          const vid = col(r, 'visitor_id');
+          const d = details.get(vid) || {};
+          const lastSeen = col(r, 'last_seen');
+          return {
+            visitorId: vid,
+            firstSeen: col(r, 'first_seen'),
+            lastSeen,
+            online: new Date(lastSeen).getTime() >= onlineCutoff,
+            views: Number(col(r, 'views')) || 0,
+            carts: Number(col(r, 'carts')) || 0,
+            checkouts: Number(col(r, 'checkouts')) || 0,
+            orders: Number(col(r, 'orders')) || 0,
+            totalEvents: Number(col(r, 'total_events')) || 0,
+            user: users.get(Number(col(r, 'user_id'))) || null,
+            contact: d.contact || null,
+            ip: d.ip || null,
+            device: describeDevice(d.userAgent),
+            source: describeSource(d.entryPath, d.referrer),
+            lastPath: d.lastPath || null,
+            lastTitle: d.lastTitle || null,
+          };
+        }),
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not load visitor activity' });
+    }
+  });
+
+  router.get('/visitors/:vid', requireAdmin, async (req, res) => {
+    try {
+      await ensureVisitorEventsTable();
+      const vid = String(req.params.vid || '').slice(0, 40);
+      const rows = await query(
+        `SELECT id, user_id, event, path, label, product_id, meta, referrer, ip, user_agent, created_at
+         FROM visitor_events WHERE visitor_id = ? ORDER BY created_at DESC, id DESC LIMIT 1000`,
+        [vid]
+      );
+      if (!rows.length) return res.status(404).json({ ok: false, error: 'Visitor not found' });
+      const userId = rows.map((r) => Number(col(r, 'user_id'))).find(Boolean);
+      let user = null;
+      if (userId) {
+        const urows = await query('SELECT id, full_name, phone, email FROM users WHERE id = ? LIMIT 1', [userId]);
+        if (urows[0]) {
+          user = { id: userId, name: col(urows[0], 'full_name'), phone: urows[0].phone, email: urows[0].email };
+        }
+      }
+      const oldest = rows[rows.length - 1];
+      const entryView = [...rows].reverse().find((r) => col(r, 'event') === 'page_view');
+      const refRow = [...rows].reverse().find((r) => col(r, 'referrer'));
+      res.json({
+        ok: true,
+        visitorId: vid,
+        user,
+        ip: col(rows[0], 'ip'),
+        device: describeDevice(col(rows[0], 'user_agent')),
+        userAgent: col(rows[0], 'user_agent'),
+        source: describeSource(col(entryView, 'path'), col(refRow, 'referrer')),
+        referrer: col(refRow, 'referrer') || null,
+        firstSeen: col(oldest, 'created_at'),
+        lastSeen: col(rows[0], 'created_at'),
+        truncated: rows.length >= 1000,
+        events: rows.map((r) => ({
+          id: Number(r.id),
+          event: col(r, 'event'),
+          path: col(r, 'path'),
+          label: col(r, 'label'),
+          productId: col(r, 'product_id') != null ? Number(col(r, 'product_id')) : null,
+          meta: parseMeta(col(r, 'meta')),
+          createdAt: col(r, 'created_at'),
+        })),
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not load visitor timeline' });
+    }
+  });
+
+  // ——— Customer carts (logged-in customers' current carts) ———
+  router.get('/customer-carts', requireAdmin, async (req, res) => {
+    try {
+      const { ensureUserCartsTable } = require('../lib/savedCarts');
+      await ensureUserCartsTable();
+      const { page, limit, offset } = paginate(req.query.page, req.query.limit || 20);
+      const search = String(req.query.search || '').trim().slice(0, 100);
+      const where = [];
+      const params = [];
+      if (search) {
+        const like = `%${search}%`;
+        where.push(
+          `(${likeFragment('u.full_name')} OR ${likeFragment('u.email')} OR ${likeFragment('u.phone')} OR ${likeFragment('c.items')})`
+        );
+        params.push(like, like, like, like);
+      }
+      const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+      const base = `FROM user_carts c JOIN users u ON u.id = c.user_id ${whereSql}`;
+
+      const [total, rows, statRows] = await Promise.all([
+        countSql(`SELECT COUNT(*) AS cnt ${base}`, params),
+        query(
+          `SELECT c.user_id, c.items, c.item_count, c.subtotal, c.created_at, c.updated_at,
+                  u.full_name, u.email, u.phone,
+                  (SELECT COUNT(*) FROM orders o WHERE o.user_id = c.user_id) AS order_count,
+                  (SELECT MAX(o.created_at) FROM orders o WHERE o.user_id = c.user_id) AS last_order_at
+           ${base}
+           ORDER BY c.updated_at DESC LIMIT ? OFFSET ?`,
+          [...params, limit, offset]
+        ),
+        query(
+          `SELECT COUNT(*) AS carts, COALESCE(SUM(item_count), 0) AS items, COALESCE(SUM(subtotal), 0) AS value,
+             SUM(CASE WHEN updated_at >= ? THEN 1 ELSE 0 END) AS today
+           FROM user_carts`,
+          [new Date(Date.now() - 24 * 60 * 60 * 1000)]
+        ),
+      ]);
+
+      const s = statRows[0] || {};
+      res.json({
+        ok: true,
+        page,
+        limit,
+        total,
+        stats: {
+          carts: Number(col(s, 'carts')) || 0,
+          items: Number(col(s, 'items')) || 0,
+          value: Number(col(s, 'value')) || 0,
+          valueFormatted: formatPrice(Number(col(s, 'value')) || 0),
+          last24h: Number(col(s, 'today')) || 0,
+        },
+        carts: rows.map((r) => {
+          let items = [];
+          try {
+            items = JSON.parse(col(r, 'items')) || [];
+          } catch (_) {
+            items = [];
+          }
+          const subtotal = Number(col(r, 'subtotal')) || 0;
+          return {
+            userId: Number(col(r, 'user_id')),
+            name: col(r, 'full_name') || 'Customer',
+            email: r.email || '',
+            phone: r.phone || '',
+            items,
+            itemCount: Number(col(r, 'item_count')) || 0,
+            subtotal,
+            subtotalFormatted: formatPrice(subtotal),
+            createdAt: col(r, 'created_at'),
+            updatedAt: col(r, 'updated_at'),
+            orderCount: Number(col(r, 'order_count')) || 0,
+            lastOrderAt: col(r, 'last_order_at') || null,
+          };
+        }),
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not load customer carts' });
     }
   });
 
@@ -609,14 +984,17 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
   // ——— Coupon update ———
   router.put('/coupons/:id', requireAdmin, async (req, res) => {
     try {
-      const { code, discountType, discountValue, minOrder, usageLimit, expiresAt, isActive } = req.body;
+      const { code, discountType, discountValue, minOrder, usageLimit, expiresAt, isActive, freeDelivery } = req.body;
       const type = String(discountType || 'percent').trim();
       if (!['percent', 'fixed', 'free_delivery'].includes(type)) {
         return res.status(400).json({ ok: false, error: 'Invalid coupon type' });
       }
       const value = type === 'free_delivery' ? 0 : Number(discountValue);
+      const { ensureCouponFreeDeliveryType } = require('../lib/ensureCouponFreeDeliveryType');
+      await ensureCouponFreeDeliveryType();
+      const freeDeliveryOn = type === 'free_delivery' || Boolean(freeDelivery);
       await query(
-        `UPDATE coupons SET code=?, discount_type=?, discount_value=?, min_order=?, usage_limit=?, expires_at=?, is_active=? WHERE id=?`,
+        `UPDATE coupons SET code=?, discount_type=?, discount_value=?, min_order=?, usage_limit=?, expires_at=?, is_active=?, free_delivery=? WHERE id=?`,
         [
           String(code || '').trim().toUpperCase(),
           type,
@@ -625,12 +1003,33 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
           usageLimit || null,
           expiresAt || null,
           isActive ? 1 : 0,
+          freeDeliveryOn,
           req.params.id,
         ]
       );
       res.json({ ok: true });
     } catch (err) {
       res.status(500).json({ ok: false, error: 'Could not update coupon' });
+    }
+  });
+
+  router.patch('/coupons/:id/free-delivery', requireAdmin, async (req, res) => {
+    try {
+      const id = Number(req.params.id);
+      if (!id) return res.status(400).json({ ok: false, error: 'Invalid coupon' });
+      const { ensureCouponFreeDeliveryType } = require('../lib/ensureCouponFreeDeliveryType');
+      await ensureCouponFreeDeliveryType();
+      const rows = await query('SELECT id, discount_type FROM coupons WHERE id = ? LIMIT 1', [id]);
+      if (!rows.length) return res.status(404).json({ ok: false, error: 'Coupon not found' });
+      if (String(rows[0].discount_type) === 'free_delivery') {
+        return res.status(400).json({ ok: false, error: 'Free Delivery coupons always give free delivery' });
+      }
+      const on = Boolean(req.body?.enabled);
+      await query('UPDATE coupons SET free_delivery = ? WHERE id = ?', [on, id]);
+      res.json({ ok: true, freeDelivery: on });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ ok: false, error: 'Could not update free delivery' });
     }
   });
 

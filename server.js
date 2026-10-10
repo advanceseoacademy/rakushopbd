@@ -598,7 +598,7 @@ async function startServer() {
     else console.warn('Redis configured but unavailable — using in-memory cache only');
   }
 
-  app.listen(PORT, () => {
+  const httpServer = app.listen(PORT, () => {
   const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';
   const cache = cacheBackendLabel();
   console.log(`RakuShopBD running — http://localhost:${PORT} [${db}, cache: ${cache}]`);
@@ -659,6 +659,8 @@ async function startServer() {
   ensureNotifyEmailSettings().catch((err) => console.warn('Notify email settings:', err.message));
   ensureLegalPages().catch((err) => console.warn('Legal pages:', err.message));
   });
+  // Review videos can be up to 1 GB; Node's default 5-minute request timeout would cut slow uploads.
+  httpServer.requestTimeout = 60 * 60 * 1000;
 }
 
 startServer().catch((err) => {

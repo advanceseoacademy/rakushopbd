@@ -68,8 +68,8 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script src="/js/about.js?v=2" defer></script>
 <% } %>
 <% if (_initialPage === 'account') { %>
-<link rel="stylesheet" href="/css/account.css?v=14">
-<script src="/js/account.js?v=23" defer></script>
+<link rel="stylesheet" href="/css/account.css?v=18">
+<script src="/js/account.js?v=28" defer></script>
 <% } %>
 <%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </head>
@@ -967,27 +967,6 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
  <span class="c-summary-free summary-delivery">Free</span>
  </div>
 
- <div class="checkout-savings checkout-savings--cart">
-   <div class="savings-card savings-card--coupon" id="cart-coupon-card">
-     <div class="savings-card-head">
-       <span class="savings-card-icon savings-card-icon--coupon"><i class="ti ti-ticket"></i></span>
-       <div class="savings-card-titles">
-         <strong>Coupon code</strong>
-         <span>Save on this order</span>
-       </div>
-       <span class="savings-applied-badge js-coupon-applied-badge" hidden><i class="ti ti-check"></i> Applied</span>
-     </div>
-     <div class="savings-card-body">
-       <div class="savings-input-row">
-         <input class="savings-input js-coupon-input" type="text" placeholder="e.g. RakuShopBD10" autocomplete="off">
-         <button type="button" class="savings-btn js-coupon-apply">Apply</button>
-       </div>
-       <button type="button" class="savings-remove js-coupon-remove" hidden><i class="ti ti-x"></i> Remove coupon</button>
-       <p class="savings-note js-coupon-note" id="cart-coupon-note" hidden></p>
-     </div>
-   </div>
- </div>
-
  <div class="c-total-row">
  <span class="c-total-label">Total</span>
  <span class="c-total-val summary-total">৳0</span>
@@ -1406,7 +1385,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
         <button type="button" class="acc-nav-btn" data-acc-panel="orders"><i class="ti ti-package"></i><span>My Orders</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="track"><i class="ti ti-truck-delivery"></i><span>Track Order</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="referral"><i class="ti ti-share"></i><span>Refer &amp; Earn</span></button>
-        <button type="button" class="acc-nav-btn" data-acc-panel="review-videos"><i class="ti ti-video"></i><span>Review Video</span></button>
+        <button type="button" class="acc-nav-btn" data-acc-panel="review-videos"><i class="ti ti-video"></i><span>Reviews</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="profile"><i class="ti ti-user-circle"></i><span>Profile</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="addresses"><i class="ti ti-map-pin"></i><span>Addresses</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="password"><i class="ti ti-lock"></i><span>Security</span></button>
@@ -1581,14 +1560,19 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
       <section class="acc-panel" id="acc-panel-review-videos">
         <div class="acc-panel-head">
           <div>
-            <h2 class="acc-panel-title">Product Review Video</h2>
-            <p class="acc-panel-sub">After your order is delivered, upload a short review video and earn <strong id="acc-rv-points-label">100</strong> reward points when admin approves it.</p>
+            <h2 class="acc-panel-title">Product Reviews</h2>
+            <p class="acc-panel-sub">After your order is delivered, share a video or photo review. Video reviews earn <strong id="acc-rv-points-label">100</strong> reward points when admin approves them.</p>
           </div>
         </div>
+        <div class="acc-rv-tabs" role="tablist">
+          <button type="button" class="acc-rv-tab is-active" data-rv-tab="video" role="tab" aria-selected="true"><i class="ti ti-video"></i> Video review</button>
+          <button type="button" class="acc-rv-tab" data-rv-tab="photo" role="tab" aria-selected="false"><i class="ti ti-photo"></i> Photo review</button>
+        </div>
+        <div class="acc-rv-pane" data-rv-pane="video">
         <div id="acc-rv-alert"></div>
         <div class="acc-section-card acc-rv-upload-card">
           <h3 class="acc-section-title"><i class="ti ti-upload" style="color:var(--primary);"></i> Upload review video</h3>
-          <p class="acc-rv-hint">Choose a delivered product, record a short honest review (MP4, WebM, or MOV — max 30 MB), then submit.</p>
+          <p class="acc-rv-hint">Choose a delivered product, record a short honest review (MP4, WebM, or MOV — max 1 GB), then submit.</p>
           <form class="acc-form" id="acc-rv-form">
             <div class="acc-field">
               <label class="acc-label" for="acc-rv-product">Delivered product</label>
@@ -1600,12 +1584,69 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
               <label class="acc-label" for="acc-rv-video">Review video file</label>
               <input class="acc-input acc-input-file" type="file" id="acc-rv-video" name="video" accept="video/mp4,video/webm,video/quicktime,video/*" required>
             </div>
+            <div class="acc-rv-progress" id="acc-rv-progress" hidden aria-live="polite">
+              <div class="acc-rv-progress-head">
+                <span class="acc-rv-progress-label" id="acc-rv-progress-label">Uploading video…</span>
+                <span class="acc-rv-progress-pct" id="acc-rv-progress-pct">0%</span>
+              </div>
+              <div class="acc-rv-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="acc-rv-progress-track">
+                <div class="acc-rv-progress-bar" id="acc-rv-progress-bar"></div>
+              </div>
+              <small class="acc-rv-progress-size" id="acc-rv-progress-size"></small>
+            </div>
             <button type="submit" class="acc-btn acc-btn-primary" id="acc-rv-submit"><i class="ti ti-send"></i> Submit for review</button>
           </form>
         </div>
         <div class="acc-section-card" style="margin-top:16px;">
           <h3 class="acc-section-title">Your submissions</h3>
           <div id="acc-rv-list"><div class="acc-empty"><i class="ti ti-video"></i>No review videos yet.</div></div>
+        </div>
+        </div>
+        <div class="acc-rv-pane" data-rv-pane="photo" hidden>
+          <div id="acc-pr-alert"></div>
+          <div class="acc-section-card acc-rv-upload-card">
+            <h3 class="acc-section-title"><i class="ti ti-photo" style="color:var(--primary);"></i> Add photo review</h3>
+            <p class="acc-rv-hint">Choose a delivered product, rate it, write a few words and add a photo of the product. Approved photo reviews appear on the product page.</p>
+            <form class="acc-form" id="acc-pr-form">
+              <div class="acc-field">
+                <label class="acc-label" for="acc-pr-product">Delivered product</label>
+                <select class="acc-input" id="acc-pr-product" required>
+                  <option value="">Loading eligible products…</option>
+                </select>
+              </div>
+              <div class="acc-field">
+                <span class="acc-label">Rating</span>
+                <div class="acc-pr-stars" id="acc-pr-stars" role="radiogroup" aria-label="Rating">
+                  <button type="button" data-star="1" aria-label="1 star"><i class="ti ti-star-filled"></i></button>
+                  <button type="button" data-star="2" aria-label="2 stars"><i class="ti ti-star-filled"></i></button>
+                  <button type="button" data-star="3" aria-label="3 stars"><i class="ti ti-star-filled"></i></button>
+                  <button type="button" data-star="4" aria-label="4 stars"><i class="ti ti-star-filled"></i></button>
+                  <button type="button" data-star="5" aria-label="5 stars"><i class="ti ti-star-filled"></i></button>
+                </div>
+              </div>
+              <div class="acc-field">
+                <label class="acc-label" for="acc-pr-comment">Your review</label>
+                <textarea class="acc-input" id="acc-pr-comment" rows="3" maxlength="2000" placeholder="How was the product?"></textarea>
+              </div>
+              <div class="acc-field">
+                <label class="acc-label" for="acc-pr-image">Product photo</label>
+                <input class="acc-input acc-input-file" type="file" id="acc-pr-image" accept="image/*" required>
+                <div class="acc-pr-preview" id="acc-pr-preview" hidden><img alt="Selected photo preview"></div>
+              </div>
+              <div class="acc-rv-progress" id="acc-pr-progress" hidden aria-live="polite">
+                <div class="acc-rv-progress-head">
+                  <span class="acc-rv-progress-label" id="acc-pr-progress-label">Uploading photo…</span>
+                  <span class="acc-rv-progress-pct" id="acc-pr-progress-pct">0%</span>
+                </div>
+                <div class="acc-rv-progress-track"><div class="acc-rv-progress-bar" id="acc-pr-progress-bar"></div></div>
+              </div>
+              <button type="submit" class="acc-btn acc-btn-primary" id="acc-pr-submit"><i class="ti ti-send"></i> Submit photo review</button>
+            </form>
+          </div>
+          <div class="acc-section-card" style="margin-top:16px;">
+            <h3 class="acc-section-title">Your photo reviews</h3>
+            <div id="acc-pr-list"><div class="acc-empty"><i class="ti ti-photo"></i>No photo reviews yet.</div></div>
+          </div>
         </div>
       </section>
 
@@ -1821,9 +1862,9 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script src="/js/home-today-deals.js?v=6" defer></script>
 <script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/storefront-dynamic.js?v=67" defer></script>
-<script src="/js/api.js?v=144" defer></script>
+<script src="/js/api.js?v=147" defer></script>
 <script src="/js/footer-settings.js?v=16" defer></script>
-<script src="/js/search.js?v=10" defer></script>
+<script src="/js/search.js?v=11" defer></script>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
   if (window.__RAKU_READY__) return;

@@ -325,6 +325,7 @@ table.tbl { width:100%; border-collapse:collapse; }
   background: #fff;
   color: #374151;
 }
+.stock-quick-edit.mrp-quick-edit,
 .stock-quick-edit.price-quick-edit,
 .stock-quick-edit.buy-price-quick-edit { width: 88px; }
 .stock-quick-edit.discount-quick-edit { width: 64px; }
@@ -2443,3 +2444,48 @@ body.popup-preview-modal-open {
 th.tbl-check-col.is-hidden {
   display: none !important;
 }
+
+/* ——— Visitor activity ——— */
+.va-stats { grid-template-columns: repeat(6, 1fr); margin-bottom: 20px; }
+@media (max-width: 1200px) { .va-stats { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 640px) { .va-stats { grid-template-columns: repeat(2, 1fr); } }
+.va-auto { display:inline-flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted, #64748b); cursor:pointer; }
+.va-table td { vertical-align: top; }
+.va-name { display:flex; align-items:center; gap:6px; font-weight:600; }
+.va-sub { font-size:12px; color:#64748b; margin-top:3px; }
+.va-muted { color:#94a3b8; font-size:12px; }
+.va-dot { width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,.2); flex-shrink:0; display:inline-block; }
+.va-last { max-width:260px; }
+.va-last .va-link { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word; }
+.va-link { color:var(--primary); text-decoration:none; }
+.va-link:hover { text-decoration:underline; }
+.va-note { font-size:12px; color:#94a3b8; margin:10px 2px 0; }
+.va-detail-head { margin:14px 0 16px; }
+.va-detail-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
+.va-detail-title { display:flex; align-items:center; gap:8px; font-size:18px; font-weight:700; margin-bottom:12px; }
+.va-detail-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:10px 18px; font-size:13px; }
+.va-detail-grid span { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:#94a3b8; margin-bottom:2px; }
+.va-timeline-wrap #visitors-timeline { padding:4px 18px 16px; }
+.va-day { font-size:12px; font-weight:700; color:#475569; background:#f8fafc; border-radius:6px; padding:6px 10px; margin:14px 0 6px; }
+.va-ev { display:grid; grid-template-columns:92px 34px 1fr; gap:10px; align-items:start; padding:8px 0; border-bottom:1px dashed #eef2f7; }
+.va-ev:last-child { border-bottom:0; }
+.va-ev-time { font-size:12px; color:#64748b; padding-top:7px; white-space:nowrap; }
+.va-ev-icon { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; background:#f1f5f9; color:#475569; }
+.va-ev-green .va-ev-icon { background:#dcfce7; color:#166534; }
+.va-ev-amber .va-ev-icon { background:#fef3c7; color:#b45309; }
+.va-ev-red .va-ev-icon { background:#fee2e2; color:#b91c1c; }
+.va-ev-blue .va-ev-icon { background:#e0f2fe; color:#0369a1; }
+.va-ev-label { font-size:13px; font-weight:600; }
+.va-ev-detail { font-size:13px; color:#334155; word-break:break-word; margin-top:2px; }
+.va-ev-green { background:linear-gradient(90deg, rgba(220,252,231,.45), transparent 60%); }
+.va-empty { text-align:center; color:#94a3b8; padding:24px; font-size:13px; }
+@media (max-width: 640px) { .va-ev { grid-template-columns:64px 30px 1fr; } }
+
+/* ——— Customer carts ——— */
+.cc-table td { vertical-align: top; }
+.cc-items { min-width: 260px; }
+.cc-item { display:flex; gap:10px; align-items:center; padding:4px 0; }
+.cc-item + .cc-item { border-top:1px dashed #eef2f7; }
+.cc-item img, .cc-noimg { width:40px; height:40px; border-radius:8px; object-fit:cover; border:1px solid var(--border); flex-shrink:0; }
+.cc-noimg { display:flex; align-items:center; justify-content:center; background:#f8fafc; color:#94a3b8; }
+.cc-contact { display:flex; flex-wrap:wrap; gap:6px; }

@@ -483,6 +483,7 @@
   }
 
   window._rakuApplyCartBadgeCount = applyCartBadgeCount;
+  window.rakuSyncCart = syncCartBadge;
 
   async function syncWishlist() {
     try {
@@ -2535,6 +2536,8 @@
     let message = '';
     if (!cfg.loggedIn) {
       message = `Login to use reward points. You can redeem up to ${maxPct}% of your points.`;
+    } else if (cfg.firstOrderLocked) {
+      message = `You have ${balance} points. Reward points can be used from your 2nd order — place this order to unlock them.`;
     } else if (maxUsable < minRedeem) {
       message = `You have ${balance} points. Up to ${maxPct}% (${Math.floor((balance * maxPct) / 100)} points) can be used on this order.`;
     } else if (applied > 0) {
@@ -2585,6 +2588,10 @@
     trackFacebookConversion('InitiateCheckout', {
       value: Number(data.totals?.total) || 0,
       currency: 'BDT',
+    });
+    window.rakuTrack?.('begin_checkout', {
+      label: `${(data.cart || []).length} item(s)`,
+      meta: { total: Number(data.totals?.total) || 0 },
     });
   }
 
@@ -3638,6 +3645,9 @@
         const maxPct = Math.min(100, Math.max(1, Number(snap.maxBalancePercent) || 50));
         const points = Math.max(0, Math.floor(Number(input?.value) || 0)) || maxUsable;
         if (!snap.loggedIn) return alert('Please log in to use reward points.');
+        if (snap.firstOrderLocked) {
+          return alert('Reward points can be used from your 2nd order. Place your first order to unlock them.');
+        }
         if (maxUsable < minRedeem) {
           return alert(`You can use at most ${maxPct}% of your ${balance} points on this order.`);
         }

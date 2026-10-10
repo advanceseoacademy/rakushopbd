@@ -1,3 +1,4 @@
+const fs = require('fs');
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const { query } = require('../config/db');
@@ -5,6 +6,8 @@ const { formatPrice } = require('../lib/format');
 const { saveSession } = require('../lib/sessionSave');
 const { returningId } = require('../lib/db-dialect');
 const { firstInsertId } = require('../config/db');
+const { logVisitorEvent } = require('../lib/visitorActivity');
+const { syncCartOnLogin } = require('../lib/savedCarts');
 const { getSiteSettings } = require('../lib/siteSettings');
 const { normalizeSiteBaseUrl } = require('../lib/seo');
 const {
@@ -103,6 +106,8 @@ router.post('/register', rateLimitAuthRegister, async (req, res) => {
 
     const userId = firstInsertId(result) ?? (await query('SELECT id FROM users WHERE email = ?', [email.trim().toLowerCase()]))[0]?.id;
     req.session.userId = userId;
+    logVisitorEvent(req, 'register', { label: fullName.trim(), meta: { email: email.trim().toLowerCase() } });
+    await syncCartOnLogin(req);
     const rewards = await processNewUserRewards(query, userId, { referralCode });
     const rows = await loadUserById(userId);
     saveSession(req, (saveErr) => {
@@ -149,6 +154,8 @@ router.post('/login', rateLimitAuthLogin, async (req, res) => {
     }
 
     req.session.userId = user.id;
+    logVisitorEvent(req, 'login', { label: user.full_name, meta: { email: user.email } });
+    await syncCartOnLogin(req);
     await assignReferralCode(query, user.id);
     const fresh = await loadUserById(user.id);
     saveSession(req, (saveErr) => {
@@ -165,7 +172,9 @@ router.post('/login', rateLimitAuthLogin, async (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  req.session = null;
+  logVisitorEvent(req, 'logout');
+  const vid = req.session?.vid;
+  req.session = vid ? { vid } : null;
   res.json({ ok: true });
 });
 
@@ -255,7 +264,8 @@ router.put('/password', requireAuth, async (req, res) => {
 router.get('/orders', requireAuth, async (req, res) => {
   try {
     const orders = await query(
-      `SELECT id, order_number, total, status, payment_method, created_at
+      `SELECT id, order_number, subtotal, delivery_fee, total, status, payment_method, created_at,
+              customer_name, customer_phone, address_line, district, postal_code
        FROM orders WHERE user_id = ? ORDER BY created_at DESC LIMIT 50`,
       [req.session.userId]
     );
@@ -263,17 +273,31 @@ router.get('/orders', requireAuth, async (req, res) => {
     const withItems = await Promise.all(
       orders.map(async (o) => {
         const items = await query(
-          'SELECT product_name, quantity, unit_price, line_total FROM order_items WHERE order_id = ?',
+          `SELECT oi.product_id, oi.product_name, oi.quantity, oi.unit_price, oi.line_total,
+                  p.slug AS product_slug, p.image_url AS product_image
+           FROM order_items oi LEFT JOIN products p ON p.id = oi.product_id
+           WHERE oi.order_id = ?`,
           [o.id]
         );
+        const subtotal = Number(o.subtotal) || 0;
+        const delivery = Number(o.delivery_fee) || 0;
+        const total = Number(o.total) || 0;
         return {
           id: o.id,
           orderNumber: o.order_number,
-          total: Number(o.total),
+          subtotal,
+          deliveryFee: delivery,
+          discount: Math.max(0, subtotal + delivery - total),
+          total,
           totalFormatted: formatPrice(o.total),
           status: o.status,
           paymentMethod: o.payment_method,
           createdAt: o.created_at,
+          customerName: o.customer_name,
+          customerPhone: o.customer_phone,
+          address: o.address_line,
+          district: o.district,
+          postalCode: o.postal_code,
           items,
         };
       })
@@ -386,13 +410,19 @@ router.get('/review-videos', requireAuth, async (req, res) => {
 router.post('/review-videos/upload', requireAuth, (req, res) => {
   videoUpload.single('video')(req, res, async (err) => {
     if (err) {
-      return res.status(400).json({ ok: false, error: err.message || 'Invalid video upload' });
+      if (req.file?.path) fs.promises.unlink(req.file.path).catch(() => {});
+      const error =
+        err.code === 'LIMIT_FILE_SIZE'
+          ? 'Video is too large. Maximum size is 1 GB.'
+          : err.message || 'Invalid video upload';
+      return res.status(err.code === 'LIMIT_FILE_SIZE' ? 413 : 400).json({ ok: false, error });
     }
     try {
       if (!req.file) return res.status(400).json({ ok: false, error: 'No video uploaded' });
       const saved = await saveVideoFile(req.file);
       res.json({ ok: true, url: saved.url });
     } catch (uploadErr) {
+      if (req.file?.path) fs.promises.unlink(req.file.path).catch(() => {});
       console.error('review video upload', uploadErr);
       res.status(500).json({ ok: false, error: 'Could not upload video' });
     }
@@ -412,6 +442,126 @@ router.post('/review-videos', requireAuth, async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not submit review video' });
+  }
+});
+
+function photoReviewImageUrl(url) {
+  const value = String(url || '').trim();
+  if (!value.startsWith('/uploads/') || value.startsWith('/uploads/review-videos/')) return null;
+  if (value.includes('..') || value.includes('\\')) return null;
+  return value.slice(0, 500);
+}
+
+router.get('/photo-reviews/eligible', requireAuth, async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT DISTINCT o.id AS order_id, o.order_number, oi.product_id, oi.product_name
+       FROM orders o
+       JOIN order_items oi ON oi.order_id = o.id
+       WHERE o.user_id = ? AND LOWER(o.status) = 'delivered' AND oi.product_id IS NOT NULL
+         AND NOT EXISTS (
+           SELECT 1 FROM product_reviews r
+           WHERE r.user_id = o.user_id AND r.product_id = oi.product_id
+             AND r.image_url IS NOT NULL AND r.status IN ('pending', 'approved')
+         )
+       ORDER BY o.id DESC`,
+      [req.session.userId]
+    );
+    const seen = new Set();
+    const eligible = [];
+    for (const r of rows) {
+      const pid = Number(r.product_id ?? r.productId);
+      if (seen.has(pid)) continue;
+      seen.add(pid);
+      eligible.push({
+        orderId: Number(r.order_id ?? r.orderId),
+        orderNumber: r.order_number ?? r.orderNumber,
+        productId: pid,
+        productName: r.product_name ?? r.productName,
+      });
+    }
+    res.json({ ok: true, eligible });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load eligible products' });
+  }
+});
+
+router.get('/photo-reviews', requireAuth, async (req, res) => {
+  try {
+    const rows = await query(
+      `SELECT r.id, r.product_id, r.rating, r.comment, r.image_url, r.status, r.created_at,
+              p.name_bn AS product_name, p.slug AS product_slug
+       FROM product_reviews r LEFT JOIN products p ON p.id = r.product_id
+       WHERE r.user_id = ? AND r.image_url IS NOT NULL
+       ORDER BY r.created_at DESC LIMIT 50`,
+      [req.session.userId]
+    );
+    res.json({
+      ok: true,
+      reviews: rows.map((r) => ({
+        id: r.id,
+        productId: r.product_id ?? r.productId,
+        productName: r.product_name ?? r.productName,
+        productSlug: r.product_slug ?? r.productSlug,
+        rating: Number(r.rating) || 0,
+        comment: r.comment || '',
+        imageUrl: r.image_url ?? r.imageUrl,
+        status: r.status,
+        createdAt: r.created_at ?? r.createdAt,
+      })),
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not load photo reviews' });
+  }
+});
+
+router.post('/photo-reviews', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.userId;
+    const orderId = Number(req.body?.orderId);
+    const productId = Number(req.body?.productId);
+    const rating = Math.round(Number(req.body?.rating) || 0);
+    const comment = String(req.body?.comment || '').trim().slice(0, 2000);
+    const imageUrl = photoReviewImageUrl(req.body?.imageUrl);
+
+    if (!orderId || !productId) return res.status(400).json({ ok: false, error: 'Please select a delivered product' });
+    if (rating < 1 || rating > 5) return res.status(400).json({ ok: false, error: 'Please choose a rating (1–5 stars)' });
+    if (!imageUrl) return res.status(400).json({ ok: false, error: 'Please upload a photo' });
+
+    const orders = await query(
+      `SELECT id FROM orders WHERE id = ? AND user_id = ? AND LOWER(status) = 'delivered' LIMIT 1`,
+      [orderId, userId]
+    );
+    if (!orders.length) return res.status(400).json({ ok: false, error: 'Delivered order not found' });
+    const items = await query('SELECT 1 FROM order_items WHERE order_id = ? AND product_id = ? LIMIT 1', [
+      orderId,
+      productId,
+    ]);
+    if (!items.length) return res.status(400).json({ ok: false, error: 'Product was not in this order' });
+
+    const existing = await query(
+      `SELECT id FROM product_reviews
+       WHERE user_id = ? AND product_id = ? AND image_url IS NOT NULL AND status IN ('pending', 'approved') LIMIT 1`,
+      [userId, productId]
+    );
+    if (existing.length) {
+      return res.status(400).json({ ok: false, error: 'You already submitted a photo review for this product' });
+    }
+
+    const users = await query('SELECT full_name FROM users WHERE id = ? LIMIT 1', [userId]);
+    const customerName = String(users[0]?.full_name ?? users[0]?.fullName ?? 'Customer').trim() || 'Customer';
+
+    const result = await query(
+      `INSERT INTO product_reviews (product_id, user_id, customer_name, rating, comment, image_url, status)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending')${returningId()}`,
+      [productId, userId, customerName, rating, comment || null, imageUrl]
+    );
+    res.json({ ok: true, id: firstInsertId(result), status: 'pending' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not submit photo review' });
   }
 });
 

@@ -143,10 +143,46 @@
     return it.product_name || it.productName || 'Item';
   }
 
+  const ordersByNumber = new Map();
+
+  function itemProductUrl(it) {
+    const slug = it.product_slug || it.productSlug;
+    const id = it.product_id || it.productId;
+    if (slug) return `/product/${encodeURIComponent(slug)}`;
+    if (id) return `/product/${encodeURIComponent(id)}`;
+    return '';
+  }
+
+  function itemThumbHtml(it) {
+    const img = it.product_image || it.productImage;
+    const safe = img && /^(\/|https:\/\/)/.test(String(img)) ? String(img) : '';
+    return safe
+      ? `<img class="acc-oi-thumb" src="${escapeHtml(safe)}" alt="" loading="lazy" width="48" height="48">`
+      : '<span class="acc-oi-thumb acc-oi-thumb--empty"><i class="ti ti-package"></i></span>';
+  }
+
+  function orderItemRowHtml(it) {
+    const url = itemProductUrl(it);
+    const name = escapeHtml(itemLineName(it));
+    const unit = Number(it.unit_price ?? it.unitPrice ?? 0);
+    const line = Number(it.line_total ?? it.lineTotal ?? unit * Number(it.quantity || 1));
+    const nameHtml = url
+      ? `<a class="acc-oi-name" href="${escapeHtml(url)}">${name}</a>`
+      : `<span class="acc-oi-name">${name}</span>`;
+    const thumb = url ? `<a href="${escapeHtml(url)}" tabindex="-1" aria-hidden="true">${itemThumbHtml(it)}</a>` : itemThumbHtml(it);
+    return `<div class="acc-oi">
+        ${thumb}
+        <div class="acc-oi-info">
+          ${nameHtml}
+          <div class="acc-oi-meta">${formatPrice(unit)} × ${escapeHtml(it.quantity)}</div>
+        </div>
+        <div class="acc-oi-total">${formatPrice(line)}</div>
+      </div>`;
+  }
+
   function orderCardHtml(o) {
-    const items = (o.items || [])
-      .map((i) => `${itemLineName(i)} ×${i.quantity}`)
-      .join(', ');
+    ordersByNumber.set(String(o.orderNumber), o);
+    const items = o.items || [];
     return `
       <div class="acc-order-card">
         <div class="acc-order-head">
@@ -156,12 +192,57 @@
           </div>
           <span class="acc-status ${escapeHtml(o.status)}">${escapeHtml(o.status)}</span>
         </div>
-        <div class="acc-order-items">${escapeHtml(items || '—')}</div>
+        <div class="acc-order-items acc-oi-list">${items.length ? items.map(orderItemRowHtml).join('') : '—'}</div>
         <div class="acc-order-foot">
           <div class="acc-order-total">${escapeHtml(o.totalFormatted || '')}</div>
           <button type="button" class="acc-btn-sm primary" data-track-order="${escapeHtml(o.orderNumber)}">
-            <i class="ti ti-truck-delivery"></i> Track
+            <i class="ti ti-list-details"></i> Details
           </button>
+        </div>
+      </div>`;
+  }
+
+  const ORDER_STEPS = [
+    { key: 'pending', label: 'Order placed', icon: 'ti-receipt' },
+    { key: 'confirmed', label: 'Confirmed', icon: 'ti-circle-check' },
+    { key: 'shipped', label: 'Shipped', icon: 'ti-truck-delivery' },
+    { key: 'delivered', label: 'Delivered', icon: 'ti-package' },
+  ];
+
+  function orderStepperHtml(status) {
+    const s = String(status || 'pending').toLowerCase();
+    if (s === 'cancelled') {
+      return '<div class="acc-od-cancelled"><i class="ti ti-circle-x"></i> This order was cancelled.</div>';
+    }
+    const idx = Math.max(0, ORDER_STEPS.findIndex((x) => x.key === s));
+    return `<ol class="acc-od-steps">${ORDER_STEPS.map((st, i) => {
+      const cls = i < idx ? 'done' : i === idx ? 'current' : '';
+      return `<li class="acc-od-step ${cls}"><span class="acc-od-dot"><i class="ti ${st.icon}"></i></span><span>${st.label}</span></li>`;
+    }).join('')}</ol>`;
+  }
+
+  function orderDetailsHtml(o) {
+    const pay = String(o.paymentMethod || '—');
+    const addr = [o.address, o.district, o.postalCode].filter(Boolean).join(', ');
+    const discountRow = Number(o.discount) > 0
+      ? `<div class="acc-od-row"><span>Discount</span><span>−${formatPrice(o.discount)}</span></div>`
+      : '';
+    return `<div class="acc-trk-box acc-od">
+        ${orderStepperHtml(o.status)}
+        <div class="acc-od-grid">
+          <div class="acc-od-block">
+            <h4>Delivery</h4>
+            <p><b>${escapeHtml(o.customerName || '—')}</b>${o.customerPhone ? ` · ${escapeHtml(o.customerPhone)}` : ''}</p>
+            <p>${escapeHtml(addr || '—')}</p>
+            <p>Ordered on ${escapeHtml(formatDate(o.createdAt))} · Payment: ${escapeHtml(pay.toUpperCase())}</p>
+          </div>
+          <div class="acc-od-block">
+            <h4>Payment summary</h4>
+            <div class="acc-od-row"><span>Items</span><span>${formatPrice(o.subtotal)}</span></div>
+            <div class="acc-od-row"><span>Delivery</span><span>${Number(o.deliveryFee) > 0 ? formatPrice(o.deliveryFee) : 'Free'}</span></div>
+            ${discountRow}
+            <div class="acc-od-row acc-od-total"><span>Total</span><span>${formatPrice(o.total)}</span></div>
+          </div>
         </div>
       </div>`;
   }
@@ -444,7 +525,10 @@
       p.classList.toggle('active', p === target);
     });
     if (panelId === 'referral') loadReferralPanel();
-    if (panelId === 'review-videos') loadReviewVideosPanel();
+    if (panelId === 'review-videos') {
+      loadReviewVideosPanel();
+      loadPhotoReviewPanel();
+    }
     return true;
   }
 
@@ -462,7 +546,7 @@
     return 'pending';
   }
 
-  function renderReviewVideosList(videos) {
+  function renderReviewVideosList(videos, highlightId) {
     const el = document.getElementById('acc-rv-list');
     if (!el) return;
     if (!videos.length) {
@@ -476,7 +560,8 @@
         const note = v.adminNote
           ? `<p class="acc-rv-note">${escapeHtml(v.adminNote)}</p>`
           : '';
-        return `<article class="acc-rv-item">
+        const isNew = highlightId != null && Number(v.id) === Number(highlightId);
+        return `<article class="acc-rv-item${isNew ? ' is-new' : ''}">
           <div class="acc-rv-item-head">
             <div>
               <strong>${escapeHtml(v.productName || 'Product')}</strong>
@@ -511,8 +596,8 @@
         .join('');
   }
 
-  async function loadReviewVideosPanel() {
-    if (!currentUser) return;
+  async function loadReviewVideosPanel(highlightId) {
+    if (!currentUser) return null;
     const [cfgRes, eligibleRes, listRes] = await Promise.all([
       authFetch('/review-videos/config'),
       authFetch('/review-videos/eligible'),
@@ -522,13 +607,94 @@
     const ptsLabel = document.getElementById('acc-rv-points-label');
     if (ptsLabel) ptsLabel.textContent = String(pts);
     if (eligibleRes.ok) populateEligibleProducts(eligibleRes.eligible || []);
-    if (listRes.ok) renderReviewVideosList(listRes.videos || []);
+    if (listRes.ok) renderReviewVideosList(listRes.videos || [], highlightId);
+    return listRes.ok ? listRes.videos || [] : null;
+  }
+
+  const RV_MAX_BYTES = 1024 * 1024 * 1024;
+
+  function formatBytes(n) {
+    const gb = Number(n) / (1024 * 1024 * 1024);
+    if (gb >= 1) return `${gb.toFixed(2)} GB`;
+    const mb = Number(n) / (1024 * 1024);
+    return mb >= 1 ? `${mb.toFixed(1)} MB` : `${Math.max(1, Math.round(Number(n) / 1024))} KB`;
+  }
+
+  function setRvProgress(state, { pct, label, size } = {}) {
+    const box = document.getElementById('acc-rv-progress');
+    if (!box) return;
+    if (state === 'hidden') {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    box.classList.toggle('is-processing', state === 'processing');
+    box.classList.toggle('is-done', state === 'done');
+    box.classList.toggle('is-error', state === 'error');
+    if (pct != null) {
+      const p = Math.max(0, Math.min(100, Math.round(pct)));
+      const bar = document.getElementById('acc-rv-progress-bar');
+      const pctEl = document.getElementById('acc-rv-progress-pct');
+      const track = document.getElementById('acc-rv-progress-track');
+      if (bar) bar.style.width = p + '%';
+      if (pctEl) pctEl.textContent = p + '%';
+      if (track) track.setAttribute('aria-valuenow', String(p));
+    }
+    if (label != null) {
+      const l = document.getElementById('acc-rv-progress-label');
+      if (l) l.textContent = label;
+    }
+    if (size != null) {
+      const s = document.getElementById('acc-rv-progress-size');
+      if (s) s.textContent = size;
+    }
+  }
+
+  function uploadReviewVideoWithProgress(file, onProgress) {
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${API}/review-videos/upload`);
+      xhr.withCredentials = true;
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(e.loaded, e.total);
+      };
+      xhr.onload = () => {
+        let data = null;
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch (_) {
+          data = null;
+        }
+        if (data) return resolve(data);
+        if (xhr.status === 413) return resolve({ ok: false, error: 'Video is too large. Maximum size is 1 GB.' });
+        if (xhr.status === 401) return resolve({ ok: false, error: 'Your session expired. Please log in again.' });
+        resolve({ ok: false, error: `Upload failed (server error ${xhr.status}). Please try again.` });
+      };
+      xhr.onerror = () => resolve({ ok: false, error: 'Network error — check your internet connection and try again.' });
+      xhr.ontimeout = () => resolve({ ok: false, error: 'Upload timed out. Please try again on a faster connection.' });
+      const fd = new FormData();
+      fd.append('video', file);
+      xhr.send(fd);
+    });
   }
 
   function bindReviewVideosPanel() {
     const form = document.getElementById('acc-rv-form');
     if (!form || form._rakuRvBound) return;
     form._rakuRvBound = true;
+    document.getElementById('acc-rv-video')?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      if (!f) return setRvProgress('hidden');
+      if (f.size > RV_MAX_BYTES) {
+        setRvProgress('error', {
+          pct: 0,
+          label: 'Video is too large',
+          size: `Your file is ${formatBytes(f.size)} — maximum allowed is 1 GB.`,
+        });
+      } else {
+        setRvProgress('hidden');
+      }
+    });
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentUser) return;
@@ -546,20 +712,39 @@
         showAlert(alertEl, 'Please choose a video file.');
         return;
       }
-      if (submitBtn) submitBtn.disabled = true;
-      try {
-        const fd = new FormData();
-        fd.append('video', file);
-        const upRes = await fetch(`${API}/review-videos/upload`, {
-          method: 'POST',
-          body: fd,
-          credentials: 'same-origin',
+      if (file.size > RV_MAX_BYTES) {
+        setRvProgress('error', {
+          pct: 0,
+          label: 'Video is too large',
+          size: `Your file is ${formatBytes(file.size)} — maximum allowed is 1 GB.`,
         });
-        const upData = await upRes.json();
+        showAlert(alertEl, 'Video is too large. Maximum size is 1 GB.');
+        return;
+      }
+      if (submitBtn) submitBtn.disabled = true;
+      const fail = (msg) => {
+        setRvProgress('error', { label: msg });
+        showAlert(alertEl, escapeHtml(msg));
+      };
+      try {
+        setRvProgress('uploading', { pct: 0, label: 'Uploading video…', size: `0 MB of ${formatBytes(file.size)}` });
+        const upData = await uploadReviewVideoWithProgress(file, (loaded, total) => {
+          const pct = (loaded / total) * 100;
+          if (pct >= 100) {
+            setRvProgress('processing', { pct: 100, label: 'Saving video on server…', size: formatBytes(total) });
+          } else {
+            setRvProgress('uploading', {
+              pct,
+              label: 'Uploading video…',
+              size: `${formatBytes(loaded)} of ${formatBytes(total)}`,
+            });
+          }
+        });
         if (!upData.ok) {
-          showAlert(alertEl, upData.error || 'Video upload failed');
+          fail(upData.error || 'Video upload failed');
           return;
         }
+        setRvProgress('processing', { pct: 100, label: 'Sending to review section…' });
         const data = await authFetch('/review-videos', {
           method: 'POST',
           body: JSON.stringify({
@@ -569,14 +754,298 @@
           }),
         });
         if (!data.ok) {
-          showAlert(alertEl, data.error || 'Could not submit review video');
+          fail(data.error || 'Could not submit review video');
           return;
         }
-        showAlert(alertEl, 'Review video submitted — status: Under review.', 'success');
+        const newId = data.video?.id;
         form.reset();
-        await loadReviewVideosPanel();
+        const videos = await loadReviewVideosPanel(newId);
+        const confirmed = Array.isArray(videos) && videos.some((v) => Number(v.id) === Number(newId));
+        if (confirmed) {
+          setRvProgress('done', {
+            pct: 100,
+            label: '✓ Video sent to the review section — status: Under review',
+            size: 'Admin will check it soon. You will get reward points after approval.',
+          });
+          showAlert(alertEl, 'Review video submitted — status: Under review.', 'success');
+        } else {
+          setRvProgress('done', {
+            pct: 100,
+            label: '✓ Video submitted for review',
+            size: 'Refresh this page if it does not appear in “Your submissions” yet.',
+          });
+        }
       } catch (_) {
-        showAlert(alertEl, 'Upload failed. Please try again.');
+        fail('Upload failed. Please try again.');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+
+  const PR_UPLOAD_URL = (window.RAKU_API_BASE || '') + '/api/reviews/upload-image';
+  const PR_MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+  let prRating = 0;
+
+  function setReviewTab(tab) {
+    document.querySelectorAll('.acc-rv-tab[data-rv-tab]').forEach((b) => {
+      const on = b.dataset.rvTab === tab;
+      b.classList.toggle('is-active', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('.acc-rv-pane[data-rv-pane]').forEach((p) => {
+      p.hidden = p.dataset.rvPane !== tab;
+    });
+  }
+
+  function setPrRating(n) {
+    prRating = n;
+    document.querySelectorAll('#acc-pr-stars [data-star]').forEach((b) => {
+      const on = Number(b.dataset.star) <= n;
+      b.classList.toggle('is-on', on);
+      b.setAttribute('aria-checked', Number(b.dataset.star) === n ? 'true' : 'false');
+    });
+  }
+
+  function setPrProgress(state, { pct, label } = {}) {
+    const box = document.getElementById('acc-pr-progress');
+    if (!box) return;
+    if (state === 'hidden') {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    box.classList.toggle('is-processing', state === 'processing');
+    box.classList.toggle('is-done', state === 'done');
+    box.classList.toggle('is-error', state === 'error');
+    if (pct != null) {
+      const p = Math.max(0, Math.min(100, Math.round(pct)));
+      const bar = document.getElementById('acc-pr-progress-bar');
+      const pctEl = document.getElementById('acc-pr-progress-pct');
+      if (bar) bar.style.width = p + '%';
+      if (pctEl) pctEl.textContent = p + '%';
+    }
+    if (label != null) {
+      const l = document.getElementById('acc-pr-progress-label');
+      if (l) l.textContent = label;
+    }
+  }
+
+  function starsHtml(rating) {
+    const r = Math.max(0, Math.min(5, Number(rating) || 0));
+    return '★'.repeat(r) + '☆'.repeat(5 - r);
+  }
+
+  function renderPhotoReviewsList(reviews, highlightId) {
+    const el = document.getElementById('acc-pr-list');
+    if (!el) return;
+    if (!reviews.length) {
+      el.innerHTML = '<div class="acc-empty"><i class="ti ti-photo"></i>No photo reviews yet.</div>';
+      return;
+    }
+    el.innerHTML = reviews
+      .map((r) => {
+        const status = reviewVideoStatusClass(r.status);
+        const label = reviewVideoStatusLabel(r.status);
+        const isNew = highlightId != null && Number(r.id) === Number(highlightId);
+        const name = escapeHtml(r.productName || 'Product');
+        const title = r.productSlug
+          ? `<a href="/product/${encodeURIComponent(r.productSlug)}">${name}</a>`
+          : name;
+        return `<article class="acc-rv-item acc-pr-item${isNew ? ' is-new' : ''}">
+          <img class="acc-pr-thumb" src="${escapeHtml(r.imageUrl)}" alt="" loading="lazy">
+          <div class="acc-pr-body">
+            <div class="acc-rv-item-head">
+              <div>
+                <strong>${title}</strong>
+                <div class="acc-rv-meta"><span class="acc-pr-rating">${starsHtml(r.rating)}</span> · ${formatDate(r.createdAt)}</div>
+              </div>
+              <span class="acc-rv-status ${status}">${label}</span>
+            </div>
+            ${r.comment ? `<p class="acc-pr-comment">${escapeHtml(r.comment)}</p>` : ''}
+          </div>
+        </article>`;
+      })
+      .join('');
+  }
+
+  function populatePhotoEligible(eligible) {
+    const sel = document.getElementById('acc-pr-product');
+    if (!sel) return;
+    if (!eligible.length) {
+      sel.innerHTML = '<option value="">No delivered products waiting for a photo review</option>';
+      sel.disabled = true;
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML =
+      '<option value="">Select a product…</option>' +
+      eligible
+        .map(
+          (item) =>
+            `<option value="${escapeHtml(`${item.orderId}:${item.productId}`)}">${escapeHtml(item.productName)} — #${escapeHtml(item.orderNumber)}</option>`
+        )
+        .join('');
+  }
+
+  async function loadPhotoReviewPanel(highlightId) {
+    if (!currentUser) return null;
+    const [eligibleRes, listRes] = await Promise.all([
+      authFetch('/photo-reviews/eligible'),
+      authFetch('/photo-reviews'),
+    ]);
+    if (eligibleRes.ok) populatePhotoEligible(eligibleRes.eligible || []);
+    if (listRes.ok) renderPhotoReviewsList(listRes.reviews || [], highlightId);
+    return listRes.ok ? listRes.reviews || [] : null;
+  }
+
+  function compressReviewImage(file) {
+    return new Promise((resolve) => {
+      if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) return resolve(file);
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        const maxSide = 1600;
+        const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+        if (scale === 1 && file.size <= 1.5 * 1024 * 1024) return resolve(file);
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * scale);
+        canvas.height = Math.round(img.naturalHeight * scale);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return resolve(file);
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => {
+            if (!blob || blob.size >= file.size) return resolve(file);
+            resolve(new File([blob], file.name.replace(/\.\w+$/, '') + '.jpg', { type: 'image/jpeg' }));
+          },
+          'image/jpeg',
+          0.85
+        );
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        resolve(file);
+      };
+      img.src = url;
+    });
+  }
+
+  function uploadReviewImageWithProgress(file, onProgress) {
+    return new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', PR_UPLOAD_URL);
+      xhr.withCredentials = true;
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) onProgress(e.loaded, e.total);
+      };
+      xhr.onload = () => {
+        let data = null;
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch (_) {
+          data = null;
+        }
+        if (data) return resolve(data);
+        if (xhr.status === 413) return resolve({ ok: false, error: 'Photo is too large. Maximum size is 5 MB.' });
+        if (xhr.status === 401) return resolve({ ok: false, error: 'Your session expired. Please log in again.' });
+        resolve({ ok: false, error: `Upload failed (server error ${xhr.status}). Please try again.` });
+      };
+      xhr.onerror = () => resolve({ ok: false, error: 'Network error — check your internet connection and try again.' });
+      const fd = new FormData();
+      fd.append('image', file);
+      xhr.send(fd);
+    });
+  }
+
+  function bindPhotoReviewPanel() {
+    const form = document.getElementById('acc-pr-form');
+    if (!form || form._rakuPrBound) return;
+    form._rakuPrBound = true;
+
+    document.querySelectorAll('.acc-rv-tab[data-rv-tab]').forEach((b) => {
+      b.addEventListener('click', () => setReviewTab(b.dataset.rvTab));
+    });
+    document.querySelectorAll('#acc-pr-stars [data-star]').forEach((b) => {
+      b.addEventListener('click', () => setPrRating(Number(b.dataset.star)));
+    });
+
+    const preview = document.getElementById('acc-pr-preview');
+    let previewUrl = null;
+    const clearPreview = () => {
+      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      previewUrl = null;
+      if (preview) preview.hidden = true;
+    };
+    document.getElementById('acc-pr-image')?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      setPrProgress('hidden');
+      clearPreview();
+      if (!f || !preview) return;
+      if (!/^image\//i.test(f.type)) {
+        setPrProgress('error', { pct: 0, label: 'Please choose an image file (JPG, PNG or WebP).' });
+        return;
+      }
+      previewUrl = URL.createObjectURL(f);
+      preview.querySelector('img').src = previewUrl;
+      preview.hidden = false;
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+      const alertEl = document.getElementById('acc-pr-alert');
+      const submitBtn = document.getElementById('acc-pr-submit');
+      const [orderId, productId] = (document.getElementById('acc-pr-product')?.value || '').split(':').map(Number);
+      const comment = document.getElementById('acc-pr-comment')?.value.trim() || '';
+      const original = document.getElementById('acc-pr-image')?.files?.[0];
+      if (!orderId || !productId) return showAlert(alertEl, 'Please select a delivered product.');
+      if (!prRating) return showAlert(alertEl, 'Please choose a star rating.');
+      if (!original) return showAlert(alertEl, 'Please choose a photo.');
+      if (!/^image\//i.test(original.type)) return showAlert(alertEl, 'Please choose an image file (JPG, PNG or WebP).');
+
+      if (submitBtn) submitBtn.disabled = true;
+      const fail = (msg) => {
+        setPrProgress('error', { label: msg });
+        showAlert(alertEl, escapeHtml(msg));
+      };
+      try {
+        setPrProgress('processing', { pct: 0, label: 'Preparing photo…' });
+        const file = await compressReviewImage(original);
+        if (file.size > PR_MAX_UPLOAD_BYTES) {
+          fail(`Photo is too large (${formatBytes(file.size)}). Maximum size is 5 MB.`);
+          return;
+        }
+        setPrProgress('uploading', { pct: 0, label: 'Uploading photo…' });
+        const upData = await uploadReviewImageWithProgress(file, (loaded, total) => {
+          const pct = (loaded / total) * 100;
+          if (pct >= 100) setPrProgress('processing', { pct: 100, label: 'Saving photo…' });
+          else setPrProgress('uploading', { pct, label: 'Uploading photo…' });
+        });
+        if (!upData.ok || !upData.url) {
+          fail(upData.error || 'Photo upload failed');
+          return;
+        }
+        setPrProgress('processing', { pct: 100, label: 'Sending to review section…' });
+        const data = await authFetch('/photo-reviews', {
+          method: 'POST',
+          body: JSON.stringify({ orderId, productId, rating: prRating, comment, imageUrl: upData.url }),
+        });
+        if (!data.ok) {
+          fail(data.error || 'Could not submit photo review');
+          return;
+        }
+        form.reset();
+        setPrRating(0);
+        clearPreview();
+        await loadPhotoReviewPanel(data.id);
+        setPrProgress('done', { pct: 100, label: '✓ Photo review sent — status: Under review' });
+        showAlert(alertEl, 'Photo review submitted. It will appear on the product page after admin approval.', 'success');
+      } catch (_) {
+        fail('Upload failed. Please try again.');
       } finally {
         if (submitBtn) submitBtn.disabled = false;
       }
@@ -599,6 +1068,7 @@
           <span class="acc-trk-status ${escapeHtml(status)}">${escapeHtml(status)}</span>
         </div>
         <div class="acc-trk-box-body">
+          ${orderStepperHtml(status)}
           <div class="acc-trk-meta">
             <div class="m"><b>Name:</b> ${escapeHtml(o.customerName || '—')}</div>
             <div class="m"><b>Date:</b> ${escapeHtml(formatDate(o.createdAt))}</div>
@@ -679,10 +1149,15 @@
     box.hidden = false;
     box.dataset.orderId = orderNumber;
     btn.classList.add('active');
-    box.innerHTML = '<p class="acc-trk-loading"><i class="ti ti-loader"></i> Loading tracking…</p>';
 
-    const data = await fetchOrderTrack(orderNumber);
-    box.innerHTML = buildTrackResultHtml(data);
+    const cached = ordersByNumber.get(String(orderNumber));
+    if (cached) {
+      box.innerHTML = orderDetailsHtml(cached);
+    } else {
+      box.innerHTML = '<p class="acc-trk-loading"><i class="ti ti-loader"></i> Loading tracking…</p>';
+      const data = await fetchOrderTrack(orderNumber);
+      box.innerHTML = buildTrackResultHtml(data);
+    }
     box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
@@ -775,6 +1250,7 @@
         if (data.ok) {
           setLoggedInUI(data.user);
           switchPanel('dashboard');
+          window.rakuSyncCart?.();
         } else {
           showAlert(document.getElementById('acc-auth-alert'), data.error || 'Login failed');
         }
@@ -801,6 +1277,7 @@
           } catch (_) {}
           setLoggedInUI(data.user);
           switchPanel('dashboard');
+          window.rakuSyncCart?.();
           if (data.message) {
             showAlert(document.getElementById('acc-profile-alert'), data.message, 'success');
           }
@@ -974,6 +1451,7 @@
     bindNav();
     bindReferralPanel();
     bindReviewVideosPanel();
+    bindPhotoReviewPanel();
     captureReferralFromUrl();
     applyStoredReferral();
   }

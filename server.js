@@ -46,6 +46,7 @@ const { ensureResellerTables } = require('./lib/ensureResellerTables');
 const { ensureRewardPointSettings } = require('./lib/ensureRewardPointSettings');
 const { ensureReviewVideos } = require('./lib/ensureReviewVideos');
 const { ensureMessengerChats } = require('./lib/ensureMessengerChats');
+const { ensureHomepageVideos } = require('./lib/ensureHomepageVideos');
 const { ensureFaqsTable } = require('./lib/ensureFaqsTable');
 const { ensureBlogPostsTable } = require('./lib/ensureBlogPostsTable');
 const { ensureBlogSeoColumns } = require('./lib/ensureBlogSeoColumns');
@@ -645,6 +646,7 @@ async function startServer() {
   ensureRewardPointSettings().catch((err) => console.warn('reward point settings:', err.message));
   ensureReviewVideos().catch((err) => console.warn('review videos table:', err.message));
   ensureMessengerChats().catch((err) => console.warn('messenger chats:', err.message));
+  ensureHomepageVideos().catch((err) => console.warn('homepage videos:', err.message));
   ensureFaqsTable().catch((err) => console.warn('faqs table:', err.message));
   ensureBlogPostsTable()
     .then(async () => {

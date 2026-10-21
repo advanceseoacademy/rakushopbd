@@ -17,6 +17,10 @@
   min-height: 158px;
 }
 
+#section-homepage-videos .home-scroll-wrap {
+  min-height: 220px;
+}
+
 #section-messenger-reviews .home-scroll-wrap {
   min-height: 380px;
 }

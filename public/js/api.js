@@ -760,6 +760,7 @@
   const HOME_CAROUSEL_TRACKS = [
     { id: 'track-customer-reviews', cardSel: '.home-review-card', minWidth: 140 },
     { id: 'track-messenger-reviews', cardSel: '.home-messenger-card', minWidth: 220 },
+    { id: 'track-homepage-videos', cardSel: '.home-video-card', minWidth: 280, visibleCountFn: visibleHomeVideoCards },
     { id: 'track-home-blog', cardSel: '.home-blog-card', minWidth: 140, visibleCountFn: visibleHomeBlogCards },
   ];
 
@@ -781,6 +782,12 @@
   function visibleHomeBlogCards() {
     if (window.matchMedia('(max-width: 768px)').matches) return 1;
     return 4;
+  }
+
+  function visibleHomeVideoCards() {
+    // Mobile: 1 per screen · Desktop/tablet: 2 per screen
+    if (window.matchMedia('(max-width: 768px)').matches) return 1;
+    return 2;
   }
 
   function syncHomeCarouselCardWidths(trackId, cardSelector, minWidth) {
@@ -892,7 +899,7 @@
 
   function queueSyncHomeScrollTrack(trackId) {
     const section =
-      document.getElementById(trackId)?.closest('.home-product-section, .home-customer-reviews, .home-messenger-reviews, .home-blog-section, .trust-bar-wrap') ||
+      document.getElementById(trackId)?.closest('.home-product-section, .home-customer-reviews, .home-messenger-reviews, .home-videos, .home-blog-section, .trust-bar-wrap') ||
       document.getElementById(trackId);
     const run = () => syncHomeScrollCardWidths(trackId);
     if (window.rakuWhenVisible && section) {
@@ -3283,6 +3290,8 @@
       'touchmove',
       (e) => {
         if (e.touches.length !== 1) return;
+        // Homepage videos: keep horizontal swipe (forward + back) always available.
+        if (track.id === 'track-homepage-videos') return;
         const dx = e.touches[0].clientX - startX;
         const dy = e.touches[0].clientY - startY;
         if (!axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
@@ -3336,7 +3345,7 @@
 
     const cards = () =>
       track.querySelectorAll(
-        '.product-card, .home-review-card, .home-messenger-card, .home-blog-card, .cat-card, .trust-item'
+        '.product-card, .home-review-card, .home-messenger-card, .home-video-card, .home-blog-card, .cat-card, .trust-item'
       );
     if (cards().length < 2) return;
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
@@ -3398,10 +3407,12 @@
       const maxScroll = track.scrollWidth - track.clientWidth;
       if (maxScroll <= 4) return;
 
-      const next = track.scrollLeft + stepPx;
-      if (next >= maxScroll - 4) {
+      // With few cards, one step can exceed maxScroll — advance to the end,
+      // then wrap back to the start on the next tick.
+      if (track.scrollLeft >= maxScroll - 4) {
         track.scrollTo({ left: 0, behavior: 'smooth' });
       } else {
+        const next = Math.min(track.scrollLeft + stepPx, maxScroll);
         track.scrollTo({ left: next, behavior: 'smooth' });
       }
     }
@@ -3417,6 +3428,16 @@
     initHomeScrollAuto('track-recommended-for-you', 3500);
     initHomeScrollAuto('track-customer-reviews', 3800);
     initHomeScrollAuto('track-messenger-reviews', 4000);
+    {
+      const hvMs = Number(
+        window.__RAKU_BOOTSTRAP?.settings?.homepage_videos_scroll_interval ||
+          window._rakuStoreSettings?.homepage_videos_scroll_interval
+      );
+      initHomeScrollAuto(
+        'track-homepage-videos',
+        Number.isFinite(hvMs) ? Math.max(2000, Math.min(20000, Math.round(hvMs))) : 4500
+      );
+    }
     initHomeScrollAuto('track-home-blog', 4200);
     initHomeScrollAuto('trust-bar', 4000);
   }

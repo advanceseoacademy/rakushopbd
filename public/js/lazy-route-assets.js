@@ -42,8 +42,8 @@
 
   const ROUTE_ASSETS = {
     account: {
-      js: ['/js/account.js?v=22'],
-      css: ['/css/account.css?v=14'],
+      js: ['/js/account.js?v=37'],
+      css: ['/css/account.css?v=27'],
     },
     appointment: {
       js: ['/js/appointment.js?v=6'],

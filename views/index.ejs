@@ -45,9 +45,9 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"></noscript>
-<link rel="preload" href="/css/home.bundle.css?v=25" as="style">
+<link rel="preload" href="/css/home.bundle.css?v=32" as="style">
 <link rel="preload" href="/fonts/tabler-icons.woff2?v=3" as="font" type="font/woff2" crossorigin>
-<link rel="stylesheet" href="/css/home.bundle.css?v=25">
+<link rel="stylesheet" href="/css/home.bundle.css?v=32">
 <link rel="stylesheet" href="/css/home-marketing.css?v=8" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-marketing.css?v=8"></noscript>
 <link rel="stylesheet" href="/css/popup-themes.css?v=1" media="print" onload="this.media='all'">
@@ -68,8 +68,8 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script src="/js/about.js?v=2" defer></script>
 <% } %>
 <% if (_initialPage === 'account') { %>
-<link rel="stylesheet" href="/css/account.css?v=18">
-<script src="/js/account.js?v=28" defer></script>
+<link rel="stylesheet" href="/css/account.css?v=27">
+<script src="/js/account.js?v=37" defer></script>
 <% } %>
 <%- include('partials/tracking-head', { trackingScripts: typeof trackingScripts !== 'undefined' ? trackingScripts : null }) %>
 </head>
@@ -154,6 +154,21 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
   <div class="today-deals-scroll-wrap">
    <div class="today-deals-scroll-track" id="today-deals-grid"></div>
   </div>
+ </section>
+
+ <!-- Homepage YouTube videos (above Our Customer Say) -->
+ <section class="home-videos" id="section-homepage-videos"<% if (!_homeSsr || !_homeSsr.homepageVideosEnabled || !_homeSsr.homepageVideosHasItems) { %> hidden<% } else { %> data-cls-placeholder="1"<% } %>>
+ <div class="section-header">
+ <h2 class="section-title" id="homepage-videos-title">Customer Videos</h2>
+ <p class="home-reviews-sub" id="homepage-videos-sub">Watch real customer stories and product demos from RakuShopBD</p>
+ </div>
+ <div class="home-scroll-wrap home-videos-wrap">
+ <div class="home-scroll-track home-videos-track" id="track-homepage-videos">
+ <article class="home-video-card home-video-card--skeleton" aria-hidden="true"><div class="home-video-media"><span class="skeleton-block home-video-thumb-skel"></span></div><div class="home-video-meta"><span class="skeleton-block skeleton-block--sm"></span></div></article>
+ <article class="home-video-card home-video-card--skeleton" aria-hidden="true"><div class="home-video-media"><span class="skeleton-block home-video-thumb-skel"></span></div><div class="home-video-meta"><span class="skeleton-block skeleton-block--sm"></span></div></article>
+ <article class="home-video-card home-video-card--skeleton" aria-hidden="true"><div class="home-video-media"><span class="skeleton-block home-video-thumb-skel"></span></div><div class="home-video-meta"><span class="skeleton-block skeleton-block--sm"></span></div></article>
+ </div>
+ </div>
  </section>
 
  <!-- Our Customer Say (Messenger chats) -->
@@ -377,11 +392,12 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 .pv-breadcrumb a:hover { color:var(--primary); }
 .pv-breadcrumb i { font-size:11px; }
 .pv-wrap { max-width:1200px; margin:0 auto; padding:12px 20px 32px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:32px; align-items:start; }
-@media(max-width:768px){ .pv-wrap { grid-template-columns:1fr; gap:20px; } }
-@media(max-width:480px){ .pv-action-row { flex-direction:column; } .btn-add-cart,.btn-buy,.btn-preorder { width:100%; } .main-product-img { height:240px; } .pv-price { font-size:22px; } .pv-price-row { padding:6px 12px; margin-bottom:10px; } }
+.pv-wrap > * { min-width:0; max-width:100%; }
+@media(max-width:768px){ .pv-wrap { grid-template-columns:minmax(0,1fr); gap:20px; } }
+@media(max-width:480px){ .pv-action-row { flex-direction:column; } .btn-add-cart,.btn-buy,.btn-preorder { width:100%; } .pv-price { font-size:22px; } .pv-price-row { padding:6px 12px; margin-bottom:10px; } }
 
 /* Gallery */
-.pv-gallery {}
+.pv-gallery { min-width:0; max-width:100%; }
 .main-product-img {
  width:100%; height:360px; border-radius:var(--radius-xl); background:#E8F3EA;
  display:flex; align-items:center; justify-content:center; margin-bottom:12px;
@@ -417,7 +433,12 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 .pv-badge-row { position:absolute; top:14px; left:14px; display:flex; gap:6px; z-index:2; pointer-events:none; }
 .pv-badge { background:var(--accent); color:#fff; font-size:11px; font-weight:700; padding:4px 10px; border-radius:20px; }
 .pv-badge-new { background:var(--green); }
-.thumb-row { display:flex; gap:8px; }
+.thumb-row {
+ display:flex; gap:8px; max-width:100%;
+ overflow-x:auto; overflow-y:hidden;
+ -webkit-overflow-scrolling:touch; overscroll-behavior-x:contain;
+ flex-wrap:nowrap; scrollbar-width:thin;
+}
 .thumb-img {
  width:72px; height:72px; border-radius:var(--radius-md); border:2px solid transparent;
  display:flex; align-items:center; justify-content:center; cursor:pointer; transition:border-color 0.15s;
@@ -1386,6 +1407,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
         <button type="button" class="acc-nav-btn" data-acc-panel="track"><i class="ti ti-truck-delivery"></i><span>Track Order</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="referral"><i class="ti ti-share"></i><span>Refer &amp; Earn</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="review-videos"><i class="ti ti-video"></i><span>Reviews</span></button>
+        <button type="button" class="acc-nav-btn" data-acc-panel="video-contest"><i class="ti ti-award"></i><span>Video Contest</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="profile"><i class="ti ti-user-circle"></i><span>Profile</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="addresses"><i class="ti ti-map-pin"></i><span>Addresses</span></button>
         <button type="button" class="acc-nav-btn" data-acc-panel="password"><i class="ti ti-lock"></i><span>Security</span></button>
@@ -1433,19 +1455,20 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
           </div>
         </div>
         <div class="acc-quick-actions">
+          <button type="button" class="acc-quick-card acc-quick-card--contest" data-goto-panel="video-contest">
+            <span class="acc-quick-icon"><i class="ti ti-award"></i></span>
+            <span class="acc-quick-text">
+              <strong>Video Contest</strong>
+              <small>Review video submit korun — win up to ৳2,000</small>
+            </span>
+            <span class="acc-quick-badge">Hot</span>
+            <i class="ti ti-chevron-right acc-quick-arrow"></i>
+          </button>
           <button type="button" class="acc-quick-card" data-goto-panel="referral">
             <span class="acc-quick-icon"><i class="ti ti-share"></i></span>
             <span class="acc-quick-text">
               <strong>Refer &amp; Earn</strong>
               <small>Share your link — friends get 50 pts, you get 50</small>
-            </span>
-            <i class="ti ti-chevron-right acc-quick-arrow"></i>
-          </button>
-          <button type="button" class="acc-quick-card" data-goto-panel="track">
-            <span class="acc-quick-icon"><i class="ti ti-truck-delivery"></i></span>
-            <span class="acc-quick-text">
-              <strong>Track Order</strong>
-              <small>Check status with your Order ID</small>
             </span>
             <i class="ti ti-chevron-right acc-quick-arrow"></i>
           </button>
@@ -1532,17 +1555,43 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
           </div>
         </div>
         <div class="acc-section-card acc-referral-card">
-          <h3 class="acc-section-title"><i class="ti ti-link" style="color:var(--primary);"></i> Your referral link</h3>
-          <p class="acc-referral-desc">Copy and share on Facebook, WhatsApp, or anywhere. Friends should open this link before registering.</p>
-          <div class="acc-referral-copy-row">
-            <input class="acc-input" type="text" id="acc-ref-link" readonly>
-            <button type="button" class="acc-btn acc-btn-primary" id="acc-ref-copy-link"><i class="ti ti-copy"></i> Copy link</button>
+          <div class="acc-referral-card-head">
+            <div class="acc-referral-card-icon" aria-hidden="true"><i class="ti ti-link"></i></div>
+            <div>
+              <h3 class="acc-section-title">Your referral link</h3>
+              <p class="acc-referral-desc">Copy &amp; share — friends should open this link before registering.</p>
+            </div>
           </div>
-          <div class="acc-referral-copy-row" style="margin-top:12px;">
-            <label class="acc-label" for="acc-ref-code">Referral code</label>
-            <div class="acc-referral-copy-row" style="margin-top:6px;">
-              <input class="acc-input" type="text" id="acc-ref-code" readonly>
-              <button type="button" class="acc-btn acc-btn-outline" id="acc-ref-copy-code"><i class="ti ti-copy"></i> Copy code</button>
+
+          <div class="acc-ref-field">
+            <span class="acc-ref-field-label">Invite link</span>
+            <div class="acc-ref-field-box">
+              <span class="acc-ref-field-icon" aria-hidden="true"><i class="ti ti-world"></i></span>
+              <input class="acc-ref-field-input" type="text" id="acc-ref-link" readonly aria-label="Your referral link">
+              <button type="button" class="acc-ref-copy-btn" id="acc-ref-copy-link"><i class="ti ti-copy"></i><span>Copy</span></button>
+            </div>
+          </div>
+
+          <div class="acc-ref-field">
+            <span class="acc-ref-field-label">Referral code</span>
+            <div class="acc-ref-code-row">
+              <div class="acc-ref-code-chip">
+                <span class="acc-ref-code-icon" aria-hidden="true"><i class="ti ti-tag"></i></span>
+                <input class="acc-ref-code-input" type="text" id="acc-ref-code" readonly aria-label="Your referral code">
+              </div>
+              <button type="button" class="acc-ref-copy-btn acc-ref-copy-btn--ghost" id="acc-ref-copy-code"><i class="ti ti-copy"></i><span>Copy code</span></button>
+            </div>
+          </div>
+
+          <div class="acc-ref-share">
+            <span class="acc-ref-share-label">Quick share</span>
+            <div class="acc-ref-share-btns">
+              <a class="acc-ref-share-btn acc-ref-share-btn--wa" id="acc-ref-share-wa" href="#" target="_blank" rel="noopener noreferrer">
+                <i class="ti ti-brand-whatsapp" aria-hidden="true"></i> WhatsApp
+              </a>
+              <a class="acc-ref-share-btn acc-ref-share-btn--fb" id="acc-ref-share-fb" href="#" target="_blank" rel="noopener noreferrer">
+                <i class="ti ti-brand-facebook" aria-hidden="true"></i> Facebook
+              </a>
             </div>
           </div>
         </div>
@@ -1557,6 +1606,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
         </div>
       </section>
 
+      <!-- Reviews — original video + photo (unchanged) -->
       <section class="acc-panel" id="acc-panel-review-videos">
         <div class="acc-panel-head">
           <div>
@@ -1571,18 +1621,36 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
         <div class="acc-rv-pane" data-rv-pane="video">
         <div id="acc-rv-alert"></div>
         <div class="acc-section-card acc-rv-upload-card">
-          <h3 class="acc-section-title"><i class="ti ti-upload" style="color:var(--primary);"></i> Upload review video</h3>
-          <p class="acc-rv-hint">Choose a delivered product, record a short honest review (MP4, WebM, or MOV — max 1 GB), then submit.</p>
-          <form class="acc-form" id="acc-rv-form">
-            <div class="acc-field">
-              <label class="acc-label" for="acc-rv-product">Delivered product</label>
-              <select class="acc-input" id="acc-rv-product" name="productKey" required>
-                <option value="">Loading eligible products…</option>
-              </select>
+          <div class="acc-rv-upload-head">
+            <div class="acc-rv-upload-icon" aria-hidden="true"><i class="ti ti-video"></i></div>
+            <div>
+              <h3 class="acc-section-title">Upload review video</h3>
+              <p class="acc-rv-hint">Delivered product select korun, short honest review video upload korun (max 1 GB) — approve hole reward points paben.</p>
+            </div>
+          </div>
+          <form class="acc-form acc-rv-form" id="acc-rv-form">
+            <div class="acc-field acc-vc-product-field">
+              <label class="acc-label" for="acc-rv-product">
+                <i class="ti ti-package" aria-hidden="true"></i>
+                Delivered product *
+              </label>
+              <div class="acc-vc-select" id="acc-rv-select-wrap">
+                <span class="acc-vc-select-icon" aria-hidden="true"><i class="ti ti-shopping-bag"></i></span>
+                <select class="acc-vc-select-input" id="acc-rv-product" name="productKey" required>
+                  <option value="">Loading eligible products…</option>
+                </select>
+                <span class="acc-vc-select-chevron" aria-hidden="true"><i class="ti ti-chevron-down"></i></span>
+              </div>
+              <p class="acc-vc-select-hint">Only delivered orders show here.</p>
             </div>
             <div class="acc-field">
-              <label class="acc-label" for="acc-rv-video">Review video file</label>
-              <input class="acc-input acc-input-file" type="file" id="acc-rv-video" name="video" accept="video/mp4,video/webm,video/quicktime,video/*" required>
+              <label class="acc-label" for="acc-rv-video">Review video file *</label>
+              <label class="acc-rv-drop" for="acc-rv-video">
+                <input class="acc-rv-drop-input" type="file" id="acc-rv-video" name="video" accept="video/mp4,video/webm,video/quicktime,video/*" required>
+                <span class="acc-rv-drop-icon" aria-hidden="true"><i class="ti ti-upload"></i></span>
+                <span class="acc-rv-drop-title" id="acc-rv-file-label">Tap to choose video</span>
+                <span class="acc-rv-drop-sub">MP4, WebM or MOV · Max 1 GB</span>
+              </label>
             </div>
             <div class="acc-rv-progress" id="acc-rv-progress" hidden aria-live="polite">
               <div class="acc-rv-progress-head">
@@ -1594,7 +1662,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
               </div>
               <small class="acc-rv-progress-size" id="acc-rv-progress-size"></small>
             </div>
-            <button type="submit" class="acc-btn acc-btn-primary" id="acc-rv-submit"><i class="ti ti-send"></i> Submit for review</button>
+            <button type="submit" class="acc-btn acc-btn-primary acc-rv-submit" id="acc-rv-submit"><i class="ti ti-send"></i> Submit for review</button>
           </form>
         </div>
         <div class="acc-section-card" style="margin-top:16px;">
@@ -1605,17 +1673,29 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
         <div class="acc-rv-pane" data-rv-pane="photo" hidden>
           <div id="acc-pr-alert"></div>
           <div class="acc-section-card acc-rv-upload-card">
-            <h3 class="acc-section-title"><i class="ti ti-photo" style="color:var(--primary);"></i> Add photo review</h3>
-            <p class="acc-rv-hint">Choose a delivered product, rate it, write a few words and add a photo of the product. Approved photo reviews appear on the product page.</p>
-            <form class="acc-form" id="acc-pr-form">
-              <div class="acc-field">
-                <label class="acc-label" for="acc-pr-product">Delivered product</label>
-                <select class="acc-input" id="acc-pr-product" required>
-                  <option value="">Loading eligible products…</option>
-                </select>
+            <div class="acc-rv-upload-head">
+              <div class="acc-rv-upload-icon" aria-hidden="true"><i class="ti ti-photo"></i></div>
+              <div>
+                <h3 class="acc-section-title">Add photo review</h3>
+                <p class="acc-rv-hint">Delivered product select korun, rating din, short review likhun ar product er photo add korun — approve hole product page e dekhabe.</p>
+              </div>
+            </div>
+            <form class="acc-form acc-rv-form" id="acc-pr-form">
+              <div class="acc-field acc-vc-product-field">
+                <label class="acc-label" for="acc-pr-product">
+                  <i class="ti ti-package" aria-hidden="true"></i>
+                  Delivered product *
+                </label>
+                <div class="acc-vc-select" id="acc-pr-select-wrap">
+                  <span class="acc-vc-select-icon" aria-hidden="true"><i class="ti ti-shopping-bag"></i></span>
+                  <select class="acc-vc-select-input" id="acc-pr-product" required>
+                    <option value="">Loading eligible products…</option>
+                  </select>
+                  <span class="acc-vc-select-chevron" aria-hidden="true"><i class="ti ti-chevron-down"></i></span>
+                </div>
               </div>
               <div class="acc-field">
-                <span class="acc-label">Rating</span>
+                <span class="acc-label"><i class="ti ti-star" aria-hidden="true" style="color:#f59e0b;"></i> Rating *</span>
                 <div class="acc-pr-stars" id="acc-pr-stars" role="radiogroup" aria-label="Rating">
                   <button type="button" data-star="1" aria-label="1 star"><i class="ti ti-star-filled"></i></button>
                   <button type="button" data-star="2" aria-label="2 stars"><i class="ti ti-star-filled"></i></button>
@@ -1626,11 +1706,16 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
               </div>
               <div class="acc-field">
                 <label class="acc-label" for="acc-pr-comment">Your review</label>
-                <textarea class="acc-input" id="acc-pr-comment" rows="3" maxlength="2000" placeholder="How was the product?"></textarea>
+                <textarea class="acc-pr-comment-input" id="acc-pr-comment" rows="3" maxlength="2000" placeholder="How was the product?"></textarea>
               </div>
               <div class="acc-field">
-                <label class="acc-label" for="acc-pr-image">Product photo</label>
-                <input class="acc-input acc-input-file" type="file" id="acc-pr-image" accept="image/*" required>
+                <label class="acc-label" for="acc-pr-image">Product photo *</label>
+                <label class="acc-rv-drop acc-pr-drop" for="acc-pr-image">
+                  <input class="acc-rv-drop-input" type="file" id="acc-pr-image" accept="image/*" required>
+                  <span class="acc-rv-drop-icon" aria-hidden="true"><i class="ti ti-photo"></i></span>
+                  <span class="acc-rv-drop-title" id="acc-pr-file-label">Tap to choose photo</span>
+                  <span class="acc-rv-drop-sub">JPG, PNG or WebP · Max 5 MB</span>
+                </label>
                 <div class="acc-pr-preview" id="acc-pr-preview" hidden><img alt="Selected photo preview"></div>
               </div>
               <div class="acc-rv-progress" id="acc-pr-progress" hidden aria-live="polite">
@@ -1640,13 +1725,100 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
                 </div>
                 <div class="acc-rv-progress-track"><div class="acc-rv-progress-bar" id="acc-pr-progress-bar"></div></div>
               </div>
-              <button type="submit" class="acc-btn acc-btn-primary" id="acc-pr-submit"><i class="ti ti-send"></i> Submit photo review</button>
+              <button type="submit" class="acc-btn acc-btn-primary acc-rv-submit" id="acc-pr-submit"><i class="ti ti-send"></i> Submit photo review</button>
             </form>
           </div>
           <div class="acc-section-card" style="margin-top:16px;">
             <h3 class="acc-section-title">Your photo reviews</h3>
             <div id="acc-pr-list"><div class="acc-empty"><i class="ti ti-photo"></i>No photo reviews yet.</div></div>
           </div>
+        </div>
+      </section>
+
+      <!-- NEW menu: Video Contest (separate from Reviews) -->
+      <section class="acc-panel" id="acc-panel-video-contest">
+        <div class="acc-contest-hero" id="acc-contest-banner">
+          <div class="acc-contest-hero-bg" aria-hidden="true"></div>
+          <div class="acc-contest-hero-main">
+            <span class="acc-contest-kicker"><i class="ti ti-gift" aria-hidden="true"></i> Ongoing contest</span>
+            <h2 class="acc-contest-title">Review Video Contest</h2>
+            <p class="acc-contest-lead">Apnar delivered product diye ekta honest review video banan ar submit korun. Selected winners pabe cash bonus — plus approved videos earn reward points.</p>
+            <div class="acc-contest-meta">
+              <div class="acc-contest-prize-chip">
+                <span class="acc-contest-prize-label">Win up to</span>
+                <strong class="acc-contest-prize-value">৳2,000</strong>
+              </div>
+              <div class="acc-contest-points-chip">
+                <span class="acc-contest-prize-label">Also earn</span>
+                <strong class="acc-contest-prize-value acc-contest-prize-value--points"><span id="acc-vc-points-label">100</span> pts</strong>
+              </div>
+            </div>
+          </div>
+          <ol class="acc-contest-steps" aria-label="How to join">
+            <li class="acc-contest-step">
+              <span class="acc-contest-step-num">1</span>
+              <span class="acc-contest-step-text"><b>Select</b> delivered product</span>
+            </li>
+            <li class="acc-contest-step">
+              <span class="acc-contest-step-num">2</span>
+              <span class="acc-contest-step-text"><b>Upload</b> MP4 / WebM / MOV</span>
+            </li>
+            <li class="acc-contest-step">
+              <span class="acc-contest-step-num">3</span>
+              <span class="acc-contest-step-text"><b>Submit</b> — we review &amp; reward</span>
+            </li>
+          </ol>
+        </div>
+
+        <div id="acc-vc-alert"></div>
+        <div class="acc-section-card acc-rv-upload-card">
+          <div class="acc-rv-upload-head">
+            <div class="acc-rv-upload-icon" aria-hidden="true"><i class="ti ti-video"></i></div>
+            <div>
+              <h3 class="acc-section-title">Submit your contest video</h3>
+              <p class="acc-rv-hint">Delivered product select korun, then upload a short honest review (max 1 GB).</p>
+            </div>
+          </div>
+          <form class="acc-form acc-rv-form" id="acc-vc-form">
+            <div class="acc-field acc-vc-product-field">
+              <label class="acc-label" for="acc-vc-product">
+                <i class="ti ti-package" aria-hidden="true"></i>
+                Delivered product *
+              </label>
+              <div class="acc-vc-select" id="acc-vc-select-wrap">
+                <span class="acc-vc-select-icon" aria-hidden="true"><i class="ti ti-shopping-bag"></i></span>
+                <select class="acc-vc-select-input" id="acc-vc-product" name="productKey" required>
+                  <option value="">Loading eligible products…</option>
+                </select>
+                <span class="acc-vc-select-chevron" aria-hidden="true"><i class="ti ti-chevron-down"></i></span>
+              </div>
+              <p class="acc-vc-select-hint">Only delivered orders show here — pick the product for your contest video.</p>
+            </div>
+            <div class="acc-field">
+              <label class="acc-label" for="acc-vc-video">Review video file *</label>
+              <label class="acc-rv-drop" for="acc-vc-video">
+                <input class="acc-rv-drop-input" type="file" id="acc-vc-video" name="video" accept="video/mp4,video/webm,video/quicktime,video/*" required>
+                <span class="acc-rv-drop-icon" aria-hidden="true"><i class="ti ti-upload"></i></span>
+                <span class="acc-rv-drop-title" id="acc-vc-file-label">Tap to choose video</span>
+                <span class="acc-rv-drop-sub">MP4, WebM or MOV · Max 1 GB</span>
+              </label>
+            </div>
+            <div class="acc-rv-progress" id="acc-vc-progress" hidden aria-live="polite">
+              <div class="acc-rv-progress-head">
+                <span class="acc-rv-progress-label" id="acc-vc-progress-label">Uploading video…</span>
+                <span class="acc-rv-progress-pct" id="acc-vc-progress-pct">0%</span>
+              </div>
+              <div class="acc-rv-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="acc-vc-progress-track">
+                <div class="acc-rv-progress-bar" id="acc-vc-progress-bar"></div>
+              </div>
+              <small class="acc-rv-progress-size" id="acc-vc-progress-size"></small>
+            </div>
+            <button type="submit" class="acc-btn acc-btn-primary acc-rv-submit" id="acc-vc-submit"><i class="ti ti-send"></i> Submit to contest</button>
+          </form>
+        </div>
+        <div class="acc-section-card acc-rv-list-card">
+          <h3 class="acc-section-title">Your contest submissions</h3>
+          <div id="acc-vc-list"><div class="acc-empty"><i class="ti ti-video"></i>No contest videos yet. Submit your first review video above.</div></div>
         </div>
       </section>
 
@@ -1862,7 +2034,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script src="/js/home-today-deals.js?v=6" defer></script>
 <script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/storefront-dynamic.js?v=67" defer></script>
-<script src="/js/api.js?v=147" defer></script>
+<script src="/js/api.js?v=153" defer></script>
 <script src="/js/footer-settings.js?v=16" defer></script>
 <script src="/js/search.js?v=11" defer></script>
 <script>
@@ -1875,6 +2047,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var deferred = [
     '/js/product-description-html.js?v=1',
     '/js/home-recommendations.js?v=10',
+    '/js/home-videos.js?v=7',
     '/js/home-messenger-chats.js?v=7',
     '/js/home-customer-reviews.js?v=17',
     '/js/home-blog.js?v=4',

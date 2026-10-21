@@ -40,6 +40,7 @@ const { ensureAppointmentsTable } = require('../lib/ensureAppointmentsTable');
 const { ensureContactMessagesTable } = require('../lib/ensureContactMessagesTable');
 const { ensurePhoneSubscribersTable } = require('../lib/ensurePhoneSubscribersTable');
 const { listActiveMessengerChats } = require('../lib/ensureMessengerChats');
+const { listActiveHomepageVideos } = require('../lib/ensureHomepageVideos');
 const { ensureFaqsTable } = require('../lib/ensureFaqsTable');
 const {
   listCategoriesWithCounts,
@@ -469,6 +470,16 @@ router.get('/messenger-chats', async (req, res) => {
     res.json({ ok: true, chats });
   } catch (err) {
     res.json({ ok: true, chats: [] });
+  }
+});
+
+router.get('/homepage-videos', async (req, res) => {
+  try {
+    const videos = await listActiveHomepageVideos();
+    cachePublic(res, 120);
+    res.json({ ok: true, videos });
+  } catch (err) {
+    res.json({ ok: true, videos: [] });
   }
 });
 

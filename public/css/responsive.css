@@ -421,13 +421,46 @@ svg {
     padding-right: max(12px, var(--safe-right));
   }
 
+  #page-product .pv-gallery,
+  #page-product .pv-info {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   #page-product .main-product-img {
-    height: min(56vw, 280px);
-    min-height: 220px;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 1 / 1;
+    max-height: min(92vw, 420px);
   }
 
   #page-product .main-product-img i {
     font-size: 90px;
+  }
+
+  #page-product .thumb-row {
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  #page-product .thumb-img {
+    flex-shrink: 0;
+  }
+
+  #page-product .spec-table {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  #page-product .spec-table th {
+    min-width: 0;
+    width: auto;
   }
 
   #page-product .pv-title {
@@ -553,14 +586,7 @@ svg {
   }
 
   #page-product .thumb-row {
-    overflow-x: auto;
-    flex-wrap: nowrap;
     padding-bottom: 4px;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  #page-product .thumb-img {
-    flex-shrink: 0;
   }
 }
 

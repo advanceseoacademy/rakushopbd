@@ -383,6 +383,12 @@
     if (linkEl) linkEl.value = link;
     if (codeEl) codeEl.value = info.code || '—';
 
+    const shareMsg = `Raku Shop BD e join korun amar invite link diye — signup e reward points paben!\n${link}`;
+    const wa = document.getElementById('acc-ref-share-wa');
+    const fb = document.getElementById('acc-ref-share-fb');
+    if (wa) wa.href = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
+    if (fb) fb.href = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
+
     const setNum = (id, n) => {
       const el = document.getElementById(id);
       if (el) el.textContent = String(n);
@@ -529,6 +535,7 @@
       loadReviewVideosPanel();
       loadPhotoReviewPanel();
     }
+    if (panelId === 'video-contest') loadVideoContestPanel();
     return true;
   }
 
@@ -576,12 +583,21 @@
       .join('');
   }
 
+  function syncReviewSelectState() {
+    const sel = document.getElementById('acc-rv-product');
+    const wrap = document.getElementById('acc-rv-select-wrap');
+    if (!sel || !wrap) return;
+    wrap.classList.toggle('has-value', !!sel.value);
+    wrap.classList.toggle('is-disabled', !!sel.disabled);
+  }
+
   function populateEligibleProducts(eligible) {
     const sel = document.getElementById('acc-rv-product');
     if (!sel) return;
     if (!eligible.length) {
       sel.innerHTML = '<option value="">No delivered products available for video review</option>';
       sel.disabled = true;
+      syncReviewSelectState();
       return;
     }
     sel.disabled = false;
@@ -594,6 +610,84 @@
           return `<option value="${escapeHtml(key)}">${escapeHtml(item.productName)} — #${escapeHtml(item.orderNumber)}${suffix}</option>`;
         })
         .join('');
+    syncReviewSelectState();
+  }
+
+  function syncContestSelectState() {
+    const sel = document.getElementById('acc-vc-product');
+    const wrap = document.getElementById('acc-vc-select-wrap');
+    if (!sel || !wrap) return;
+    wrap.classList.toggle('has-value', !!sel.value);
+    wrap.classList.toggle('is-disabled', !!sel.disabled);
+  }
+
+  function populateContestEligible(eligible) {
+    const sel = document.getElementById('acc-vc-product');
+    if (!sel) return;
+    if (!eligible.length) {
+      sel.innerHTML =
+        '<option value="">No delivered product yet — order deliver hole contest e join korte parben</option>';
+      sel.disabled = true;
+      syncContestSelectState();
+      return;
+    }
+    sel.disabled = false;
+    sel.innerHTML =
+      '<option value="">Contest er jonno product select korun…</option>' +
+      eligible
+        .map((item) => {
+          const key = `${item.orderId}:${item.productId}`;
+          const suffix = item.canResubmit ? ' (resubmit)' : '';
+          return `<option value="${escapeHtml(key)}">${escapeHtml(item.productName)} — #${escapeHtml(item.orderNumber)}${suffix}</option>`;
+        })
+        .join('');
+    syncContestSelectState();
+  }
+
+  function renderContestVideosList(videos, highlightId) {
+    const el = document.getElementById('acc-vc-list');
+    if (!el) return;
+    if (!videos.length) {
+      el.innerHTML =
+        '<div class="acc-empty"><i class="ti ti-video"></i>No contest videos yet. Submit your first review video above.</div>';
+      return;
+    }
+    el.innerHTML = videos
+      .map((v) => {
+        const status = reviewVideoStatusClass(v.status);
+        const label = reviewVideoStatusLabel(v.status);
+        const note = v.adminNote
+          ? `<p class="acc-rv-note">${escapeHtml(v.adminNote)}</p>`
+          : '';
+        const isNew = highlightId != null && Number(v.id) === Number(highlightId);
+        return `<article class="acc-rv-item${isNew ? ' is-new' : ''}">
+          <div class="acc-rv-item-head">
+            <div>
+              <strong>${escapeHtml(v.productName || 'Product')}</strong>
+              <div class="acc-rv-meta">Order #${escapeHtml(v.orderNumber || v.orderId || '')} · ${formatDate(v.createdAt)}</div>
+            </div>
+            <span class="acc-rv-status ${status}">${label}</span>
+          </div>
+          <video class="acc-rv-preview" src="${escapeHtml(v.videoUrl)}" controls playsinline preload="metadata"></video>
+          ${note}
+        </article>`;
+      })
+      .join('');
+  }
+
+  async function loadVideoContestPanel(highlightId) {
+    if (!currentUser) return null;
+    const [cfgRes, eligibleRes, listRes] = await Promise.all([
+      authFetch('/review-videos/config'),
+      authFetch('/review-videos/eligible'),
+      authFetch('/review-videos'),
+    ]);
+    const pts = cfgRes.ok ? Number(cfgRes.videoReviewPoints) || 100 : 100;
+    const ptsLabel = document.getElementById('acc-vc-points-label');
+    if (ptsLabel) ptsLabel.textContent = String(pts);
+    if (eligibleRes.ok) populateContestEligible(eligibleRes.eligible || []);
+    if (listRes.ok) renderContestVideosList(listRes.videos || [], highlightId);
+    return listRes.ok ? listRes.videos || [] : null;
   }
 
   async function loadReviewVideosPanel(highlightId) {
@@ -682,9 +776,23 @@
     const form = document.getElementById('acc-rv-form');
     if (!form || form._rakuRvBound) return;
     form._rakuRvBound = true;
+    const productSel = document.getElementById('acc-rv-product');
+    const selectWrap = document.getElementById('acc-rv-select-wrap');
+    productSel?.addEventListener('change', syncReviewSelectState);
+    productSel?.addEventListener('focus', () => selectWrap?.classList.add('is-open'));
+    productSel?.addEventListener('blur', () => selectWrap?.classList.remove('is-open'));
+    syncReviewSelectState();
     document.getElementById('acc-rv-video')?.addEventListener('change', (e) => {
       const f = e.target.files?.[0];
-      if (!f) return setRvProgress('hidden');
+      const drop = form.querySelector('.acc-rv-drop');
+      const fileLabel = document.getElementById('acc-rv-file-label');
+      if (!f) {
+        drop?.classList.remove('is-filled');
+        if (fileLabel) fileLabel.textContent = 'Tap to choose video';
+        return setRvProgress('hidden');
+      }
+      drop?.classList.add('is-filled');
+      if (fileLabel) fileLabel.textContent = f.name;
       if (f.size > RV_MAX_BYTES) {
         setRvProgress('error', {
           pct: 0,
@@ -759,6 +867,10 @@
         }
         const newId = data.video?.id;
         form.reset();
+        form.querySelector('.acc-rv-drop')?.classList.remove('is-filled');
+        const fileLabel = document.getElementById('acc-rv-file-label');
+        if (fileLabel) fileLabel.textContent = 'Tap to choose video';
+        syncReviewSelectState();
         const videos = await loadReviewVideosPanel(newId);
         const confirmed = Array.isArray(videos) && videos.some((v) => Number(v.id) === Number(newId));
         if (confirmed) {
@@ -773,6 +885,163 @@
             pct: 100,
             label: '✓ Video submitted for review',
             size: 'Refresh this page if it does not appear in “Your submissions” yet.',
+          });
+        }
+      } catch (_) {
+        fail('Upload failed. Please try again.');
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+      }
+    });
+  }
+
+  function setVcProgress(state, { pct, label, size } = {}) {
+    const box = document.getElementById('acc-vc-progress');
+    if (!box) return;
+    if (state === 'hidden') {
+      box.hidden = true;
+      return;
+    }
+    box.hidden = false;
+    box.classList.toggle('is-processing', state === 'processing');
+    box.classList.toggle('is-done', state === 'done');
+    box.classList.toggle('is-error', state === 'error');
+    if (pct != null) {
+      const p = Math.max(0, Math.min(100, Math.round(pct)));
+      const bar = document.getElementById('acc-vc-progress-bar');
+      const pctEl = document.getElementById('acc-vc-progress-pct');
+      const track = document.getElementById('acc-vc-progress-track');
+      if (bar) bar.style.width = p + '%';
+      if (pctEl) pctEl.textContent = p + '%';
+      if (track) track.setAttribute('aria-valuenow', String(p));
+    }
+    if (label != null) {
+      const l = document.getElementById('acc-vc-progress-label');
+      if (l) l.textContent = label;
+    }
+    if (size != null) {
+      const s = document.getElementById('acc-vc-progress-size');
+      if (s) s.textContent = size;
+    }
+  }
+
+  function bindVideoContestPanel() {
+    const form = document.getElementById('acc-vc-form');
+    if (!form || form._rakuVcBound) return;
+    form._rakuVcBound = true;
+    const productSel = document.getElementById('acc-vc-product');
+    const selectWrap = document.getElementById('acc-vc-select-wrap');
+    productSel?.addEventListener('change', syncContestSelectState);
+    productSel?.addEventListener('focus', () => selectWrap?.classList.add('is-open'));
+    productSel?.addEventListener('blur', () => selectWrap?.classList.remove('is-open'));
+    syncContestSelectState();
+    document.getElementById('acc-vc-video')?.addEventListener('change', (e) => {
+      const f = e.target.files?.[0];
+      const drop = form.querySelector('.acc-rv-drop');
+      const fileLabel = document.getElementById('acc-vc-file-label');
+      if (!f) {
+        drop?.classList.remove('is-filled');
+        if (fileLabel) fileLabel.textContent = 'Tap to choose video';
+        return setVcProgress('hidden');
+      }
+      drop?.classList.add('is-filled');
+      if (fileLabel) fileLabel.textContent = f.name;
+      if (f.size > RV_MAX_BYTES) {
+        setVcProgress('error', {
+          pct: 0,
+          label: 'Video is too large',
+          size: `Your file is ${formatBytes(f.size)} — maximum allowed is 1 GB.`,
+        });
+      } else {
+        setVcProgress('hidden');
+      }
+    });
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+      const alertEl = document.getElementById('acc-vc-alert');
+      const submitBtn = document.getElementById('acc-vc-submit');
+      const productKey = document.getElementById('acc-vc-product')?.value || '';
+      const fileInput = document.getElementById('acc-vc-video');
+      const file = fileInput?.files?.[0];
+      const [orderId, productId] = productKey.split(':').map(Number);
+      if (!orderId || !productId) {
+        showAlert(alertEl, 'Please select a delivered product.');
+        return;
+      }
+      if (!file) {
+        showAlert(alertEl, 'Please choose a video file.');
+        return;
+      }
+      if (file.size > RV_MAX_BYTES) {
+        setVcProgress('error', {
+          pct: 0,
+          label: 'Video is too large',
+          size: `Your file is ${formatBytes(file.size)} — maximum allowed is 1 GB.`,
+        });
+        showAlert(alertEl, 'Video is too large. Maximum size is 1 GB.');
+        return;
+      }
+      if (submitBtn) submitBtn.disabled = true;
+      const fail = (msg) => {
+        setVcProgress('error', { label: msg });
+        showAlert(alertEl, escapeHtml(msg));
+      };
+      try {
+        setVcProgress('uploading', { pct: 0, label: 'Uploading video…', size: `0 MB of ${formatBytes(file.size)}` });
+        const upData = await uploadReviewVideoWithProgress(file, (loaded, total) => {
+          const pct = (loaded / total) * 100;
+          if (pct >= 100) {
+            setVcProgress('processing', { pct: 100, label: 'Saving video on server…', size: formatBytes(total) });
+          } else {
+            setVcProgress('uploading', {
+              pct,
+              label: 'Uploading video…',
+              size: `${formatBytes(loaded)} of ${formatBytes(total)}`,
+            });
+          }
+        });
+        if (!upData.ok) {
+          fail(upData.error || 'Video upload failed');
+          return;
+        }
+        setVcProgress('processing', { pct: 100, label: 'Submitting to contest…' });
+        const data = await authFetch('/review-videos', {
+          method: 'POST',
+          body: JSON.stringify({
+            orderId,
+            productId,
+            videoUrl: upData.url,
+          }),
+        });
+        if (!data.ok) {
+          fail(data.error || 'Could not submit contest video');
+          return;
+        }
+        const newId = data.video?.id;
+        form.reset();
+        form.querySelector('.acc-rv-drop')?.classList.remove('is-filled');
+        const fileLabel = document.getElementById('acc-vc-file-label');
+        if (fileLabel) fileLabel.textContent = 'Tap to choose video';
+        syncContestSelectState();
+        const videos = await loadVideoContestPanel(newId);
+        const confirmed = Array.isArray(videos) && videos.some((v) => Number(v.id) === Number(newId));
+        if (confirmed) {
+          setVcProgress('done', {
+            pct: 100,
+            label: '✓ Contest e video submit hoyeche — Under review',
+            size: 'Admin check korbe. Selected winners pabe up to ৳2,000 bonus + reward points.',
+          });
+          showAlert(
+            alertEl,
+            'Contest video submitted — Under review. Selected winners get up to ৳2,000 bonus.',
+            'success'
+          );
+        } else {
+          setVcProgress('done', {
+            pct: 100,
+            label: '✓ Contest video submitted',
+            size: 'Refresh this page if it does not appear in “Your contest submissions” yet.',
           });
         }
       } catch (_) {
@@ -869,12 +1138,21 @@
       .join('');
   }
 
+  function syncPhotoSelectState() {
+    const sel = document.getElementById('acc-pr-product');
+    const wrap = document.getElementById('acc-pr-select-wrap');
+    if (!sel || !wrap) return;
+    wrap.classList.toggle('has-value', !!sel.value);
+    wrap.classList.toggle('is-disabled', !!sel.disabled);
+  }
+
   function populatePhotoEligible(eligible) {
     const sel = document.getElementById('acc-pr-product');
     if (!sel) return;
     if (!eligible.length) {
       sel.innerHTML = '<option value="">No delivered products waiting for a photo review</option>';
       sel.disabled = true;
+      syncPhotoSelectState();
       return;
     }
     sel.disabled = false;
@@ -886,6 +1164,7 @@
             `<option value="${escapeHtml(`${item.orderId}:${item.productId}`)}">${escapeHtml(item.productName)} — #${escapeHtml(item.orderNumber)}</option>`
         )
         .join('');
+    syncPhotoSelectState();
   }
 
   async function loadPhotoReviewPanel(highlightId) {
@@ -973,22 +1252,36 @@
       b.addEventListener('click', () => setPrRating(Number(b.dataset.star)));
     });
 
+    const productSel = document.getElementById('acc-pr-product');
+    const selectWrap = document.getElementById('acc-pr-select-wrap');
+    productSel?.addEventListener('change', syncPhotoSelectState);
+    productSel?.addEventListener('focus', () => selectWrap?.classList.add('is-open'));
+    productSel?.addEventListener('blur', () => selectWrap?.classList.remove('is-open'));
+    syncPhotoSelectState();
+
     const preview = document.getElementById('acc-pr-preview');
+    const drop = form.querySelector('.acc-pr-drop');
+    const fileLabel = document.getElementById('acc-pr-file-label');
     let previewUrl = null;
     const clearPreview = () => {
       if (previewUrl) URL.revokeObjectURL(previewUrl);
       previewUrl = null;
       if (preview) preview.hidden = true;
+      drop?.classList.remove('is-filled');
+      if (fileLabel) fileLabel.textContent = 'Tap to choose photo';
     };
     document.getElementById('acc-pr-image')?.addEventListener('change', (e) => {
       const f = e.target.files?.[0];
       setPrProgress('hidden');
       clearPreview();
-      if (!f || !preview) return;
+      if (!f) return;
       if (!/^image\//i.test(f.type)) {
         setPrProgress('error', { pct: 0, label: 'Please choose an image file (JPG, PNG or WebP).' });
         return;
       }
+      drop?.classList.add('is-filled');
+      if (fileLabel) fileLabel.textContent = f.name;
+      if (!preview) return;
       previewUrl = URL.createObjectURL(f);
       preview.querySelector('img').src = previewUrl;
       preview.hidden = false;
@@ -1041,6 +1334,7 @@
         form.reset();
         setPrRating(0);
         clearPreview();
+        syncPhotoSelectState();
         await loadPhotoReviewPanel(data.id);
         setPrProgress('done', { pct: 100, label: '✓ Photo review sent — status: Under review' });
         showAlert(alertEl, 'Photo review submitted. It will appear on the product page after admin approval.', 'success');
@@ -1452,6 +1746,7 @@
     bindReferralPanel();
     bindReviewVideosPanel();
     bindPhotoReviewPanel();
+    bindVideoContestPanel();
     captureReferralFromUrl();
     applyStoredReferral();
   }

@@ -89,6 +89,7 @@
     <div class="nav-item" data-page="review-videos" data-super-only><i class="ti ti-video"></i> Review Videos <span class="nav-badge nav-badge-new" id="review-video-badge" hidden>0 New</span></div>
     <div class="nav-item" data-page="banners" data-super-only><i class="ti ti-photo"></i> Banners</div>
     <div class="nav-item" data-page="marketing" data-super-only><i class="ti ti-speakerphone"></i> Marketing <span class="nav-badge nav-badge-amber" id="subscriber-badge">0</span></div>
+    <div class="nav-item" data-page="homepage-videos" data-super-only><i class="ti ti-brand-youtube"></i> Homepage Videos</div>
     <div class="nav-item" data-page="messenger" data-super-only><i class="ti ti-brand-messenger"></i> Messenger Chats</div>
     <div class="nav-item" data-page="settings" data-super-only><i class="ti ti-settings"></i> Settings</div>
     <div class="sidebar-footer">
@@ -255,7 +256,7 @@
           </div>
           <table class="tbl"><thead><tr>
             <th class="tbl-check-col"><input type="checkbox" id="products-select-all" title="Select all on this page" aria-label="Select all products on this page"></th>
-            <th>Product</th><th>Category</th><th>MRP</th><th>Sale price</th><th>Discount %</th><th>Buy price</th><th>Profit %</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
+            <th>Product</th><th>Category</th><th>MRP</th><th>Sale price</th><th>Discount %</th><th>Buy price</th><th>Stock</th><th>Featured</th><th>Actions</th></tr></thead>
           <tbody id="products-tbody"></tbody></table>
           <div class="pagination-bar" id="products-pagination"></div>
         </div>
@@ -747,6 +748,34 @@
       </div>
 
       <%- include('partials/admin-marketing-section') %>
+
+      <div class="adm-section" id="sec-homepage-videos">
+        <div class="card" style="margin-bottom:20px;">
+          <div class="card-title">Homepage section</div>
+          <div class="form-group"><label class="form-label">Section title</label><input class="form-input" id="hv-sec-title" placeholder="Customer Videos"></div>
+          <div class="form-group"><label class="form-label">Subtitle</label><input class="form-input" id="hv-sec-sub" placeholder="Watch real customer stories..."></div>
+          <div class="form-group">
+            <label class="form-label">Auto-scroll every (seconds)</label>
+            <input class="form-input" id="hv-sec-scroll" type="number" min="2" max="20" step="0.5" value="4.5">
+            <small class="form-hint">How often the video row moves to the next video (2–20 seconds).</small>
+          </div>
+          <div class="settings-row" style="margin-bottom:14px;">
+            <div><div>Show section on homepage</div><div class="settings-row-info">Appears above “Our Customer Say” — paste YouTube links below</div></div>
+            <label class="toggle"><input type="checkbox" id="hv-sec-enabled" checked><span class="toggle-slider"></span></label>
+          </div>
+          <button type="button" class="btn btn-primary" id="homepage-videos-settings-save"><i class="ti ti-device-floppy"></i> Save section settings</button>
+        </div>
+        <div class="table-wrap" style="margin:0;">
+          <div class="table-header">
+            <h3>YouTube videos</h3>
+            <div class="table-actions">
+              <button type="button" class="btn btn-primary btn-sm" id="add-homepage-video-btn"><i class="ti ti-plus"></i> Add video</button>
+            </div>
+          </div>
+          <table class="tbl"><thead><tr><th>Preview</th><th>Title</th><th>YouTube</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="homepage-videos-tbody"></tbody></table>
+        </div>
+      </div>
 
       <div class="adm-section" id="sec-messenger">
         <div class="card" style="margin-bottom:20px;">
@@ -1436,6 +1465,32 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="homepage-video-modal" aria-hidden="true">
+  <div class="modal-box modal-box--product" role="dialog" aria-labelledby="homepage-video-form-title">
+    <div class="modal-box-head">
+      <h3 id="homepage-video-form-title">Add YouTube Video</h3>
+      <button type="button" class="modal-box-close" id="homepage-video-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="homepage-video-form">
+      <input type="hidden" id="hv-id" value="">
+      <div class="form-group"><label class="form-label">Title (optional)</label><input class="form-input" id="hv-title" placeholder="e.g. Customer unboxing"></div>
+      <div class="form-group"><label class="form-label">YouTube link *</label><input class="form-input" id="hv-url" placeholder="https://youtu.be/…" required><small class="form-hint">Paste any YouTube watch, share, Shorts, or embed link.</small></div>
+      <div id="hv-preview-wrap" hidden style="margin-bottom:12px;">
+        <img id="hv-preview" alt="Preview" style="width:100%;max-width:320px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;border:1px solid var(--border);">
+      </div>
+      <div class="form-2col">
+        <div class="form-group"><label class="form-label">Sort order</label><input class="form-input" id="hv-sort" type="number" min="0" value="0"></div>
+        <div class="form-group" style="display:flex;align-items:flex-end;padding-bottom:8px;"><label class="form-label"><input type="checkbox" id="hv-active" checked> Show on homepage</label></div>
+      </div>
+      <div class="modal-form-actions">
+        <button type="submit" class="btn btn-primary"><i class="ti ti-device-floppy"></i> Save</button>
+        <button type="button" class="btn btn-outline" id="hv-reset">Clear</button>
+        <button type="button" class="btn btn-outline" id="homepage-video-modal-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay" id="messenger-modal" aria-hidden="true">
   <div class="modal-box modal-box--product" role="dialog" aria-labelledby="messenger-form-title">
     <div class="modal-box-head">
@@ -1613,6 +1668,6 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
 <script src="/js/admin-rich-editor.js?v=14"></script>
-<script src="/js/admin.js?v=146"></script>
+<script src="/js/admin.js?v=149"></script>
 </body>
 </html>

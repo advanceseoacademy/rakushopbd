@@ -1838,6 +1838,183 @@
   }
 
   /* ===== HOME MESSENGER CHAT REVIEWS ===== */
+  /* ===== Homepage YouTube videos ===== */
+  .home-videos {
+    margin-top: 0;
+    margin-bottom: 36px;
+    padding-top: 44px;
+    border-top: 1px solid var(--border);
+  }
+
+  .home-videos .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .home-videos-wrap {
+    position: relative;
+  }
+
+  .home-videos-track {
+    scroll-snap-type: x mandatory;
+    touch-action: pan-x pinch-zoom !important;
+    -webkit-overflow-scrolling: touch;
+    overflow-x: auto !important;
+  }
+
+  .home-videos-track .home-video-card {
+    flex: 0 0 auto;
+    flex-shrink: 0;
+    /* Desktop: 2 videos per screen (gap 16px) */
+    width: calc((100% - 16px) / 2);
+    min-width: calc((100% - 16px) / 2);
+    max-width: calc((100% - 16px) / 2);
+    box-sizing: border-box;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 4px 4px 8px;
+  }
+
+  .home-video-media,
+  .home-video-embed {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #0f172a;
+    padding: 0;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.12);
+    touch-action: pan-x pinch-zoom;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .home-video-embed {
+    touch-action: manipulation;
+  }
+
+  .home-video-thumb,
+  .home-video-thumb-skel {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    pointer-events: none;
+  }
+
+  .home-video-thumb-skel {
+    display: block;
+    min-height: 100%;
+  }
+
+  .home-video-play-btn {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 56px;
+    height: 56px;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(255, 0, 0, 0.92);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+    transition: transform 0.15s ease;
+    cursor: pointer;
+    z-index: 2;
+    touch-action: manipulation;
+  }
+
+  .home-video-play-btn:hover,
+  .home-video-play-btn:focus-visible {
+    transform: translate(-50%, -50%) scale(1.06);
+  }
+
+  .home-videos-nav {
+    display: none !important;
+  }
+
+  .home-video-yt {
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: rgba(15, 23, 42, 0.55);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+  }
+
+  .home-video-embed iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+
+  .home-video-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 4px;
+  }
+
+  .home-video-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .home-video-open {
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    text-decoration: none;
+  }
+
+  .home-video-open:hover {
+    text-decoration: underline;
+  }
+
+  .home-video-card--skeleton .home-video-media {
+    pointer-events: none;
+  }
+
+  @media (max-width: 768px) {
+    .home-videos-track .home-video-card {
+      width: 100%;
+      min-width: 100%;
+      max-width: 100%;
+    }
+
+    .home-video-play-btn {
+      width: 48px;
+      height: 48px;
+      font-size: 22px;
+    }
+  }
+
   .home-messenger-reviews {
     margin-top: 0;
     margin-bottom: 48px;

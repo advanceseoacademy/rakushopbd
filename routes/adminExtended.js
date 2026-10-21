@@ -1670,6 +1670,97 @@ module.exports = function registerExtendedAdminRoutes(router, deps) {
     }
   });
 
+  // ——— Homepage YouTube videos ———
+  router.get('/homepage-videos', requireAdmin, async (req, res) => {
+    try {
+      const { ensureHomepageVideos } = require('../lib/ensureHomepageVideos');
+      await ensureHomepageVideos();
+      const videos = await query(
+        'SELECT * FROM homepage_videos ORDER BY sort_order ASC, id DESC'
+      );
+      res.json({ ok: true, videos });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Homepage videos table missing' });
+    }
+  });
+
+  router.post('/homepage-videos', requireAdmin, async (req, res) => {
+    try {
+      const {
+        ensureHomepageVideos,
+        parseYoutubeId,
+        normalizeYoutubeUrl,
+      } = require('../lib/ensureHomepageVideos');
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      await ensureHomepageVideos();
+      const { title, youtubeUrl, sortOrder, isActive } = req.body;
+      const youtubeId = parseYoutubeId(youtubeUrl);
+      if (!youtubeId) {
+        return res.status(400).json({ ok: false, error: 'Valid YouTube link required' });
+      }
+      await query(
+        `INSERT INTO homepage_videos (title, youtube_url, youtube_id, sort_order, is_active)
+         VALUES (?,?,?,?,?)`,
+        [
+          String(title || '').trim().slice(0, 160),
+          normalizeYoutubeUrl(youtubeId),
+          youtubeId,
+          Number(sortOrder) || 0,
+          isActive !== false,
+        ]
+      );
+      clearStoreBootstrapCache();
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not add video' });
+    }
+  });
+
+  router.put('/homepage-videos/:id', requireAdmin, async (req, res) => {
+    try {
+      const {
+        ensureHomepageVideos,
+        parseYoutubeId,
+        normalizeYoutubeUrl,
+      } = require('../lib/ensureHomepageVideos');
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      await ensureHomepageVideos();
+      const { title, youtubeUrl, sortOrder, isActive } = req.body;
+      const youtubeId = parseYoutubeId(youtubeUrl);
+      if (!youtubeId) {
+        return res.status(400).json({ ok: false, error: 'Valid YouTube link required' });
+      }
+      await query(
+        `UPDATE homepage_videos SET title=?, youtube_url=?, youtube_id=?, sort_order=?, is_active=? WHERE id=?`,
+        [
+          String(title || '').trim().slice(0, 160),
+          normalizeYoutubeUrl(youtubeId),
+          youtubeId,
+          Number(sortOrder) || 0,
+          Boolean(isActive),
+          req.params.id,
+        ]
+      );
+      clearStoreBootstrapCache();
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not update video' });
+    }
+  });
+
+  router.delete('/homepage-videos/:id', requireAdmin, async (req, res) => {
+    try {
+      const { ensureHomepageVideos } = require('../lib/ensureHomepageVideos');
+      const { clearStoreBootstrapCache } = require('../lib/storeBootstrap');
+      await ensureHomepageVideos();
+      await query('DELETE FROM homepage_videos WHERE id = ?', [req.params.id]);
+      clearStoreBootstrapCache();
+      res.json({ ok: true });
+    } catch (err) {
+      res.status(500).json({ ok: false, error: 'Could not delete video' });
+    }
+  });
+
   // ——— Messenger chat screenshots ———
   router.get('/messenger-chats', requireAdmin, async (req, res) => {
     try {

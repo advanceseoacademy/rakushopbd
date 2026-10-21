@@ -172,6 +172,7 @@
     'review-videos': 'Review Videos',
     banners: 'Banners',
     marketing: 'Marketing',
+    'homepage-videos': 'Homepage Videos',
     messenger: 'Messenger Chats',
     settings: 'Settings',
   };
@@ -459,6 +460,7 @@
     if (page === 'review-videos') loadReviewVideos();
     if (page === 'banners') loadBanners();
     if (page === 'marketing') loadMarketing();
+    if (page === 'homepage-videos') loadHomepageVideos();
     if (page === 'messenger') loadMessengerChats();
   }
 
@@ -3317,20 +3319,8 @@
     return old > price ? old : '';
   }
 
-  function profitCellHtml(price, buyPrice) {
-    if (buyPrice == null || buyPrice === '') return '<span style="color:#94a3b8">—</span>';
-    const sale = Number(price) || 0;
-    const buy = Number(buyPrice) || 0;
-    const profit = sale - buy;
-    const pct = sale > 0 ? Math.round((profit / sale) * 100) : 0;
-    const color = profit < 0 ? '#dc2626' : profit === 0 ? '#64748b' : '#15803d';
-    return `<div style="font-weight:600;color:${color}">${pct}%</div><small style="color:#94a3b8">৳${profit.toLocaleString('en-IN')}</small>`;
-  }
-
   function refreshProductRowDerived(row) {
     if (!row) return;
-    const cell = document.querySelector(`[data-profit-cell="${row.id}"]`);
-    if (cell) cell.innerHTML = profitCellHtml(row.price, row.buy_price);
     const disc = document.querySelector(`.discount-quick-edit[data-product-id="${row.id}"]`);
     if (disc && disc.dataset.saving !== '1' && document.activeElement !== disc) {
       const pct = productDiscountPct(row);
@@ -3369,7 +3359,7 @@
     const tbody = document.getElementById('products-tbody');
     if (!data.products?.length) {
       tbody.innerHTML =
-        '<tr><td colspan="11" style="text-align:center;color:#94a3b8;padding:24px;">No products found.</td></tr>';
+        '<tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:24px;">No products found.</td></tr>';
       updateProductsSelectionUi();
     } else {
       const allowDelete = canDeleteProducts();
@@ -3392,7 +3382,6 @@
           <td><input type="number" class="stock-quick-edit price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-price="${p.price}" value="${Number(p.price)}" aria-label="Sale price for ${escHtml(p.name_bn)}"></td>
           <td><input type="number" class="stock-quick-edit discount-quick-edit" min="0" max="99" step="1" data-product-id="${p.id}" data-prev-discount="${productDiscountPct(p)}" value="${productDiscountPct(p)}" aria-label="Discount percent for ${escHtml(p.name_bn)}"></td>
           <td><input type="number" class="stock-quick-edit buy-price-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-buy-price="${p.buy_price != null && p.buy_price !== '' ? Number(p.buy_price) : ''}" value="${p.buy_price != null && p.buy_price !== '' ? Number(p.buy_price) : ''}" placeholder="—" aria-label="Buy price for ${escHtml(p.name_bn)}"></td>
-          <td data-profit-cell="${p.id}">${profitCellHtml(p.price, p.buy_price)}</td>
           <td><input type="number" class="stock-quick-edit" min="0" step="1" data-product-id="${p.id}" data-prev-stock="${p.stock}" value="${p.stock}" aria-label="Stock for ${escHtml(p.name_bn)}"></td>
           <td><span class="badge ${stockCls}" data-stock-badge="${p.id}">${stockLbl}</span></td>
           <td class="tbl-actions">
@@ -6542,6 +6531,218 @@
       closeBannerModal();
       resetBannerForm();
       loadBanners();
+    } else toast(res.error || 'Failed', 'error');
+  });
+
+  // ——— Homepage YouTube videos ———
+  let homepageVideos = [];
+
+  function parseYoutubeIdAdmin(input) {
+    const s = String(input || '').trim();
+    if (!s) return null;
+    if (/^[a-zA-Z0-9_-]{11}$/.test(s)) return s;
+    try {
+      const raw = /^https?:\/\//i.test(s) ? s : `https://${s}`;
+      const u = new URL(raw);
+      const host = u.hostname.replace(/^www\./, '').toLowerCase();
+      if (host === 'youtu.be') {
+        const id = u.pathname.split('/').filter(Boolean)[0] || '';
+        return /^[a-zA-Z0-9_-]{11}$/.test(id) ? id : null;
+      }
+      if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'youtube-nocookie.com') {
+        const v = u.searchParams.get('v');
+        if (v && /^[a-zA-Z0-9_-]{11}$/.test(v)) return v;
+        const parts = u.pathname.split('/').filter(Boolean);
+        const markers = new Set(['embed', 'shorts', 'live', 'v']);
+        for (let i = 0; i < parts.length - 1; i += 1) {
+          if (markers.has(parts[i]) && /^[a-zA-Z0-9_-]{11}$/.test(parts[i + 1])) return parts[i + 1];
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  function setHomepageVideoPreview(url) {
+    const id = parseYoutubeIdAdmin(url);
+    const wrap = document.getElementById('hv-preview-wrap');
+    const img = document.getElementById('hv-preview');
+    if (!wrap || !img) return;
+    if (!id) {
+      wrap.hidden = true;
+      img.removeAttribute('src');
+      return;
+    }
+    img.src = `https://i.ytimg.com/vi/${id}/hqdefault.jpg`;
+    wrap.hidden = false;
+  }
+
+  function openHomepageVideoModal() {
+    const modal = document.getElementById('homepage-video-modal');
+    if (!modal) return;
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+  }
+
+  function closeHomepageVideoModal() {
+    const modal = document.getElementById('homepage-video-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  function resetHomepageVideoForm() {
+    document.getElementById('homepage-video-form-title').textContent = 'Add YouTube Video';
+    document.getElementById('hv-id').value = '';
+    document.getElementById('hv-title').value = '';
+    document.getElementById('hv-url').value = '';
+    document.getElementById('hv-sort').value = '0';
+    document.getElementById('hv-active').checked = true;
+    setHomepageVideoPreview('');
+  }
+
+  async function loadHomepageVideosSettings() {
+    const data = await api('/settings');
+    if (!data.ok || !data.settings) return;
+    const s = data.settings;
+    const en = document.getElementById('hv-sec-enabled');
+    if (en) en.checked = s.homepage_videos_enabled !== '0';
+    const title = document.getElementById('hv-sec-title');
+    const sub = document.getElementById('hv-sec-sub');
+    const scrollEl = document.getElementById('hv-sec-scroll');
+    if (title) title.value = s.homepage_videos_title || '';
+    if (sub) sub.value = s.homepage_videos_subtitle || '';
+    if (scrollEl) {
+      const ms = Number(s.homepage_videos_scroll_interval) || 4500;
+      scrollEl.value = String(Math.round((ms / 1000) * 10) / 10);
+    }
+  }
+
+  async function loadHomepageVideosList() {
+    const data = await api('/homepage-videos');
+    if (!data.ok) return;
+    homepageVideos = data.videos || [];
+    const tbody = document.getElementById('homepage-videos-tbody');
+    if (!tbody) return;
+
+    if (!homepageVideos.length) {
+      tbody.innerHTML =
+        '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">No videos yet. Add a YouTube link to show videos above “Our Customer Say”.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = homepageVideos
+      .map((v) => {
+        const id = escHtml(v.youtube_id || v.youtubeId || '');
+        const url = escHtml(v.youtube_url || v.youtubeUrl || '');
+        const active = v.is_active === true || v.is_active === 1 || v.is_active === '1';
+        const thumb = id
+          ? `<img src="https://i.ytimg.com/vi/${id}/mqdefault.jpg" alt="" style="width:96px;height:54px;object-fit:cover;border-radius:8px;border:1px solid var(--border);">`
+          : '—';
+        return `<tr>
+          <td>${thumb}</td>
+          <td>${escHtml(v.title || '—')}</td>
+          <td><a href="${url}" target="_blank" rel="noopener">${id || url || '—'}</a></td>
+          <td>${v.sort_order ?? v.sortOrder ?? 0}</td>
+          <td><span class="badge badge-${active ? 'green' : 'gray'}">${active ? 'Active' : 'Hidden'}</span></td>
+          <td>
+            <button type="button" class="btn btn-outline btn-xs" data-edit-hv="${v.id}">Edit</button>
+            <button type="button" class="btn btn-danger btn-xs" data-del-hv="${v.id}">Delete</button>
+          </td>
+        </tr>`;
+      })
+      .join('');
+
+    tbody.querySelectorAll('[data-edit-hv]').forEach((btn) => {
+      btn.onclick = () => {
+        const v = homepageVideos.find((x) => x.id === Number(btn.dataset.editHv));
+        if (!v) return;
+        document.getElementById('homepage-video-form-title').textContent = 'Edit YouTube Video';
+        document.getElementById('hv-id').value = v.id;
+        document.getElementById('hv-title').value = v.title || '';
+        document.getElementById('hv-url').value = v.youtube_url || v.youtubeUrl || '';
+        document.getElementById('hv-sort').value = v.sort_order ?? v.sortOrder ?? 0;
+        document.getElementById('hv-active').checked =
+          v.is_active === true || v.is_active === 1 || v.is_active === '1';
+        setHomepageVideoPreview(v.youtube_url || v.youtubeUrl || v.youtube_id || v.youtubeId);
+        openHomepageVideoModal();
+      };
+    });
+
+    tbody.querySelectorAll('[data-del-hv]').forEach((btn) => {
+      btn.onclick = async () => {
+        if (!(await askConfirm('Delete this video from the homepage?'))) return;
+        const r = await api('/homepage-videos/' + btn.dataset.delHv, { method: 'DELETE' });
+        if (r.ok) {
+          toast('Video deleted');
+          loadHomepageVideosList();
+        } else toast(r.error || 'Failed', 'error');
+      };
+    });
+  }
+
+  async function loadHomepageVideos() {
+    await loadHomepageVideosSettings();
+    await loadHomepageVideosList();
+  }
+
+  document.getElementById('add-homepage-video-btn')?.addEventListener('click', () => {
+    resetHomepageVideoForm();
+    openHomepageVideoModal();
+  });
+  document.getElementById('homepage-video-modal-close')?.addEventListener('click', closeHomepageVideoModal);
+  document.getElementById('homepage-video-modal-cancel')?.addEventListener('click', closeHomepageVideoModal);
+  document.getElementById('homepage-video-modal')?.addEventListener('click', (e) => {
+    if (e.target.id === 'homepage-video-modal') closeHomepageVideoModal();
+  });
+  document.getElementById('hv-reset')?.addEventListener('click', resetHomepageVideoForm);
+  document.getElementById('hv-url')?.addEventListener('input', (e) => {
+    setHomepageVideoPreview(e.target.value);
+  });
+
+  document.getElementById('homepage-videos-settings-save')?.addEventListener('click', async () => {
+    const sec = Number(document.getElementById('hv-sec-scroll')?.value);
+    const scrollMs = Number.isFinite(sec)
+      ? Math.max(2000, Math.min(20000, Math.round(sec * 1000)))
+      : 4500;
+    const settings = {
+      homepage_videos_enabled: document.getElementById('hv-sec-enabled')?.checked ? '1' : '0',
+      homepage_videos_title: document.getElementById('hv-sec-title')?.value.trim() || '',
+      homepage_videos_subtitle: document.getElementById('hv-sec-sub')?.value.trim() || '',
+      homepage_videos_scroll_interval: String(scrollMs),
+    };
+    const data = await api('/settings', {
+      method: 'PUT',
+      body: JSON.stringify({ settings }),
+    });
+    if (data.ok) {
+      const shown = document.getElementById('hv-sec-scroll');
+      if (shown) shown.value = String(Math.round((scrollMs / 1000) * 10) / 10);
+      toast('Homepage videos settings saved');
+    } else toast(data.error || 'Save failed', 'error');
+  });
+
+  document.getElementById('homepage-video-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const youtubeUrl = document.getElementById('hv-url').value.trim();
+    if (!parseYoutubeIdAdmin(youtubeUrl)) {
+      toast('Please paste a valid YouTube link', 'error');
+      return;
+    }
+    const id = document.getElementById('hv-id').value;
+    const body = {
+      title: document.getElementById('hv-title').value.trim(),
+      youtubeUrl,
+      sortOrder: Number(document.getElementById('hv-sort').value) || 0,
+      isActive: document.getElementById('hv-active').checked,
+    };
+    const res = id
+      ? await api('/homepage-videos/' + id, { method: 'PUT', body: JSON.stringify(body) })
+      : await api('/homepage-videos', { method: 'POST', body: JSON.stringify(body) });
+    if (res.ok) {
+      toast(id ? 'Video updated' : 'Video added');
+      closeHomepageVideoModal();
+      resetHomepageVideoForm();
+      loadHomepageVideosList();
     } else toast(res.error || 'Failed', 'error');
   });
 

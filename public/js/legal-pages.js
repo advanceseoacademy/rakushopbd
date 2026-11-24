@@ -135,6 +135,11 @@
   function init(pageKey) {
     const page = document.getElementById(`page-${pageKey}`);
     if (!page || page.style.display === 'none') return;
+    const bodyEl = document.getElementById(DOM[pageKey]?.body);
+    // Keep server-rendered policy HTML for crawlers / first paint; only refresh from API if empty.
+    if (bodyEl?.dataset?.ssr === '1' && bodyEl.textContent.trim() && !bodyEl.querySelector('.legal-loading')) {
+      return;
+    }
     void loadAndRender(pageKey);
   }
 

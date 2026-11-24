@@ -109,14 +109,20 @@
       if (supportLink) supportLink.href = `tel:${phone.replace(/\s/g, '')}`;
     }
 
-    const freeMin = settings.free_delivery_min || '500';
+    const freeMinNum = Number(settings.free_delivery_min) || 2500;
+    const freeMinLabel = freeMinNum.toLocaleString('en-BD');
+    const trust1SubRaw = String(settings.trust_1_sub || '').trim();
+    const trust1Sub =
+      trust1SubRaw && !/৳\s*500\b/.test(trust1SubRaw) && !/Tk\.?\s*500\b/i.test(trust1SubRaw)
+        ? trust1SubRaw
+        : `Nationwide on orders over ৳${freeMinLabel}`;
     const trust = [
       {
         icon: 'ti-truck-delivery',
         color: '#2D6B32',
         bg: '#E8F3EA',
         title: settings.trust_1_title || 'Free & fast delivery',
-        sub: settings.trust_1_sub || `Nationwide on orders over ৳${freeMin}`,
+        sub: trust1Sub,
       },
       {
         icon: 'ti-shield-check',
@@ -161,7 +167,7 @@
       delBox.innerHTML = `
         <div class="pv-delivery-item"><i class="ti ti-circle-check-filled"></i> Delivery in 1–2 days within Dhaka</div>
         <div class="pv-delivery-item"><i class="ti ti-circle-check-filled"></i> Nationwide delivery in 3–5 days</div>
-        <div class="pv-delivery-item"><i class="ti ti-circle-check-filled"></i> Free delivery on orders over ৳${escapeHtml(freeMin)}</div>
+        <div class="pv-delivery-item"><i class="ti ti-circle-check-filled"></i> Free delivery on orders over ৳${escapeHtml(freeMinLabel)}</div>
         <div class="pv-delivery-item"><i class="ti ti-circle-check-filled"></i> 7-day return policy</div>`;
     }
   }

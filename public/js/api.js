@@ -946,7 +946,7 @@
     all: 'All Products',
     'best-selling': 'Best Selling Products',
     'new-arrivals': 'New Arrivals',
-    'today-deals': 'Today Deals',
+    'today-deals': 'Hot Deals',
   };
 
   const HOME_COLLECTIONS = {
@@ -957,7 +957,7 @@
       preserveOrder: true,
     },
     'new-arrivals': { title: 'New Arrivals', api: '/collections/new-arrivals?limit=100', preserveOrder: true },
-    'today-deals': { title: 'Today Deals', api: '/today-deals', preserveOrder: true },
+    'today-deals': { title: 'Hot Deals', api: '/today-deals', preserveOrder: true },
   };
 
   const HOME_COLLECTION_SLUGS = new Set(Object.keys(HOME_COLLECTIONS));
@@ -2053,22 +2053,82 @@
     msg.className = 'reviews-submit-msg show ' + (type || '');
   }
 
+  function clearReviewPhotoPreview() {
+    const photoInput = document.getElementById('review-photo');
+    const preview = document.getElementById('review-photo-preview');
+    const drop = document.getElementById('review-photo-drop');
+    const label = document.getElementById('review-photo-label');
+    if (photoInput) photoInput.value = '';
+    if (preview) {
+      const img = preview.querySelector('img');
+      if (img?.src?.startsWith('blob:')) URL.revokeObjectURL(img.src);
+      if (img) img.removeAttribute('src');
+      preview.hidden = true;
+    }
+    drop?.classList.remove('is-filled');
+    if (label) label.textContent = 'Add a product photo';
+  }
+
+  function bindReviewPhotoPicker() {
+    const photoInput = document.getElementById('review-photo');
+    const preview = document.getElementById('review-photo-preview');
+    const drop = document.getElementById('review-photo-drop');
+    const label = document.getElementById('review-photo-label');
+    const clearBtn = document.getElementById('review-photo-clear');
+    if (!photoInput || photoInput._rakuBound) return;
+    photoInput._rakuBound = true;
+    photoInput.addEventListener('change', () => {
+      const file = photoInput.files?.[0];
+      if (!file) {
+        clearReviewPhotoPreview();
+        return;
+      }
+      if (!/^image\//i.test(file.type)) {
+        clearReviewPhotoPreview();
+        showReviewMsg('Please choose an image file (JPG, PNG or WebP).', 'error');
+        return;
+      }
+      drop?.classList.add('is-filled');
+      if (label) label.textContent = file.name;
+      if (preview) {
+        const img = preview.querySelector('img');
+        if (img) {
+          if (img.src?.startsWith('blob:')) URL.revokeObjectURL(img.src);
+          img.src = URL.createObjectURL(file);
+        }
+        preview.hidden = false;
+      }
+    });
+    clearBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      clearReviewPhotoPreview();
+    });
+  }
+
   function bindReviewSubmit(productId) {
     bindStarPicker();
+    bindReviewPhotoPicker();
     const btn = document.getElementById('btn-submit-review');
     if (!btn) return;
     if (btn._rakuProductId === productId) return;
     btn._rakuProductId = productId;
     btn.onclick = async () => {
       const rating = Number(document.getElementById('review-rating')?.value) || 5;
-      const customerName = document.getElementById('review-name')?.value?.trim();
+      const nameInput = document.getElementById('review-name');
+      const nameVisible = nameInput && !nameInput.readOnly && document.getElementById('review-name-field')?.style.display !== 'none';
+      const customerName = nameInput?.value?.trim() || '';
       const comment = document.getElementById('review-comment')?.value?.trim();
       const photoInput = document.getElementById('review-photo');
+      if (nameVisible && !customerName) {
+        showReviewMsg('Please enter your name.', 'error');
+        return;
+      }
       if (!comment) {
         showReviewMsg('Please write a few words about the product.', 'error');
         return;
       }
       btn.disabled = true;
+      showReviewMsg('Submitting your review…', '');
       let imageUrl = null;
       const photoFile = photoInput?.files?.[0];
       if (photoFile) {
@@ -2080,16 +2140,16 @@
             credentials: 'same-origin',
             body: fd,
           });
-          const upData = await upRes.json();
-          if (!upData.ok) {
+          const upData = await upRes.json().catch(() => null);
+          if (!upData?.ok) {
             btn.disabled = false;
-            showReviewMsg(upData.error || 'Could not upload photo', 'error');
+            showReviewMsg(upData?.error || 'Could not upload photo', 'error');
             return;
           }
           imageUrl = upData.url;
         } catch (_) {
           btn.disabled = false;
-          showReviewMsg('Could not upload photo', 'error');
+          showReviewMsg('Could not upload photo. You can submit without a photo.', 'error');
           return;
         }
       }
@@ -2098,16 +2158,16 @@
         body: JSON.stringify({ rating, customerName, comment, imageUrl }),
       });
       btn.disabled = false;
-        if (data.ok) {
-          showReviewMsg(data.message, 'success');
-          document.getElementById('review-comment').value = '';
-          if (photoInput) photoInput.value = '';
-          setReviewRating(5);
-          if (data.pointsAwarded && window._rakuUpdateUserRewardPoints && data.pointsAwarded > 0) {
-            const cur = Number(document.getElementById('acc-stat-points')?.textContent) || 0;
-            window._rakuUpdateUserRewardPoints(cur + Number(data.pointsAwarded));
-          }
-          if (data.status === 'approved') loadProductReviews(productId);
+      if (data.ok) {
+        showReviewMsg(data.message, 'success');
+        document.getElementById('review-comment').value = '';
+        clearReviewPhotoPreview();
+        setReviewRating(5);
+        if (data.pointsAwarded && window._rakuUpdateUserRewardPoints && data.pointsAwarded > 0) {
+          const cur = Number(document.getElementById('acc-stat-points')?.textContent) || 0;
+          window._rakuUpdateUserRewardPoints(cur + Number(data.pointsAwarded));
+        }
+        if (data.status === 'approved') loadProductReviews(productId);
       } else {
         showReviewMsg(data.error || 'Could not submit', 'error');
       }
@@ -2399,35 +2459,7 @@
     if (backBtn) backBtn.hidden = isEmpty;
 
     if (data.totals && !isEmpty) {
-      document.querySelectorAll('.summary-subtotal').forEach((el) => {
-        el.textContent = data.totals.subtotalFormatted;
-      });
-      document.querySelectorAll('.summary-delivery').forEach((el) => {
-        el.textContent = data.totals.deliveryFormatted;
-        el.style.color = data.totals.delivery === 0 ? 'var(--green)' : 'var(--text)';
-      });
-      let discRow = document.getElementById('cart-discount-row');
-      if (data.totals.discount > 0) {
-        if (!discRow) {
-          const delRow = document.querySelector('#page-cart .c-summary-row .summary-delivery')?.closest('.c-summary-row');
-          if (delRow) {
-            discRow = document.createElement('div');
-            discRow.id = 'cart-discount-row';
-            discRow.className = 'c-summary-row';
-            discRow.innerHTML = '<span class="c-summary-label">Discount</span><span class="c-summary-val summary-discount" style="color:var(--green);"></span>';
-            delRow.insertAdjacentElement('afterend', discRow);
-          }
-        }
-        if (discRow) {
-          discRow.hidden = false;
-          discRow.querySelector('.summary-discount').textContent = '-' + data.totals.discountFormatted;
-        }
-      } else if (discRow) {
-        discRow.hidden = true;
-      }
-      document.querySelectorAll('.summary-total, .c-total-val').forEach((el) => {
-        el.textContent = data.totals.totalFormatted;
-      });
+      applyCartPageTotals(data.totals);
       syncCouponInputs(data.totals.couponCode);
       syncCouponNote(data.totals.couponNote);
     }
@@ -2612,9 +2644,66 @@
     return '<span class="c-summary-label">Discount</span><span class="c-summary-val summary-discount" style="color:var(--green);"></span>';
   }
 
+  /** Cart page: product prices only — no delivery fee in summary/total. */
+  function cartProductsOnlyTotal(totals) {
+    const subtotal = Number(totals.subtotal) || 0;
+    const discount = Number(totals.discount) || 0;
+    return Math.max(0, subtotal - discount);
+  }
+
+  function applyCartPageTotals(totals) {
+    const root = document.querySelector('#page-cart');
+    if (!root || !totals) return;
+    root.querySelectorAll('.summary-subtotal').forEach((el) => {
+      el.textContent = totals.subtotalFormatted;
+    });
+    root.querySelectorAll('.summary-delivery').forEach((el) => {
+      const row = el.closest('.c-summary-row, .summary-row, .cm-summary-row');
+      if (row) row.hidden = true;
+    });
+    let discRow = document.getElementById('cart-discount-row') || root.querySelector('.summary-discount-row');
+    if (totals.discount > 0) {
+      if (!discRow) {
+        const subRow = root.querySelector('.summary-subtotal')?.closest('.c-summary-row, .summary-row, .cm-summary-row');
+        const totalRow = root.querySelector('.c-total-row');
+        if (subRow || totalRow) {
+          discRow = document.createElement('div');
+          discRow.id = 'cart-discount-row';
+          discRow.className = 'c-summary-row summary-discount-row';
+          discRow.innerHTML =
+            '<span class="c-summary-label">Discount</span><span class="c-summary-val summary-discount" style="color:var(--green);"></span>';
+          if (subRow) subRow.insertAdjacentElement('afterend', discRow);
+          else totalRow.insertAdjacentElement('beforebegin', discRow);
+        }
+      }
+      if (discRow) {
+        discRow.hidden = false;
+        const discEl = discRow.querySelector('.summary-discount');
+        if (discEl) discEl.textContent = '-' + (totals.discountFormatted || formatPrice(totals.discount));
+      }
+    } else if (discRow) {
+      discRow.hidden = true;
+    }
+    const productsTotal = formatPrice(cartProductsOnlyTotal(totals));
+    root.querySelectorAll('.summary-total, .c-total-val').forEach((el) => {
+      el.textContent = productsTotal;
+    });
+  }
+
   function applyTotalsToSummary(totals, scope) {
     const root = scope ? document.querySelector(scope) : document;
     if (!root || !totals) return;
+    if (scope === '#page-cart' || root.id === 'page-cart') {
+      applyCartPageTotals(totals);
+      if (totals.couponCode !== undefined) syncCouponInputs(totals.couponCode);
+      if (totals.couponNote !== undefined || totals.couponCode !== undefined) {
+        syncCouponNote(totals.couponNote || null);
+      }
+      if (totals.reward !== undefined) {
+        syncRewardRedeemUi(totals.reward);
+      }
+      return;
+    }
     root.querySelectorAll('.summary-subtotal').forEach((el) => {
       el.textContent = totals.subtotalFormatted;
     });
@@ -2722,7 +2811,7 @@
 
   function deliveryZoneHint(district) {
     const s = window._rakuStoreSettings || {};
-    const freeMin = Number(s.free_delivery_min) || 500;
+    const freeMin = Number(s.free_delivery_min) || 2500;
     const dhakaFee = Number(s.delivery_fee) || 60;
     const outsideFee = Number(s.delivery_fee_outside) || 120;
     const fee = String(district).toLowerCase() === 'dhaka' ? dhakaFee : outsideFee;

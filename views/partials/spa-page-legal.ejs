@@ -1,0 +1,25 @@
+<%
+  const _legal = typeof legalPage !== 'undefined' && legalPage ? legalPage : null;
+  const _slug = _legal && _legal.slug ? _legal.slug : (typeof legalSlug !== 'undefined' ? legalSlug : 'privacy');
+  const _icon = ({
+    privacy: 'ti-shield-lock',
+    terms: 'ti-file-text',
+    return: 'ti-refresh',
+    preorder: 'ti-clock-hour-4',
+    points: 'ti-award',
+  })[_slug] || 'ti-file-text';
+  const _title = _legal && _legal.title ? _legal.title : 'Policy';
+  const _sub = _legal && _legal.subtitle ? _legal.subtitle : '';
+  const _body = _legal && _legal.content ? _legal.content : '';
+%>
+<div class="page-wrap">
+  <div class="page-hero">
+    <h1 class="page-title" id="legal-<%= _slug %>-title"><i class="ti <%= _icon %>"></i> <%= _title %></h1>
+    <% if (_sub) { %><p class="page-sub" id="legal-<%= _slug %>-sub"><%= _sub %></p><% } %>
+  </div>
+  <div class="page-card">
+    <div class="page-card-body">
+      <div class="legal-content" id="legal-<%= _slug %>-body" data-ssr="1"><%- _body || '<p class="legal-loading">Loading…</p>' %></div>
+    </div>
+  </div>
+</div>

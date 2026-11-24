@@ -52,9 +52,8 @@
   }
 
   function actionBtn(p) {
-    if (window.productCardActionBtn) return window.productCardActionBtn(p);
     if (!productIsOutOfStock(p)) {
-      return `<button type="button" class="add-cart-btn" data-id="${p.id}"><i class="ti ti-shopping-cart-plus"></i> Add to Cart</button>`;
+      return `<button type="button" class="add-cart-btn" data-id="${p.id}"><i class="ti ti-shopping-cart-plus"></i> Add To Cart</button>`;
     }
     return `<button type="button" class="preorder-btn" data-id="${p.id}"><i class="ti ti-clock-hour-4"></i> Pre-order</button>`;
   }
@@ -305,7 +304,7 @@
     const meta = boot?.todayDealsMeta || boot?.meta || {};
     const products = boot?.todayDeals || boot?.products || [];
     const enabled = meta.enabled !== false;
-    const title = meta.title || 'Today Deals';
+    const title = meta.title || 'Hot Deals';
 
     if (titleEl) titleEl.textContent = title;
     window._rakuSetHomeCollectionLabel?.('today-deals', title);

@@ -1739,7 +1739,7 @@
     const en = document.getElementById('td-enabled');
     if (en) en.checked = s.today_deals_enabled !== '0';
     const titleEl = document.getElementById('td-title');
-    if (titleEl) titleEl.value = s.today_deals_title || 'Today Deals';
+    if (titleEl) titleEl.value = s.today_deals_title || 'Hot Deals';
     const endsEl = document.getElementById('td-ends-at');
     if (endsEl) endsEl.value = toDatetimeLocalValue(s.today_deals_ends_at);
     const selectedIds = parseTodayDealsProductIds(s.today_deals_product_ids);
@@ -1760,7 +1760,7 @@
     }
     return {
       enabled: document.getElementById('td-enabled')?.checked ? '1' : '0',
-      title: document.getElementById('td-title')?.value.trim() || 'Today Deals',
+      title: document.getElementById('td-title')?.value.trim() || 'Hot Deals',
       endsAt,
       productIds: ids,
     };
@@ -3866,6 +3866,70 @@
       box.closest('tr')?.classList.remove('row-selected');
     });
     updateProductsSelectionUi();
+  });
+
+  function openBulkDiscountModal() {
+    const modal = document.getElementById('bulk-discount-modal');
+    const input = document.getElementById('bulk-discount-percent');
+    if (!modal) return;
+    if (input && !input.value) input.value = '20';
+    modal.classList.add('open');
+    modal.setAttribute('aria-hidden', 'false');
+    setTimeout(() => input?.focus(), 50);
+  }
+
+  function closeBulkDiscountModal() {
+    const modal = document.getElementById('bulk-discount-modal');
+    if (!modal) return;
+    modal.classList.remove('open');
+    modal.setAttribute('aria-hidden', 'true');
+  }
+
+  async function applyBulkDiscount() {
+    const input = document.getElementById('bulk-discount-percent');
+    const submitBtn = document.getElementById('bulk-discount-submit');
+    const pct = Math.round(Number(input?.value));
+    if (!Number.isFinite(pct) || pct < 0 || pct >= 100) {
+      toast('Discount must be between 0 and 99', 'error');
+      return;
+    }
+    const confirmMsg =
+      pct === 0
+        ? 'Remove discount from ALL products? Sale price will return to MRP.'
+        : `Apply ${pct}% discount to ALL products? Sale prices will be recalculated from each product’s MRP.`;
+    if (!(await askConfirm(confirmMsg))) return;
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+      const data = await api('/products/bulk-discount', {
+        method: 'POST',
+        body: JSON.stringify({ discountPercent: pct }),
+      });
+      if (!data.ok) {
+        toast(data.error || 'Could not apply bulk discount', 'error');
+        return;
+      }
+      closeBulkDiscountModal();
+      let msg = pct === 0
+        ? `Discount cleared on ${data.updated || 0} product(s)`
+        : `${pct}% applied to ${data.updated || 0} product(s)`;
+      if (data.unchanged) msg += ` · ${data.unchanged} already matched`;
+      if (data.skipped) msg += ` · ${data.skipped} skipped (no price)`;
+      toast(msg);
+      loadProducts();
+    } finally {
+      if (submitBtn) submitBtn.disabled = false;
+    }
+  }
+
+  document.getElementById('products-bulk-discount-btn')?.addEventListener('click', openBulkDiscountModal);
+  document.getElementById('bulk-discount-modal-close')?.addEventListener('click', closeBulkDiscountModal);
+  document.getElementById('bulk-discount-cancel')?.addEventListener('click', closeBulkDiscountModal);
+  document.getElementById('bulk-discount-modal')?.addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeBulkDiscountModal();
+  });
+  document.getElementById('bulk-discount-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    void applyBulkDiscount();
   });
 
   const productsTbody = document.getElementById('products-tbody');

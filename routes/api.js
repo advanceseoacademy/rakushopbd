@@ -496,10 +496,18 @@ router.get('/products/:id/reviews', async (req, res) => {
   }
 });
 
-router.post('/reviews/upload-image', async (req, res) => {
-  if (!req.session?.userId) {
-    return res.status(401).json({ ok: false, error: 'Please log in to upload a review photo' });
-  }
+const rateLimitReviewUpload = createRateLimiter({
+  windowMs: 60_000,
+  max: 12,
+  message: 'Too many photo uploads — please wait a minute',
+});
+const rateLimitReviewSubmit = createRateLimiter({
+  windowMs: 60_000,
+  max: 8,
+  message: 'Too many reviews — please wait a minute',
+});
+
+router.post('/reviews/upload-image', rateLimitReviewUpload, async (req, res) => {
   upload.single('image')(req, res, async (err) => {
     if (err) {
       return res.status(400).json({ ok: false, error: err.message || 'Invalid image upload' });
@@ -525,7 +533,7 @@ function allowUploadPath(url) {
   return null;
 }
 
-router.post('/products/:id/reviews', async (req, res) => {
+router.post('/products/:id/reviews', rateLimitReviewSubmit, async (req, res) => {
   try {
     const productId = Number(req.params.id);
     const rating = Math.min(5, Math.max(1, Number(req.body.rating) || 0));
@@ -536,6 +544,7 @@ router.post('/products/:id/reviews', async (req, res) => {
     let userId = null;
 
     if (!rating) return res.status(400).json({ ok: false, error: 'Rating is required' });
+    if (!comment) return res.status(400).json({ ok: false, error: 'Please write a few words about the product' });
 
     const products = await query('SELECT id FROM products WHERE id = ?', [productId]);
     if (!products.length) return res.status(404).json({ ok: false, error: 'Product not found' });
@@ -755,7 +764,7 @@ router.get('/settings', async (req, res) => {
       settings: {
         site_name: 'RakuShopBD',
         announcement_text: 'Special offer: 10% off on orders over ৳1000 — Code: RakuShopBD10',
-        free_delivery_min: '500',
+        free_delivery_min: '2500',
         delivery_fee: '60',
       },
       maintenance: false,

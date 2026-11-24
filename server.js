@@ -54,11 +54,14 @@ const { ensureSeoSettings } = require('./lib/ensureSeoSettings');
 const { ensureTrackingSettings } = require('./lib/ensureTrackingSettings');
 const { ensureNotifyEmailSettings } = require('./lib/ensureNotifyEmailSettings');
 const { ensureLegalPages } = require('./lib/ensureLegalPages');
+const { ensureFreeDeliveryMin } = require('./lib/ensureFreeDeliveryMin');
 const { ensureCategoryParent } = require('./lib/ensureCategoryParent');
 const { ensureCategoryIconUrl } = require('./lib/ensureCategoryIconUrl');
 const { buildTrackingScripts } = require('./lib/trackingScripts');
 const { buildPageSeo, buildSitemapXml, robotsTxt, getSiteBaseUrl, absoluteUrl, getCategoryBySlug, resolvePageType } = require('./lib/seo');
 const { buildProductPageVm } = require('./lib/productPageSsr');
+const { LEGAL_SLUGS, getLegalPageFromSettings } = require('./lib/legalPages');
+const { getPublishedBlogPost } = require('./lib/blogPosts');
 const pageRenderCache = require('./lib/pageRenderCache');
 const { initRedis, isRedisReady, redisConfigured } = require('./lib/redis');
 const { cacheBackendLabel } = require('./lib/appCache');
@@ -252,6 +255,16 @@ app.get('/api/db-check', requireAdminOrLocal, async (req, res) => {
   }
 });
 
+async function renderNotFound(req, res) {
+  try {
+    const settings = await getSiteSettings(query);
+    const trackingScripts = buildTrackingScripts(settings);
+    return res.status(404).render('404', { pathName: req.originalUrl || req.path, trackingScripts });
+  } catch (_) {
+    return res.status(404).render('404', { pathName: req.originalUrl || req.path, trackingScripts: null });
+  }
+}
+
 async function renderStorefront(req, res) {
   try {
     const productMatch = req.path.match(/^\/product\/([^/]+)$/);
@@ -265,6 +278,7 @@ async function renderStorefront(req, res) {
     const bootstrap = await getStoreBootstrap(req, { lite: pageType !== 'home' });
     let product = null;
     let category = null;
+    let blogPost = null;
 
     if (productRef) {
       try {
@@ -272,6 +286,7 @@ async function renderStorefront(req, res) {
       } catch (err) {
         console.warn('renderStorefront product lookup failed', err.message);
       }
+      if (!product) return renderNotFound(req, res);
     }
 
     if (categorySlug) {
@@ -280,6 +295,16 @@ async function renderStorefront(req, res) {
       } catch (err) {
         console.warn('renderStorefront category lookup failed', err.message);
       }
+      if (!category) return renderNotFound(req, res);
+    }
+
+    if (blogSlug) {
+      try {
+        blogPost = await getPublishedBlogPost(query, blogSlug);
+      } catch (err) {
+        console.warn('renderStorefront blog lookup failed', err.message);
+      }
+      if (!blogPost) return renderNotFound(req, res);
     }
 
     if (product && productRef && isNumericProductRef(productRef) && product.slug) {
@@ -309,6 +334,12 @@ async function renderStorefront(req, res) {
       }
     }
 
+    const isLegalPage = LEGAL_SLUGS.includes(initialPage);
+    const legalPages = {};
+    for (const slug of LEGAL_SLUGS) {
+      legalPages[slug] = getLegalPageFromSettings(slug, bootstrap?.settings || {});
+    }
+
     if (pageType === 'product' || pageType === 'category' || pageType === 'home') {
       res.set('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=86400');
     } else if (['cart', 'checkout', 'account', 'wishlist', 'success'].includes(pageType)) {
@@ -320,7 +351,8 @@ async function renderStorefront(req, res) {
     const trackingScripts = buildTrackingScripts(bootstrap.settings || {});
     let heroSideSlider = bootstrap?.heroSideSlider || null;
     let lcpHeroPreload = null;
-    if (heroSideSlider?.slides?.length) {
+    const includeHomeShell = initialPage === 'home';
+    if (includeHomeShell && heroSideSlider?.slides?.length) {
       heroSideSlider = {
         ...heroSideSlider,
         slides: heroSideSlider.slides.map((slide) => ({
@@ -341,9 +373,11 @@ async function renderStorefront(req, res) {
           type: String(firstAttrs.src).includes('.webp') ? 'image/webp' : '',
         };
       }
+    } else if (!includeHomeShell) {
+      heroSideSlider = null;
     }
     const bootstrapJson = JSON.stringify(bootstrap).replace(/</g, '\\u003c');
-    const homeSsr = initialPage === 'home' && bootstrap?.ok ? buildHomePageSsr(bootstrap) : null;
+    const homeSsr = includeHomeShell && bootstrap?.ok ? buildHomePageSsr(bootstrap) : null;
     const productJson = product
       ? JSON.stringify({ ok: true, product }).replace(/</g, '\\u003c')
       : null;
@@ -354,12 +388,14 @@ async function renderStorefront(req, res) {
       seoJson,
       seo,
       trackingScripts,
-      heroSideSlider,
+      heroSideSlider: includeHomeShell ? heroSideSlider : null,
       lcpHeroPreload,
       homeSsr,
       initialPage,
       productVm,
       blogSlug,
+      legalPages,
+      omitHomeShell: !includeHomeShell && isLegalPage,
     });
   } catch (err) {
     console.error('renderStorefront', err);
@@ -374,6 +410,8 @@ async function renderStorefront(req, res) {
       homeSsr: null,
       initialPage: 'home',
       productVm: null,
+      legalPages: null,
+      omitHomeShell: false,
     });
   }
 }
@@ -552,15 +590,7 @@ app.use((req, res) => {
   // Website 404 (cute page)
   if (req.method === 'GET') {
     // For clean URLs we do NOT render the SPA shell anymore—unknown paths should be 404
-    getSiteSettings(query)
-      .then((settings) => {
-        const trackingScripts = buildTrackingScripts(settings);
-        res.status(404).render('404', { pathName: req.originalUrl || req.path, trackingScripts });
-      })
-      .catch(() => {
-        res.status(404).render('404', { pathName: req.originalUrl || req.path, trackingScripts: null });
-      });
-    return;
+    return renderNotFound(req, res);
   }
 
   res.status(404).send('Page not found');
@@ -598,6 +628,9 @@ async function startServer() {
     if (ok) console.log('Redis connected — shared cache enabled');
     else console.warn('Redis configured but unavailable — using in-memory cache only');
   }
+
+  // Update free-delivery threshold before warming bootstrap cache.
+  await ensureFreeDeliveryMin().catch((err) => console.warn('free delivery min:', err.message));
 
   const httpServer = app.listen(PORT, () => {
   const db = usePostgres() ? 'Supabase (PostgreSQL)' : 'MySQL';

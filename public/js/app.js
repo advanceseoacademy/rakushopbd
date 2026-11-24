@@ -344,6 +344,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
   function showPage(name, opts) {
     if (typeof opts !== 'object' || opts === null) opts = {};
+    // Legal-page SSR omits #page-home to avoid Soft 404; hard-navigate for home.
+    if (name === 'home' && !pages.home) {
+      window.location.assign('/');
+      return;
+    }
     window._rakuVisiblePage = name;
     if (window._rakuCloseMobileCatMenu) window._rakuCloseMobileCatMenu();
 

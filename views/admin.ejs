@@ -250,6 +250,7 @@
                 <i class="ti ti-trash"></i> Delete selected (<span id="products-selected-count">0</span>)
               </button>
               <button type="button" class="btn btn-outline btn-sm" id="products-clear-selection-btn" hidden>Clear</button>
+              <button type="button" class="btn btn-outline btn-sm" id="products-bulk-discount-btn"><i class="ti ti-discount"></i> Bulk discount</button>
               <button type="button" class="btn btn-outline btn-sm" id="products-export-btn"><i class="ti ti-download"></i> Export All</button>
               <button type="button" class="btn btn-primary btn-sm" id="add-product-btn"><i class="ti ti-plus"></i> Add Product</button>
             </div>
@@ -1392,6 +1393,29 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="bulk-discount-modal" aria-hidden="true">
+  <div class="modal-box" role="dialog" aria-labelledby="bulk-discount-title">
+    <div class="modal-box-head">
+      <h3 id="bulk-discount-title">Bulk discount — all products</h3>
+      <button type="button" class="modal-box-close" id="bulk-discount-modal-close" aria-label="Close"><i class="ti ti-x"></i></button>
+    </div>
+    <form id="bulk-discount-form">
+      <p class="form-hint" style="margin:0 0 14px;line-height:1.5;">
+        Enter a discount % (e.g. <strong>20</strong>). Sale price will be recalculated from each product’s MRP
+        (or current price if no MRP). Use <strong>0</strong> to remove discount from all products.
+      </p>
+      <div class="form-group">
+        <label class="form-label" for="bulk-discount-percent">Discount %</label>
+        <input class="form-input" id="bulk-discount-percent" type="number" min="0" max="99" step="1" value="20" required>
+      </div>
+      <div class="modal-form-actions">
+        <button type="submit" class="btn btn-primary" id="bulk-discount-submit"><i class="ti ti-check"></i> Apply to all products</button>
+        <button type="button" class="btn btn-outline" id="bulk-discount-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal-overlay" id="coupon-modal" aria-hidden="true">
   <div class="modal-box" role="dialog" aria-labelledby="coupon-form-title">
     <div class="modal-box-head">
@@ -1668,6 +1692,6 @@
 <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
 <script src="/js/product-description-html.js?v=1"></script>
 <script src="/js/admin-rich-editor.js?v=14"></script>
-<script src="/js/admin.js?v=149"></script>
+<script src="/js/admin.js?v=150"></script>
 </body>
 </html>

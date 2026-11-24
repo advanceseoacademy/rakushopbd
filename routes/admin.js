@@ -75,6 +75,22 @@ function normalizeProductDiscount(price, oldPrice, discountPercent) {
   };
 }
 
+/** Apply discount % using current MRP (old_price if on sale, else current price). */
+function applyDiscountPercentToProduct({ price, oldPrice }, pct) {
+  const currentPrice = Number(price) || 0;
+  const storedOld = Number(oldPrice) || 0;
+  const mrp = storedOld > currentPrice ? storedOld : currentPrice;
+  if (mrp <= 0) return null;
+  if (pct > 0) {
+    return {
+      price: Math.round(mrp * (1 - pct / 100)),
+      oldPrice: mrp,
+      discountPercent: pct,
+    };
+  }
+  return { price: mrp, oldPrice: null, discountPercent: null };
+}
+
 /** Safe COUNT / scalar from first row (Postgres camelCase aliases). */
 async function scalarCount(sql, params = []) {
   const rows = await query(sql, params);
@@ -1212,30 +1228,86 @@ router.patch('/products/:id/discount', requireAdmin, async (req, res) => {
     }
     const rows = await query('SELECT id, price, old_price FROM products WHERE id = ? LIMIT 1', [id]);
     if (!rows[0]) return res.status(404).json({ ok: false, error: 'Product not found' });
-    const currentPrice = Number(rows[0].price) || 0;
-    const storedOld = Number(rows[0].old_price) || 0;
-    const mrp = storedOld > currentPrice ? storedOld : currentPrice;
-    if (mrp <= 0) return res.status(400).json({ ok: false, error: 'Set a sale price first' });
+    const next = applyDiscountPercentToProduct(
+      { price: rows[0].price, oldPrice: rows[0].old_price },
+      pct
+    );
+    if (!next) return res.status(400).json({ ok: false, error: 'Set a sale price first' });
 
-    let price = mrp;
-    let oldPrice = null;
-    let discountPercent = null;
-    if (pct > 0) {
-      price = Math.round(mrp * (1 - pct / 100));
-      oldPrice = mrp;
-      discountPercent = pct;
-    }
     await query('UPDATE products SET price = ?, old_price = ?, discount_percent = ? WHERE id = ?', [
-      price,
-      oldPrice,
-      discountPercent,
+      next.price,
+      next.oldPrice,
+      next.discountPercent,
       id,
     ]);
     clearStoreBootstrapCache();
-    res.json({ ok: true, price, oldPrice, discountPercent });
+    res.json({
+      ok: true,
+      price: next.price,
+      oldPrice: next.oldPrice,
+      discountPercent: next.discountPercent,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: 'Could not update discount' });
+  }
+});
+
+router.post('/products/bulk-discount', requireAdmin, async (req, res) => {
+  try {
+    const raw = req.body?.discountPercent;
+    const pct = raw === null || raw === undefined || raw === '' ? 0 : Math.round(Number(raw));
+    if (!Number.isFinite(pct) || pct < 0 || pct >= 100) {
+      return res.status(400).json({ ok: false, error: 'Discount must be between 0 and 99' });
+    }
+
+    const rows = await query('SELECT id, price, old_price, discount_percent FROM products');
+    let updated = 0;
+    let skipped = 0;
+    let unchanged = 0;
+
+    for (const row of rows) {
+      const next = applyDiscountPercentToProduct(
+        { price: row.price, oldPrice: row.old_price },
+        pct
+      );
+      if (!next) {
+        skipped += 1;
+        continue;
+      }
+      const prevPct = row.discount_percent == null || row.discount_percent === ''
+        ? null
+        : Math.round(Number(row.discount_percent));
+      const prevOld = row.old_price == null || row.old_price === '' ? null : Number(row.old_price);
+      if (
+        Number(row.price) === next.price &&
+        (prevOld || null) === (next.oldPrice || null) &&
+        (prevPct || null) === (next.discountPercent || null)
+      ) {
+        unchanged += 1;
+        continue;
+      }
+      await query('UPDATE products SET price = ?, old_price = ?, discount_percent = ? WHERE id = ?', [
+        next.price,
+        next.oldPrice,
+        next.discountPercent,
+        row.id,
+      ]);
+      updated += 1;
+    }
+
+    clearStoreBootstrapCache();
+    res.json({
+      ok: true,
+      discountPercent: pct,
+      updated,
+      skipped,
+      unchanged,
+      total: rows.length,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: 'Could not apply bulk discount' });
   }
 });
 

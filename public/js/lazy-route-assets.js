@@ -70,23 +70,23 @@
       css: ['/css/pages.css?v=10'],
     },
     privacy: {
-      js: ['/js/legal-pages.js?v=5'],
+      js: ['/js/legal-pages.js?v=6'],
       css: ['/css/pages.css?v=10'],
     },
     terms: {
-      js: ['/js/legal-pages.js?v=5'],
+      js: ['/js/legal-pages.js?v=6'],
       css: ['/css/pages.css?v=10'],
     },
     return: {
-      js: ['/js/legal-pages.js?v=5'],
+      js: ['/js/legal-pages.js?v=6'],
       css: ['/css/pages.css?v=10'],
     },
     preorder: {
-      js: ['/js/legal-pages.js?v=5'],
+      js: ['/js/legal-pages.js?v=6'],
       css: ['/css/pages.css?v=10'],
     },
     points: {
-      js: ['/js/legal-pages.js?v=5'],
+      js: ['/js/legal-pages.js?v=6'],
       css: ['/css/pages.css?v=10'],
     },
     cart: {
@@ -99,7 +99,7 @@
       css: ['/css/checkout-modal.css?v=18'],
     },
     product: {
-      css: ['/css/reviews.css?v=7'],
+      css: ['/css/reviews.css?v=8'],
     },
   };
 

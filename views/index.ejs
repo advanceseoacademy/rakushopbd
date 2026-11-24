@@ -52,8 +52,8 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <noscript><link rel="stylesheet" href="/css/home-marketing.css?v=8"></noscript>
 <link rel="stylesheet" href="/css/popup-themes.css?v=1" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/popup-themes.css?v=1"></noscript>
-<link rel="stylesheet" href="/css/home-today-deals.css?v=5" media="print" onload="this.media='all'">
-<noscript><link rel="stylesheet" href="/css/home-today-deals.css?v=5"></noscript>
+<link rel="stylesheet" href="/css/home-today-deals.css?v=6" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="/css/home-today-deals.css?v=6"></noscript>
 <link rel="stylesheet" href="/css/home-blog.css?v=6" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="/css/home-blog.css?v=6"></noscript>
 <% const _pagesCssPages = ['faq', 'blog', 'about', 'contact', 'track', 'privacy', 'terms', 'return', 'preorder', 'points', 'appointment']; %>
@@ -80,6 +80,8 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <!-- PAGE CONTENT START -->
 <% const _pv = typeof productVm !== 'undefined' ? productVm : null; %>
 <% const _homeSsr = typeof homeSsr !== 'undefined' && homeSsr ? homeSsr : null; %>
+<% const _omitHome = typeof omitHomeShell !== 'undefined' && omitHomeShell; %>
+<% if (!_omitHome) { %>
 <div id="page-home" style="display:<%= _initialPage === 'home' ? 'block' : 'none' %>;">
 <main class="main">
 
@@ -146,7 +148,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
  <section class="home-today-deals raku-below-fold" id="section-today-deals" hidden>
   <div class="section-header today-deals-header">
    <div class="today-deals-header-left">
-    <h2 class="section-title" id="today-deals-title">Today Deals</h2>
+    <h2 class="section-title" id="today-deals-title">Hot Deals</h2>
     <div class="today-deals-countdown" id="today-deals-countdown" hidden></div>
    </div>
    <a href="#" class="today-deals-view-all" id="see-all-today-deals">View All</a>
@@ -321,6 +323,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 </main>
 
 </div><!-- /page-home -->
+<% } %>
 
 <!-- ===================================================
  CATEGORY LISTING PAGE
@@ -732,8 +735,17 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
  <textarea id="review-comment" rows="4" placeholder="What did you like? How was delivery and quality?"></textarea>
  </div>
  <div class="reviews-write-field" id="review-photo-field">
- <label for="review-photo">Photo <span style="font-weight:500;color:var(--text-light);">(optional — +10 bonus points)</span></label>
- <input type="file" id="review-photo" accept="image/jpeg,image/png,image/webp,image/gif">
+ <label for="review-photo">Photo <span class="reviews-optional-tag">(optional)</span></label>
+ <label class="reviews-photo-drop" for="review-photo" id="review-photo-drop">
+ <input type="file" id="review-photo" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+ <span class="reviews-photo-drop-icon" aria-hidden="true"><i class="ti ti-photo"></i></span>
+ <span class="reviews-photo-drop-title" id="review-photo-label">Add a product photo</span>
+ <span class="reviews-photo-drop-sub">JPG, PNG or WebP · optional</span>
+ </label>
+ <div class="reviews-photo-preview" id="review-photo-preview" hidden>
+ <img alt="Selected review photo preview">
+ <button type="button" class="reviews-photo-clear" id="review-photo-clear" aria-label="Remove photo"><i class="ti ti-x"></i></button>
+ </div>
  </div>
  <button type="button" class="reviews-submit-btn" id="btn-submit-review">
  <i class="ti ti-send"></i> Submit Review
@@ -961,7 +973,7 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
  </button>
  </div>
  <div class="cart-empty-perks">
- <div class="cart-empty-perk"><i class="ti ti-truck-delivery"></i><span>Free delivery over ৳500</span></div>
+ <div class="cart-empty-perk"><i class="ti ti-truck-delivery"></i><span>Free delivery over ৳2,500</span></div>
  <div class="cart-empty-perk"><i class="ti ti-shield-check"></i><span>Secure checkout</span></div>
  <div class="cart-empty-perk"><i class="ti ti-rotate-2"></i><span>Easy returns</span></div>
  </div>
@@ -982,10 +994,6 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
  <div class="c-summary-row">
  <span class="c-summary-label">Items total</span>
  <span class="c-summary-val summary-subtotal">৳0</span>
- </div>
- <div class="c-summary-row">
- <span class="c-summary-label">Delivery fee</span>
- <span class="c-summary-free summary-delivery">Free</span>
  </div>
 
  <div class="c-total-row">
@@ -2028,13 +2036,13 @@ html.account-auth-pending #page-account .acc-user-only { display: none !importan
 <script src="/js/seo.js?v=10" defer></script>
 <script src="/js/mobile-menu.js?v=2" defer></script>
 <script src="/js/store-url.js?v=1" defer></script>
-<script src="/js/app.js?v=52" defer></script>
+<script src="/js/app.js?v=53" defer></script>
 <script src="/js/header-scroll.js?v=5" defer></script>
 <script src="/js/home-hero-slider.js?v=11" defer></script>
-<script src="/js/home-today-deals.js?v=6" defer></script>
+<script src="/js/home-today-deals.js?v=7" defer></script>
 <script src="/js/image-delivery.js?v=3" defer></script>
 <script src="/js/storefront-dynamic.js?v=67" defer></script>
-<script src="/js/api.js?v=153" defer></script>
+<script src="/js/api.js?v=157" defer></script>
 <script src="/js/footer-settings.js?v=16" defer></script>
 <script src="/js/search.js?v=11" defer></script>
 <script>
